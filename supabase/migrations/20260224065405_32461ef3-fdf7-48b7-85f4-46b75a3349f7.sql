@@ -1,0 +1,1 @@
+ALTER TABLE public.financeiro ALTER COLUMN data_compra DROP NOT NULL, ALTER COLUMN data_compra DROP DEFAULT;

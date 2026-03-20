@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_clientes ADD COLUMN deposito_pendente numeric NOT NULL DEFAULT 0;

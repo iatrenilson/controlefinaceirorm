@@ -1,0 +1,1 @@
+ALTER TABLE public.financeiro ADD COLUMN data_compra date NOT NULL DEFAULT CURRENT_DATE;

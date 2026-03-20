@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_clientes ADD COLUMN data_deposito timestamp with time zone DEFAULT NULL;

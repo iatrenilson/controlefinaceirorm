@@ -1,0 +1,2 @@
+UPDATE email_send_state SET retry_after_until = NULL, updated_at = now() WHERE id = 1;
+SELECT pgmq.purge_queue('transactional_emails');

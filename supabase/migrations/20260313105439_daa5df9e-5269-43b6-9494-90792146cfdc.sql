@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_transacoes ADD COLUMN IF NOT EXISTS banco_destino text DEFAULT NULL;

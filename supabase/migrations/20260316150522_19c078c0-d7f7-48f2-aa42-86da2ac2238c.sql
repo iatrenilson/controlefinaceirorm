@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_clientes ADD COLUMN informacoes_adicionais text DEFAULT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_share_links ADD COLUMN nick text;

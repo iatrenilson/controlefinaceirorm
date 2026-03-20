@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_clientes ADD COLUMN banco_deposito text DEFAULT 'santander';

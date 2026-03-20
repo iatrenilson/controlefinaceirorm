@@ -1,0 +1,1 @@
+ALTER TABLE public.delay_clientes ADD COLUMN created_by_token uuid REFERENCES public.delay_share_links(id) DEFAULT NULL;

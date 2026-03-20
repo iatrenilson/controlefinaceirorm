@@ -1,0 +1,19 @@
+project_id = "ltjtgbcjcaesuqrvoqnk"
+
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.check-password]
+    verify_jwt = false
+  [functions.delay-add-client]
+    verify_jwt = false
+  [functions.delete-user]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = false
+  [functions.send-notification-email]
+    verify_jwt = false
+  [functions.improve-text]
+    verify_jwt = false
+  [functions.delay-viewer]
+    verify_jwt = false
