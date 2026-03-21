@@ -9,20 +9,19 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldAlert } from "lucide-react";
 import rwLogo from "@/assets/rw-logo.png";
-import { checkLeakedPassword } from "@/lib/check-leaked-password";
 
 const getAuthErrorMessage = (error: { message?: string } | null | undefined) => {
   const message = error?.message?.toLowerCase() ?? "";
 
   if (message.includes("invalid login credentials")) {
-    return "E-mail ou senha invÃ¡lidos.";
+    return "E-mail ou senha invÃƒÂ¡lidos.";
   }
 
   if (message.includes("email not confirmed")) {
     return "Confirme seu e-mail antes de entrar.";
   }
 
-  return error?.message || "NÃ£o foi possÃ­vel concluir o acesso agora.";
+  return error?.message || "NÃƒÂ£o foi possÃƒÂ­vel concluir o acesso agora.";
 };
 
 const Auth = () => {
@@ -32,8 +31,6 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const [leakedWarning, setLeakedWarning] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +40,7 @@ const Auth = () => {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
+      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha.", });
       setIsForgot(false);
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -69,7 +66,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefinição"}
+                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
@@ -98,7 +95,6 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setLeakedWarning(null);
 
     if (!email || !password) {
       toast({ title: "Erro", description: "Por favor, preencha seu e-mail e senha.", variant: "destructive" });
@@ -107,29 +103,11 @@ const Auth = () => {
     }
 
     try {
-      // Check for leaked password on signup
-      if (!isLogin) {
-        const result = await checkLeakedPassword(password);
-        if (result.leaked) {
-          setLeakedWarning(
-            "Esta senha apareceu em " + result.count.toLocaleString("pt-BR") + " vazamentos de dados. Escolha uma senha mais segura."
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-          },
-        });
+        const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
         if (error) throw error;
         toast({
           title: "Conta criada!",
@@ -137,18 +115,11 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      // Only show leaked password warning if it's a signup attempt and the error is not related to credentials
-      if (!isLogin && error?.message.includes("password is too weak")) {
-         setLeakedWarning(
-            "Esta senha apareceu em " + error.details.toLocaleString("pt-BR") + " vazamentos de dados. Escolha uma senha mais segura."
-          );
-      } else {
-        toast({
-          title: "Erro",
-          description: getAuthErrorMessage(error),
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Erro",
+        description: getAuthErrorMessage(error),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -171,14 +142,8 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLeakedWarning(null); }} required placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" minLength={6} />
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" minLength={6} />
             </div>
-            {leakedWarning && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>{leakedWarning}</span>
-              </div>
-            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Verificando..." : isLogin ? "Entrar" : "Cadastrar"}
             </Button>
@@ -198,9 +163,9 @@ const Auth = () => {
             {loadingGoogle ? "Aguarde..." : "Entrar com Google"}
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "NÃ£o tem conta?" : "JÃ¡ tem conta?"}{" "}
+            {isLogin ? "NÃƒÂ£o tem conta?" : "JÃƒÂ¡ tem conta?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary underline">
-              {isLogin ? "Cadastre-se" : "FaÃ§a login"}
+              {isLogin ? "Cadastre-se" : "FaÃƒÂ§a login"}
             </button>
           </p>
         </CardContent>
