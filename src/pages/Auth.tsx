@@ -15,14 +15,14 @@ const getAuthErrorMessage = (error: { message?: string } | null | undefined) => 
   const message = error?.message?.toLowerCase() ?? "";
 
   if (message.includes("invalid login credentials")) {
-    return "E-mail ou senha invÃ¡lidos.";
+    return "E-mail ou senha inválidos.";
   }
 
   if (message.includes("email not confirmed")) {
     return "Confirme seu e-mail antes de entrar.";
   }
 
-  return error?.message || "NÃ£o foi possÃ­vel concluir o acesso agora.";
+  return error?.message || "Não foi possível concluir o acesso agora.";
 };
 
 const Auth = () => {
@@ -69,7 +69,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
+                {loading ? "Aguarde..." : "Enviar link de redefinição"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
@@ -185,9 +185,9 @@ const Auth = () => {
             {loadingGoogle ? "Aguarde..." : "Entrar com Google"}
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "NÃ£o tem conta?" : "JÃ¡ tem conta?"}{" "}
+            {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary underline">
-              {isLogin ? "Cadastre-se" : "FaÃ§a login"}
+              {isLogin ? "Cadastre-se" : "Faça login"}
             </button>
           </p>
         </CardContent>
