@@ -58,7 +58,9 @@ function App() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/adicionar-cliente" element={<DelayAddClient />} />
           <Route path="/adicionar-cliente/:token" element={<DelayAddClient />} />
+          <Route path="/visualizar-delay" element={<DelayViewer />} />
           <Route path="/visualizar-delay/:token" element={<DelayViewer />} />
 
           <Route
@@ -95,6 +97,14 @@ function App() {
           />
           <Route
             path="/delay"
+            element={
+              <ProtectedRoute>
+                <AppLayout><DelayEsportivo /></AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/delay-esportivo"
             element={
               <ProtectedRoute>
                 <AppLayout><DelayEsportivo /></AppLayout>

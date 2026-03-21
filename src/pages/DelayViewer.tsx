@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,8 +54,9 @@ type DelayViewerResponse = {
 };
 
 const DelayViewer = () => {
+  const { token: routeToken } = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const token = routeToken ?? searchParams.get("token");
   const { toast } = useToast();
 
   const [clientes, setClientes] = useState<ClienteViewer[]>([]);
