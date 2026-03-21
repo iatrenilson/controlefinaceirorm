@@ -69,7 +69,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
+                {loading ? "Aguarde..." : "Enviar link de redefinição"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
@@ -137,11 +137,18 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: getAuthErrorMessage(error),
-        variant: "destructive",
-      });
+      // Only show leaked password warning if it's a signup attempt and the error is not related to credentials
+      if (!isLogin && error?.message.includes("password is too weak")) {
+         setLeakedWarning(
+            "Esta senha apareceu em " + error.details.toLocaleString("pt-BR") + " vazamentos de dados. Escolha uma senha mais segura."
+          );
+      } else {
+        toast({
+          title: "Erro",
+          description: getAuthErrorMessage(error),
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
