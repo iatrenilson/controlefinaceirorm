@@ -389,14 +389,6 @@ const Index = () => {
 
   const getParcelasRestantes = (t: Transacao) => {
     if (!t.parcelas || !t.parcelaAtual) return null;
-    // Se pagou neste mês, mostra parcela anterior (parcelaAtual + 1) até virar o mês
-    if (t.ultimoPagamento) {
-      const pagamento = parseISO(t.ultimoPagamento);
-      const agora = new Date();
-      if (pagamento.getFullYear() === agora.getFullYear() && pagamento.getMonth() === agora.getMonth()) {
-        return t.parcelaAtual + 1; // mostra valor anterior até virar o mês
-      }
-    }
     return t.parcelaAtual;
   };
 
