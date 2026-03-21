@@ -19,9 +19,9 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Controle Financeiro", url: "/financeiro", icon: Receipt },
-  { title: "Clientes Empréstimos", url: "/emprestimos", icon: Landmark },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Controle Mensal", url: "/financeiro", icon: Receipt },
+  { title: "Clientes EmprÃ©stimos", url: "/emprestimos", icon: Landmark },
+  { title: "RelatÃ³rios", url: "/relatorios", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
@@ -50,10 +50,10 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Configurações">
+              <SidebarMenuButton asChild tooltip="ConfiguraÃ§Ãµes">
                 <NavLink to="/configuracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                   <Settings className="h-4 w-4" />
-                  <span>Configurações</span>
+                  <span>ConfiguraÃ§Ãµes</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -85,7 +85,7 @@ export function AppSidebar() {
         {/* Admin / Moderator Nav */}
         {roleLoading ? (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Administração</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃ§Ã£o</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem><Skeleton className="h-8 w-full rounded-md" /></SidebarMenuItem>
@@ -95,7 +95,7 @@ export function AppSidebar() {
           </SidebarGroup>
         ) : showDelaySection ? (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Administração</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃ§Ã£o</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {isAdmin && (
