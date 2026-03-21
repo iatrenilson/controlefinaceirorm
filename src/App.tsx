@@ -5,7 +5,7 @@ import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { NotificationBell } from "@/components/NotificationBell";
+import NotificationBell from "@/components/NotificationBell";
 
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";

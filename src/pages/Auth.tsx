@@ -185,9 +185,9 @@ const Auth = () => {
             {loadingGoogle ? "Aguarde..." : "Entrar com Google"}
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "NÃ£o tem conta?" : "JÃ¡ tem conta?"}{" "}
+            {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary underline">
-              {isLogin ? "Cadastre-se" : "FaÃ§a login"}
+              {isLogin ? "Cadastre-se" : "Faça login"}
             </button>
           </p>
         </CardContent>
