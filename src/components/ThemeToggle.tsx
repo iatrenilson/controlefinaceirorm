@@ -5,16 +5,14 @@ import { Button } from "@/components/ui/button";
 export function ThemeToggle() {
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("theme");
-      if (saved) return saved === "dark";
-      return true; // dark by default
+      return true; // always dark
     }
     return true;
   });
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("theme", dark ? "dark" : "light");
+    // Ensure dark mode is always applied
+    document.documentElement.classList.add("dark");
   }, [dark]);
 
   return (
