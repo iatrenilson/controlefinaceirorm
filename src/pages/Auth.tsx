@@ -69,7 +69,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
+                {loading ? "Aguarde..." : "Enviar link de redefinição"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
