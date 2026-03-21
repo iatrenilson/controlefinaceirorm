@@ -5,6 +5,7 @@ import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { NotificationBell } from "@/components/NotificationBell";
 
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -45,7 +46,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto flex flex-col">
+          <div className="flex justify-end items-center p-4 border-b">
+            <NotificationBell />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+            {children}
+          </div>
+        </main>
       </div>
     </SidebarProvider>
   );
