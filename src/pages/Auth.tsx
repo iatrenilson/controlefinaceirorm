@@ -15,14 +15,14 @@ const getAuthErrorMessage = (error: { message?: string } | null | undefined) => 
   const message = error?.message?.toLowerCase() ?? "";
 
   if (message.includes("invalid login credentials")) {
-    return "E-mail ou senha inválidos.";
+    return "E-mail ou senha invÃ¡lidos.";
   }
 
   if (message.includes("email not confirmed")) {
     return "Confirme seu e-mail antes de entrar.";
   }
 
-  return error?.message || "Não foi possível concluir o acesso agora.";
+  return error?.message || "NÃ£o foi possÃ­vel concluir o acesso agora.";
 };
 
 const Auth = () => {
@@ -69,7 +69,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefinição"}
+                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
@@ -158,7 +158,7 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLeakedWarning(null); }} required placeholder="••••••••" minLength={6} />
+              <Input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLeakedWarning(null); }} required placeholder="•••••••••" minLength={6} />
             </div>
             {leakedWarning && (
               <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
@@ -185,9 +185,9 @@ const Auth = () => {
             {loadingGoogle ? "Aguarde..." : "Entrar com Google"}
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
+            {isLogin ? "NÃ£o tem conta?" : "JÃ¡ tem conta?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary underline">
-              {isLogin ? "Cadastre-se" : "Faça login"}
+              {isLogin ? "Cadastre-se" : "FaÃ§a login"}
             </button>
           </p>
         </CardContent>
