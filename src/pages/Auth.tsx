@@ -22,7 +22,7 @@ const getAuthErrorMessage = (error: { message?: string } | null | undefined) => 
     return "Confirme seu e-mail antes de entrar.";
   }
 
-  return error?.message || "NÃ£o foi possÃ­vel concluir o acesso agora.";
+  return error?.message || "Não foi possível concluir o acesso agora.";
 };
 
 const Auth = () => {
