@@ -280,21 +280,33 @@ const Index = () => {
     const t = transacoes.find((t) => t.id === id);
     if (!t) return;
 
-    // Se tem parcelas, diminui a parcela atual
+    // Se tem parcelas, diminui a parcela atual e avança vencimento em 1 mês
     if (t.parcelaAtual && t.parcelaAtual > 1) {
+      const novaDataVencimento = t.dataVencimento
+        ? format(
+            new Date(parseISO(t.dataVencimento).getFullYear(), parseISO(t.dataVencimento).getMonth() + 1, parseISO(t.dataVencimento).getDate()),
+            "yyyy-MM-dd"
+          )
+        : undefined;
+
+      const updateData: Record<string, unknown> = {
+        parcela_atual: t.parcelaAtual - 1,
+        ultimo_pagamento: format(new Date(), "yyyy-MM-dd"),
+      };
+      if (novaDataVencimento) {
+        updateData.data_vencimento = novaDataVencimento;
+      }
+
       const { error } = await supabase
         .from("financeiro")
-        .update({ 
-          parcela_atual: t.parcelaAtual - 1,
-          ultimo_pagamento: format(new Date(), "yyyy-MM-dd"),
-        })
+        .update(updateData)
         .eq("id", id);
       if (error) {
         toast.error("Erro ao confirmar pagamento");
         return;
       }
       fetchTransacoes();
-      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s). Atualiza no próximo mês.`);
+      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s).`);
     } else {
       const { error } = await supabase.from("financeiro").update({ status: "paga" }).eq("id", id);
       if (error) {
