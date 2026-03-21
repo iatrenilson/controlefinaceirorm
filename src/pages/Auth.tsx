@@ -70,12 +70,21 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}`,
+          skipBrowserRedirect: true,
+        },
       });
       if (error) throw error;
+      if (!data?.url) throw new Error("Google OAuth não está configurado. Use email e senha.");
+      window.location.href = data.url;
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      const msg = error.message?.includes("provider is not enabled") || error.message?.includes("OAuth")
+        ? "Login com Google não está disponível. Use seu email e senha."
+        : error.message;
+      toast({ title: "Login com Google indisponível", description: msg, variant: "destructive" });
     } finally {
       setLoadingGoogle(false);
     }
@@ -111,9 +120,17 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
+      let description = error.message;
+      if (description?.includes("Email not confirmed")) {
+        description = "E-mail não confirmado. Verifique sua caixa de entrada ou tente novamente.";
+      } else if (description?.includes("Invalid login credentials")) {
+        description = "E-mail ou senha incorretos.";
+      } else if (description?.includes("User not found")) {
+        description = "Usuário não encontrado. Verifique o e-mail digitado.";
+      }
       toast({
-        title: "Erro",
-        description: error.message,
+        title: "Erro ao entrar",
+        description,
         variant: "destructive",
       });
     } finally {

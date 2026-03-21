@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, parseISO, isPast, differenceInMonths } from "date-fns";
+import { format, parseISO, isPast, differenceInMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -280,28 +280,71 @@ const Index = () => {
     const t = transacoes.find((t) => t.id === id);
     if (!t) return;
 
-    // Se tem parcelas, diminui a parcela atual
-    if (t.parcelaAtual && t.parcelaAtual > 1) {
+    const hoje = format(new Date(), "yyyy-MM-dd");
+
+    if (t.parcelas && t.parcelaAtual && t.parcelaAtual > 1) {
+      // Parcelas restantes > 1: decrementa e avança vencimento
+      const proximoVencimento = addMonths(parseISO(t.dataVencimento), 1);
+      const novaParcelaAtual = t.parcelaAtual - 1;
+      const novoVencimento = format(proximoVencimento, "yyyy-MM-dd");
+
+      // Atualiza estado local imediatamente — sem fetchTransacoes para não reverter
+      setTransacoes(prev => prev.map(item =>
+        item.id === id
+          ? { ...item, parcelaAtual: novaParcelaAtual, dataVencimento: novoVencimento, ultimoPagamento: hoje }
+          : item
+      ));
+
       const { error } = await supabase
         .from("financeiro")
-        .update({ 
-          parcela_atual: t.parcelaAtual - 1,
-          ultimo_pagamento: format(new Date(), "yyyy-MM-dd"),
+        .update({
+          parcela_atual: novaParcelaAtual,
+          data_vencimento: novoVencimento,
+          ultimo_pagamento: hoje,
         })
         .eq("id", id);
+
       if (error) {
         toast.error("Erro ao confirmar pagamento");
+        fetchTransacoes(); // reverte apenas em caso de erro
         return;
       }
-      fetchTransacoes();
-      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s). Atualiza no próximo mês.`);
+      toast.success(`Parcela paga! Restam ${novaParcelaAtual} de ${t.parcelas} parcela(s). Próximo vencimento: ${format(proximoVencimento, "dd/MM/yyyy")}.`);
+
+    } else if (t.parcelas && t.parcelaAtual === 1) {
+      // Última parcela — marca como paga
+      setTransacoes(prev => prev.map(item =>
+        item.id === id
+          ? { ...item, parcelaAtual: 0, status: "paga", ultimoPagamento: hoje }
+          : item
+      ));
+
+      const { error } = await supabase.from("financeiro").update({
+        parcela_atual: 0,
+        status: "paga",
+        ultimo_pagamento: hoje,
+      }).eq("id", id);
+
+      if (error) {
+        toast.error("Erro ao confirmar pagamento");
+        fetchTransacoes();
+        return;
+      }
+      toast.success("Última parcela paga! Transação quitada.");
+
     } else {
-      const { error } = await supabase.from("financeiro").update({ status: "paga" }).eq("id", id);
+      // Sem parcelas — marca como paga diretamente
+      setTransacoes(prev => prev.map(item =>
+        item.id === id ? { ...item, status: "paga", ultimoPagamento: hoje } : item
+      ));
+
+      const { error } = await supabase.from("financeiro").update({ status: "paga", ultimo_pagamento: hoje }).eq("id", id);
+
       if (error) {
         toast.error("Erro ao confirmar pagamento");
+        fetchTransacoes();
         return;
       }
-      fetchTransacoes();
       toast.success("Pagamento confirmado!");
     }
   };
@@ -376,15 +419,7 @@ const Index = () => {
   }
 
   const getParcelasRestantes = (t: Transacao) => {
-    if (!t.parcelas || !t.parcelaAtual) return null;
-    // Se pagou neste mês, mostra parcela anterior (parcelaAtual + 1) até virar o mês
-    if (t.ultimoPagamento) {
-      const pagamento = parseISO(t.ultimoPagamento);
-      const agora = new Date();
-      if (pagamento.getFullYear() === agora.getFullYear() && pagamento.getMonth() === agora.getMonth()) {
-        return t.parcelaAtual + 1; // mostra valor anterior até virar o mês
-      }
-    }
+    if (!t.parcelas || t.parcelaAtual == null) return null;
     return t.parcelaAtual;
   };
 
