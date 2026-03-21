@@ -15,7 +15,7 @@ const getAuthErrorMessage = (error: { message?: string } | null | undefined) => 
   const message = error?.message?.toLowerCase() ?? "";
 
   if (message.includes("invalid login credentials")) {
-    return "E-mail ou senha invÃ¡lidos.";
+    return "E-mail ou senha inválidos.";
   }
 
   if (message.includes("email not confirmed")) {
