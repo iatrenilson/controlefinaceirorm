@@ -119,7 +119,7 @@ const Admin = () => {
     setUserRoles(rolesMap);
   };
 
-  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user") => {
+  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user" | "restrito") => {
     // Remove all existing roles for this user
     const { error: deleteError } = await supabase
       .from("user_roles")
@@ -135,7 +135,7 @@ const Admin = () => {
     if (newRole !== "user") {
       const { error: insertError } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role: newRole });
+        .insert({ user_id: userId, role: newRole as any });
 
       if (insertError) {
         toast({ title: "Erro ao definir papel", description: getSafeErrorMessage(insertError), variant: "destructive" });
@@ -143,7 +143,7 @@ const Admin = () => {
       }
     }
 
-    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : "Usuário";
+    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : newRole === "restrito" ? "Restrito" : "Usuário";
     toast({ title: `Papel alterado para ${label} com sucesso` });
     fetchUserRoles();
   };
@@ -535,6 +535,7 @@ const Admin = () => {
                         const roles = userRoles[p.user_id] || [];
                         const isUserAdmin = roles.includes("admin");
                         const isUserMod = roles.includes("moderator");
+                        const isUserRestricted = roles.includes("restrito");
                         return (
                           <TableRow key={p.user_id}>
                             <TableCell className="font-medium">{p.nome || "—"}</TableCell>
@@ -552,6 +553,8 @@ const Admin = () => {
                                   <Badge className="text-xs bg-primary/20 text-primary border-primary/30">Admin</Badge>
                                 ) : isUserMod ? (
                                   <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Moderador</Badge>
+                                ) : isUserRestricted ? (
+                                  <Badge className="text-xs bg-destructive/20 text-destructive border-destructive/30">Restrito</Badge>
                                 ) : (
                                   <Badge variant="outline" className="text-xs">Usuário</Badge>
                                 )}
@@ -560,8 +563,8 @@ const Admin = () => {
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <Select
-                                  value={isUserAdmin ? "admin" : isUserMod ? "moderator" : "user"}
-                                  onValueChange={(v) => handleChangeRole(p.user_id, v as "admin" | "moderator" | "user")}
+                                  value={isUserAdmin ? "admin" : isUserMod ? "moderator" : isUserRestricted ? "restrito" : "user"}
+                                  onValueChange={(v) => handleChangeRole(p.user_id, v as "admin" | "moderator" | "user" | "restrito")}
                                 >
                                   <SelectTrigger className="h-7 w-[130px] text-xs">
                                     <SelectValue />
@@ -570,6 +573,7 @@ const Admin = () => {
                                     <SelectItem value="user">Usuário</SelectItem>
                                     <SelectItem value="moderator">Moderador</SelectItem>
                                     <SelectItem value="admin">Administrador</SelectItem>
+                                    <SelectItem value="restrito">Restrito</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditProfile(p)} title="Editar">

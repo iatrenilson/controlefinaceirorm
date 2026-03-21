@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -25,7 +25,7 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { isAdmin, isModerator, isRestricted, loading: roleLoading } = useUserRole();
   const { signOut } = useAuth();
 
   const showDelaySection = isAdmin || isModerator;
@@ -43,18 +43,34 @@ export function AppSidebar() {
           <SidebarMenu className="flex-1">
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Meu Perfil">
-                <NavLink to="/perfil" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                  <User className="h-4 w-4" />
-                  <span>Meu Perfil</span>
-                </NavLink>
+                {isRestricted ? (
+                  <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5">
+                    <User className="h-4 w-4" />
+                    <span>Meu Perfil</span>
+                    <Lock className="h-3 w-3 ml-auto text-muted-foreground" />
+                  </div>
+                ) : (
+                  <NavLink to="/perfil" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                    <User className="h-4 w-4" />
+                    <span>Meu Perfil</span>
+                  </NavLink>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Configurações">
-                <NavLink to="/configuracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                  <Settings className="h-4 w-4" />
-                  <span>Configurações</span>
-                </NavLink>
+                {isRestricted ? (
+                  <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5">
+                    <Settings className="h-4 w-4" />
+                    <span>Configurações</span>
+                    <Lock className="h-3 w-3 ml-auto text-muted-foreground" />
+                  </div>
+                ) : (
+                  <NavLink to="/configuracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                    <Settings className="h-4 w-4" />
+                    <span>Configurações</span>
+                  </NavLink>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -71,10 +87,18 @@ export function AppSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <NavLink to={item.url} end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                      <item.icon className="h-[18px] w-[18px]" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                    {isRestricted ? (
+                      <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5">
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span>{item.title}</span>
+                        <Lock className="h-3 w-3 ml-auto text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <NavLink to={item.url} end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -93,7 +117,7 @@ export function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        ) : showDelaySection ? (
+        ) : showDelaySection && !isRestricted ? (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Administração</SidebarGroupLabel>
             <SidebarGroupContent>

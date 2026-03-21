@@ -1,11 +1,13 @@
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import NotificationBell from "@/components/NotificationBell";
+import { Lock } from "lucide-react";
 
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -41,7 +43,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RestrictedOverlay() {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center space-y-4 p-8">
+        <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <Lock className="h-8 w-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
+        <p className="text-muted-foreground max-w-md">
+          Sua conta está com acesso restrito. Entre em contato com o administrador para liberar o acesso.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const { isRestricted, loading } = useUserRole();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -51,7 +71,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <NotificationBell />
           </div>
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-            {children}
+            {!loading && isRestricted ? <RestrictedOverlay /> : children}
           </div>
         </main>
       </div>
