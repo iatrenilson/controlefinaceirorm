@@ -12,8 +12,14 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error && error.message?.includes("Refresh Token Not Found")) {
+        // Clear stale session
+        supabase.auth.signOut();
+        setUser(null);
+      } else {
+        setUser(session?.user ?? null);
+      }
       setLoading(false);
     });
 
