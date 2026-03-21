@@ -119,7 +119,7 @@ const Admin = () => {
     setUserRoles(rolesMap);
   };
 
-  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user") => {
+  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user" | "restrito") => {
     // Remove all existing roles for this user
     const { error: deleteError } = await supabase
       .from("user_roles")
@@ -135,7 +135,7 @@ const Admin = () => {
     if (newRole !== "user") {
       const { error: insertError } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role: newRole });
+        .insert({ user_id: userId, role: newRole as any });
 
       if (insertError) {
         toast({ title: "Erro ao definir papel", description: getSafeErrorMessage(insertError), variant: "destructive" });
@@ -143,7 +143,7 @@ const Admin = () => {
       }
     }
 
-    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : "Usuário";
+    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : newRole === "restrito" ? "Restrito" : "Usuário";
     toast({ title: `Papel alterado para ${label} com sucesso` });
     fetchUserRoles();
   };
