@@ -535,6 +535,7 @@ const Admin = () => {
                         const roles = userRoles[p.user_id] || [];
                         const isUserAdmin = roles.includes("admin");
                         const isUserMod = roles.includes("moderator");
+                        const isUserRestricted = roles.includes("restrito");
                         return (
                           <TableRow key={p.user_id}>
                             <TableCell className="font-medium">{p.nome || "—"}</TableCell>
@@ -552,6 +553,8 @@ const Admin = () => {
                                   <Badge className="text-xs bg-primary/20 text-primary border-primary/30">Admin</Badge>
                                 ) : isUserMod ? (
                                   <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Moderador</Badge>
+                                ) : isUserRestricted ? (
+                                  <Badge className="text-xs bg-destructive/20 text-destructive border-destructive/30">Restrito</Badge>
                                 ) : (
                                   <Badge variant="outline" className="text-xs">Usuário</Badge>
                                 )}
