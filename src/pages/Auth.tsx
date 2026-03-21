@@ -11,6 +11,20 @@ import { ShieldAlert } from "lucide-react";
 import rwLogo from "@/assets/rw-logo.png";
 import { checkLeakedPassword } from "@/lib/check-leaked-password";
 
+const getAuthErrorMessage = (error: { message?: string } | null | undefined) => {
+  const message = error?.message?.toLowerCase() ?? "";
+
+  if (message.includes("invalid login credentials")) {
+    return "E-mail ou senha inválidos.";
+  }
+
+  if (message.includes("email not confirmed")) {
+    return "Confirme seu e-mail antes de entrar.";
+  }
+
+  return error?.message || "Não foi possível concluir o acesso agora.";
+};
+
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgot, setIsForgot] = useState(false);
@@ -103,7 +117,13 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        });
         if (error) throw error;
         toast({
           title: "Conta criada!",
@@ -113,7 +133,7 @@ const Auth = () => {
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message,
+        description: getAuthErrorMessage(error),
         variant: "destructive",
       });
     } finally {
