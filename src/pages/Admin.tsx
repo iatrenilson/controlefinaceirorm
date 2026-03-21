@@ -563,8 +563,8 @@ const Admin = () => {
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
                                 <Select
-                                  value={isUserAdmin ? "admin" : isUserMod ? "moderator" : "user"}
-                                  onValueChange={(v) => handleChangeRole(p.user_id, v as "admin" | "moderator" | "user")}
+                                  value={isUserAdmin ? "admin" : isUserMod ? "moderator" : isUserRestricted ? "restrito" : "user"}
+                                  onValueChange={(v) => handleChangeRole(p.user_id, v as "admin" | "moderator" | "user" | "restrito")}
                                 >
                                   <SelectTrigger className="h-7 w-[130px] text-xs">
                                     <SelectValue />
@@ -573,6 +573,7 @@ const Admin = () => {
                                     <SelectItem value="user">Usuário</SelectItem>
                                     <SelectItem value="moderator">Moderador</SelectItem>
                                     <SelectItem value="admin">Administrador</SelectItem>
+                                    <SelectItem value="restrito">Restrito</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditProfile(p)} title="Editar">
