@@ -45,6 +45,14 @@ interface DelayTransacaoViewer {
   data_transacao: string;
 }
 
+type DelayViewerResponse = {
+  clientes?: ClienteViewer[];
+  transacoes?: DelayTransacaoViewer[];
+  nick?: string | null;
+  tipo?: string;
+  error?: string;
+};
+
 const DelayViewer = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -63,8 +71,43 @@ const DelayViewer = () => {
   const [lucroDate, setLucroDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
+  const delayViewerUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/delay-viewer`;
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const applyViewerData = (result: DelayViewerResponse) => {
+    setClientes(result.clientes || []);
+    setTransacoes(result.transacoes || []);
+    setViewerNick(result.nick || null);
+    setLinkTipo(result.tipo || "visualizador");
+    setError("");
+  };
+
+  const requestViewerData = async (): Promise<DelayViewerResponse> => {
+    const res = await fetch(`${delayViewerUrl}?token=${token}`, {
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+    });
+
+    const rawText = await res.text();
+    let result: DelayViewerResponse = {};
+
+    if (rawText) {
+      try {
+        result = JSON.parse(rawText) as DelayViewerResponse;
+      } catch {
+        throw new Error("Resposta inválida do servidor.");
+      }
+    }
+
+    if (!res.ok) {
+      throw new Error(result.error || "Erro ao carregar dados.");
+    }
+
+    return result;
+  };
 
   useEffect(() => {
     if (!token) {
@@ -72,16 +115,21 @@ const DelayViewer = () => {
       setLoading(false);
       return;
     }
-    fetchClientes();
+
+    void fetchClientes();
 
     const interval = setInterval(() => {
-      fetchClientesSilent();
+      void fetchClientesSilent();
     }, 4000);
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchClientesSilent();
+      if (document.visibilityState === "visible") {
+        void fetchClientesSilent();
+      }
     };
-    const handleFocus = () => fetchClientesSilent();
+    const handleFocus = () => {
+      void fetchClientesSilent();
+    };
 
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", handleFocus);
@@ -95,42 +143,20 @@ const DelayViewer = () => {
 
   const fetchClientesSilent = async () => {
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
-      const res = await fetch(url, {
-        headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-      });
-      const result = await res.json();
-      if (res.ok) {
-        setClientes(result.clientes || []);
-        setTransacoes(result.transacoes || []);
-        setViewerNick(result.nick || null);
-        setLinkTipo(result.tipo || "visualizador");
-      }
-    } catch {}
+      const result = await requestViewerData();
+      applyViewerData(result);
+    } catch {
+      // mantém os dados anteriores em polling silencioso
+    }
   };
 
   const fetchClientes = async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
-      const res = await fetch(url, {
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-      });
-      const result = await res.json();
-
-      if (!res.ok) {
-        setError(result.error || "Erro ao carregar dados.");
-        return;
-      }
-
-      setClientes(result.clientes || []);
-      setTransacoes(result.transacoes || []);
-      setViewerNick(result.nick || null);
-      setLinkTipo(result.tipo || "visualizador");
-    } catch {
-      setError("Erro ao conectar com o servidor.");
+      const result = await requestViewerData();
+      applyViewerData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
     }
