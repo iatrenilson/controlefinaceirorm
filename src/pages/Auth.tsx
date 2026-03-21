@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,21 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldAlert } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import rwLogo from "@/assets/rw-logo.png";
 
 const getAuthErrorMessage = (error: { message?: string } | null | undefined) => {
   const message = error?.message?.toLowerCase() ?? "";
 
   if (message.includes("invalid login credentials")) {
-    return "E-mail ou senha invÃƒÂ¡lidos.";
+    return "E-mail ou senha inválidos.";
   }
 
   if (message.includes("email not confirmed")) {
     return "Confirme seu e-mail antes de entrar.";
   }
 
-  return error?.message || "NÃƒÂ£o foi possÃƒÂ­vel concluir o acesso agora.";
+   if (message.includes("user already registered") || message.includes("already been registered")) {
+    return "Este e-mail já está cadastrado. Faça login ou redefina a senha.";
+  }
+
+  if (message.includes("password should be at least")) {
+    return "A senha deve ter pelo menos 6 caracteres.";
+  }
+
+  return error?.message || "Não foi possível concluir o acesso agora.";
 };
 
 const Auth = () => {
@@ -31,19 +40,38 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email) {
+      toast({
+        title: "Erro",
+        description: "Informe seu e-mail para receber o link de redefinição.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha.", });
+      toast({ title: "E-mail enviado!", description: "Verifique sua caixa de entrada para redefinir a senha." });
       setIsForgot(false);
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro", description: getAuthErrorMessage(error), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -66,7 +94,7 @@ const Auth = () => {
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : "Enviar link de redefiniÃ§Ã£o"}
+                {loading ? "Aguarde..." : "Enviar link de redefinição"}
               </Button>
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
@@ -86,7 +114,7 @@ const Auth = () => {
       });
       if (error) throw error;
     } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      toast({ title: "Erro", description: getAuthErrorMessage(error), variant: "destructive" });
     } finally {
       setLoadingGoogle(false);
     }
@@ -106,6 +134,7 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        navigate("/", { replace: true });
       } else {
         const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
         if (error) throw error;
@@ -113,6 +142,8 @@ const Auth = () => {
           title: "Conta criada!",
           description: "Verifique seu e-mail para confirmar o cadastro.",
         });
+        setIsLogin(true);
+        setPassword("");
       }
     } catch (error: any) {
       toast({
@@ -142,7 +173,7 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" minLength={6} />
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Digite sua senha" minLength={6} />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Verificando..." : isLogin ? "Entrar" : "Cadastrar"}
@@ -163,9 +194,9 @@ const Auth = () => {
             {loadingGoogle ? "Aguarde..." : "Entrar com Google"}
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-4">
-            {isLogin ? "NÃƒÂ£o tem conta?" : "JÃƒÂ¡ tem conta?"}{" "}
+            {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
             <button onClick={() => setIsLogin(!isLogin)} className="text-primary underline">
-              {isLogin ? "Cadastre-se" : "FaÃƒÂ§a login"}
+              {isLogin ? "Cadastre-se" : "Faça login"}
             </button>
           </p>
         </CardContent>
