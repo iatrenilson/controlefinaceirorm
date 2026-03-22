@@ -180,7 +180,7 @@ const Auth = () => {
                 <button
                   type="button"
                   onClick={() => { console.log("Notes icon clicked - no functionality yet."); }}
-                  className="absolute right-9 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Notas"
                 >
                   <PencilLine className="h-4 w-4" />
