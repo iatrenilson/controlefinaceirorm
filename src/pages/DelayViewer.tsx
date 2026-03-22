@@ -53,6 +53,16 @@ type DelayViewerResponse = {
   error?: string;
 };
 
+const formatFornecedorLabel = (fornecedor: string | null | undefined) => {
+  const value = fornecedor?.trim();
+
+  if (!value) return "Sem fornecedor";
+
+  const normalized = value.replace(/^(?:fornecedor\s+)+/i, "").trim().toUpperCase();
+
+  return normalized ? `FORNECEDOR ${normalized}` : "Sem fornecedor";
+};
+
 const DelayViewer = () => {
   const { token: routeToken } = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
@@ -509,7 +519,7 @@ const DelayViewer = () => {
                           )}
                           {c.fornecedor && (
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-muted-foreground uppercase">Fornecedor {c.fornecedor}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase">{formatFornecedorLabel(c.fornecedor)}</span>
                             </div>
                           )}
                         </div>
