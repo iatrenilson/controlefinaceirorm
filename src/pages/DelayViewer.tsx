@@ -466,7 +466,7 @@ const DelayViewer = () => {
 
       <div className="max-w-4xl mx-auto px-4 pt-4 space-y-4">
 
-        <div className="space-y-2">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {sorted.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-muted-foreground">
