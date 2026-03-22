@@ -1686,15 +1686,7 @@ const DelayEsportivo = () => {
               <h1 className="text-lg font-bold tracking-tight">Delay Esportivo</h1>
               <p className="text-xs text-muted-foreground">Gerencie clientes e operações de delay esportivo</p>
             </div>
-            <Button
-              type="button"
-              size="icon"
-              onClick={() => setNotaOpen(true)}
-              className="h-10 w-10 shrink-0 rounded-full md:hidden"
-              aria-label="Abrir bloco de notas"
-            >
-              <StickyNote className="h-5 w-5" />
-            </Button>
+
           </div>
         </div>
       </header>
@@ -1718,10 +1710,7 @@ const DelayEsportivo = () => {
             onClick={() => setConfirmZerar(true)}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" /> Zerar
           </Button>
-          <Button size="sm" variant="ghost" className="hidden text-xs md:inline-flex"
-            onClick={() => setNotaOpen(true)}>
-            <StickyNote className="h-3.5 w-3.5 mr-1" /> Notas
-          </Button>
+
         </div>
 
         {/* Bank Balances Cards */}
@@ -1969,6 +1958,10 @@ const DelayEsportivo = () => {
             </Select>
             <Button size="sm" variant="outline" onClick={() => setShareLinkDialogOpen(true)}>
               <Share2 className="h-4 w-4 mr-1" /> Compartilhar
+            </Button>
+            <Button size="sm" variant="ghost" className="text-xs"
+              onClick={() => setNotaOpen(true)}>
+              <StickyNote className="h-3.5 w-3.5 mr-1" /> Notas
             </Button>
             <Button size="sm" variant="default" onClick={openNewDialog}>
               <Plus className="h-4 w-4 mr-1" /> Novo Cliente
