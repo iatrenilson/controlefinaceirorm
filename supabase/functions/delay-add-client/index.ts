@@ -5,6 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const normalizeFornecedor = (value: unknown) => {
+  if (typeof value !== "string") return null;
+
+  const normalized = value
+    .trim()
+    .replace(/^(?:fornecedor\s+)+/i, "")
+    .trim()
+    .toUpperCase();
+
+  return normalized || null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -149,6 +161,7 @@ Deno.serve(async (req) => {
 
       const depositoVal = parseFloat(valor_deposito) || 0;
       const banco = banco_deposito || "santander";
+      const fornecedorNormalizado = normalizeFornecedor(fornecedor) ?? normalizeFornecedor(linkData.nick);
 
       // Store deposit as PENDING — admin must approve before bank is deducted
       const { error: insertError } = await supabase.from("delay_clientes").insert({
@@ -157,7 +170,7 @@ Deno.serve(async (req) => {
         casa: casa || "Bet365",
         login: login || null,
         senha: senha || null,
-        fornecedor: fornecedor || null,
+        fornecedor: fornecedorNormalizado,
         tipo: tipo || "50/50",
         banco_deposito: banco,
         status: "ativo",
