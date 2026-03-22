@@ -26,8 +26,9 @@ import {
   Search, Plus, Wallet, ArrowDownCircle, ArrowUpCircle, History, TrendingUp,
   Users, Copy, Eye, EyeOff, MoreHorizontal, Pencil, Trash2, SortAsc, ChevronsUpDown, Check, Info,
   DollarSign, Clock, RotateCcw, CalendarDays, Download, CheckSquare, Square, Camera, LayoutGrid, Columns2,
-  Building2, Share2, Link, List, ChevronDown
+  Building2, Share2, Link, List, ChevronDown, StickyNote, Undo2
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
 
 interface DelayCliente {
@@ -421,6 +422,14 @@ const DelayEsportivo = () => {
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
   const [newLinkNick, setNewLinkNick] = useState("");
 
+  // Notepad state
+  const [notaOpen, setNotaOpen] = useState(false);
+  const [notaConteudo, setNotaConteudo] = useState("");
+  const [notaHistory, setNotaHistory] = useState<string[]>([]);
+  const [notaId, setNotaId] = useState<string | null>(null);
+  const [notaSaving, setNotaSaving] = useState(false);
+  const [notaLoading, setNotaLoading] = useState(false);
+
   // Form state
   const [form, setForm] = useState({
     nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: ""
@@ -431,6 +440,60 @@ const DelayEsportivo = () => {
   const [casaPopoverOpen, setCasaPopoverOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const processingRef = useRef(false);
+
+  // Notepad: fetch on open
+  useEffect(() => {
+    if (!notaOpen || !user) return;
+    const loadNota = async () => {
+      setNotaLoading(true);
+      const { data } = await supabase
+        .from("delay_notas")
+        .select("id, conteudo")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setNotaId(data.id);
+        setNotaConteudo(data.conteudo || "");
+        setNotaHistory([data.conteudo || ""]);
+      } else {
+        setNotaId(null);
+        setNotaConteudo("");
+        setNotaHistory([""]);
+      }
+      setNotaLoading(false);
+    };
+    loadNota();
+  }, [notaOpen, user]);
+
+  const handleSaveNota = async () => {
+    if (!user) return;
+    setNotaSaving(true);
+    try {
+      if (notaId) {
+        await supabase.from("delay_notas").update({ conteudo: notaConteudo, updated_at: new Date().toISOString() } as any).eq("id", notaId);
+      } else {
+        const { data } = await supabase.from("delay_notas").insert({ user_id: user.id, conteudo: notaConteudo } as any).select("id").single();
+        if (data) setNotaId(data.id);
+      }
+      setNotaHistory(prev => [...prev, notaConteudo]);
+      toast({ title: "Nota salva!" });
+    } catch {
+      toast({ title: "Erro ao salvar nota", variant: "destructive" });
+    } finally {
+      setNotaSaving(false);
+    }
+  };
+
+  const handleUndoNota = () => {
+    if (notaHistory.length > 1) {
+      const prev = [...notaHistory];
+      prev.pop();
+      setNotaConteudo(prev[prev.length - 1]);
+      setNotaHistory(prev);
+    }
+  };
 
   const recalcClientFromTransactions = async (clienteId: string) => {
     const { data: txns } = await supabase
@@ -1645,6 +1708,10 @@ const DelayEsportivo = () => {
           <Button size="sm" variant="ghost" className="text-xs text-destructive hover:text-destructive"
             onClick={() => setConfirmZerar(true)}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" /> Zerar
+          </Button>
+          <Button size="sm" variant="ghost" className="text-xs"
+            onClick={() => setNotaOpen(true)}>
+            <StickyNote className="h-3.5 w-3.5 mr-1" /> Notas
           </Button>
         </div>
 
@@ -3177,6 +3244,50 @@ const DelayEsportivo = () => {
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notepad Dialog */}
+      <Dialog open={notaOpen} onOpenChange={setNotaOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="h-5 w-5 text-primary" />
+              Bloco de Notas
+            </DialogTitle>
+            <DialogDescription>Suas anotações são salvas automaticamente na sua conta.</DialogDescription>
+          </DialogHeader>
+          {notaLoading ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">Carregando...</div>
+          ) : (
+            <div className="space-y-3">
+              <Textarea
+                placeholder="Escreva suas anotações aqui..."
+                value={notaConteudo}
+                onChange={(e) => setNotaConteudo(e.target.value)}
+                className="min-h-[200px] resize-y font-mono text-sm"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUndoNota}
+                  disabled={notaHistory.length <= 1}
+                  className="text-xs gap-1"
+                >
+                  <Undo2 className="h-3.5 w-3.5" /> Desfazer
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveNota}
+                  disabled={notaSaving}
+                  className="text-xs gap-1"
+                >
+                  {notaSaving ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
