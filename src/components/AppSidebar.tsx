@@ -20,8 +20,8 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Controle Mensal", url: "/financeiro", icon: Receipt },
-  { title: "Clientes EmprÃ©stimos", url: "/emprestimos", icon: Landmark },
-  { title: "RelatÃ³rios", url: "/relatorios", icon: BarChart3 },
+  { title: "Clientes EmprÃÂ©stimos", url: "/emprestimos", icon: Landmark },
+  { title: "RelatÃÂ³rios", url: "/relatorios", icon: BarChart3 },
 ];
 
 export function AppSidebar() {
@@ -58,17 +58,17 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="ConfiguraÃ§Ãµes">
+              <SidebarMenuButton asChild tooltip="ConfiguraÃÂ§ÃÂµes">
                 {isRestricted ? (
                   <div className="flex items-center gap-2 opacity-50 cursor-not-allowed px-2 py-1.5">
                     <Settings className="h-4 w-4" />
-                    <span>ConfiguraÃ§Ãµes</span>
+                    <span>ConfiguraÃÂ§ÃÂµes</span>
                     <Lock className="h-3 w-3 ml-auto text-muted-foreground" />
                   </div>
                 ) : (
                   <NavLink to="/configuracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                     <Settings className="h-4 w-4" />
-                    <span>ConfiguraÃ§Ãµes</span>
+                    <span>ConfiguraÃÂ§ÃÂµes</span>
                   </NavLink>
                 )}
               </SidebarMenuButton>
@@ -109,7 +109,7 @@ export function AppSidebar() {
         {/* Admin / Moderator Nav */}
         {roleLoading ? (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃ§Ã£o</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃÂ§ÃÂ£o</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem><Skeleton className="h-8 w-full rounded-md" /></SidebarMenuItem>
@@ -119,7 +119,7 @@ export function AppSidebar() {
           </SidebarGroup>
         ) : showDelaySection && !isRestricted ? (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃ§Ã£o</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">AdministraÃÂ§ÃÂ£o</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {isAdmin && (
@@ -132,14 +132,7 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Controle de Usuários">
-                    <NavLink to="/controle-usuarios" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                      <Users className="h-[18px] w-[18px]" />
-                      <span>Controle de Usuários</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild tooltip="Delay Esportivo">
                     <NavLink to="/delay-esportivo" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
