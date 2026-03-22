@@ -2,12 +2,12 @@ import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-route
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import NotificationBell from "@/components/NotificationBell";
-import { Lock } from "lucide-react";
+import { Lock, Menu } from "lucide-react";
 
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -69,6 +69,19 @@ function RestrictedOverlay() {
   );
 }
 
+function MobileMenuButton() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <button
+      onClick={toggleSidebar}
+      className="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-md border border-border bg-background hover:bg-accent"
+      aria-label="Abrir menu"
+    >
+      <Menu className="h-5 w-5" />
+    </button>
+  );
+}
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { isRestricted, loading } = useUserRole();
 
@@ -79,7 +92,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 overflow-auto flex flex-col">
           <div className="sticky top-0 z-40 flex items-center justify-between gap-3 p-4 border-b bg-background/95 backdrop-blur-sm">
             <div className="flex items-center gap-2">
-              <SidebarTrigger className="md:hidden" />
+              <MobileMenuButton />
             </div>
             <NotificationBell />
           </div>
