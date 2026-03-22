@@ -15,8 +15,8 @@ import { toast } from "sonner";
 
 const tabs = [
   { id: "geral", label: "GERAL" },
-  { id: "notificacoes", label: "NOTIFICAÃÃES" },
-  { id: "seguranca", label: "SEGURANÃA" },
+  { id: "notificacoes", label: "NOTIFICAÇÕES" },
+  { id: "seguranca", label: "SEGURANÇA" },
   { id: "privacidade", label: "PRIVACIDADE" },
 ];
 
@@ -192,7 +192,7 @@ const Configuracoes = () => {
       }, { onConflict: "user_id" });
 
     if (error) {
-      toast.error("Erro ao salvar preferÃªncia");
+      toast.error("Erro ao salvar preferência");
       setPrefs(prefs); // revert
     }
   };
@@ -231,10 +231,10 @@ const Configuracoes = () => {
       {/* Header */}
       <div>
         <Badge variant="outline" className="mb-3 text-xs border-primary text-primary">
-          CONFIGURAÃÃES
+          CONFIGURAÇÕES
         </Badge>
-        <h1 className="text-2xl font-bold">ConfiguraÃ§Ãµes</h1>
-        <p className="text-sm text-muted-foreground mt-1">Personalize suas preferÃªncias</p>
+        <h1 className="text-2xl font-bold">Configurações</h1>
+        <p className="text-sm text-muted-foreground mt-1">Personalize suas preferências</p>
       </div>
 
       {/* Tabs */}
@@ -261,7 +261,7 @@ const Configuracoes = () => {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Settings className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">AparÃªncia</h2>
+                <h2 className="font-semibold">Aparência</h2>
               </div>
               <p className="text-xs text-muted-foreground">Ajuste o tema visual do aplicativo</p>
             </div>
@@ -274,7 +274,7 @@ const Configuracoes = () => {
                 <div>
                   <Label className="text-sm font-semibold">Modo Escuro</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {dark ? "O tema escuro estÃ¡ ativo" : "O tema claro estÃ¡ ativo"}
+                    {dark ? "O tema escuro está ativo" : "O tema claro está ativo"}
                   </p>
                 </div>
               </div>
@@ -284,7 +284,7 @@ const Configuracoes = () => {
         </Card>
       )}
 
-      {/* NOTIFICAÃÃES */}
+      {/* NOTIFICAÇÕES */}
       {activeTab === "notificacoes" && (
         <div className="space-y-6">
           {loadingPref ? (
@@ -297,14 +297,14 @@ const Configuracoes = () => {
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Gerais</p>
                 <ToggleRow
-                  label="NotificaÃ§Ãµes de Email"
-                  description="Receba atualizaÃ§Ãµes por email"
+                  label="Notificações de Email"
+                  description="Receba atualizações por email"
                   checked={prefs.email_enabled}
                   onCheckedChange={(v) => savePref({ email_enabled: v })}
                 />
                 <ToggleRow
-                  label="NotificaÃ§Ãµes Push"
-                  description="NotificaÃ§Ãµes em tempo real no navegador"
+                  label="Notificações Push"
+                  description="Notificações em tempo real no navegador"
                   checked={prefs.push_enabled}
                   onCheckedChange={(v) => savePref({ push_enabled: v })}
                 />
@@ -334,25 +334,25 @@ const Configuracoes = () => {
 
                 <ToggleRow
                   label="50% da Meta Atingida"
-                  description="NotificaÃ§Ã£o quando atingir 50% da meta mensal"
+                  description="Notificação quando atingir 50% da meta mensal"
                   checked={prefs.meta_50}
                   onCheckedChange={(v) => savePref({ meta_50: v })}
                 />
                 <ToggleRow
                   label="75% da Meta Atingida"
-                  description="NotificaÃ§Ã£o quando atingir 75% da meta mensal"
+                  description="Notificação quando atingir 75% da meta mensal"
                   checked={prefs.meta_75}
                   onCheckedChange={(v) => savePref({ meta_75: v })}
                 />
                 <ToggleRow
                   label="100% da Meta Atingida"
-                  description="NotificaÃ§Ã£o quando atingir 100% da meta mensal"
+                  description="Notificação quando atingir 100% da meta mensal"
                   checked={prefs.meta_100}
                   onCheckedChange={(v) => savePref({ meta_100: v })}
                 />
                 <ToggleRow
                   label="Meta Superada"
-                  description="NotificaÃ§Ã£o quando superar a meta mensal"
+                  description="Notificação quando superar a meta mensal"
                   checked={prefs.meta_superada}
                   onCheckedChange={(v) => savePref({ meta_superada: v })}
                 />
@@ -363,25 +363,25 @@ const Configuracoes = () => {
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Atividade</p>
                 <ToggleRow
                   label="Alta Atividade"
-                  description="NotificaÃ§Ã£o quando detectar alta atividade de transaÃ§Ãµes"
+                  description="Notificação quando detectar alta atividade de transações"
                   checked={prefs.alta_atividade}
                   onCheckedChange={(v) => savePref({ alta_atividade: v })}
                 />
                 <ToggleRow
                   label="Novos Clientes"
-                  description="Alerta quando um novo cliente Ã© cadastrado"
+                  description="Alerta quando um novo cliente é cadastrado"
                   checked={prefs.novos_clientes}
                   onCheckedChange={(v) => savePref({ novos_clientes: v })}
                 />
               </div>
 
-              {/* RELATÃRIOS */}
+              {/* RELATÓRIOS */}
               <div className="space-y-3">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">RelatÃ³rios</p>
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Relatórios</p>
                 <div className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold">RelatÃ³rios por Email</p>
+                      <p className="text-sm font-semibold">Relatórios por Email</p>
                       <p className="text-xs text-muted-foreground mt-0.5">Resumo de desempenho enviado por email</p>
                     </div>
                     <Switch
@@ -413,7 +413,7 @@ const Configuracoes = () => {
                           Mensal
                         </button>
                         <span className="text-xs text-muted-foreground ml-2">
-                          Toda segunda-feira Ã s 8h
+                          Toda segunda-feira às 8h
                         </span>
                       </div>
                       <Button variant="outline" size="sm" className="gap-1.5 text-xs">
@@ -425,10 +425,10 @@ const Configuracoes = () => {
                 </div>
               </div>
 
-              {/* HISTÃRICO */}
+              {/* HISTÓRICO */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">HistÃ³rico</p>
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Histórico</p>
                   {unreadCount > 0 && (
                     <Button variant="ghost" size="sm" className="text-xs h-7 gap-1.5" onClick={markAllAsRead}>
                       <CheckCheck className="h-3.5 w-3.5" />
@@ -443,7 +443,7 @@ const Configuracoes = () => {
                 ) : notifications.length === 0 ? (
                   <div className="flex flex-col items-center py-8 text-muted-foreground rounded-lg border">
                     <Bell className="h-10 w-10 mb-3 opacity-30" />
-                    <p className="text-sm">Nenhuma notificaÃ§Ã£o ainda.</p>
+                    <p className="text-sm">Nenhuma notificação ainda.</p>
                   </div>
                 ) : (
                   <ScrollArea className="max-h-[400px]">
@@ -460,7 +460,7 @@ const Configuracoes = () => {
                               <p className="text-sm font-semibold">{n.titulo}</p>
                               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>
                               <p className="text-[10px] text-muted-foreground/70 mt-1.5">
-                                {format(parseISO(n.created_at), "dd/MM/yyyy 'Ã s' HH:mm")}
+                                {format(parseISO(n.created_at), "dd/MM/yyyy 'às' HH:mm")}
                               </p>
                             </div>
                           </div>
@@ -475,16 +475,16 @@ const Configuracoes = () => {
         </div>
       )}
 
-      {/* SEGURANÃA */}
+      {/* SEGURANÇA */}
       {activeTab === "seguranca" && (
         <Card>
           <CardContent className="p-5 space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">SeguranÃ§a</h2>
+                <h2 className="font-semibold">Segurança</h2>
               </div>
-              <p className="text-xs text-muted-foreground">Gerencie a seguranÃ§a da sua conta</p>
+              <p className="text-xs text-muted-foreground">Gerencie a segurança da sua conta</p>
             </div>
             <Separator />
             <div className="rounded-lg border p-4">
@@ -494,7 +494,7 @@ const Configuracoes = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Email</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">{user?.email || "â"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{user?.email || "—"}</p>
                 </div>
               </div>
             </div>
@@ -511,11 +511,11 @@ const Configuracoes = () => {
                 <Lock className="h-5 w-5 text-primary" />
                 <h2 className="font-semibold">Privacidade</h2>
               </div>
-              <p className="text-xs text-muted-foreground">Controle suas configuraÃ§Ãµes de privacidade</p>
+              <p className="text-xs text-muted-foreground">Controle suas configurações de privacidade</p>
             </div>
             <Separator />
             <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-              Suas informaÃ§Ãµes sÃ£o protegidas e nÃ£o sÃ£o compartilhadas com terceiros.
+              Suas informações são protegidas e não são compartilhadas com terceiros.
             </div>
           </CardContent>
         </Card>
