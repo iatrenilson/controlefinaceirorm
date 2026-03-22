@@ -205,6 +205,30 @@ export type Database = {
           },
         ]
       }
+      delay_notas: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       delay_share_links: {
         Row: {
           ativo: boolean
