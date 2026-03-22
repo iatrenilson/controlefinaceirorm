@@ -202,7 +202,7 @@ const DelayAddClient = () => {
         casa,
         login: login.trim(),
         senha: senha.trim(),
-        fornecedor: linkNick ? `Fornecedor ${linkNick.toUpperCase()}` : "",
+        fornecedor: linkNick ? linkNick.toUpperCase() : "",
         tipo,
         banco_deposito: bancoDeposito,
         valor_deposito: parseFloat(valorDeposito.replace(/\./g, "").replace(",", ".")) || 0,
