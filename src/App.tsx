@@ -121,7 +121,7 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <AppLayout><Index /></AppLayout>
+                <AppLayout><Relatorios /></AppLayout>
               </ProtectedRoute>
             }
           />
