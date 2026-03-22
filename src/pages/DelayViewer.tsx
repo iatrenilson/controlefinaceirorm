@@ -310,148 +310,151 @@ const DelayViewer = () => {
 
   return (
     <div className="min-h-screen bg-background pb-8">
-      <div className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b px-4 py-3">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div className="flex items-center gap-3">
-            <img src={rwLogo} alt="RW" className="h-8 w-8 rounded-full" />
-            <div>
-              <h1 className="text-sm font-bold">Delay Esportivo</h1>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Eye className="h-3 w-3" /> Visualização · {sorted.length} clientes
-              </p>
+      <div className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-sm">
+        <div className="bg-card/95 px-4 py-3">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <img src={rwLogo} alt="RW" className="h-8 w-8 rounded-full" />
+              <div>
+                <h1 className="text-sm font-bold">Delay Esportivo</h1>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Eye className="h-3 w-3" /> Visualização · {sorted.length} clientes
+                </p>
+              </div>
             </div>
+            <Badge variant="outline" className="text-[10px]">
+              <Lock className="h-3 w-3 mr-1" /> Somente leitura
+            </Badge>
           </div>
-          <Badge variant="outline" className="text-[10px]">
-            <Lock className="h-3 w-3 mr-1" /> Somente leitura
-          </Badge>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative flex-1 min-w-[150px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente..."
+                className="pl-8 h-8 text-xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {casas.length > 1 && (
+              <Select value={filtroCasa} onValueChange={setFiltroCasa}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <Filter className="h-3 w-3 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas Casas</SelectItem>
+                  {casas.map((c) => {
+                    const logo = getCasaLogo(c);
+                    return (
+                      <SelectItem key={c} value={c}>
+                        <span className="flex items-center gap-1.5">
+                          {logo && <img src={logo} alt={c} className="h-4 w-4 rounded-sm object-contain" />}
+                          {c}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {viewerNick && (
+              <Badge variant="secondary" className="text-[10px]">{viewerNick}</Badge>
+            )}
+            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {([
+              { key: "todos", label: "Todos" },
+              { key: "operando", label: "Operando" },
+              { key: "concluido", label: "Concluído" },
+              { key: "devolvido", label: "Devolvido" },
+            ] as const).map(f => (
+              <Button
+                key={f.key}
+                size="sm"
+                variant={filtroStatus === f.key ? "default" : "outline"}
+                className="h-7 text-xs px-2.5"
+                onClick={() => setFiltroStatus(f.key)}
+              >
+                {f.label} ({statusCounts[f.key] || 0})
+              </Button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-[10px] text-muted-foreground">Lucro Total</p>
+                <p className={`text-sm font-bold font-mono mt-2 ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                  {fmt(lucroTotal)}
+                </p>
+              </CardContent>
+            </Card>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Card className="cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
+                  <CardContent className="p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                      Lucro Diário <CalendarIcon className="h-3 w-3" />
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/70 mb-0.5">
+                      {format(lucroDate, "dd/MM/yyyy")}
+                    </p>
+                    <p className={`text-sm font-bold font-mono ${lucroDiario >= 0 ? "text-green-500" : "text-destructive"}`}>
+                      {fmt(lucroDiario)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 z-50" align="center">
+                <Calendar
+                  mode="single"
+                  selected={lucroDate}
+                  onSelect={(d) => { if (d) { setLucroDate(d); setCalendarOpen(false); } }}
+                  locale={ptBR}
+                  className="p-3 pointer-events-auto"
+                  initialFocus
+                />
+                <div className="p-2 border-t">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-7"
+                    onClick={() => { setLucroDate(new Date()); setCalendarOpen(false); }}
+                  >
+                    Voltar para Hoje
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {filtroStatus !== "concluido" && filtroStatus !== "devolvido" && (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                  <p className="text-sm font-bold">{sorted.length}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Depósitos</p>
+                  <p className="text-sm font-bold font-mono text-primary">{fmt(sorted.reduce((a, c) => a + c.depositos, 0))}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pt-4 space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <div className="relative flex-1 min-w-[150px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar cliente..."
-              className="pl-8 h-8 text-xs"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          {casas.length > 1 && (
-            <Select value={filtroCasa} onValueChange={setFiltroCasa}>
-              <SelectTrigger className="w-[140px] h-8 text-xs">
-                <Filter className="h-3 w-3 mr-1" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas Casas</SelectItem>
-                {casas.map((c) => {
-                  const logo = getCasaLogo(c);
-                  return (
-                    <SelectItem key={c} value={c}>
-                      <span className="flex items-center gap-1.5">
-                        {logo && <img src={logo} alt={c} className="h-4 w-4 rounded-sm object-contain" />}
-                        {c}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          {viewerNick && (
-            <Badge variant="secondary" className="text-[10px]">{viewerNick}</Badge>
-          )}
-          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          {([
-            { key: "todos", label: "Todos" },
-            { key: "operando", label: "Operando" },
-            { key: "concluido", label: "Concluído" },
-            { key: "devolvido", label: "Devolvido" },
-          ] as const).map(f => (
-            <Button
-              key={f.key}
-              size="sm"
-              variant={filtroStatus === f.key ? "default" : "outline"}
-              className="h-7 text-xs px-2.5"
-              onClick={() => setFiltroStatus(f.key)}
-            >
-              {f.label} ({statusCounts[f.key] || 0})
-            </Button>
-          ))}
-        </div>
-
-        {/* Lucro cards - always visible */}
-        <div className="grid grid-cols-2 gap-2">
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-[10px] text-muted-foreground">Lucro Total</p>
-              <p className={`text-sm font-bold font-mono mt-2 ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                {fmt(lucroTotal)}
-              </p>
-            </CardContent>
-          </Card>
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <Card className="cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
-                <CardContent className="p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                    Lucro Diário <CalendarIcon className="h-3 w-3" />
-                  </p>
-                  <p className="text-[9px] text-muted-foreground/70 mb-0.5">
-                    {format(lucroDate, "dd/MM/yyyy")}
-                  </p>
-                  <p className={`text-sm font-bold font-mono ${lucroDiario >= 0 ? "text-green-500" : "text-destructive"}`}>
-                    {fmt(lucroDiario)}
-                  </p>
-                </CardContent>
-              </Card>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 z-50" align="center">
-              <Calendar
-                mode="single"
-                selected={lucroDate}
-                onSelect={(d) => { if (d) { setLucroDate(d); setCalendarOpen(false); } }}
-                locale={ptBR}
-                className="p-3 pointer-events-auto"
-                initialFocus
-              />
-              <div className="p-2 border-t">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs h-7"
-                  onClick={() => { setLucroDate(new Date()); setCalendarOpen(false); }}
-                >
-                  Voltar para Hoje
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Summary cards for non-concluido/devolvido */}
-        {filtroStatus !== "concluido" && filtroStatus !== "devolvido" && (
-        <div className="grid grid-cols-2 gap-2">
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-[10px] text-muted-foreground">Total</p>
-              <p className="text-sm font-bold">{sorted.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-[10px] text-muted-foreground">Depósitos</p>
-              <p className="text-sm font-bold font-mono text-primary">{fmt(sorted.reduce((a, c) => a + c.depositos, 0))}</p>
-            </CardContent>
-          </Card>
-        </div>
-        )}
 
         <div className="space-y-2">
           {sorted.length === 0 ? (

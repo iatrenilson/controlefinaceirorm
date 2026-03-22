@@ -20,9 +20,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabasePublishableKey =
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+      Deno.env.get("SUPABASE_ANON_KEY") ??
+      "";
+
+    if (!supabaseUrl || !supabasePublishableKey) {
+      return new Response(
+        JSON.stringify({ error: "Configuração de autenticação indisponível" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+      supabaseUrl,
+      supabasePublishableKey,
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -65,9 +78,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    if (!serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: "Configuração administrativa indisponível" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseUrl,
+      serviceRoleKey,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 

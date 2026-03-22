@@ -77,7 +77,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1 overflow-auto flex flex-col">
-          <div className="flex justify-end items-center p-4 border-b">
+          <div className="sticky top-0 z-40 flex justify-end items-center p-4 border-b bg-background/95 backdrop-blur-sm">
             <NotificationBell />
           </div>
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">

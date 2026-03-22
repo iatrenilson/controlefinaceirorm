@@ -71,6 +71,16 @@ interface DelayTransacao {
 type Periodo = "diario" | "semanal" | "mensal";
 type FiltroStatus = "todos" | "ativos" | "concluidos";
 
+const formatFornecedorLabel = (fornecedor: string | null | undefined) => {
+  const value = fornecedor?.trim();
+
+  if (!value) return "Sem fornecedor";
+
+  return value.toUpperCase().startsWith("FORNECEDOR")
+    ? value.toUpperCase()
+    : `FORNECEDOR ${value.toUpperCase()}`;
+};
+
 const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes: DelayCliente[]; open: boolean; onOpenChange: (open: boolean) => void; fmt: (v: number) => string }) => {
   const { toast } = useToast();
   const [transacoes, setTransacoes] = useState<DelayTransacao[]>([]);
@@ -2231,7 +2241,7 @@ const DelayEsportivo = () => {
                         </div>
                       )}
                       <p className="text-muted-foreground uppercase tracking-wider text-[11px]">
-                        {c.fornecedor && c.fornecedor.trim() !== "" ? `FORNECEDOR ${c.fornecedor}` : "Sem fornecedor"}
+                        {formatFornecedorLabel(c.fornecedor)}
                       </p>
                     </div>
                   </div>
