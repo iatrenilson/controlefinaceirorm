@@ -1686,6 +1686,15 @@ const DelayEsportivo = () => {
               <h1 className="text-lg font-bold tracking-tight">Delay Esportivo</h1>
               <p className="text-xs text-muted-foreground">Gerencie clientes e operações de delay esportivo</p>
             </div>
+            <Button
+              type="button"
+              size="icon"
+              onClick={() => setNotaOpen(true)}
+              className="h-10 w-10 shrink-0 rounded-full md:hidden"
+              aria-label="Abrir bloco de notas"
+            >
+              <StickyNote className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
@@ -1709,7 +1718,7 @@ const DelayEsportivo = () => {
             onClick={() => setConfirmZerar(true)}>
             <RotateCcw className="h-3.5 w-3.5 mr-1" /> Zerar
           </Button>
-          <Button size="sm" variant="ghost" className="text-xs"
+          <Button size="sm" variant="ghost" className="hidden text-xs md:inline-flex"
             onClick={() => setNotaOpen(true)}>
             <StickyNote className="h-3.5 w-3.5 mr-1" /> Notas
           </Button>
@@ -3290,6 +3299,16 @@ const DelayEsportivo = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <Button
+        type="button"
+        size="icon"
+        onClick={() => setNotaOpen(true)}
+        className="fixed bottom-6 right-4 z-30 h-12 w-12 rounded-full shadow-lg md:hidden"
+        aria-label="Abrir bloco de notas"
+      >
+        <StickyNote className="h-5 w-5" />
+      </Button>
     </div>
   );
 };
