@@ -231,8 +231,15 @@ const Admin = () => {
       const { data, error } = await supabase.functions.invoke("update-user-password", {
         body: { user_id: editingPasswordUser.user_id, password: newPassword },
       });
+
       if (error || data?.error) {
-        toast({ title: "Erro ao alterar senha", description: getSafeErrorMessage(error || data), variant: "destructive" });
+        const message =
+          data?.error ||
+          (typeof error?.message === "string" && error.message.includes("FunctionsHttpError")
+            ? "Não foi possível alterar a senha agora. Tente novamente em instantes."
+            : getSafeErrorMessage(error || data));
+
+        toast({ title: "Erro ao alterar senha", description: message, variant: "destructive" });
         setSavingPassword(false);
         return;
       }
