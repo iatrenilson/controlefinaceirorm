@@ -1969,13 +1969,7 @@ const DelayEsportivo = () => {
           </div>
         </div>
 
-        {/* Notas button, now placed "para baixo" */}
-        <div className="flex justify-end mt-[-8px] mb-2">
-          <Button size="sm" variant="ghost" className="text-xs"
-            onClick={() => setNotaOpen(true)}>
-            <StickyNote className="h-3.5 w-3.5 mr-1" /> Notas
-          </Button>
-        </div>
+
 
         {/* Period filter */}
         <div className="flex justify-end gap-1 items-center flex-wrap">
