@@ -5,6 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -81,6 +83,14 @@ const ToggleRow = ({
 const Configuracoes = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("geral");
+
+  // State for password change dialog
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState("");
 
   // Theme
   const [dark, setDark] = useState(() => {
@@ -194,6 +204,43 @@ const Configuracoes = () => {
     if (error) {
       toast.error("Erro ao salvar preferência");
       setPrefs(prefs); // revert
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!user) return;
+
+    setPasswordChangeError("");
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeError("As novas senhas não coincidem.");
+      return;
+    }
+    if (newPassword.length < 6) { // Supabase default minimum is 6
+      setPasswordChangeError("A nova senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        setPasswordChangeError("Erro ao alterar senha. Por favor, tente novamente.");
+        console.error("Password change error:", error.message);
+        toast.error("Erro ao alterar senha.");
+      } else {
+        toast.success("Senha alterada com sucesso!");
+        setShowChangePasswordDialog(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmNewPassword("");
+      }
+    } catch (err) {
+      setPasswordChangeError("Ocorreu um erro inesperado.");
+      console.error("Unexpected password change error:", err);
+      toast.error("Ocorreu um erro inesperado.");
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -496,6 +543,72 @@ const Configuracoes = () => {
                   <Label className="text-sm font-semibold">Email</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">{user?.email || "—"}</p>
                 </div>
+              </div>
+            </div>
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-semibold">Senha</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Altere sua senha de acesso</p>
+                </div>
+                <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                      <Lock className="h-3.5 w-3.5" />
+                      Alterar Senha
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Alterar Senha</DialogTitle>
+                      <DialogDescription>
+                        Preencha os campos abaixo para alterar sua senha.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="currentPassword">Senha Atual</Label>
+                        <Input
+                          id="currentPassword"
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          disabled={isChangingPassword}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="newPassword">Nova Senha</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          disabled={isChangingPassword}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="confirmNewPassword">Confirmar Nova Senha</Label>
+                        <Input
+                          id="confirmNewPassword"
+                          type="password"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          disabled={isChangingPassword}
+                        />
+                      </div>
+                      {passwordChangeError && <p className="text-sm text-destructive">{passwordChangeError}</p>}
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" disabled={isChangingPassword}>Cancelar</Button>
+                      </DialogClose>
+                      <Button onClick={handlePasswordChange} disabled={isChangingPassword || !newPassword || newPassword !== confirmNewPassword}>
+                        {isChangingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Salvar Nova Senha
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </CardContent>
