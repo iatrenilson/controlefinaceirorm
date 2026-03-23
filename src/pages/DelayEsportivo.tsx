@@ -967,7 +967,7 @@ const DelayEsportivo = () => {
       };
       return getCasaKey(a.casa).localeCompare(getCasaKey(b.casa), "pt-BR");
     });
-  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente]);
+  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente, allTransacoes]);
 
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
