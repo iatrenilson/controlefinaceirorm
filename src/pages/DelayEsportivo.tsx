@@ -2188,13 +2188,15 @@ const DelayEsportivo = () => {
           const devolvidaCount = clientes.filter(c => c.status === "devolvido").length;
           const concluidaCount = clientes.filter(c => c.status === "concluido").length;
           const redCount = clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0).length;
+          const saquePendenteCount = clientes.filter(c => c.status === "saque_pendente").length;
+          const resetFilters = (except?: string) => { if (except !== "pendentes") setShowPendentes(false); if (except !== "devolvidas") setShowDevolvidas(false); if (except !== "concluidas") setShowConcluidas(false); if (except !== "red") setShowRed(false); if (except !== "saque") setShowSaquePendente(false); };
           return (
             <div className="flex justify-end gap-2 flex-wrap">
               {pendingCount > 0 && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => { setShowPendentes(!showPendentes); setShowDevolvidas(false); setShowConcluidas(false); setShowRed(false); }}
+                  onClick={() => { resetFilters("pendentes"); setShowPendentes(!showPendentes); }}
                   className={cn("gap-1.5", showPendentes ? "border-orange-500 bg-orange-500/10 text-orange-400" : "border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300")}
                 >
                   <Clock className="h-3.5 w-3.5" />
@@ -2205,11 +2207,26 @@ const DelayEsportivo = () => {
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showPendentes && "rotate-180")} />
                 </Button>
               )}
+              {saquePendenteCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { resetFilters("saque"); setShowSaquePendente(!showSaquePendente); }}
+                  className={cn("gap-1.5", showSaquePendente ? "border-cyan-500 bg-cyan-500/10 text-cyan-400" : "border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300")}
+                >
+                  <ArrowUpCircle className="h-3.5 w-3.5" />
+                  Aguardando Saque
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+                    {saquePendenteCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showSaquePendente && "rotate-180")} />
+                </Button>
+              )}
               {devolvidaCount > 0 && (
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => { setShowDevolvidas(!showDevolvidas); setShowPendentes(false); setShowConcluidas(false); setShowRed(false); }}
+                  onClick={() => { resetFilters("devolvidas"); setShowDevolvidas(!showDevolvidas); }}
                   className={cn("gap-1.5", showDevolvidas ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300")}
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -2224,7 +2241,7 @@ const DelayEsportivo = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => { setShowConcluidas(!showConcluidas); setShowPendentes(false); setShowDevolvidas(false); setShowRed(false); }}
+                  onClick={() => { resetFilters("concluidas"); setShowConcluidas(!showConcluidas); }}
                   className={cn("gap-1.5", showConcluidas ? "border-purple-500 bg-purple-500/10 text-purple-400" : "border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300")}
                 >
                   <CheckSquare className="h-3.5 w-3.5" />
@@ -2239,7 +2256,7 @@ const DelayEsportivo = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => { setShowRed(!showRed); setShowPendentes(false); setShowDevolvidas(false); setShowConcluidas(false); }}
+                  onClick={() => { resetFilters("red"); setShowRed(!showRed); }}
                   className={cn("gap-1.5", showRed ? "border-red-500 bg-red-500/10 text-red-400" : "border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300")}
                 >
                   <TrendingUp className="h-3.5 w-3.5" />
