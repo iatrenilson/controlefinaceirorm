@@ -436,7 +436,7 @@ const DelayEsportivo = () => {
 
   // Form state
   const [form, setForm] = useState({
-    nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: ""
+    nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "", link_visualizacao: "" as string
   });
   const [editDate, setEditDate] = useState<Date>(new Date());
   const [depositoInicial, setDepositoInicial] = useState("");
