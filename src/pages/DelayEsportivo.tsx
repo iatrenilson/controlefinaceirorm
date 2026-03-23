@@ -2730,7 +2730,7 @@ const DelayEsportivo = () => {
                 </div>
                 <div>
                   <Label className="font-bold">Exibir no Link</Label>
-                  <Select value={form.link_visualizacao} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
+                  <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="_admin">Visualização Admin</SelectItem>
