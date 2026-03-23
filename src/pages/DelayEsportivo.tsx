@@ -915,15 +915,25 @@ const DelayEsportivo = () => {
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick]);
 
+  const getLastSaqueDate = (clienteId: string) => {
+    const last = allTransacoes
+      .filter(t => t.cliente_id === clienteId && (t.tipo === "saque" || t.tipo === "devolucao"))
+      .sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0];
+    return last?.data_transacao || "0000-00-00";
+  };
+
   const displayList = useMemo(() => {
+    const sortBySaqueDesc = (list: DelayCliente[]) =>
+      [...list].sort((a, b) => getLastSaqueDate(b.id).localeCompare(getLastSaqueDate(a.id)));
+
     if (showDevolvidas) {
-      return clientes.filter(c => c.status === "devolvido");
+      return sortBySaqueDesc(clientes.filter(c => c.status === "devolvido"));
     }
     if (showConcluidas) {
-      return clientes.filter(c => c.status === "concluido");
+      return sortBySaqueDesc(clientes.filter(c => c.status === "concluido"));
     }
     if (showRed) {
-      return clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0);
+      return sortBySaqueDesc(clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0));
     }
     if (showSaquePendente) {
       return clientes.filter(c => c.status === "saque_pendente");
