@@ -1235,7 +1235,8 @@ const DelayEsportivo = () => {
     setForm({
       nome: c.nome, casa: c.casa, login: c.login || "", senha: c.senha || "",
       fornecedor: c.fornecedor || "", tipo: c.tipo || "50/50", status: c.status, operacao: c.operacao,
-      informacoes_adicionais: c.informacoes_adicionais || ""
+      informacoes_adicionais: c.informacoes_adicionais || "",
+      link_visualizacao: c.link_visualizacao || ""
     });
     setEditDate(new Date(c.created_at));
     setDepositoInicial(String(c.depositos || 0));
