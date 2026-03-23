@@ -1278,7 +1278,7 @@ const DelayEsportivo = () => {
     } else {
       const depositoVal = parseFloat(depositoInicial) || 0;
       const { data: newCliente, error } = await supabase.from("delay_clientes")
-        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco } as any)
+        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco, link_visualizacao: form.link_visualizacao || null } as any)
         .select().single();
       if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
       else {
@@ -2728,20 +2728,20 @@ const DelayEsportivo = () => {
                     </Select>
                   </div>
                 </div>
-                <div>
-                  <Label className="font-bold">Exibir no Link</Label>
-                  <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_admin">Visualização Admin</SelectItem>
-                      {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
-                        <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </>
             )}
+            <div>
+              <Label className="font-bold">Exibir no Link</Label>
+              <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_admin">Visualização Admin</SelectItem>
+                  {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
+                    <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="mt-2">
             {editCliente ? (
