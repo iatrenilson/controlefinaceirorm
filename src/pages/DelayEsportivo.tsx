@@ -3316,9 +3316,9 @@ const DelayEsportivo = () => {
                             <Eye className="h-2.5 w-2.5 mr-0.5" /> Visualização
                           </Badge>
                         )}
-                        {link.tipo === "visualizador_vodka" && (
+                        {(link.tipo === "visualizador_vodka" || link.tipo === "visualizador_pessoa") && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-purple-500/50 text-purple-400">
-                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Vodka
+                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Pessoa
                           </Badge>
                         )}
                       </p>
