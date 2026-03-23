@@ -119,6 +119,7 @@ const DelayDashboard = () => {
     const clientesReais = clientes.filter(c => c.status !== "system");
     const ativos = clientesReais.filter(c => c.status === "ativo");
     const concluidos = clientesReais.filter(c => c.status === "concluido");
+    const atrasados = clientesReais.filter(c => c.status !== "ativo" && c.status !== "concluido").length;
     const totalDepositos = clientesReais.reduce((a, c) => a + c.depositos, 0);
     const minSaquesDate = "2026-03-19";
     const totalSaques = clientesReais
@@ -136,6 +137,7 @@ const DelayDashboard = () => {
       total: clientesReais.length,
       ativos: ativos.length,
       concluidos: concluidos.length,
+      atrasados,
       totalDepositos,
       totalSaques,
       totalCustos,
@@ -303,6 +305,15 @@ const DelayDashboard = () => {
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Contas</p>
               <p className="text-xl font-bold font-mono">{stats.total}</p>
               <p className="text-[10px] text-muted-foreground">{stats.ativos} ativos • {stats.concluidos} concl.</p>
+            </CardContent>
+          </Card>
+          {/* Atrasados */}
+          <Card>
+            <CardContent className="p-4 flex flex-col items-center text-center">
+              <div className="rounded-lg bg-red-500/10 p-2 mb-2"><Timer className="h-4 w-4 text-red-500" /></div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Atrasados</p>
+              <p className="text-xl font-bold font-mono text-red-500">{stats.atrasados}</p>
+              <p className="text-[10px] text-muted-foreground">Outros status</p>
             </CardContent>
           </Card>
           {/* 2 - Lucro do Dia */}
