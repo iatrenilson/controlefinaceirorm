@@ -99,7 +99,7 @@ const Emprestimos = () => {
       .from("clientes")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("data_pagamento", { ascending: true });
 
     if (error) {
       toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(error), variant: "destructive" });
