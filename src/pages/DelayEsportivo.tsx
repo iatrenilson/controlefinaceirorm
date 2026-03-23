@@ -3415,6 +3415,44 @@ const DelayEsportivo = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Approve deposit with link selection dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Aprovar Depósito</DialogTitle>
+            <DialogDescription>
+              Escolha em qual link externo o cliente será exibido.
+            </DialogDescription>
+          </DialogHeader>
+          {approveCliente && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Cliente: <span className="font-bold text-foreground">{approveCliente.nome}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Valor: <span className="font-bold text-emerald-400">R$ {(approveCliente.deposito_pendente || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div>
+                <Label className="font-bold">Exibir no Link</Label>
+                <Select value={approveLinkChoice} onValueChange={setApproveLinkChoice}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_admin">Visualização Admin</SelectItem>
+                    {shareLinks.filter(l => l.ativo && l.tipo === "visualizador_pessoa").map(link => (
+                      <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancelar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={confirmApproveDeposit}>Aprovar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Button
         type="button"
         size="icon"
