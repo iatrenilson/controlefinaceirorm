@@ -1784,9 +1784,8 @@ const DelayEsportivo = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col">
-          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 shrink-0 bg-background overflow-y-auto max-h-[60vh]">
+      <div className="sticky top-[57px] z-30 bg-background border-b border-border/50">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Action Buttons - Above cards */}
             <div className="flex items-center gap-2 flex-wrap">
               <Button size="sm" variant="outline" className="text-xs border-primary text-primary hover:bg-primary/10"
@@ -2281,10 +2280,10 @@ const DelayEsportivo = () => {
             </div>
           );
         })()}
-          </div> {/* Closing the fixed top section */}
+          </div>
+      </div>
 
-          {/* Scrollable client list section */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6"> {/* Added padding and scroll */}
+      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
@@ -2612,8 +2611,6 @@ const DelayEsportivo = () => {
           </AnimatePresence>
         )}
           </div> {/* Closing the scrollable client list section */}
-        </div> {/* Closing the h-full flex flex-col container */}
-      </div> {/* Closing the flex-1 overflow-hidden container */}
 
       {/* New/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
