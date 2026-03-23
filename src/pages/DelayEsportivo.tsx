@@ -2331,6 +2331,7 @@ const DelayEsportivo = () => {
                   </DropdownMenu>
                 );
               })()}
+            </div>
           );
         })()}
           </div>
