@@ -900,16 +900,14 @@ const DelayEsportivo = () => {
       return matchBusca && matchStatus && matchCasa && matchDataSaque && matchNick;
     });
     if (sortMode === "az") {
+      const getCasaSortKey = (casa: string) => {
+        if (casa === "Betano") return "Betano_0";
+        if (casa === "Superbet") return "Betano_1";
+        return casa;
+      };
       result = result.sort((a, b) => {
-        // Priorizar Betano antes de Superbet
-        if (a.casa === "Betano" && b.casa === "Superbet") return -1;
-        if (a.casa === "Superbet" && b.casa === "Betano") return 1;
-
-        // Ordenação alfabética padrão para outras casas
-        const casaCompare = a.casa.localeCompare(b.casa, "pt-BR");
+        const casaCompare = getCasaSortKey(a.casa).localeCompare(getCasaSortKey(b.casa), "pt-BR");
         if (casaCompare !== 0) return casaCompare;
-
-        // Ordenação secundária por nome
         return a.nome.localeCompare(b.nome, "pt-BR");
       });
     }
@@ -947,10 +945,13 @@ const DelayEsportivo = () => {
       };
       const orderDiff = getOrder(a) - getOrder(b);
       if (orderDiff !== 0) return orderDiff;
-      // Secondary: Betano before Superbet, then alphabetical by casa
-      if (a.casa === "Betano" && b.casa === "Superbet") return -1;
-      if (a.casa === "Superbet" && b.casa === "Betano") return 1;
-      return a.casa.localeCompare(b.casa, "pt-BR");
+      // Secondary: Superbet right after Betano
+      const getCasaKey = (casa: string) => {
+        if (casa === "Betano") return "Betano_0";
+        if (casa === "Superbet") return "Betano_1";
+        return casa;
+      };
+      return getCasaKey(a.casa).localeCompare(getCasaKey(b.casa), "pt-BR");
     });
   }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed]);
 
