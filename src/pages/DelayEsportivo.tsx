@@ -2282,7 +2282,7 @@ const DelayEsportivo = () => {
           </div>
       </div>
 
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
