@@ -378,6 +378,9 @@ const DelayEsportivo = () => {
   const [filtroDataSaqueOpen, setFiltroDataSaqueOpen] = useState(false);
   const [filtroNick, setFiltroNick] = useState<string>("todos");
   const [showPendentes, setShowPendentes] = useState(false);
+  const [showDevolvidas, setShowDevolvidas] = useState(false);
+  const [showConcluidas, setShowConcluidas] = useState(false);
+  const [showRed, setShowRed] = useState(false);
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -849,7 +852,15 @@ const DelayEsportivo = () => {
       );
     });
     const set = new Set(clientesFiltrados.map(c => c.casa));
-    return Array.from(set).sort();
+    const arr = Array.from(set).sort();
+    // Ensure Superbet appears right after Betano
+    const betanoIdx = arr.indexOf("Betano");
+    const superbetIdx = arr.indexOf("Superbet");
+    if (betanoIdx !== -1 && superbetIdx !== -1 && superbetIdx !== betanoIdx + 1) {
+      arr.splice(superbetIdx, 1);
+      arr.splice(betanoIdx + 1, 0, "Superbet");
+    }
+    return arr;
   }, [clientes, filtroDataSaque, allTransacoes]);
 
   const filtered = useMemo(() => {
@@ -888,6 +899,39 @@ const DelayEsportivo = () => {
     }
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick]);
+
+  const displayList = useMemo(() => {
+    if (showDevolvidas) {
+      return clientes.filter(c => c.status === "devolvido");
+    }
+    if (showConcluidas) {
+      return clientes.filter(c => c.status === "concluido");
+    }
+    if (showRed) {
+      return clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0);
+    }
+    if (showPendentes) {
+      return [...filtered].sort((a, b) => {
+        const getOrder = (c: DelayCliente) => {
+          if (c.status === "saque_pendente") return 0;
+          if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
+          if ((c.deposito_pendente ?? 0) > 0) return 2;
+          if (c.status === "concluido") return 3;
+          return 1;
+        };
+        return getOrder(a) - getOrder(b);
+      });
+    }
+    return filtered.filter(c => (c.deposito_pendente ?? 0) <= 0).sort((a, b) => {
+      const getOrder = (c: DelayCliente) => {
+        if (c.status === "saque_pendente") return 0;
+        if (c.status === "ativo" && c.operacao === "operando") return 1;
+        if (c.status === "concluido") return 3;
+        return 1;
+      };
+      return getOrder(a) - getOrder(b);
+    });
+  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed]);
 
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
@@ -2111,25 +2155,74 @@ const DelayEsportivo = () => {
           </div>
         )}
 
-        {/* Pendentes toggle */}
+        {/* Filter toggles: Pendentes, Devolvidas, Concluídas, Red */}
         {(() => {
           const pendingCount = filtered.filter(c => (c.deposito_pendente ?? 0) > 0).length;
-          if (pendingCount === 0) return null;
+          const devolvidaCount = clientes.filter(c => c.status === "devolvido").length;
+          const concluidaCount = clientes.filter(c => c.status === "concluido").length;
+          const redCount = clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0).length;
           return (
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowPendentes(!showPendentes)}
-                className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 gap-1.5"
-              >
-                <Clock className="h-3.5 w-3.5" />
-                Pendentes
-                <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">
-                  {pendingCount}
-                </Badge>
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showPendentes && "rotate-180")} />
-              </Button>
+            <div className="flex justify-end gap-2 flex-wrap">
+              {pendingCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowPendentes(!showPendentes); setShowDevolvidas(false); setShowConcluidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showPendentes ? "border-orange-500 bg-orange-500/10 text-orange-400" : "border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300")}
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Pendentes
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">
+                    {pendingCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showPendentes && "rotate-180")} />
+                </Button>
+              )}
+              {devolvidaCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowDevolvidas(!showDevolvidas); setShowPendentes(false); setShowConcluidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showDevolvidas ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300")}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Devolvidas
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                    {devolvidaCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showDevolvidas && "rotate-180")} />
+                </Button>
+              )}
+              {concluidaCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowConcluidas(!showConcluidas); setShowPendentes(false); setShowDevolvidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showConcluidas ? "border-purple-500 bg-purple-500/10 text-purple-400" : "border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300")}
+                >
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Concluídas
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    {concluidaCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showConcluidas && "rotate-180")} />
+                </Button>
+              )}
+              {redCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowRed(!showRed); setShowPendentes(false); setShowDevolvidas(false); setShowConcluidas(false); }}
+                  className={cn("gap-1.5", showRed ? "border-red-500 bg-red-500/10 text-red-400" : "border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300")}
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Red
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-red-500/20 text-red-400 border-red-500/30">
+                    {redCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showRed && "rotate-180")} />
+                </Button>
+              )}
             </div>
           );
         })()}
@@ -2140,7 +2233,7 @@ const DelayEsportivo = () => {
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
-            ) : filtered.length === 0 ? (
+            ) : displayList.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>
             ) : viewMode === "table" ? (
               /* Table View */
@@ -2159,24 +2252,7 @@ const DelayEsportivo = () => {
                 </tr>
               </thead>
               <tbody>
-                {(showPendentes ? [...filtered].sort((a, b) => {
-                  const getOrder = (c: DelayCliente) => {
-                    if (c.status === "saque_pendente") return 0;
-                    if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
-                    if ((c.deposito_pendente ?? 0) > 0) return 2;
-                    if (c.status === "concluido") return 3;
-                    return 1;
-                  };
-                  return getOrder(a) - getOrder(b);
-                }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-                  const getOrder = (c: DelayCliente) => {
-                    if (c.status === "saque_pendente") return 0;
-                    if (c.status === "ativo" && c.operacao === "operando") return 1;
-                    if (c.status === "concluido") return 3;
-                    return 1;
-                  };
-                  return getOrder(a) - getOrder(b);
-                }).map((c) => (
+                {displayList.map((c) => (
                   <tr key={c.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                     <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{c.nome}</td>
                     <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
@@ -2225,24 +2301,7 @@ const DelayEsportivo = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className={`grid grid-cols-1 gap-3 ${layoutCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
           >
-            {(showPendentes ? [...filtered].sort((a, b) => {
-              const getOrder = (c: DelayCliente) => {
-                if (c.status === "saque_pendente") return 0;
-                if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
-                if ((c.deposito_pendente ?? 0) > 0) return 2;
-                if (c.status === "concluido") return 3;
-                return 1;
-              };
-              return getOrder(a) - getOrder(b);
-            }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-              const getOrder = (c: DelayCliente) => {
-                if (c.status === "saque_pendente") return 0;
-                if (c.status === "ativo" && c.operacao === "operando") return 1;
-                if (c.status === "concluido") return 3;
-                return 1;
-              };
-              return getOrder(a) - getOrder(b);
-            }).map((c, index) => {
+            {displayList.map((c, index) => {
               const displayName = c.nome;
               return (
               <motion.div
