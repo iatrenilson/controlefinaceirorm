@@ -2252,24 +2252,7 @@ const DelayEsportivo = () => {
                 </tr>
               </thead>
               <tbody>
-                {(showPendentes ? [...filtered].sort((a, b) => {
-                  const getOrder = (c: DelayCliente) => {
-                    if (c.status === "saque_pendente") return 0;
-                    if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
-                    if ((c.deposito_pendente ?? 0) > 0) return 2;
-                    if (c.status === "concluido") return 3;
-                    return 1;
-                  };
-                  return getOrder(a) - getOrder(b);
-                }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-                  const getOrder = (c: DelayCliente) => {
-                    if (c.status === "saque_pendente") return 0;
-                    if (c.status === "ativo" && c.operacao === "operando") return 1;
-                    if (c.status === "concluido") return 3;
-                    return 1;
-                  };
-                  return getOrder(a) - getOrder(b);
-                }).map((c) => (
+                {displayList.map((c) => (
                   <tr key={c.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
                     <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{c.nome}</td>
                     <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
