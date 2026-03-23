@@ -900,6 +900,39 @@ const DelayEsportivo = () => {
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick]);
 
+  const displayList = useMemo(() => {
+    if (showDevolvidas) {
+      return clientes.filter(c => c.status === "devolvido");
+    }
+    if (showConcluidas) {
+      return clientes.filter(c => c.status === "concluido");
+    }
+    if (showRed) {
+      return clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0);
+    }
+    if (showPendentes) {
+      return [...filtered].sort((a, b) => {
+        const getOrder = (c: DelayCliente) => {
+          if (c.status === "saque_pendente") return 0;
+          if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
+          if ((c.deposito_pendente ?? 0) > 0) return 2;
+          if (c.status === "concluido") return 3;
+          return 1;
+        };
+        return getOrder(a) - getOrder(b);
+      });
+    }
+    return filtered.filter(c => (c.deposito_pendente ?? 0) <= 0).sort((a, b) => {
+      const getOrder = (c: DelayCliente) => {
+        if (c.status === "saque_pendente") return 0;
+        if (c.status === "ativo" && c.operacao === "operando") return 1;
+        if (c.status === "concluido") return 3;
+        return 1;
+      };
+      return getOrder(a) - getOrder(b);
+    });
+  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed]);
+
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
     const ativasClientes = visibleClientes.filter(c => c.status === "ativo");
