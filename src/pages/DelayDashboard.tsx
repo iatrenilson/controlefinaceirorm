@@ -386,7 +386,41 @@ const DelayDashboard = () => {
           </Card>
         </div>
 
-        {/* Bank Balances */}
+        {/* Clientes Atrasados */}
+      {stats.atrasados > 0 && (
+        <Card className="border-red-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-red-500">
+              <Timer className="h-4 w-4" /> Clientes Atrasados ({stats.atrasados})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {clientes
+                .filter(c => c.status !== "system" && c.status !== "ativo" && c.status !== "concluido")
+                .map(c => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold truncate">{c.nome}</p>
+                        <Badge variant="outline" className="text-[10px] border-red-500/30 text-red-500 shrink-0">
+                          {c.status}
+                        </Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{c.casa}</p>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="text-sm font-bold font-mono">{fmt(c.depositos)}</p>
+                      <p className="text-[10px] text-muted-foreground">Investido</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bank Balances */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card className="border-red-500/30">
             <CardContent className="p-4 flex items-center gap-3">
