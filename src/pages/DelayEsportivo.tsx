@@ -2728,20 +2728,20 @@ const DelayEsportivo = () => {
                     </Select>
                   </div>
                 </div>
-                <div>
-                  <Label className="font-bold">Exibir no Link</Label>
-                  <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_admin">Visualização Admin</SelectItem>
-                      {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
-                        <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </>
             )}
+            <div>
+              <Label className="font-bold">Exibir no Link</Label>
+              <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_admin">Visualização Admin</SelectItem>
+                  {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
+                    <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="mt-2">
             {editCliente ? (
