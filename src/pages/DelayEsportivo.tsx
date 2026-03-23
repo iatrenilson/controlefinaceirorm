@@ -53,6 +53,7 @@ interface DelayCliente {
   created_by_token?: string | null;
   informacoes_adicionais?: string | null;
   data_deposito?: string | null;
+  link_visualizacao?: string | null;
 }
 
 interface DelayTransacao {
