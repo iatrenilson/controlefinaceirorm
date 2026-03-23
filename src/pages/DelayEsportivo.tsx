@@ -27,7 +27,7 @@ import {
   Search, Plus, Wallet, ArrowDownCircle, ArrowUpCircle, History, TrendingUp,
   Users, Copy, Eye, EyeOff, MoreHorizontal, Pencil, Trash2, SortAsc, ChevronsUpDown, Check, Info,
   DollarSign, Clock, RotateCcw, CalendarDays, Download, CheckSquare, Square, Camera, LayoutGrid, Columns2,
-  Building2, Share2, Link, List, ChevronDown, StickyNote, Undo2
+  Building2, Share2, Link, Link2, List, ChevronDown, StickyNote, Undo2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
