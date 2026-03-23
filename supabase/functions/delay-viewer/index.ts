@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       .from("delay_share_links")
       .select("id, user_id, ativo, nick, tipo")
       .eq("token", token)
-      .in("tipo", ["visualizador", "visualizador_vodka"])
+      .in("tipo", ["visualizador", "visualizador_vodka", "visualizador_pessoa"])
       .single();
 
     if (linkError || !linkData || !linkData.ativo) {
@@ -47,11 +47,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const isVodkaOnly = linkData.tipo === "visualizador_vodka";
+    const isPersonLink = linkData.tipo === "visualizador_pessoa" || linkData.tipo === "visualizador_vodka";
 
     const { data: clientes, error: clientesError } = await supabase
       .from("delay_clientes")
-      .select("id, nome, casa, login, senha, fornecedor, tipo, banco_deposito, status, operacao, depositos, saques, custos, lucro, deposito_pendente, informacoes_adicionais, created_at, updated_at, created_by_token")
+      .select("id, nome, casa, login, senha, fornecedor, tipo, banco_deposito, status, operacao, depositos, saques, custos, lucro, deposito_pendente, informacoes_adicionais, created_at, updated_at, created_by_token, link_visualizacao")
       .eq("user_id", linkData.user_id)
       .order("created_at", { ascending: false });
 
@@ -88,8 +88,12 @@ Deno.serve(async (req) => {
 
     const clientesComNick = (clientes || [])
       .filter((c: any) => {
-        const hasVodka = c.nome.toLowerCase().includes("vodka");
-        return isVodkaOnly ? hasVodka : !hasVodka;
+        if (isPersonLink) {
+          // Person-specific link: show only clients assigned to this link
+          return c.link_visualizacao === linkData.id;
+        }
+        // Admin viewer: show clients NOT assigned to any person link (or with no assignment)
+        return !c.link_visualizacao;
       })
       .map((c: any) => ({
         ...c,
