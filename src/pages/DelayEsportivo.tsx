@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
