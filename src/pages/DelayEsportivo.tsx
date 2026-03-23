@@ -2301,24 +2301,7 @@ const DelayEsportivo = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className={`grid grid-cols-1 gap-3 ${layoutCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
           >
-            {(showPendentes ? [...filtered].sort((a, b) => {
-              const getOrder = (c: DelayCliente) => {
-                if (c.status === "saque_pendente") return 0;
-                if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
-                if ((c.deposito_pendente ?? 0) > 0) return 2;
-                if (c.status === "concluido") return 3;
-                return 1;
-              };
-              return getOrder(a) - getOrder(b);
-            }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-              const getOrder = (c: DelayCliente) => {
-                if (c.status === "saque_pendente") return 0;
-                if (c.status === "ativo" && c.operacao === "operando") return 1;
-                if (c.status === "concluido") return 3;
-                return 1;
-              };
-              return getOrder(a) - getOrder(b);
-            }).map((c, index) => {
+            {displayList.map((c, index) => {
               const displayName = c.nome;
               return (
               <motion.div
