@@ -1770,7 +1770,7 @@ const DelayEsportivo = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col"> {/* Added flex flex-col */}
       {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -1778,7 +1778,6 @@ const DelayEsportivo = () => {
               <h1 className="text-lg font-bold tracking-tight">Delay Esportivo</h1>
               <p className="text-xs text-muted-foreground">Gerencie clientes e operações de delay esportivo</p>
             </div>
-
           </div>
         </div>
       </header>
