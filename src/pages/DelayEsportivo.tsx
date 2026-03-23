@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import NotificationBell from "@/components/NotificationBell";
+
 
 import { motion, AnimatePresence } from "framer-motion";
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
@@ -1769,9 +1769,9 @@ const DelayEsportivo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col"> {/* Added flex flex-col */}
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b bg-card/80 backdrop-blur-sm shrink-0">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -1779,12 +1779,11 @@ const DelayEsportivo = () => {
               <h1 className="text-lg font-bold tracking-tight">Delay Esportivo</h1>
               <p className="text-xs text-muted-foreground">Gerencie clientes e operações de delay esportivo</p>
             </div>
-            <NotificationBell />
           </div>
         </div>
       </header>
 
-      <div className="sticky top-[57px] z-30 bg-background border-b border-border/50">
+      <div className="shrink-0 bg-background border-b border-border/50 overflow-y-auto max-h-[50vh]">
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Action Buttons - Above cards */}
             <div className="flex items-center gap-2 flex-wrap">
@@ -2283,7 +2282,7 @@ const DelayEsportivo = () => {
           </div>
       </div>
 
-      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
