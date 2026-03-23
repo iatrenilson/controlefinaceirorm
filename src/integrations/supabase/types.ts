@@ -135,6 +135,7 @@ export type Database = {
           fornecedor: string | null
           id: string
           informacoes_adicionais: string | null
+          link_visualizacao: string | null
           login: string | null
           lucro: number
           nome: string
@@ -159,6 +160,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           informacoes_adicionais?: string | null
+          link_visualizacao?: string | null
           login?: string | null
           lucro?: number
           nome: string
@@ -183,6 +185,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           informacoes_adicionais?: string | null
+          link_visualizacao?: string | null
           login?: string | null
           lucro?: number
           nome?: string
@@ -199,6 +202,13 @@ export type Database = {
           {
             foreignKeyName: "delay_clientes_created_by_token_fkey"
             columns: ["created_by_token"]
+            isOneToOne: false
+            referencedRelation: "delay_share_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delay_clientes_link_visualizacao_fkey"
+            columns: ["link_visualizacao"]
             isOneToOne: false
             referencedRelation: "delay_share_links"
             referencedColumns: ["id"]

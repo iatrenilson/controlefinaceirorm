@@ -53,6 +53,7 @@ interface DelayCliente {
   created_by_token?: string | null;
   informacoes_adicionais?: string | null;
   data_deposito?: string | null;
+  link_visualizacao?: string | null;
 }
 
 interface DelayTransacao {
@@ -435,7 +436,7 @@ const DelayEsportivo = () => {
 
   // Form state
   const [form, setForm] = useState({
-    nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: ""
+    nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "", link_visualizacao: "" as string
   });
   const [editDate, setEditDate] = useState<Date>(new Date());
   const [depositoInicial, setDepositoInicial] = useState("");
@@ -929,7 +930,12 @@ const DelayEsportivo = () => {
         if (c.status === "concluido") return 3;
         return 1;
       };
-      return getOrder(a) - getOrder(b);
+      const orderDiff = getOrder(a) - getOrder(b);
+      if (orderDiff !== 0) return orderDiff;
+      // Secondary: Betano before Superbet, then alphabetical by casa
+      if (a.casa === "Betano" && b.casa === "Superbet") return -1;
+      if (a.casa === "Superbet" && b.casa === "Betano") return 1;
+      return a.casa.localeCompare(b.casa, "pt-BR");
     });
   }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed]);
 
@@ -1157,7 +1163,7 @@ const DelayEsportivo = () => {
     }
   };
 
-  const resetForm = () => setForm({ nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "" });
+  const resetForm = () => setForm({ nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "", link_visualizacao: "" });
 
   const openNewDialog = () => {
     setEditCliente(null);
@@ -1201,7 +1207,7 @@ const DelayEsportivo = () => {
 
   const copyShareLink = (token: string, tipo: string) => {
     const origin = "https://rwinvestimentos.com.br";
-    const path = (tipo === "visualizador" || tipo === "visualizador_vodka") ? "/visualizar-delay" : "/adicionar-cliente";
+    const path = (tipo === "visualizador" || tipo === "visualizador_vodka" || tipo === "visualizador_pessoa") ? "/visualizar-delay" : "/adicionar-cliente";
     const url = `${origin}${path}?token=${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!" });
@@ -1234,7 +1240,8 @@ const DelayEsportivo = () => {
     setForm({
       nome: c.nome, casa: c.casa, login: c.login || "", senha: c.senha || "",
       fornecedor: c.fornecedor || "", tipo: c.tipo || "50/50", status: c.status, operacao: c.operacao,
-      informacoes_adicionais: c.informacoes_adicionais || ""
+      informacoes_adicionais: c.informacoes_adicionais || "",
+      link_visualizacao: c.link_visualizacao || ""
     });
     setEditDate(new Date(c.created_at));
     setDepositoInicial(String(c.depositos || 0));
@@ -1248,7 +1255,7 @@ const DelayEsportivo = () => {
     if (editCliente) {
       const novoDeposito = parseFloat(depositoInicial) || 0;
       const { error } = await supabase.from("delay_clientes")
-        .update({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, created_at: editDate.toISOString(), depositos: novoDeposito, informacoes_adicionais: form.informacoes_adicionais || null })
+        .update({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, created_at: editDate.toISOString(), depositos: novoDeposito, informacoes_adicionais: form.informacoes_adicionais || null, link_visualizacao: form.link_visualizacao || null } as any)
         .eq("id", editCliente.id);
       if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
       else toast({ title: "Cliente atualizado!" });
@@ -2008,7 +2015,7 @@ const DelayEsportivo = () => {
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="direto">Cadastro direto</SelectItem>
-                {shareLinks.filter(l => l.nick && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka").map(link => (
+                {shareLinks.filter(l => l.nick && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka" && l.tipo !== "visualizador_pessoa").map(link => (
                   <SelectItem key={link.id} value={link.id}>{link.nick}</SelectItem>
                 ))}
               </SelectContent>
@@ -2705,6 +2712,18 @@ const DelayEsportivo = () => {
                     </Select>
                   </div>
                 </div>
+                <div>
+                  <Label className="font-bold">Exibir no Link</Label>
+                  <Select value={form.link_visualizacao} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_admin">Visualização Admin</SelectItem>
+                      {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa")).map(link => (
+                        <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </>
             )}
           </div>
@@ -3245,37 +3264,45 @@ const DelayEsportivo = () => {
               </div>
             )}
 
-            {/* Admin: Create vodka viewer link */}
+            {/* Admin: Create person viewer link */}
             {isAdmin && (
               <div className="border border-dashed border-purple-500/40 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link de Visualização (Vodka)
+                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link de Visualização (Pessoa)
                 </p>
-                <p className="text-[10px] text-muted-foreground">Quem acessar verá <strong>somente</strong> os clientes com "vodka" no nome.</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  disabled={shareLinkLoading}
-                  onClick={async () => {
-                    if (!user) return;
-                    setShareLinkLoading(true);
-                    try {
-                      const { error } = await supabase
-                        .from("delay_share_links")
-                        .insert({ user_id: user.id, nick: "Vodka", tipo: "visualizador_vodka" } as any);
-                      if (error) throw error;
-                      await fetchShareLinks();
-                      toast({ title: "Link de visualização Vodka criado!" });
-                    } catch (err: any) {
-                      toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
-                    } finally {
-                      setShareLinkLoading(false);
-                    }
-                  }}
-                >
-                  <Eye className="h-4 w-4 mr-1" /> Criar Link Vodka
-                </Button>
+                <p className="text-[10px] text-muted-foreground">Crie links de visualização para pessoas específicas. Atribua clientes a cada link na tela de edição.</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome da pessoa (ex: João)"
+                    value={newLinkNick}
+                    onChange={e => setNewLinkNick(e.target.value)}
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={shareLinkLoading || !newLinkNick.trim()}
+                    onClick={async () => {
+                      if (!user) return;
+                      setShareLinkLoading(true);
+                      try {
+                        const { error } = await supabase
+                          .from("delay_share_links")
+                          .insert({ user_id: user.id, nick: newLinkNick.trim(), tipo: "visualizador_pessoa" } as any);
+                        if (error) throw error;
+                        setNewLinkNick("");
+                        await fetchShareLinks();
+                        toast({ title: `Link de visualização para "${newLinkNick.trim()}" criado!` });
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
+                      } finally {
+                        setShareLinkLoading(false);
+                      }
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Criar
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -3294,9 +3321,9 @@ const DelayEsportivo = () => {
                             <Eye className="h-2.5 w-2.5 mr-0.5" /> Visualização
                           </Badge>
                         )}
-                        {link.tipo === "visualizador_vodka" && (
+                        {(link.tipo === "visualizador_vodka" || link.tipo === "visualizador_pessoa") && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-purple-500/50 text-purple-400">
-                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Vodka
+                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Pessoa
                           </Badge>
                         )}
                       </p>
