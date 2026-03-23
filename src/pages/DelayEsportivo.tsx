@@ -1158,7 +1158,7 @@ const DelayEsportivo = () => {
     }
   };
 
-  const resetForm = () => setForm({ nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "" });
+  const resetForm = () => setForm({ nome: "", casa: "Bet365", login: "", senha: "", fornecedor: "", tipo: "50/50", status: "ativo", operacao: "operando", informacoes_adicionais: "", link_visualizacao: "" });
 
   const openNewDialog = () => {
     setEditCliente(null);
