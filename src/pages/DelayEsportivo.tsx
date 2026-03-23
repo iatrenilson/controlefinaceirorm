@@ -1676,7 +1676,7 @@ const DelayEsportivo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col"> {/* Added flex flex-col */}
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
@@ -1691,27 +1691,29 @@ const DelayEsportivo = () => {
         </div>
       </header>
 
-      <main className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Action Buttons - Above cards */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" variant="outline" className="text-xs border-primary text-primary hover:bg-primary/10"
-            onClick={() => setShowDepositChoice("depositar")}>
-            <ArrowDownCircle className="h-3.5 w-3.5 mr-1" /> Depositar
-          </Button>
-          <Button size="sm" variant="outline" className="text-xs"
-            onClick={() => setShowDepositChoice("retirar")}>
-            <ArrowUpCircle className="h-3.5 w-3.5 mr-1" /> Retirar
-          </Button>
-          <Button size="sm" variant="ghost" className="text-xs"
-            onClick={() => setShowHistorico(!showHistorico)}>
-            <TrendingUp className="h-3.5 w-3.5 mr-1" /> Histórico
-          </Button>
-          <Button size="sm" variant="ghost" className="text-xs text-destructive hover:text-destructive"
-            onClick={() => setConfirmZerar(true)}>
-            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Zerar
-          </Button>
+      <div className="flex-1 overflow-hidden"> {/* New wrapper for main content */}
+        <div className="h-full flex flex-col"> {/* New flex container for fixed and scrollable parts */}
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 shrink-0 bg-background"> {/* Fixed top section */}
+            {/* Action Buttons - Above cards */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button size="sm" variant="outline" className="text-xs border-primary text-primary hover:bg-primary/10"
+                onClick={() => setShowDepositChoice("depositar")}>
+                <ArrowDownCircle className="h-3.5 w-3.5 mr-1" /> Depositar
+              </Button>
+              <Button size="sm" variant="outline" className="text-xs"
+                onClick={() => setShowDepositChoice("retirar")}>
+                <ArrowUpCircle className="h-3.5 w-3.5 mr-1" /> Retirar
+              </Button>
+              <Button size="sm" variant="ghost" className="text-xs"
+                onClick={() => setShowHistorico(!showHistorico)}>
+                <TrendingUp className="h-3.5 w-3.5 mr-1" /> Histórico
+              </Button>
+              <Button size="sm" variant="ghost" className="text-xs text-destructive hover:text-destructive"
+                onClick={() => setConfirmZerar(true)}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Zerar
+              </Button>
 
-        </div>
+            </div>
 
         {/* Bank Balances Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2120,17 +2122,20 @@ const DelayEsportivo = () => {
             </div>
           );
         })()}
+          </div> {/* Closing the fixed top section */}
 
-        {/* Client Cards / Table */}
-        {loading ? (
-          <p className="text-center text-muted-foreground py-8">Carregando...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>
-        ) : viewMode === "table" ? (
-          /* Table View */
-          <div className="rounded-lg border border-border/50 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
+          {/* Scrollable client list section */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6"> {/* Added padding and scroll */}
+            {/* Client Cards / Table */}
+            {loading ? (
+              <p className="text-center text-muted-foreground py-8">Carregando...</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>
+            ) : viewMode === "table" ? (
+              /* Table View */
+              <div className="rounded-lg border border-border/50 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
                 <tr className="border-b border-border/50 bg-muted/30">
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Nome</th>
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Casa</th>
@@ -2451,7 +2456,9 @@ const DelayEsportivo = () => {
           </motion.div>
           </AnimatePresence>
         )}
-      </main>
+          </div> {/* Closing the scrollable client list section */}
+        </div> {/* Closing the h-full flex flex-col container */}
+      </div> {/* Closing the flex-1 overflow-hidden container */}
 
       {/* New/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
