@@ -1769,7 +1769,7 @@ const DelayEsportivo = () => {
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-sm shrink-0">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
