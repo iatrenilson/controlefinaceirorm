@@ -27,7 +27,7 @@ import {
   Search, Plus, Wallet, ArrowDownCircle, ArrowUpCircle, History, TrendingUp,
   Users, Copy, Eye, EyeOff, MoreHorizontal, Pencil, Trash2, SortAsc, ChevronsUpDown, Check, Info,
   DollarSign, Clock, RotateCcw, CalendarDays, Download, CheckSquare, Square, Camera, LayoutGrid, Columns2,
-  Building2, Share2, Link, List, ChevronDown, StickyNote, Undo2
+  Building2, Share2, Link, Link2, List, ChevronDown, StickyNote, Undo2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
@@ -384,6 +384,7 @@ const DelayEsportivo = () => {
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [showRed, setShowRed] = useState(false);
   const [showSaquePendente, setShowSaquePendente] = useState(false);
+  const [filterByLink, setFilterByLink] = useState<string | null>(null);
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -927,6 +928,12 @@ const DelayEsportivo = () => {
     const sortBySaqueDesc = (list: DelayCliente[]) =>
       [...list].sort((a, b) => getLastSaqueDate(b.id).localeCompare(getLastSaqueDate(a.id)));
 
+    if (filterByLink) {
+      const linkFiltered = filterByLink === "_admin"
+        ? clientes.filter(c => !c.link_visualizacao && (c.status === "ativo" || c.status === "saque_pendente"))
+        : clientes.filter(c => c.link_visualizacao === filterByLink);
+      return linkFiltered;
+    }
     if (showDevolvidas) {
       return sortBySaqueDesc(clientes.filter(c => c.status === "devolvido"));
     }
@@ -968,7 +975,7 @@ const DelayEsportivo = () => {
       };
       return getCasaKey(a.casa).localeCompare(getCasaKey(b.casa), "pt-BR");
     });
-  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente, allTransacoes]);
+  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente, filterByLink, allTransacoes]);
 
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
@@ -2198,7 +2205,7 @@ const DelayEsportivo = () => {
           const concluidaCount = clientes.filter(c => c.status === "concluido").length;
           const redCount = clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0).length;
           const saquePendenteCount = clientes.filter(c => c.status === "saque_pendente").length;
-          const resetFilters = (except?: string) => { if (except !== "pendentes") setShowPendentes(false); if (except !== "devolvidas") setShowDevolvidas(false); if (except !== "concluidas") setShowConcluidas(false); if (except !== "red") setShowRed(false); if (except !== "saque") setShowSaquePendente(false); };
+          const resetFilters = (except?: string) => { if (except !== "pendentes") setShowPendentes(false); if (except !== "devolvidas") setShowDevolvidas(false); if (except !== "concluidas") setShowConcluidas(false); if (except !== "red") setShowRed(false); if (except !== "saque") setShowSaquePendente(false); if (except !== "link") setFilterByLink(null); };
           return (
             <div className="flex justify-end gap-2 flex-wrap">
               {pendingCount > 0 && (
@@ -2276,6 +2283,49 @@ const DelayEsportivo = () => {
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showRed && "rotate-180")} />
                 </Button>
               )}
+              {/* Link filters */}
+              {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => {
+                const linkCount = clientes.filter(c => c.link_visualizacao === link.id).length;
+                if (linkCount === 0) return null;
+                const isActive = filterByLink === link.id;
+                return (
+                  <Button
+                    key={`link-${link.id}`}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : link.id); }}
+                    className={cn("gap-1.5", isActive ? "border-blue-500 bg-blue-500/10 text-blue-400" : "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300")}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    {link.nick || "Sem nick"}
+                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      {linkCount}
+                    </Badge>
+                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
+                  </Button>
+                );
+              })}
+              {/* Admin (sem link) filter */}
+              {(() => {
+                const adminCount = clientes.filter(c => !c.link_visualizacao && (c.status === "ativo" || c.status === "saque_pendente")).length;
+                if (adminCount === 0) return null;
+                const isActive = filterByLink === "_admin";
+                return (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : "_admin"); }}
+                    className={cn("gap-1.5", isActive ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300")}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    Admin
+                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                      {adminCount}
+                    </Badge>
+                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
+                  </Button>
+                );
+              })()}
             </div>
           );
         })()}
