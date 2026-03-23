@@ -404,6 +404,11 @@ const DelayEsportivo = () => {
   const [confirmZerar, setConfirmZerar] = useState(false);
   const [showDepositChoice, setShowDepositChoice] = useState<"depositar" | "retirar" | null>(null);
 
+  // Approve deposit with link selection
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveCliente, setApproveCliente] = useState<DelayCliente | null>(null);
+  const [approveLinkChoice, setApproveLinkChoice] = useState<string>("_admin");
+
   // Bank balances
   const [bankBalances, setBankBalances] = useState<{ santander: number; c6: number }>({ santander: 0, c6: 0 });
   const [bankDialog, setBankDialog] = useState<{ banco: string; tipo: "depositar" | "retirar" } | null>(null);
@@ -662,13 +667,21 @@ const DelayEsportivo = () => {
 
   const handleApproveDeposit = async (cliente: DelayCliente) => {
     if (!user || !cliente.deposito_pendente || cliente.deposito_pendente <= 0) return;
-    const depositoVal = cliente.deposito_pendente;
-    const banco = cliente.banco_deposito || "santander";
+    setApproveCliente(cliente);
+    setApproveLinkChoice(cliente.link_visualizacao || "_admin");
+    setApproveDialogOpen(true);
+  };
 
-    // Move pending to depositos
+  const confirmApproveDeposit = async () => {
+    if (!user || !approveCliente) return;
+    const cliente = approveCliente;
+    const depositoVal = cliente.deposito_pendente || 0;
+    const banco = cliente.banco_deposito || "santander";
+    const linkVal = approveLinkChoice === "_admin" ? null : approveLinkChoice;
+
     const { error: updateError } = await supabase
       .from("delay_clientes")
-      .update({ depositos: depositoVal, deposito_pendente: 0, data_deposito: new Date().toISOString() } as any)
+      .update({ depositos: depositoVal, deposito_pendente: 0, data_deposito: new Date().toISOString(), link_visualizacao: linkVal } as any)
       .eq("id", cliente.id);
 
     if (updateError) {
@@ -693,8 +706,11 @@ const DelayEsportivo = () => {
     }
 
     toast({ title: "Depósito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "C6 Bank"}` });
+    setApproveDialogOpen(false);
+    setApproveCliente(null);
     fetchClientes();
     fetchBankBalances();
+  };
   };
 
   const handleRejectDeposit = async (cliente: DelayCliente) => {
@@ -2714,11 +2730,11 @@ const DelayEsportivo = () => {
                 </div>
                 <div>
                   <Label className="font-bold">Exibir no Link</Label>
-                  <Select value={form.link_visualizacao} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
+                  <Select value={form.link_visualizacao || "_admin"} onValueChange={v => setForm(f => ({ ...f, link_visualizacao: v === "_admin" ? "" : v }))}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="_admin">Visualização Admin</SelectItem>
-                      {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa")).map(link => (
+                      {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
                         <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
                       ))}
                     </SelectContent>
@@ -3396,6 +3412,44 @@ const DelayEsportivo = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve deposit with link selection dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Aprovar Depósito</DialogTitle>
+            <DialogDescription>
+              Escolha em qual link externo o cliente será exibido.
+            </DialogDescription>
+          </DialogHeader>
+          {approveCliente && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Cliente: <span className="font-bold text-foreground">{approveCliente.nome}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Valor: <span className="font-bold text-emerald-400">R$ {(approveCliente.deposito_pendente || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div>
+                <Label className="font-bold">Exibir no Link</Label>
+                <Select value={approveLinkChoice} onValueChange={setApproveLinkChoice}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o link" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_admin">Visualização Admin</SelectItem>
+                    {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => (
+                      <SelectItem key={link.id} value={link.id}>{link.nick || "Sem nick"}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>Cancelar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={confirmApproveDeposit}>Aprovar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
