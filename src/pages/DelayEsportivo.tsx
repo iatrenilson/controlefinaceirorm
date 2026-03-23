@@ -30,6 +30,7 @@ import {
   Building2, Share2, Link, Link2, List, ChevronDown, StickyNote, Undo2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
 
 interface DelayCliente {
