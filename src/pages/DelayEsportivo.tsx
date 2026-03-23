@@ -849,7 +849,15 @@ const DelayEsportivo = () => {
       );
     });
     const set = new Set(clientesFiltrados.map(c => c.casa));
-    return Array.from(set).sort();
+    const arr = Array.from(set).sort();
+    // Ensure Superbet appears right after Betano
+    const betanoIdx = arr.indexOf("Betano");
+    const superbetIdx = arr.indexOf("Superbet");
+    if (betanoIdx !== -1 && superbetIdx !== -1 && superbetIdx !== betanoIdx + 1) {
+      arr.splice(superbetIdx, 1);
+      arr.splice(betanoIdx + 1, 0, "Superbet");
+    }
+    return arr;
   }, [clientes, filtroDataSaque, allTransacoes]);
 
   const filtered = useMemo(() => {
