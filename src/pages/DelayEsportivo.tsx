@@ -667,13 +667,21 @@ const DelayEsportivo = () => {
 
   const handleApproveDeposit = async (cliente: DelayCliente) => {
     if (!user || !cliente.deposito_pendente || cliente.deposito_pendente <= 0) return;
-    const depositoVal = cliente.deposito_pendente;
-    const banco = cliente.banco_deposito || "santander";
+    setApproveCliente(cliente);
+    setApproveLinkChoice(cliente.link_visualizacao || "_admin");
+    setApproveDialogOpen(true);
+  };
 
-    // Move pending to depositos
+  const confirmApproveDeposit = async () => {
+    if (!user || !approveCliente) return;
+    const cliente = approveCliente;
+    const depositoVal = cliente.deposito_pendente || 0;
+    const banco = cliente.banco_deposito || "santander";
+    const linkVal = approveLinkChoice === "_admin" ? null : approveLinkChoice;
+
     const { error: updateError } = await supabase
       .from("delay_clientes")
-      .update({ depositos: depositoVal, deposito_pendente: 0, data_deposito: new Date().toISOString() } as any)
+      .update({ depositos: depositoVal, deposito_pendente: 0, data_deposito: new Date().toISOString(), link_visualizacao: linkVal } as any)
       .eq("id", cliente.id);
 
     if (updateError) {
@@ -698,8 +706,11 @@ const DelayEsportivo = () => {
     }
 
     toast({ title: "Depósito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "C6 Bank"}` });
+    setApproveDialogOpen(false);
+    setApproveCliente(null);
     fetchClientes();
     fetchBankBalances();
+  };
   };
 
   const handleRejectDeposit = async (cliente: DelayCliente) => {
