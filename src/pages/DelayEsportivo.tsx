@@ -930,7 +930,12 @@ const DelayEsportivo = () => {
         if (c.status === "concluido") return 3;
         return 1;
       };
-      return getOrder(a) - getOrder(b);
+      const orderDiff = getOrder(a) - getOrder(b);
+      if (orderDiff !== 0) return orderDiff;
+      // Secondary: Betano before Superbet, then alphabetical by casa
+      if (a.casa === "Betano" && b.casa === "Superbet") return -1;
+      if (a.casa === "Superbet" && b.casa === "Betano") return 1;
+      return a.casa.localeCompare(b.casa, "pt-BR");
     });
   }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed]);
 
