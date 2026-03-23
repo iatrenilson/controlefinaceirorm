@@ -925,6 +925,9 @@ const DelayEsportivo = () => {
     if (showRed) {
       return clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0);
     }
+    if (showSaquePendente) {
+      return clientes.filter(c => c.status === "saque_pendente");
+    }
     if (showPendentes) {
       return [...filtered].sort((a, b) => {
         const getOrder = (c: DelayCliente) => {
