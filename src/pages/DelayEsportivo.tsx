@@ -928,6 +928,12 @@ const DelayEsportivo = () => {
     const sortBySaqueDesc = (list: DelayCliente[]) =>
       [...list].sort((a, b) => getLastSaqueDate(b.id).localeCompare(getLastSaqueDate(a.id)));
 
+    if (filterByLink) {
+      const linkFiltered = filterByLink === "_admin"
+        ? clientes.filter(c => !c.link_visualizacao && (c.status === "ativo" || c.status === "saque_pendente"))
+        : clientes.filter(c => c.link_visualizacao === filterByLink);
+      return linkFiltered;
+    }
     if (showDevolvidas) {
       return sortBySaqueDesc(clientes.filter(c => c.status === "devolvido"));
     }
