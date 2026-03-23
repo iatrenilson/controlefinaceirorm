@@ -73,10 +73,11 @@ const DelayDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user) return;
       setLoading(true);
       const [{ data: clientesData, error: e1 }, { data: transData, error: e2 }] = await Promise.all([
-        supabase.from("delay_clientes").select("*").neq("status", "system"),
-        supabase.from("delay_transacoes").select("*").order("data_transacao", { ascending: true }),
+        supabase.from("delay_clientes").select("*").eq("user_id", user.id).neq("status", "system"),
+        supabase.from("delay_transacoes").select("*").eq("user_id", user.id).order("data_transacao", { ascending: true }),
       ]);
 
       if (e1) toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(e1), variant: "destructive" });
