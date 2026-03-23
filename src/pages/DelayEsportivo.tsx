@@ -2199,7 +2199,7 @@ const DelayEsportivo = () => {
           const concluidaCount = clientes.filter(c => c.status === "concluido").length;
           const redCount = clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0).length;
           const saquePendenteCount = clientes.filter(c => c.status === "saque_pendente").length;
-          const resetFilters = (except?: string) => { if (except !== "pendentes") setShowPendentes(false); if (except !== "devolvidas") setShowDevolvidas(false); if (except !== "concluidas") setShowConcluidas(false); if (except !== "red") setShowRed(false); if (except !== "saque") setShowSaquePendente(false); };
+          const resetFilters = (except?: string) => { if (except !== "pendentes") setShowPendentes(false); if (except !== "devolvidas") setShowDevolvidas(false); if (except !== "concluidas") setShowConcluidas(false); if (except !== "red") setShowRed(false); if (except !== "saque") setShowSaquePendente(false); if (except !== "link") setFilterByLink(null); };
           return (
             <div className="flex justify-end gap-2 flex-wrap">
               {pendingCount > 0 && (
