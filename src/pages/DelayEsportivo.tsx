@@ -1202,7 +1202,7 @@ const DelayEsportivo = () => {
 
   const copyShareLink = (token: string, tipo: string) => {
     const origin = "https://rwinvestimentos.com.br";
-    const path = (tipo === "visualizador" || tipo === "visualizador_vodka") ? "/visualizar-delay" : "/adicionar-cliente";
+    const path = (tipo === "visualizador" || tipo === "visualizador_vodka" || tipo === "visualizador_pessoa") ? "/visualizar-delay" : "/adicionar-cliente";
     const url = `${origin}${path}?token=${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!" });
