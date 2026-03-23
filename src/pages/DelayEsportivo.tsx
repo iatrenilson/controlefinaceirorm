@@ -2857,7 +2857,7 @@ const DelayEsportivo = () => {
               </>
             )}
           </div>
-          <DialogFooter className="mt-2">
+          <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
             {editCliente ? (
               <>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
