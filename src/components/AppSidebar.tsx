@@ -127,7 +127,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild tooltip="Painel Admin">
                       <NavLink to="/admin" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                         <ShieldCheck className="h-[18px] w-[18px]" />
-                        <span>Controle de Usuários</span>
+                        <span>Usuários</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
