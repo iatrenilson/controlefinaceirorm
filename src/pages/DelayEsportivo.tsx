@@ -2283,50 +2283,54 @@ const DelayEsportivo = () => {
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showRed && "rotate-180")} />
                 </Button>
               )}
-              {/* Link filters */}
-              {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => {
-                const linkCount = clientes.filter(c => c.link_visualizacao === link.id).length;
-                if (linkCount === 0) return null;
-                const isActive = filterByLink === link.id;
-                return (
-                  <Button
-                    key={`link-${link.id}`}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : link.id); }}
-                    className={cn("gap-1.5", isActive ? "border-blue-500 bg-blue-500/10 text-blue-400" : "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300")}
-                  >
-                    <Link2 className="h-3.5 w-3.5" />
-                    {link.nick || "Sem nick"}
-                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">
-                      {linkCount}
-                    </Badge>
-                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
-                  </Button>
-                );
-              })}
-              {/* Admin (sem link) filter */}
+              {/* Link filter dropdown */}
               {(() => {
+                const personLinks = shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka"));
                 const adminCount = clientes.filter(c => !c.link_visualizacao && (c.status === "ativo" || c.status === "saque_pendente")).length;
-                if (adminCount === 0) return null;
-                const isActive = filterByLink === "_admin";
+                if (personLinks.length === 0 && adminCount === 0) return null;
+                const selectedLabel = filterByLink === "_admin" ? "Admin" : filterByLink ? (personLinks.find(l => l.id === filterByLink)?.nick || "Link") : "Links";
+                const totalLinked = filterByLink
+                  ? (filterByLink === "_admin" ? adminCount : clientes.filter(c => c.link_visualizacao === filterByLink).length)
+                  : null;
                 return (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : "_admin"); }}
-                    className={cn("gap-1.5", isActive ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300")}
-                  >
-                    <Link2 className="h-3.5 w-3.5" />
-                    Admin
-                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                      {adminCount}
-                    </Badge>
-                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={cn("gap-1.5", filterByLink ? "border-blue-500 bg-blue-500/10 text-blue-400" : "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300")}
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        {selectedLabel}
+                        {totalLinked !== null && (
+                          <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                            {totalLinked}
+                          </Badge>
+                        )}
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[160px]">
+                      <DropdownMenuItem onClick={() => { resetFilters("link"); setFilterByLink(null); }} className={cn(!filterByLink && "font-semibold")}>
+                        Todos
+                      </DropdownMenuItem>
+                      {adminCount > 0 && (
+                        <DropdownMenuItem onClick={() => { resetFilters("link"); setFilterByLink("_admin"); }} className={cn(filterByLink === "_admin" && "font-semibold")}>
+                          Admin ({adminCount})
+                        </DropdownMenuItem>
+                      )}
+                      {personLinks.map(link => {
+                        const count = clientes.filter(c => c.link_visualizacao === link.id).length;
+                        return (
+                          <DropdownMenuItem key={link.id} onClick={() => { resetFilters("link"); setFilterByLink(link.id); }} className={cn(filterByLink === link.id && "font-semibold")}>
+                            {link.nick || "Sem nick"} ({count})
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 );
               })()}
-            </div>
           );
         })()}
           </div>
