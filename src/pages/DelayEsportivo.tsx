@@ -996,7 +996,7 @@ const DelayEsportivo = () => {
       return acc - c.depositos;
     }, 0);
 
-    const ativas = visibleClientes.filter(c => c.status === "ativo").length;
+    const ativas = visibleClientes.filter(c => c.status === "ativo" && (c.deposito_pendente ?? 0) <= 0).length;
     const depositosAtivos = ativasClientes.reduce((a, c) => a + c.depositos, 0);
     const saldoTotal = bankBalances.santander + bankBalances.c6;
     return { totalDepositos, totalSaques, totalLucro, totalCustos, saldo, saldoTotal, total: visibleClientes.length, ativas, depositosAtivos };
