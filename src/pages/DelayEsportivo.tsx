@@ -873,7 +873,18 @@ const DelayEsportivo = () => {
       return matchBusca && matchStatus && matchCasa && matchDataSaque && matchNick;
     });
     if (sortMode === "az") {
-      result = result.sort((a, b) => a.casa.localeCompare(b.casa, "pt-BR") || a.nome.localeCompare(b.nome, "pt-BR"));
+      result = result.sort((a, b) => {
+        // Priorizar Betano antes de Superbet
+        if (a.casa === "Betano" && b.casa === "Superbet") return -1;
+        if (a.casa === "Superbet" && b.casa === "Betano") return 1;
+
+        // Ordenação alfabética padrão para outras casas
+        const casaCompare = a.casa.localeCompare(b.casa, "pt-BR");
+        if (casaCompare !== 0) return casaCompare;
+
+        // Ordenação secundária por nome
+        return a.nome.localeCompare(b.nome, "pt-BR");
+      });
     }
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick]);
