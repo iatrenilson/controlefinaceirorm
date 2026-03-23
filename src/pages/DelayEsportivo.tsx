@@ -2400,7 +2400,7 @@ const DelayEsportivo = () => {
                           </Badge>
                         )}
                         {c.status === "saque_pendente" && (
-                          <Badge className="text-[11px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 shrink-0 flex items-center gap-1 animate-pulse">
+                          <Badge className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 shrink-0 flex items-center gap-1 animate-pulse">
                             <ArrowUpCircle className="h-3 w-3" />
                             Saque Pendente
                           </Badge>
