@@ -2280,10 +2280,10 @@ const DelayEsportivo = () => {
             </div>
           );
         })()}
-          </div> {/* Closing the fixed top section */}
+          </div>
+      </div>
 
-          {/* Scrollable client list section */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6"> {/* Added padding and scroll */}
+      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
