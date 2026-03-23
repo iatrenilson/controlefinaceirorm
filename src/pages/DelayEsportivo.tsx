@@ -2400,7 +2400,7 @@ const DelayEsportivo = () => {
                           </Badge>
                         )}
                         {c.status === "saque_pendente" && (
-                          <Badge className="text-[11px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 shrink-0 flex items-center gap-1 animate-pulse">
+                          <Badge className="text-[11px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 shrink-0 flex items-center gap-1 animate-pulse">
                             <ArrowUpCircle className="h-3 w-3" />
                             Saque Pendente
                           </Badge>
@@ -2563,7 +2563,7 @@ const DelayEsportivo = () => {
                     </Button>
                     {c.status === "ativo" && (
                       <>
-                        <Button size="sm" className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-0 text-[10px] h-6 w-6 p-0"
+                        <Button size="sm" className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-0 text-[10px] h-6 w-6 p-0"
                           onClick={() => handleSaquePendente(c)} title="Marcar saque pendente">
                           <ArrowUpCircle className="h-3 w-3" />
                         </Button>

@@ -270,7 +270,7 @@ const DelayViewer = () => {
 
   const getStatusBadge = (c: ClienteViewer) => {
     if (c.operacao === "saque_pendente")
-      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px]">Saque Pendente</Badge>;
+      return <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-[10px]">Saque Pendente</Badge>;
     if (c.deposito_pendente > 0 && c.status === "ativo")
       return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px]">Aguardando Depósito</Badge>;
     if (c.status === "ativo" && c.operacao === "operando")
