@@ -2563,7 +2563,7 @@ const DelayEsportivo = () => {
                     </Button>
                     {c.status === "ativo" && (
                       <>
-                        <Button size="sm" className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-0 text-[10px] h-6 w-6 p-0"
+                        <Button size="sm" className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border-0 text-[10px] h-6 w-6 p-0"
                           onClick={() => handleSaquePendente(c)} title="Marcar saque pendente">
                           <ArrowUpCircle className="h-3 w-3" />
                         </Button>

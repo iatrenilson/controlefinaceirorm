@@ -312,7 +312,7 @@ const DelayAddClient = () => {
                       ) : c.saques > 0 && !(c.saques === c.depositos && c.lucro === 0) ? (
                         <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 shrink-0">Concluído</Badge>
                       ) : c.status === "saque_pendente" ? (
-                        <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 shrink-0 animate-pulse">Saque Pendente</Badge>
+                        <Badge className="text-[10px] px-1.5 py-0 bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 shrink-0 animate-pulse">Saque Pendente</Badge>
                       ) : (
                         <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 shrink-0">
                           {c.status === "ativo" ? "Ativo" : c.status}
