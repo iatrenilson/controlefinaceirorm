@@ -915,15 +915,25 @@ const DelayEsportivo = () => {
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick]);
 
+  const getLastSaqueDate = (clienteId: string) => {
+    const last = allTransacoes
+      .filter(t => t.cliente_id === clienteId && (t.tipo === "saque" || t.tipo === "devolucao"))
+      .sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0];
+    return last?.data_transacao || "0000-00-00";
+  };
+
   const displayList = useMemo(() => {
+    const sortBySaqueDesc = (list: DelayCliente[]) =>
+      [...list].sort((a, b) => getLastSaqueDate(b.id).localeCompare(getLastSaqueDate(a.id)));
+
     if (showDevolvidas) {
-      return clientes.filter(c => c.status === "devolvido");
+      return sortBySaqueDesc(clientes.filter(c => c.status === "devolvido"));
     }
     if (showConcluidas) {
-      return clientes.filter(c => c.status === "concluido");
+      return sortBySaqueDesc(clientes.filter(c => c.status === "concluido"));
     }
     if (showRed) {
-      return clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0);
+      return sortBySaqueDesc(clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0));
     }
     if (showSaquePendente) {
       return clientes.filter(c => c.status === "saque_pendente");
@@ -957,7 +967,7 @@ const DelayEsportivo = () => {
       };
       return getCasaKey(a.casa).localeCompare(getCasaKey(b.casa), "pt-BR");
     });
-  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente]);
+  }, [filtered, clientes, showPendentes, showDevolvidas, showConcluidas, showRed, showSaquePendente, allTransacoes]);
 
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
@@ -2439,37 +2449,67 @@ const DelayEsportivo = () => {
                   <div className="flex-1 min-h-2" />
 
                   {/* Financeiro */}
-                  <div className="flex items-stretch gap-2 mt-2">
-                    {c.depositos > 0 && (
-                      <div className="flex-1 rounded-md border border-primary/20 bg-primary/10 flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
-                        <ArrowDownCircle className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <p className="text-primary/70 leading-none text-[11px]">Valor Depositado</p>
-                        <span className="font-bold font-mono text-primary text-sm">{fmt(c.depositos)}</span>
+                  {(c.status === "concluido" || c.status === "devolvido") ? (
+                    <div className="grid grid-cols-4 gap-1 mt-2 text-center">
+                      <div className="rounded-md border border-primary/20 bg-primary/10 py-1.5 px-1">
+                        <p className="text-[9px] text-primary/70 leading-none">Depósitos</p>
+                        <span className="font-bold font-mono text-primary text-[11px]">{fmt(c.depositos)}</span>
                       </div>
-                    )}
-                    {c.custos > 0 && (
-                      <div className="flex-1 rounded-md border border-destructive/20 bg-destructive/10 flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
-                        <DollarSign className="h-3.5 w-3.5 text-destructive shrink-0" />
-                        <p className="text-destructive/70 leading-none text-[11px]">Custo</p>
-                        <span className="font-bold font-mono text-destructive text-sm">{fmt(c.custos)}</span>
+                      <div className="rounded-md border border-emerald-500/20 bg-emerald-500/10 py-1.5 px-1">
+                        <p className="text-[9px] text-emerald-400/70 leading-none">Saques</p>
+                        <span className="font-bold font-mono text-emerald-400 text-[11px]">{fmt(c.saques)}</span>
                       </div>
-                    )}
-                    {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 ? (
-                      <div className="flex-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
-                        <TrendingUp className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-                        <p className="text-yellow-500/70 leading-none text-[11px]">Devolução</p>
-                        <span className="font-bold font-mono text-yellow-500 text-sm">+{fmt(0)}</span>
+                      <div className="rounded-md border border-destructive/20 bg-destructive/10 py-1.5 px-1">
+                        <p className="text-[9px] text-destructive/70 leading-none">Custos</p>
+                        <span className="font-bold font-mono text-destructive text-[11px]">{fmt(c.custos)}</span>
                       </div>
-                    ) : (
-                      <div className={`flex-1 rounded-md border flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2 ${c.lucro >= 0 ? "bg-blue-500/10 border-blue-500/20" : "bg-destructive/10 border-destructive/20"}`}>
-                        <TrendingUp className={`h-3.5 w-3.5 shrink-0 ${c.lucro >= 0 ? "text-blue-400" : "text-destructive"}`} />
-                        <p className={`leading-none text-[11px] ${c.lucro >= 0 ? "text-blue-400/70" : "text-destructive/70"}`}>{c.lucro < 0 ? "Red" : "Lucro"}</p>
-                        <span className={`font-bold font-mono text-sm ${c.lucro >= 0 ? "text-blue-400" : "text-destructive"}`}>
-                          {c.lucro >= 0 ? "+" : ""}{fmt(c.lucro)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                      {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 ? (
+                        <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 py-1.5 px-1">
+                          <p className="text-[9px] text-yellow-500/70 leading-none">Devolução</p>
+                          <span className="font-bold font-mono text-yellow-500 text-[11px]">+{fmt(0)}</span>
+                        </div>
+                      ) : (
+                        <div className={`rounded-md border py-1.5 px-1 ${c.lucro >= 0 ? "border-blue-500/20 bg-blue-500/10" : "border-destructive/20 bg-destructive/10"}`}>
+                          <p className={`text-[9px] leading-none ${c.lucro >= 0 ? "text-blue-400/70" : "text-destructive/70"}`}>{c.lucro < 0 ? "Red" : "Lucro"}</p>
+                          <span className={`font-bold font-mono text-[11px] ${c.lucro >= 0 ? "text-blue-400" : "text-destructive"}`}>
+                            {c.lucro >= 0 ? "+" : ""}{fmt(c.lucro)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-stretch gap-2 mt-2">
+                      {c.depositos > 0 && (
+                        <div className="flex-1 rounded-md border border-primary/20 bg-primary/10 flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
+                          <ArrowDownCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <p className="text-primary/70 leading-none text-[11px]">Valor Depositado</p>
+                          <span className="font-bold font-mono text-primary text-sm">{fmt(c.depositos)}</span>
+                        </div>
+                      )}
+                      {c.custos > 0 && (
+                        <div className="flex-1 rounded-md border border-destructive/20 bg-destructive/10 flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
+                          <DollarSign className="h-3.5 w-3.5 text-destructive shrink-0" />
+                          <p className="text-destructive/70 leading-none text-[11px]">Custo</p>
+                          <span className="font-bold font-mono text-destructive text-sm">{fmt(c.custos)}</span>
+                        </div>
+                      )}
+                      {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 ? (
+                        <div className="flex-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
+                          <TrendingUp className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                          <p className="text-yellow-500/70 leading-none text-[11px]">Devolução</p>
+                          <span className="font-bold font-mono text-yellow-500 text-sm">+{fmt(0)}</span>
+                        </div>
+                      ) : (
+                        <div className={`flex-1 rounded-md border flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2 ${c.lucro >= 0 ? "bg-blue-500/10 border-blue-500/20" : "bg-destructive/10 border-destructive/20"}`}>
+                          <TrendingUp className={`h-3.5 w-3.5 shrink-0 ${c.lucro >= 0 ? "text-blue-400" : "text-destructive"}`} />
+                          <p className={`leading-none text-[11px] ${c.lucro >= 0 ? "text-blue-400/70" : "text-destructive/70"}`}>{c.lucro < 0 ? "Red" : "Lucro"}</p>
+                          <span className={`font-bold font-mono text-sm ${c.lucro >= 0 ? "text-blue-400" : "text-destructive"}`}>
+                            {c.lucro >= 0 ? "+" : ""}{fmt(c.lucro)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Data do Saque */}
                   {(() => {
