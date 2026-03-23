@@ -378,6 +378,9 @@ const DelayEsportivo = () => {
   const [filtroDataSaqueOpen, setFiltroDataSaqueOpen] = useState(false);
   const [filtroNick, setFiltroNick] = useState<string>("todos");
   const [showPendentes, setShowPendentes] = useState(false);
+  const [showDevolvidas, setShowDevolvidas] = useState(false);
+  const [showConcluidas, setShowConcluidas] = useState(false);
+  const [showRed, setShowRed] = useState(false);
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
