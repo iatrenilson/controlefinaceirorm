@@ -1783,7 +1783,7 @@ const DelayEsportivo = () => {
         </div>
       </header>
 
-      <div className="shrink-0 bg-background border-b border-border/50 overflow-y-auto max-h-[50vh]">
+      <div className="sticky top-[57px] z-40 bg-background border-b border-border/50">
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {/* Action Buttons - Above cards */}
             <div className="flex items-center gap-2 flex-wrap">
