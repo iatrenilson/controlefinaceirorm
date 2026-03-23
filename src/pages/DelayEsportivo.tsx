@@ -3259,37 +3259,45 @@ const DelayEsportivo = () => {
               </div>
             )}
 
-            {/* Admin: Create vodka viewer link */}
+            {/* Admin: Create person viewer link */}
             {isAdmin && (
               <div className="border border-dashed border-purple-500/40 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link de Visualização (Vodka)
+                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link de Visualização (Pessoa)
                 </p>
-                <p className="text-[10px] text-muted-foreground">Quem acessar verá <strong>somente</strong> os clientes com "vodka" no nome.</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  disabled={shareLinkLoading}
-                  onClick={async () => {
-                    if (!user) return;
-                    setShareLinkLoading(true);
-                    try {
-                      const { error } = await supabase
-                        .from("delay_share_links")
-                        .insert({ user_id: user.id, nick: "Vodka", tipo: "visualizador_vodka" } as any);
-                      if (error) throw error;
-                      await fetchShareLinks();
-                      toast({ title: "Link de visualização Vodka criado!" });
-                    } catch (err: any) {
-                      toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
-                    } finally {
-                      setShareLinkLoading(false);
-                    }
-                  }}
-                >
-                  <Eye className="h-4 w-4 mr-1" /> Criar Link Vodka
-                </Button>
+                <p className="text-[10px] text-muted-foreground">Crie links de visualização para pessoas específicas. Atribua clientes a cada link na tela de edição.</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nome da pessoa (ex: João)"
+                    value={newLinkNick}
+                    onChange={e => setNewLinkNick(e.target.value)}
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={shareLinkLoading || !newLinkNick.trim()}
+                    onClick={async () => {
+                      if (!user) return;
+                      setShareLinkLoading(true);
+                      try {
+                        const { error } = await supabase
+                          .from("delay_share_links")
+                          .insert({ user_id: user.id, nick: newLinkNick.trim(), tipo: "visualizador_pessoa" } as any);
+                        if (error) throw error;
+                        setNewLinkNick("");
+                        await fetchShareLinks();
+                        toast({ title: `Link de visualização para "${newLinkNick.trim()}" criado!` });
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
+                      } finally {
+                        setShareLinkLoading(false);
+                      }
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Criar
+                  </Button>
+                </div>
               </div>
             )}
 
