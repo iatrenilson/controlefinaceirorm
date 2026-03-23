@@ -2010,7 +2010,7 @@ const DelayEsportivo = () => {
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="direto">Cadastro direto</SelectItem>
-                {shareLinks.filter(l => l.nick && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka").map(link => (
+                {shareLinks.filter(l => l.nick && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka" && l.tipo !== "visualizador_pessoa").map(link => (
                   <SelectItem key={link.id} value={link.id}>{link.nick}</SelectItem>
                 ))}
               </SelectContent>
