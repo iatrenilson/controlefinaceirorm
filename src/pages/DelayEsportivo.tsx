@@ -2669,14 +2669,14 @@ const DelayEsportivo = () => {
 
       {/* New/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle>{editCliente ? "Editar Cliente" : "Adicionar Cliente"}</DialogTitle>
             <DialogDescription className="sr-only">
               {editCliente ? "Edite os dados do cliente." : "Preencha os dados do novo cliente."}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 space-y-4">
             <div>
               <Label className="font-bold">Nome</Label>
               <Input placeholder="Nome do cliente" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className="mt-1" />
@@ -2857,7 +2857,7 @@ const DelayEsportivo = () => {
               </>
             )}
           </div>
-          <DialogFooter className="mt-2">
+          <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
             {editCliente ? (
               <>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
