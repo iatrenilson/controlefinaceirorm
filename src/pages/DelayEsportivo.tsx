@@ -2611,8 +2611,6 @@ const DelayEsportivo = () => {
           </AnimatePresence>
         )}
           </div> {/* Closing the scrollable client list section */}
-        </div> {/* Closing the h-full flex flex-col container */}
-      </div> {/* Closing the flex-1 overflow-hidden container */}
 
       {/* New/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
