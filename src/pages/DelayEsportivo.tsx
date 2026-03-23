@@ -1278,7 +1278,7 @@ const DelayEsportivo = () => {
     } else {
       const depositoVal = parseFloat(depositoInicial) || 0;
       const { data: newCliente, error } = await supabase.from("delay_clientes")
-        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco } as any)
+        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco, link_visualizacao: form.link_visualizacao || null } as any)
         .select().single();
       if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
       else {
