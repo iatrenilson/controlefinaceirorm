@@ -1915,7 +1915,7 @@ const DelayEsportivo = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Investido</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Depositado</p>
                 <p className="text-lg sm:text-xl font-bold font-mono">{fmt(stats.totalDepositos)}</p>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
                   <ArrowDownCircle className="h-3 w-3" /> Depósitos acumulados
