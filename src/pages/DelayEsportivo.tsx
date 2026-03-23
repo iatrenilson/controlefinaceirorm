@@ -711,7 +711,6 @@ const DelayEsportivo = () => {
     fetchClientes();
     fetchBankBalances();
   };
-  };
 
   const handleRejectDeposit = async (cliente: DelayCliente) => {
     const { error } = await supabase
