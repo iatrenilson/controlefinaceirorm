@@ -243,7 +243,7 @@ const DelayAddClient = () => {
         {/* Header */}
         <Card>
           <CardHeader className="text-center space-y-2 pb-3">
-            <img src={rwLogo} alt="RW Investimentos" className="h-64 w-auto mx-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
+            <img src={rwLogo} alt="RW Investimentos" className="h-32 sm:h-64 w-auto mx-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
             <CardTitle className="text-xl">Delay Esportivo{linkNick ? ` - ${linkNick}` : " - Clientes"}</CardTitle>
             <p className="text-sm text-muted-foreground">Gerencie seus clientes abaixo</p>
           </CardHeader>
