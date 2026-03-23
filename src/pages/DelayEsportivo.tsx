@@ -2233,7 +2233,7 @@ const DelayEsportivo = () => {
             {/* Client Cards / Table */}
             {loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
-            ) : filtered.length === 0 ? (
+            ) : displayList.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>
             ) : viewMode === "table" ? (
               /* Table View */
