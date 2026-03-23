@@ -1784,9 +1784,9 @@ const DelayEsportivo = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden"> {/* New wrapper for main content */}
-        <div className="h-full flex flex-col"> {/* New flex container for fixed and scrollable parts */}
-          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 shrink-0 bg-background"> {/* Fixed top section */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 shrink-0 bg-background overflow-y-auto max-h-[60vh]">
             {/* Action Buttons - Above cards */}
             <div className="flex items-center gap-2 flex-wrap">
               <Button size="sm" variant="outline" className="text-xs border-primary text-primary hover:bg-primary/10"
