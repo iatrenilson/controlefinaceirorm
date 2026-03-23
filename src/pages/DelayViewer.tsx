@@ -191,18 +191,16 @@ const DelayViewer = () => {
 
   const statusCounts = useMemo(() => {
     const baseList = clientes.filter((c) => {
-      if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
       if (getClienteStatus(c) === "aguardando") return false;
       return true;
     });
     const counts: Record<string, number> = { todos: baseList.length, operando: 0, concluido: 0, devolvido: 0, saque_pendente: 0 };
     baseList.forEach(c => { counts[getClienteStatus(c)]++; });
     return counts;
-  }, [clientes, linkTipo]);
+  }, [clientes]);
 
   const filtered = useMemo(() => {
     let list = clientes.filter((c) => {
-      if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
       if (getClienteStatus(c) === "aguardando") return false;
       return true;
     });
