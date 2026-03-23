@@ -1250,7 +1250,7 @@ const DelayEsportivo = () => {
     if (editCliente) {
       const novoDeposito = parseFloat(depositoInicial) || 0;
       const { error } = await supabase.from("delay_clientes")
-        .update({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, created_at: editDate.toISOString(), depositos: novoDeposito, informacoes_adicionais: form.informacoes_adicionais || null })
+        .update({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, created_at: editDate.toISOString(), depositos: novoDeposito, informacoes_adicionais: form.informacoes_adicionais || null, link_visualizacao: form.link_visualizacao || null } as any)
         .eq("id", editCliente.id);
       if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
       else toast({ title: "Cliente atualizado!" });
