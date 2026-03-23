@@ -2277,6 +2277,49 @@ const DelayEsportivo = () => {
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showRed && "rotate-180")} />
                 </Button>
               )}
+              {/* Link filters */}
+              {shareLinks.filter(l => l.ativo && (l.tipo === "visualizador_pessoa" || l.tipo === "visualizador_vodka")).map(link => {
+                const linkCount = clientes.filter(c => c.link_visualizacao === link.id).length;
+                if (linkCount === 0) return null;
+                const isActive = filterByLink === link.id;
+                return (
+                  <Button
+                    key={`link-${link.id}`}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : link.id); }}
+                    className={cn("gap-1.5", isActive ? "border-blue-500 bg-blue-500/10 text-blue-400" : "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300")}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    {link.nick || "Sem nick"}
+                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      {linkCount}
+                    </Badge>
+                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
+                  </Button>
+                );
+              })}
+              {/* Admin (sem link) filter */}
+              {(() => {
+                const adminCount = clientes.filter(c => !c.link_visualizacao && (c.status === "ativo" || c.status === "saque_pendente")).length;
+                if (adminCount === 0) return null;
+                const isActive = filterByLink === "_admin";
+                return (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { resetFilters("link"); setFilterByLink(isActive ? null : "_admin"); }}
+                    className={cn("gap-1.5", isActive ? "border-emerald-500 bg-emerald-500/10 text-emerald-400" : "border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300")}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    Admin
+                    <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                      {adminCount}
+                    </Badge>
+                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isActive && "rotate-180")} />
+                  </Button>
+                );
+              })()}
             </div>
           );
         })()}
