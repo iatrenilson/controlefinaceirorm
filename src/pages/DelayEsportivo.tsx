@@ -404,6 +404,11 @@ const DelayEsportivo = () => {
   const [confirmZerar, setConfirmZerar] = useState(false);
   const [showDepositChoice, setShowDepositChoice] = useState<"depositar" | "retirar" | null>(null);
 
+  // Approve deposit with link selection
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approveCliente, setApproveCliente] = useState<DelayCliente | null>(null);
+  const [approveLinkChoice, setApproveLinkChoice] = useState<string>("_admin");
+
   // Bank balances
   const [bankBalances, setBankBalances] = useState<{ santander: number; c6: number }>({ santander: 0, c6: 0 });
   const [bankDialog, setBankDialog] = useState<{ banco: string; tipo: "depositar" | "retirar" } | null>(null);
