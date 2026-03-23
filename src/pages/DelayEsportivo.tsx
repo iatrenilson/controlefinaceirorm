@@ -382,6 +382,7 @@ const DelayEsportivo = () => {
   const [showDevolvidas, setShowDevolvidas] = useState(false);
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [showRed, setShowRed] = useState(false);
+  const [showSaquePendente, setShowSaquePendente] = useState(false);
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
