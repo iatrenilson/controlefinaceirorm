@@ -2122,25 +2122,74 @@ const DelayEsportivo = () => {
           </div>
         )}
 
-        {/* Pendentes toggle */}
+        {/* Filter toggles: Pendentes, Devolvidas, Concluídas, Red */}
         {(() => {
           const pendingCount = filtered.filter(c => (c.deposito_pendente ?? 0) > 0).length;
-          if (pendingCount === 0) return null;
+          const devolvidaCount = clientes.filter(c => c.status === "devolvido").length;
+          const concluidaCount = clientes.filter(c => c.status === "concluido").length;
+          const redCount = clientes.filter(c => (c.status === "concluido" || c.status === "devolvido") && c.lucro < 0).length;
           return (
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowPendentes(!showPendentes)}
-                className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 gap-1.5"
-              >
-                <Clock className="h-3.5 w-3.5" />
-                Pendentes
-                <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">
-                  {pendingCount}
-                </Badge>
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showPendentes && "rotate-180")} />
-              </Button>
+            <div className="flex justify-end gap-2 flex-wrap">
+              {pendingCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowPendentes(!showPendentes); setShowDevolvidas(false); setShowConcluidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showPendentes ? "border-orange-500 bg-orange-500/10 text-orange-400" : "border-orange-500/50 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300")}
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Pendentes
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">
+                    {pendingCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showPendentes && "rotate-180")} />
+                </Button>
+              )}
+              {devolvidaCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowDevolvidas(!showDevolvidas); setShowPendentes(false); setShowConcluidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showDevolvidas ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300")}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Devolvidas
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                    {devolvidaCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showDevolvidas && "rotate-180")} />
+                </Button>
+              )}
+              {concluidaCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowConcluidas(!showConcluidas); setShowPendentes(false); setShowDevolvidas(false); setShowRed(false); }}
+                  className={cn("gap-1.5", showConcluidas ? "border-purple-500 bg-purple-500/10 text-purple-400" : "border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:text-purple-300")}
+                >
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Concluídas
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    {concluidaCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showConcluidas && "rotate-180")} />
+                </Button>
+              )}
+              {redCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowRed(!showRed); setShowPendentes(false); setShowDevolvidas(false); setShowConcluidas(false); }}
+                  className={cn("gap-1.5", showRed ? "border-red-500 bg-red-500/10 text-red-400" : "border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300")}
+                >
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  Red
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-red-500/20 text-red-400 border-red-500/30">
+                    {redCount}
+                  </Badge>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showRed && "rotate-180")} />
+                </Button>
+              )}
             </div>
           );
         })()}
