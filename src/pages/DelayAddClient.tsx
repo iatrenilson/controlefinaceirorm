@@ -243,7 +243,7 @@ const DelayAddClient = () => {
         {/* Header */}
         <Card>
           <CardHeader className="text-center space-y-2 pb-3">
-            <img src={rwLogo} alt="RW Investimentos" className="h-64 w-auto mx-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
+            <img src={rwLogo} alt="RW Investimentos" className="h-32 sm:h-64 w-auto mx-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
             <CardTitle className="text-xl">Delay Esportivo{linkNick ? ` - ${linkNick}` : " - Clientes"}</CardTitle>
             <p className="text-sm text-muted-foreground">Gerencie seus clientes abaixo</p>
           </CardHeader>
@@ -385,100 +385,102 @@ const DelayAddClient = () => {
 
         {/* Form Dialog */}
         <Dialog open={showForm} onOpenChange={(open) => { if (!open) { resetForm(); setShowForm(false); } }}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-lg max-h-[85vh] flex flex-col p-0">
+            <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
               <DialogTitle>Novo Cliente</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome *</Label>
-                <Input value={nome} onChange={e => setNome(e.target.value.toUpperCase())} placeholder="Nome do cliente" required className="uppercase" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Pix *</Label>
-                <Input value={informacoesAdicionais} onChange={e => setInformacoesAdicionais(e.target.value)} placeholder="Pix" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Casa de Aposta</Label>
-                <Popover open={casaOpen} onOpenChange={setCasaOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" aria-expanded={casaOpen} className="w-full justify-between font-normal">
-                      <div className="flex items-center gap-2 truncate">
-                        {getCasaLogo(casa) && <img src={getCasaLogo(casa)} alt={casa} className="h-4 w-4 shrink-0" />}
-                        {casa}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]">
-                    <Command>
-                      <CommandInput placeholder="Pesquisar casa..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhuma casa encontrada.</CommandEmpty>
-                        <CommandGroup>
-                          {CASAS_APOSTAS.map(c => (
-                            <CommandItem key={c.nome} value={c.nome} onSelect={(val) => { setCasa(CASAS_APOSTAS.find(ca => ca.nome.toLowerCase() === val.toLowerCase())?.nome || val); setCasaOpen(false); }}>
-                              <Check className={cn("mr-2 h-4 w-4", casa === c.nome ? "opacity-100" : "opacity-0")} />
-                              <div className="flex items-center gap-2">
-                                {c.logo && <img src={c.logo} alt={c.nome} className="h-4 w-4" />}
-                                {c.nome}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-4">
                 <div className="space-y-2">
-                  <Label>Login *</Label>
-                  <Input value={login} onChange={e => setLogin(e.target.value)} placeholder="Login da conta" required />
+                  <Label>Nome *</Label>
+                  <Input value={nome} onChange={e => setNome(e.target.value.toUpperCase())} placeholder="Nome do cliente" required className="uppercase" />
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Senha *</Label>
-                  <Input value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha da conta" required />
+                  <Label>Pix *</Label>
+                  <Input value={informacoesAdicionais} onChange={e => setInformacoesAdicionais(e.target.value)} placeholder="Pix" required />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Valor Depósito (R$) *</Label>
-                  <Input
-                    inputMode="numeric"
-                    value={valorDeposito}
-                    onChange={e => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      if (!digits) { setValorDeposito(""); return; }
-                      const num = parseInt(digits, 10);
-                      const formatted = (num / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      setValorDeposito(formatted);
-                    }}
-                    placeholder="0,00"
-                    required
-                  />
+                  <Label>Casa de Aposta</Label>
+                  <Popover open={casaOpen} onOpenChange={setCasaOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={casaOpen} className="w-full justify-between font-normal">
+                        <div className="flex items-center gap-2 truncate">
+                          {getCasaLogo(casa) && <img src={getCasaLogo(casa)} alt={casa} className="h-4 w-4 shrink-0" />}
+                          {casa}
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[60]">
+                      <Command>
+                        <CommandInput placeholder="Pesquisar casa..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma casa encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {CASAS_APOSTAS.map(c => (
+                              <CommandItem key={c.nome} value={c.nome} onSelect={(val) => { setCasa(CASAS_APOSTAS.find(ca => ca.nome.toLowerCase() === val.toLowerCase())?.nome || val); setCasaOpen(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", casa === c.nome ? "opacity-100" : "opacity-0")} />
+                                <div className="flex items-center gap-2">
+                                  {c.logo && <img src={c.logo} alt={c.nome} className="h-4 w-4" />}
+                                  {c.nome}
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Login *</Label>
+                    <Input value={login} onChange={e => setLogin(e.target.value)} placeholder="Login da conta" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Senha *</Label>
+                    <Input value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha da conta" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>Valor Depósito (R$) *</Label>
+                    <Input
+                      inputMode="numeric"
+                      value={valorDeposito}
+                      onChange={e => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        if (!digits) { setValorDeposito(""); return; }
+                        const num = parseInt(digits, 10);
+                        const formatted = (num / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        setValorDeposito(formatted);
+                      }}
+                      placeholder="0,00"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Banco Depósito</Label>
+                    <Input value="Santander" readOnly disabled className="opacity-70 cursor-not-allowed" />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label>Banco Depósito</Label>
-                  <Input value="Santander" readOnly disabled className="opacity-70 cursor-not-allowed" />
+                  <Label>Fornecedor</Label>
+                  <Input value={linkNick ? linkNick.toUpperCase() : "Fornecedor"} readOnly disabled className="uppercase opacity-70 cursor-not-allowed" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Input value="50/50" readOnly disabled className="opacity-70 cursor-not-allowed" />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Fornecedor</Label>
-                <Input value={linkNick ? linkNick.toUpperCase() : "Fornecedor"} readOnly disabled className="uppercase opacity-70 cursor-not-allowed" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Input value="50/50" readOnly disabled className="opacity-70 cursor-not-allowed" />
-              </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-2 px-6 py-4 border-t border-border shrink-0 bg-background">
                 <Button type="submit" className="flex-1" disabled={loading}>
                   <UserPlus className="h-4 w-4 mr-2" />{loading ? "Enviando..." : "Adicionar Cliente"}
                 </Button>
