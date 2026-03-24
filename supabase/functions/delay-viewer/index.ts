@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
 
     const { data: linkData, error: linkError } = await supabase
       .from("delay_share_links")
-      .select("id, user_id, ativo, nick, tipo")
+      .select("id, user_id, ativo, nick, tipo, token")
       .eq("token", token)
-      .in("tipo", ["visualizador", "visualizador_vodka"])
+      .in("tipo", ["visualizador", "visualizador_vodka", "visualizador_individual"])
       .single();
 
     if (linkError || !linkData || !linkData.ativo) {
@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
     }
 
     const isVodkaOnly = linkData.tipo === "visualizador_vodka";
+    const isIndividual = linkData.tipo === "visualizador_individual";
 
     const { data: clientes, error: clientesError } = await supabase
       .from("delay_clientes")
@@ -74,22 +75,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Build nick map: token -> nick
     const { data: allLinks } = await supabase
       .from("delay_share_links")
-      .select("id, nick")
+      .select("token, nick")
       .eq("user_id", linkData.user_id);
 
     const nickMap: Record<string, string> = {};
     if (allLinks) {
       for (const l of allLinks) {
-        if (l.nick) nickMap[l.id] = l.nick;
+        if (l.nick && l.token) nickMap[l.token] = l.nick;
       }
+    }
+
+    // For individual links: find all tokens that belong to the same nick
+    let allowedTokens: Set<string> | null = null;
+    if (isIndividual && linkData.nick) {
+      const { data: nickLinks } = await supabase
+        .from("delay_share_links")
+        .select("token")
+        .eq("user_id", linkData.user_id)
+        .eq("nick", linkData.nick)
+        .not("tipo", "in", '("visualizador","visualizador_vodka","visualizador_individual")');
+      allowedTokens = new Set((nickLinks || []).map((l: any) => l.token));
     }
 
     const clientesComNick = (clientes || [])
       .filter((c: any) => {
-        const hasVodka = c.nome.toLowerCase().includes("vodka");
-        return isVodkaOnly ? hasVodka : !hasVodka;
+        if (isVodkaOnly) return c.nome.toLowerCase().includes("vodka");
+        if (isIndividual) {
+          if (!allowedTokens || allowedTokens.size === 0) return false;
+          return c.created_by_token && allowedTokens.has(c.created_by_token);
+        }
+        return !c.nome.toLowerCase().includes("vodka");
       })
       .map((c: any) => ({
         ...c,

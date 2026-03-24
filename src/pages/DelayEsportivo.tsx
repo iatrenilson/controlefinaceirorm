@@ -411,6 +411,7 @@ const DelayEsportivo = () => {
   const [shareLinkDialogOpen, setShareLinkDialogOpen] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
   const [newLinkNick, setNewLinkNick] = useState("");
+  const [newIndividualNick, setNewIndividualNick] = useState("");
 
   // Form state
   const [form, setForm] = useState({
@@ -1079,7 +1080,7 @@ const DelayEsportivo = () => {
   };
 
   const copyShareLink = (token: string, tipo: string) => {
-    const path = (tipo === "visualizador" || tipo === "visualizador_vodka") ? "visualizar-delay" : "adicionar-cliente";
+    const path = (tipo === "visualizador" || tipo === "visualizador_vodka" || tipo === "visualizador_individual") ? "visualizar-delay" : "adicionar-cliente";
     const url = `${window.location.origin}${import.meta.env.BASE_URL}${path}?token=${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!" });
@@ -3171,37 +3172,46 @@ const DelayEsportivo = () => {
               </div>
             )}
 
-            {/* Admin: Create vodka viewer link */}
+            {/* Admin: Create individual viewer link */}
             {isAdmin && (
               <div className="border border-dashed border-purple-500/40 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-bold flex items-center gap-1.5">
-                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link de Visualização (Vodka)
+                  <Eye className="h-3.5 w-3.5 text-purple-400" /> Link Individual de Visualização
                 </p>
-                <p className="text-[10px] text-muted-foreground">Quem acessar verá <strong>somente</strong> os clientes com "vodka" no nome.</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  disabled={shareLinkLoading}
-                  onClick={async () => {
-                    if (!user) return;
-                    setShareLinkLoading(true);
-                    try {
-                      const { error } = await supabase
-                        .from("delay_share_links")
-                        .insert({ user_id: user.id, nick: "Vodka", tipo: "visualizador_vodka" } as any);
-                      if (error) throw error;
-                      await fetchShareLinks();
-                      toast({ title: "Link de visualização Vodka criado!" });
-                    } catch (err: any) {
-                      toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
-                    } finally {
-                      setShareLinkLoading(false);
-                    }
-                  }}
-                >
-                  <Eye className="h-4 w-4 mr-1" /> Criar Link Vodka
-                </Button>
+                <p className="text-[10px] text-muted-foreground">Quem acessar verá <strong>somente</strong> os clientes do nick escolhido, com a mesma visão do Admin.</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nick do fornecedor (ex: João)"
+                    value={newIndividualNick}
+                    onChange={e => setNewIndividualNick(e.target.value)}
+                    className="text-sm h-8"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
+                    disabled={shareLinkLoading || !newIndividualNick.trim()}
+                    onClick={async () => {
+                      if (!user || !newIndividualNick.trim()) return;
+                      setShareLinkLoading(true);
+                      try {
+                        const { error } = await supabase
+                          .from("delay_share_links")
+                          .insert({ user_id: user.id, nick: newIndividualNick.trim(), tipo: "visualizador_individual" } as any);
+                        if (error) throw error;
+                        setNewIndividualNick("");
+                        await fetchShareLinks();
+                        toast({ title: `Link individual de visualização criado para "${newIndividualNick.trim()}"!` });
+                      } catch (err: any) {
+                        toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
+                      } finally {
+                        setShareLinkLoading(false);
+                      }
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Criar
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -3220,9 +3230,9 @@ const DelayEsportivo = () => {
                             <Eye className="h-2.5 w-2.5 mr-0.5" /> Visualização
                           </Badge>
                         )}
-                        {link.tipo === "visualizador_vodka" && (
+                        {(link.tipo === "visualizador_vodka" || link.tipo === "visualizador_individual") && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-purple-500/50 text-purple-400">
-                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Vodka
+                            <Eye className="h-2.5 w-2.5 mr-0.5" /> Individual
                           </Badge>
                         )}
                       </p>
