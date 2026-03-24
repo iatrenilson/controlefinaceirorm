@@ -1072,9 +1072,8 @@ const DelayEsportivo = () => {
   };
 
   const copyShareLink = (token: string, tipo: string) => {
-    const origin = window.location.origin;
-    const path = (tipo === "visualizador" || tipo === "visualizador_vodka") ? "/visualizar-delay" : "/adicionar-cliente";
-    const url = `${origin}${path}?token=${token}`;
+    const path = (tipo === "visualizador" || tipo === "visualizador_vodka") ? "visualizar-delay" : "adicionar-cliente";
+    const url = `${window.location.origin}${import.meta.env.BASE_URL}${path}?token=${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!" });
   };
