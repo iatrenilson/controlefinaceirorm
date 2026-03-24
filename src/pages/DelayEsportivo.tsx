@@ -2539,22 +2539,31 @@ const DelayEsportivo = () => {
                 </div>
               )}
             </div>
-            {!editCliente && (
-              <div>
-                <Label className="font-bold">Exibir no Link</Label>
-                <Select value={selectedLinkToken} onValueChange={setSelectedLinkToken}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Visualização Admin</SelectItem>
-                    {shareLinks.filter(l => l.ativo && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka").map(link => (
-                      <SelectItem key={link.id} value={link.token}>{link.nick || link.token.slice(0, 8)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {!editCliente && (() => {
+              const fornecedorLinks = shareLinks.filter(l => l.ativo && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka" && l.tipo !== "visualizador_individual");
+              return (
+                <div>
+                  <Label className="font-bold">Exibir no Link</Label>
+                  <Select value={selectedLinkToken} onValueChange={setSelectedLinkToken}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Visualização Admin</SelectItem>
+                      {fornecedorLinks.length === 0 ? (
+                        <div className="px-2 py-2 text-xs text-muted-foreground">
+                          Nenhum link de fornecedor criado ainda. Crie um link no botão "Compartilhar".
+                        </div>
+                      ) : (
+                        fornecedorLinks.map(link => (
+                          <SelectItem key={link.id} value={link.token}>{link.nick || link.token.slice(0, 8)}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })()}
             {!editCliente && (
               <div>
                 <Label className="font-bold">Debitar de</Label>
