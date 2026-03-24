@@ -134,12 +134,14 @@ const Relatorios = () => {
   }, [clientes, filtroCliente, filtroStatus, periodo, dataInicio, dataFim]);
 
   const stats = useMemo(() => {
-    const totalEmprestado = filtered.reduce((a, c) => a + c.valor, 0);
-    const totalJuros = filtered.reduce((a, c) => a + c.valor * (c.juros / 100), 0);
+    // Only count active clients for KPIs (exclude archived: paid/removed)
+    const activeOnly = filtered.filter((c) => c.status === "ativo");
+    const totalEmprestado = activeOnly.reduce((a, c) => a + c.valor, 0);
+    const totalJuros = activeOnly.reduce((a, c) => a + c.valor * (c.juros / 100), 0);
     const totalReceber = totalEmprestado + totalJuros;
-    const atrasados = filtered.filter((c) => isPast(parseISO(c.dataPagamento))).length;
-    const emDia = filtered.length - atrasados;
-    return { totalEmprestado, totalJuros, totalReceber, atrasados, emDia, total: filtered.length };
+    const atrasados = activeOnly.filter((c) => isPast(parseISO(c.dataPagamento))).length;
+    const emDia = activeOnly.length - atrasados;
+    return { totalEmprestado, totalJuros, totalReceber, atrasados, emDia, total: activeOnly.length };
   }, [filtered]);
 
   // Bar chart: top clients by amount
