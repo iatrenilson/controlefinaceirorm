@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/Operador M.D/Downloads/controlefinaceirorm-fixed/node_modules/vite/bin/vite.js"],
+      "port": 8080,
+      "autoPort": true
+    },
+    {
+      "name": "meu-projeto",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/Operador M.D/Desktop/meu-controle-financeiro/node_modules/vite/bin/vite.js", "C:/Users/Operador M.D/Desktop/meu-controle-financeiro"],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "prod",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/Operador M.D/Downloads/controlefinaceirorm-fixed/node_modules/vite/bin/vite.js", "preview"],
+      "port": 8081
+    }
+  ]
+}
