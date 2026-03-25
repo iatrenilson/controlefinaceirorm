@@ -37,7 +37,6 @@ Deno.serve(async (req) => {
       .from("delay_share_links")
       .select("id, user_id, ativo, nick, tipo, token")
       .eq("token", token)
-      .in("tipo", ["visualizador", "visualizador_vodka", "visualizador_individual"])
       .single();
 
     if (linkError || !linkData || !linkData.ativo) {
@@ -47,6 +46,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    const isFornecedor = linkData.tipo === null || linkData.tipo === "editor";
     const isVodkaOnly = linkData.tipo === "visualizador_vodka";
     const isIndividual = linkData.tipo === "visualizador_individual";
 
@@ -75,36 +75,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build nick map: token -> nick
+    // Build nick map: id -> nick (created_by_token stores link id)
     const { data: allLinks } = await supabase
       .from("delay_share_links")
-      .select("token, nick")
+      .select("id, nick")
       .eq("user_id", linkData.user_id);
 
     const nickMap: Record<string, string> = {};
     if (allLinks) {
       for (const l of allLinks) {
-        if (l.nick && l.token) nickMap[l.token] = l.nick;
+        if (l.nick && l.id) nickMap[l.id] = l.nick;
       }
     }
 
-    // For individual links: find all tokens that belong to the same nick
+    // For individual links: find all link ids that belong to the same nick
     let allowedTokens: Set<string> | null = null;
     if (isIndividual && linkData.nick) {
       const { data: nickLinks } = await supabase
         .from("delay_share_links")
-        .select("token")
+        .select("id")
         .eq("user_id", linkData.user_id)
         .eq("nick", linkData.nick)
         .not("tipo", "in", '("visualizador","visualizador_vodka","visualizador_individual")');
-      allowedTokens = new Set((nickLinks || []).map((l: any) => l.token));
+      allowedTokens = new Set((nickLinks || []).map((l: any) => l.id));
+      // also include clients assigned directly to this individual viewer link
+      allowedTokens.add(linkData.id);
     }
 
     const clientesComNick = (clientes || [])
       .filter((c: any) => {
+        if (isFornecedor) return c.created_by_token === linkData.id;
         if (isVodkaOnly) return c.nome.toLowerCase().includes("vodka");
         if (isIndividual) {
-          if (!allowedTokens || allowedTokens.size === 0) return false;
+          if (!allowedTokens) return false;
           return c.created_by_token && allowedTokens.has(c.created_by_token);
         }
         return !c.nome.toLowerCase().includes("vodka");
