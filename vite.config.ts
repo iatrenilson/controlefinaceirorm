@@ -5,11 +5,12 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  const supabaseUrl = env.VITE_SUPABASE_URL || "https://qubkmecpxbsdphtmwvvw.supabase.co";
+  const supabaseUrl = env.VITE_SUPABASE_URL || "https://zcwgdkauggldqlrozcky.supabase.co";
   const supabasePublishableKey =
     env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
-  const supabaseProjectId = env.VITE_SUPABASE_PROJECT_ID || "qubkmecpxbsdphtmwvvw";
+    env.VITE_SUPABASE_ANON_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpjd2dka2F1Z2dsZHFscm96Y2t5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5ODAwODAsImV4cCI6MjA4OTU1NjA4MH0.N0D-ZNhoBeL6yy4qb8Nfo3MxkuOh5nQQXZGQj6XfhOI";
+  const supabaseProjectId = env.VITE_SUPABASE_PROJECT_ID || "zcwgdkauggldqlrozcky";
 
   return {
     base: "/",
