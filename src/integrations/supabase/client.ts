@@ -5,6 +5,15 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Clear session if Supabase project changed
+const SESSION_PROJECT_KEY = 'sb_project_ref';
+const currentRef = (SUPABASE_URL ?? '').replace('https://', '').split('.')[0];
+const storedRef = localStorage.getItem(SESSION_PROJECT_KEY);
+if (storedRef && storedRef !== currentRef) {
+  Object.keys(localStorage).forEach(k => { if (k.startsWith('sb-')) localStorage.removeItem(k); });
+}
+localStorage.setItem(SESSION_PROJECT_KEY, currentRef);
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
