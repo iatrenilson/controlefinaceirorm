@@ -509,7 +509,7 @@ const DelayEsportivo = () => {
     toast({ title: tipo === "depositar" ? "Depósito realizado!" : "Retirada realizada!", description: `${banco === "santander" ? "Santander" : "C6"}: ${fmt(newBalance)}` });
   };
 
-  const fetchClientes = useCallback(async () => {
+  const fetchClientes = useCallback(async (attempt = 1) => {
     try {
       const { data, error } = await supabase
         .from("delay_clientes")
@@ -517,6 +517,10 @@ const DelayEsportivo = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
+        if (attempt < 3) {
+          setTimeout(() => fetchClientes(attempt + 1), 2000 * attempt);
+          return;
+        }
         toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(error), variant: "destructive" });
         return;
       }

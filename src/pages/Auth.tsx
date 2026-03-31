@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Eye, EyeOff } from "lucide-react";
 const rwLogo = "/rw-logo.png";
 import { checkLeakedPassword } from "@/lib/check-leaked-password";
 
@@ -19,6 +19,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [leakedWarning, setLeakedWarning] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -139,7 +140,12 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => { setPassword(e.target.value); setLeakedWarning(null); }} required placeholder="••••••••" minLength={6} />
+              <div className="relative">
+                <Input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setPassword(e.target.value); setLeakedWarning(null); }} required placeholder="••••••••" minLength={6} className="pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             {leakedWarning && (
               <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

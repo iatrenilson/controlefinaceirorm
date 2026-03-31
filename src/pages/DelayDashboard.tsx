@@ -72,15 +72,19 @@ const DelayDashboard = () => {
   const [bankBalances, setBankBalances] = useState<{ santander: number; c6: number }>({ santander: 0, c6: 0 });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (attempt = 1) => {
       setLoading(true);
       const [{ data: clientesData, error: e1 }, { data: transData, error: e2 }] = await Promise.all([
         supabase.from("delay_clientes").select("*").neq("status", "system"),
         supabase.from("delay_transacoes").select("*").order("data_transacao", { ascending: true }),
       ]);
 
-      if (e1) toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(e1), variant: "destructive" });
-      if (e2) toast({ title: "Erro ao carregar transações", description: getSafeErrorMessage(e2), variant: "destructive" });
+      if ((e1 || e2) && attempt < 3) {
+        setTimeout(() => fetchData(attempt + 1), 2000 * attempt);
+        return;
+      }
+      if (e1 && attempt >= 3) toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(e1), variant: "destructive" });
+      if (e2 && attempt >= 3) toast({ title: "Erro ao carregar transações", description: getSafeErrorMessage(e2), variant: "destructive" });
 
       setClientes((clientesData as unknown as DelayCliente[]) || []);
       setTransacoes((transData as unknown as DelayTransacao[]) || []);

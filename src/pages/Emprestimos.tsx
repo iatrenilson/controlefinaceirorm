@@ -97,7 +97,7 @@ const Emprestimos = () => {
     return Array.from(set).sort().reverse();
   }, [transactions]);
 
-  const fetchClientes = async () => {
+  const fetchClientes = async (attempt = 1) => {
     if (!user) return;
     const { data, error } = await supabase
       .from("clientes")
@@ -106,6 +106,10 @@ const Emprestimos = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
+      if (attempt < 3) {
+        setTimeout(() => fetchClientes(attempt + 1), 2000 * attempt);
+        return;
+      }
       toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(error), variant: "destructive" });
       return;
     }
