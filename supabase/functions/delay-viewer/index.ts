@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const { data: transacoes, error: transacoesError } = await supabase
       .from("delay_transacoes")
-      .select("id, cliente_id, tipo, lucro, custo, dividir_lucro, data_transacao")
+      .select("id, cliente_id, tipo, valor, lucro, custo, dividir_lucro, data_transacao")
       .eq("user_id", linkData.user_id);
 
     if (transacoesError) {
@@ -128,10 +128,12 @@ Deno.serve(async (req) => {
         return !c.nome.toLowerCase().includes("vodka");
       })
       .map((c: any) => {
-        // Para o link do Glauber: mostrar lucro sem descontar o custo
+        // Para o link do Glauber: lucro = (saques - depositos) / 2, sem nenhum custo
         let lucro = c.lucro;
-        if (isGlauber && c.custos > 0) {
-          lucro = c.lucro + c.custos;
+        if (isGlauber && c.saques > 0) {
+          lucro = c.tipo === "50/50"
+            ? (c.saques - c.depositos) / 2
+            : (c.saques - c.depositos);
         }
         return {
           ...c,
@@ -140,14 +142,23 @@ Deno.serve(async (req) => {
         };
       });
 
+    // Mapa de depósito por cliente (para calcular lucro Glauber por transação)
+    const depositoMap: Record<string, number> = {};
+    (clientes || []).forEach((c: any) => { depositoMap[c.id] = c.depositos || 0; });
+    const tipoMap: Record<string, string> = {};
+    (clientes || []).forEach((c: any) => { tipoMap[c.id] = c.tipo || "50/50"; });
+
     const allowedClientIds = new Set((clientesComNick || []).map((c: any) => c.id));
     const transacoesFiltradas = (transacoes || [])
       .filter((t: any) => allowedClientIds.has(t.cliente_id))
       .map((t: any) => {
-        if (!isGlauber || !t.custo) return t;
-        // Para Glauber: lucro da transação sem descontar o custo (custo sempre sai inteiro do lucro final)
-        const lucroAjustado = t.lucro + t.custo;
-        return { ...t, lucro: lucroAjustado };
+        if (!isGlauber || t.tipo === "deposito") return t;
+        // Para Glauber: lucro = (valor_saque - deposito) / 2 sem custo
+        const dep = depositoMap[t.cliente_id] || 0;
+        const lucroGlauber = tipoMap[t.cliente_id] === "50/50"
+          ? (t.valor - dep) / 2
+          : (t.valor - dep);
+        return { ...t, lucro: lucroGlauber };
       });
 
     return new Response(JSON.stringify({
