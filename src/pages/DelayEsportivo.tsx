@@ -26,7 +26,7 @@ import {
   Search, Plus, Wallet, ArrowDownCircle, ArrowUpCircle, History, TrendingUp, TrendingDown,
   Users, Copy, Eye, EyeOff, MoreHorizontal, Pencil, Trash2, SortAsc, ChevronsUpDown, Check, Info,
   DollarSign, Clock, RotateCcw, CalendarDays, Download, CheckSquare, Square, Camera, LayoutGrid, Columns2,
-  Building2, Share2, Link, List, ChevronDown, CheckCircle2
+  Building2, Share2, Link, List, ChevronDown, CheckCircle2, NotebookPen
 } from "lucide-react";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
 
@@ -359,6 +359,8 @@ const DelayEsportivo = () => {
   const [sortMode, setSortMode] = useState<"recentes" | "az">("recentes");
   const [showSearch, setShowSearch] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [notasOpen, setNotasOpen] = useState(false);
+  const [notasTexto, setNotasTexto] = useState(() => localStorage.getItem("delay_notas") || "");
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [layoutCols, setLayoutCols] = useState<3 | 4>(3);
@@ -2113,6 +2115,15 @@ const DelayEsportivo = () => {
           >
             <List className="h-3.5 w-3.5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-lg h-9 w-9 sm:h-7 sm:w-7 bg-muted/60 hover:bg-muted"
+            onClick={() => setNotasOpen(true)}
+            title="Bloco de notas"
+          >
+            <NotebookPen className="h-3.5 w-3.5" />
+          </Button>
 
 
 
@@ -3312,6 +3323,24 @@ const DelayEsportivo = () => {
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notepad Dialog */}
+      <Dialog open={notasOpen} onOpenChange={setNotasOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bloco de Notas</DialogTitle>
+          </DialogHeader>
+          <textarea
+            className="w-full h-64 p-3 text-sm bg-muted rounded-md border border-border resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="Anote suas observações aqui..."
+            value={notasTexto}
+            onChange={e => { setNotasTexto(e.target.value); localStorage.setItem("delay_notas", e.target.value); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotasOpen(false)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
