@@ -162,8 +162,8 @@ const DelayViewer = () => {
       if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
       return getClienteStatus(c) === "aguardando";
     }).length;
-    const counts: Record<string, number> = { todos: baseList.length, operando: 0, concluido: 0, devolvido: 0, saque_pendente: 0, aguardando: aguardandoCount };
-    baseList.forEach(c => { counts[getClienteStatus(c)]++; });
+    const counts: Record<string, number> = { todos: baseList.length, operando: 0, concluido: 0, devolvido: 0, saque_pendente: 0, aguardando: aguardandoCount, red: 0 };
+    baseList.forEach(c => { counts[getClienteStatus(c)]++; if (c.lucro < 0) counts.red++; });
     return counts;
   }, [clientes, linkTipo]);
 
@@ -174,7 +174,9 @@ const DelayViewer = () => {
       return true;
     });
 
-    if (filtroStatus !== "todos") {
+    if (filtroStatus === "red") {
+      list = list.filter(c => c.lucro < 0);
+    } else if (filtroStatus !== "todos") {
       list = list.filter(c => getClienteStatus(c) === filtroStatus);
     }
 
@@ -345,11 +347,11 @@ const DelayViewer = () => {
           )}
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           {([
-            { key: "todos", label: "Todos" },
             { key: "operando", label: "Operando" },
             { key: "aguardando", label: "Aguardando" },
             { key: "concluido", label: "Concluídos" },
             { key: "devolvido", label: "Devolvido" },
+            { key: "red", label: "Red" },
           ] as const).map(f => (
             <Button
               key={f.key}
