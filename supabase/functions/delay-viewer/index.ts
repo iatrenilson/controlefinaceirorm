@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
         // Para o link do Glauber: mostrar lucro sem descontar o custo
         let lucro = c.lucro;
         if (isGlauber && c.custos > 0) {
-          lucro = c.lucro + (c.tipo === "50/50" ? c.custos / 2 : c.custos);
+          lucro = c.lucro + c.custos;
         }
         return {
           ...c,
@@ -145,8 +145,8 @@ Deno.serve(async (req) => {
       .filter((t: any) => allowedClientIds.has(t.cliente_id))
       .map((t: any) => {
         if (!isGlauber || !t.custo) return t;
-        // Para Glauber: lucro da transação sem descontar o custo
-        const lucroAjustado = t.lucro + (t.dividir_lucro ? t.custo / 2 : t.custo);
+        // Para Glauber: lucro da transação sem descontar o custo (custo sempre sai inteiro do lucro final)
+        const lucroAjustado = t.lucro + t.custo;
         return { ...t, lucro: lucroAjustado };
       });
 
