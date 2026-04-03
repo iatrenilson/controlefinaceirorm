@@ -128,12 +128,10 @@ Deno.serve(async (req) => {
         return !c.nome.toLowerCase().includes("vodka");
       })
       .map((c: any) => {
-        // Para o link do Glauber: lucro = (saques - depositos) / 2, sem nenhum custo
+        // Para o link do Glauber: lucro total bruto sem dividir e sem custo
         let lucro = c.lucro;
         if (isGlauber && c.saques > 0) {
-          lucro = c.tipo === "50/50"
-            ? (c.saques - c.depositos) / 2
-            : (c.saques - c.depositos);
+          lucro = c.saques - c.depositos;
         }
         return {
           ...c,
@@ -153,11 +151,9 @@ Deno.serve(async (req) => {
       .filter((t: any) => allowedClientIds.has(t.cliente_id))
       .map((t: any) => {
         if (!isGlauber || t.tipo === "deposito") return t;
-        // Para Glauber: lucro = (valor_saque - deposito) / 2 sem custo
+        // Para Glauber: lucro total bruto sem dividir e sem custo
         const dep = depositoMap[t.cliente_id] || 0;
-        const lucroGlauber = tipoMap[t.cliente_id] === "50/50"
-          ? (t.valor - dep) / 2
-          : (t.valor - dep);
+        const lucroGlauber = t.valor - dep;
         return { ...t, lucro: lucroGlauber };
       });
 
