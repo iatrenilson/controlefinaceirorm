@@ -345,6 +345,7 @@ const DelayViewer = () => {
           )}
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           {([
+            { key: "todos", label: "Todos" },
             { key: "operando", label: "Operando" },
             { key: "aguardando", label: "Aguardando" },
             { key: "concluido", label: "Concluídos" },
