@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,9 +63,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    const isGlauber = (linkData.nick || "").toLowerCase().includes("glauber");
+
     const { data: transacoes, error: transacoesError } = await supabase
       .from("delay_transacoes")
-      .select("id, cliente_id, tipo, lucro, data_transacao")
+      .select("id, cliente_id, tipo, lucro, custo, dividir_lucro, data_transacao")
       .eq("user_id", linkData.user_id);
 
     if (transacoesError) {
@@ -125,13 +127,28 @@ Deno.serve(async (req) => {
         }
         return !c.nome.toLowerCase().includes("vodka");
       })
-      .map((c: any) => ({
-        ...c,
-        nick_criador: c.created_by_token ? (nickMap[c.created_by_token] || null) : "Admin",
-      }));
+      .map((c: any) => {
+        // Para o link do Glauber: mostrar lucro sem descontar o custo
+        let lucro = c.lucro;
+        if (isGlauber && c.custos > 0) {
+          lucro = c.lucro + (c.tipo === "50/50" ? c.custos / 2 : c.custos);
+        }
+        return {
+          ...c,
+          lucro,
+          nick_criador: c.created_by_token ? (nickMap[c.created_by_token] || null) : "Admin",
+        };
+      });
 
     const allowedClientIds = new Set((clientesComNick || []).map((c: any) => c.id));
-    const transacoesFiltradas = (transacoes || []).filter((t: any) => allowedClientIds.has(t.cliente_id));
+    const transacoesFiltradas = (transacoes || [])
+      .filter((t: any) => allowedClientIds.has(t.cliente_id))
+      .map((t: any) => {
+        if (!isGlauber || !t.custo) return t;
+        // Para Glauber: lucro da transação sem descontar o custo
+        const lucroAjustado = t.lucro + (t.dividir_lucro ? t.custo / 2 : t.custo);
+        return { ...t, lucro: lucroAjustado };
+      });
 
     return new Response(JSON.stringify({
       clientes: clientesComNick,
