@@ -1316,8 +1316,11 @@ const DelayEsportivo = () => {
           toast({ title: "Devolução registrada!", description: `${fmt(valor)} creditado no banco.` });
         } else {
           custo = parseFloat(transCusto) || 0;
-          const lucroSaque = valor - cliente.depositos - custo;
-          lucroFinal = (transDividirLucro && lucroSaque > 0) ? lucroSaque / 2 : lucroSaque;
+          const opLink = shareLinks.find(l => l.id === cliente.operator_link_id);
+          const isGlauber = opLink?.nick?.toLowerCase().includes("glauber") ?? false;
+          const lucroSaque = valor - cliente.depositos - (isGlauber ? 0 : custo);
+          const lucroAposSplit = (transDividirLucro && lucroSaque > 0) ? lucroSaque / 2 : lucroSaque;
+          lucroFinal = isGlauber ? lucroAposSplit - custo : lucroAposSplit;
           toast({ title: "Saque registrado!" });
         }
       }
@@ -2808,8 +2811,12 @@ const DelayEsportivo = () => {
                   const val = parseFloat(transValor) || 0;
                   const cst = parseFloat(transCusto) || 0;
                   const deposito = transDialog?.cliente.depositos || 0;
-                  const lucroBruto = val - deposito - cst;
-                  const lucroFinal = transDividirLucro ? lucroBruto / 2 : lucroBruto;
+                  const opLink = shareLinks.find(l => l.id === transDialog?.cliente.operator_link_id);
+                  const isGlauber = opLink?.nick?.toLowerCase().includes("glauber") ?? false;
+                  // Se Glauber: custo sai só do lado do dono (após split)
+                  const lucroBruto = val - deposito - (isGlauber ? 0 : cst);
+                  const lucroAposSplit = transDividirLucro ? lucroBruto / 2 : lucroBruto;
+                  const lucroFinal = isGlauber ? lucroAposSplit - cst : lucroAposSplit;
                   return val > 0 ? (
                     <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-1.5 text-xs">
                       <p className="font-semibold text-sm text-foreground mb-2">Resumo do Cálculo</p>
@@ -2821,10 +2828,12 @@ const DelayEsportivo = () => {
                         <span className="text-muted-foreground">− Depósito da Conta</span>
                         <span className="font-mono font-medium text-destructive">−{fmt(deposito)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">− Custo da Conta</span>
-                        <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
-                      </div>
+                      {!isGlauber && cst > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">− Custo da Conta</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
+                        </div>
+                      )}
                       <div className="border-t border-border my-1" />
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">= Lucro Bruto</span>
@@ -2834,7 +2843,7 @@ const DelayEsportivo = () => {
                         <>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">÷ 2 (Dividido)</span>
-                            <span className="font-mono font-medium">{fmt(lucroBruto / 2)}</span>
+                            <span className="font-mono font-medium">{fmt(lucroAposSplit)}</span>
                           </div>
                           <div className="border-t border-border my-1" />
                         </>
@@ -2846,6 +2855,12 @@ const DelayEsportivo = () => {
                           </div>
                           <div className="border-t border-border my-1" />
                         </>
+                      )}
+                      {isGlauber && cst > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">− Custo (só seu)</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
+                        </div>
                       )}
                       <div className="flex justify-between items-center pt-1">
                         <span className="font-semibold text-foreground">Lucro Final</span>
