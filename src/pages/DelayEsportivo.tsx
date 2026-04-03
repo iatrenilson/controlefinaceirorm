@@ -380,6 +380,7 @@ const DelayEsportivo = () => {
   const [approveSelectedLink, setApproveSelectedLink] = useState<string>("");
   const [transValor, setTransValor] = useState("");
   const [transCusto, setTransCusto] = useState("");
+  const [transCustoNaDivisao, setTransCustoNaDivisao] = useState(true);
   const [transDividirLucro, setTransDividirLucro] = useState(true);
   const [transData, setTransData] = useState<Date>(new Date());
   const [transCasa, setTransCasa] = useState("");
@@ -1316,8 +1317,11 @@ const DelayEsportivo = () => {
           toast({ title: "Devolução registrada!", description: `${fmt(valor)} creditado no banco.` });
         } else {
           custo = parseFloat(transCusto) || 0;
-          const lucroSaque = valor - cliente.depositos - custo;
-          lucroFinal = (transDividirLucro && lucroSaque > 0) ? lucroSaque / 2 : lucroSaque;
+          const custoNaDivisao = transCustoNaDivisao ? custo : 0;
+          const custoForaDivisao = transCustoNaDivisao ? 0 : custo;
+          const lucroSaque = valor - cliente.depositos - custoNaDivisao;
+          const lucroAposSplit = (transDividirLucro && lucroSaque > 0) ? lucroSaque / 2 : lucroSaque;
+          lucroFinal = lucroAposSplit - custoForaDivisao;
           toast({ title: "Saque registrado!" });
         }
       }
@@ -1375,6 +1379,7 @@ const DelayEsportivo = () => {
       setTransDialog(null);
       setTransValor("");
       setTransCusto("");
+      setTransCustoNaDivisao(true);
       setTransDividirLucro(true);
       setTransDestino("santander");
       await fetchClientes();
@@ -2799,6 +2804,12 @@ const DelayEsportivo = () => {
                   <Label className="font-bold text-xs">Custo da Conta</Label>
                   <Input type="number" min="0" step="0.01" value={transCusto} onChange={e => setTransCusto(e.target.value)} placeholder="0,00" className="mt-1" />
                 </div>
+                {parseFloat(transCusto) > 0 && (
+                  <div className="flex items-center justify-between">
+                    <Label className="font-bold text-xs text-muted-foreground">Custo entra na divisão</Label>
+                    <Switch checked={transCustoNaDivisao} onCheckedChange={setTransCustoNaDivisao} />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <Label className="font-bold text-xs">Dividir Lucro ({transDialog?.cliente.tipo || "50/50"})</Label>
                   <Switch checked={transDividirLucro} onCheckedChange={setTransDividirLucro} />
@@ -2808,8 +2819,11 @@ const DelayEsportivo = () => {
                   const val = parseFloat(transValor) || 0;
                   const cst = parseFloat(transCusto) || 0;
                   const deposito = transDialog?.cliente.depositos || 0;
-                  const lucroBruto = val - deposito - cst;
-                  const lucroFinal = transDividirLucro ? lucroBruto / 2 : lucroBruto;
+                  const custoNaDivisao = transCustoNaDivisao ? cst : 0;
+                  const custoForaDivisao = transCustoNaDivisao ? 0 : cst;
+                  const lucroBruto = val - deposito - custoNaDivisao;
+                  const lucroAposSplit = transDividirLucro ? lucroBruto / 2 : lucroBruto;
+                  const lucroFinal = lucroAposSplit - custoForaDivisao;
                   return val > 0 ? (
                     <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-1.5 text-xs">
                       <p className="font-semibold text-sm text-foreground mb-2">Resumo do Cálculo</p>
@@ -2821,32 +2835,35 @@ const DelayEsportivo = () => {
                         <span className="text-muted-foreground">− Depósito da Conta</span>
                         <span className="font-mono font-medium text-destructive">−{fmt(deposito)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">− Custo da Conta</span>
-                        <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
-                      </div>
+                      {custoNaDivisao > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">− Custo (na divisão)</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(custoNaDivisao)}</span>
+                        </div>
+                      )}
                       <div className="border-t border-border my-1" />
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">= Lucro Bruto</span>
                         <span className={`font-mono font-bold ${lucroBruto >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(lucroBruto)}</span>
                       </div>
                       {transDividirLucro ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">÷ 2 (Dividido)</span>
-                            <span className="font-mono font-medium">{fmt(lucroBruto / 2)}</span>
-                          </div>
-                          <div className="border-t border-border my-1" />
-                        </>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">÷ 2 (Dividido)</span>
+                          <span className="font-mono font-medium">{fmt(lucroAposSplit)}</span>
+                        </div>
                       ) : (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Lucro 100% (Sem divisão)</span>
-                            <span className="font-mono font-medium">{fmt(lucroBruto)}</span>
-                          </div>
-                          <div className="border-t border-border my-1" />
-                        </>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Lucro 100% (Sem divisão)</span>
+                          <span className="font-mono font-medium">{fmt(lucroBruto)}</span>
+                        </div>
                       )}
+                      {custoForaDivisao > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">− Custo (fora da divisão)</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(custoForaDivisao)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-border my-1" />
                       <div className="flex justify-between items-center pt-1">
                         <span className="font-semibold text-foreground">Lucro Final</span>
                         <span className={`font-mono font-bold text-base ${lucroFinal >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(lucroFinal)}</span>
