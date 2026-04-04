@@ -70,7 +70,7 @@ interface DelayTransacao {
 }
 
 type Periodo = "diario" | "semanal" | "mensal";
-type FiltroStatus = "todos" | "ativos" | "concluidos";
+type FiltroStatus = "todos" | "ativos" | "concluidos" | "saque_pendente";
 
 const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes: DelayCliente[]; open: boolean; onOpenChange: (open: boolean) => void; fmt: (v: number) => string }) => {
   const { toast } = useToast();
@@ -369,7 +369,7 @@ const DelayEsportivo = () => {
   const [filtroDataSaque, setFiltroDataSaque] = useState<Date | undefined>(undefined);
   const [filtroDataSaqueOpen, setFiltroDataSaqueOpen] = useState(false);
   const [filtroNick, setFiltroNick] = useState<string>("todos");
-  const [quickFilter, setQuickFilter] = useState<"all" | "operando" | "pendentes" | "concluidas" | "devolvidos" | "red">("operando");
+  const [quickFilter, setQuickFilter] = useState<"all" | "operando" | "pendentes" | "saque_pendente" | "concluidas" | "devolvidos" | "red">("operando");
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -819,6 +819,7 @@ const DelayEsportivo = () => {
       const matchQuick = quickFilter === "all" ||
         (quickFilter === "operando" && isOperando) ||
         (quickFilter === "pendentes" && (c.status === "saque_pendente" || (c.deposito_pendente ?? 0) > 0)) ||
+        (quickFilter === "saque_pendente" && c.status === "saque_pendente") ||
         (quickFilter === "concluidas" && c.status === "concluido" && !isDevolvido) ||
         (quickFilter === "devolvidos" && isDevolvido) ||
         (quickFilter === "red" && c.lucro < 0);
@@ -1958,6 +1959,7 @@ const DelayEsportivo = () => {
         {(() => {
           const allVisible = clientes.filter(c => c.status !== "system");
           const pendentesCount = allVisible.filter(c => c.status === "saque_pendente" || (c.deposito_pendente ?? 0) > 0).length;
+          const saquePendenteCount = allVisible.filter(c => c.status === "saque_pendente").length;
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
           const devolvidosCount = allVisible.filter(isDevolvidoFn).length;
@@ -1995,6 +1997,18 @@ const DelayEsportivo = () => {
                 Pendentes
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">{pendentesCount}</Badge>
               </Button>
+              {saquePendenteCount > 0 && (
+                <Button
+                  size="sm"
+                  variant={quickFilter === "saque_pendente" ? "default" : "outline"}
+                  className={`gap-1.5 text-xs ${quickFilter === "saque_pendente" ? "bg-orange-700 hover:bg-orange-800 border-orange-700 text-white" : "border-orange-700/40 text-orange-300 hover:bg-orange-700/10"}`}
+                  onClick={() => { const next = quickFilter === "saque_pendente" ? "all" : "saque_pendente"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                >
+                  <ArrowUpCircle className="h-3.5 w-3.5" />
+                  Saque Pendente
+                  <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-700/20 text-orange-300 border-orange-700/30">{saquePendenteCount}</Badge>
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant={quickFilter === "concluidas" ? "default" : "outline"}
