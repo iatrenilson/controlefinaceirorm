@@ -818,7 +818,7 @@ const DelayEsportivo = () => {
       const isOperando = c.depositos > 0 && c.saques === 0;
       const matchQuick = quickFilter === "all" ||
         (quickFilter === "operando" && isOperando) ||
-        (quickFilter === "pendentes" && (c.status === "saque_pendente" || (c.deposito_pendente ?? 0) > 0)) ||
+        (quickFilter === "pendentes" && (c.deposito_pendente ?? 0) > 0) ||
         (quickFilter === "saque_pendente" && c.status === "saque_pendente") ||
         (quickFilter === "concluidas" && c.status === "concluido" && !isDevolvido) ||
         (quickFilter === "devolvidos" && isDevolvido) ||
@@ -1959,7 +1959,7 @@ const DelayEsportivo = () => {
         {/* Quick Filters - left */}
         {(() => {
           const allVisible = clientes.filter(c => c.status !== "system");
-          const pendentesCount = allVisible.filter(c => c.status === "saque_pendente" || (c.deposito_pendente ?? 0) > 0).length;
+          const pendentesCount = allVisible.filter(c => (c.deposito_pendente ?? 0) > 0).length;
           const saquePendenteCount = allVisible.filter(c => c.status === "saque_pendente").length;
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
@@ -1995,7 +1995,7 @@ const DelayEsportivo = () => {
                 onClick={() => { const next = quickFilter === "pendentes" ? "all" : "pendentes"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
               >
                 <Clock className="h-3.5 w-3.5" />
-                Pendentes
+                Depósitos Pendentes
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">{pendentesCount}</Badge>
               </Button>
               {saquePendenteCount > 0 && (
