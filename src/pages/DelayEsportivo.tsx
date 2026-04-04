@@ -1320,9 +1320,9 @@ const DelayEsportivo = () => {
         } else {
           custo = parseFloat(transCusto) || 0;
           const isGlauberClient = cliente.operator_link_id === 'f42962e0-2355-4546-8a62-27207117e34a';
-          const lucroBruto = isGlauberClient ? (valor - custo) - cliente.depositos : valor - cliente.depositos;
+          const lucroBruto = isGlauberClient ? valor - cliente.depositos : (valor - custo) - cliente.depositos;
           const lucroAposSplit = (transDividirLucro && lucroBruto > 0) ? lucroBruto / 2 : lucroBruto;
-          lucroFinal = isGlauberClient ? lucroAposSplit : lucroAposSplit - custo;
+          lucroFinal = isGlauberClient ? lucroAposSplit - custo : lucroAposSplit;
           toast({ title: "Saque registrado!" });
         }
       }
@@ -2836,9 +2836,9 @@ const DelayEsportivo = () => {
                   const cst = parseFloat(transCusto) || 0;
                   const deposito = transDialog?.cliente.depositos || 0;
                   const isGlauber = transDialog?.cliente.operator_link_id === 'f42962e0-2355-4546-8a62-27207117e34a';
-                  const lucroBruto = isGlauber ? (val - cst) - deposito : val - deposito;
+                  const lucroBruto = isGlauber ? val - deposito : (val - cst) - deposito;
                   const lucroAposSplit = transDividirLucro ? lucroBruto / 2 : lucroBruto;
-                  const lucroFinal = isGlauber ? lucroAposSplit : lucroAposSplit - cst;
+                  const lucroFinal = isGlauber ? lucroAposSplit - cst : lucroAposSplit;
                   return val > 0 ? (
                     <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-1.5 text-xs">
                       <p className="font-semibold text-sm text-foreground mb-2">Resumo do Cálculo</p>
@@ -2846,7 +2846,7 @@ const DelayEsportivo = () => {
                         <span className="text-muted-foreground">Valor do Saque</span>
                         <span className="font-mono font-medium">{fmt(val)}</span>
                       </div>
-                      {isGlauber && cst > 0 && (
+                      {!isGlauber && cst > 0 && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">− Custo da Conta</span>
                           <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
@@ -2872,7 +2872,7 @@ const DelayEsportivo = () => {
                           <span className="font-mono font-medium">{fmt(lucroBruto)}</span>
                         </div>
                       )}
-                      {!isGlauber && cst > 0 && (
+                      {isGlauber && cst > 0 && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">− Custo da Conta</span>
                           <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
