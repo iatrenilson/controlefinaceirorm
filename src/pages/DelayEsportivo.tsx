@@ -2112,7 +2112,7 @@ const DelayEsportivo = () => {
                             <SelectGroup>
                               <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Operadores</SelectLabel>
                               {opLinks.map(link => (
-                                <SelectItem key={link.id} value={link.id}>{link.nick || link.token.slice(0, 8)}</SelectItem>
+                                <SelectItem key={link.id} value={link.id} className="uppercase">{(link.nick || link.token.slice(0, 8)).toUpperCase()}</SelectItem>
                               ))}
                             </SelectGroup>
                           )}
@@ -2120,7 +2120,7 @@ const DelayEsportivo = () => {
                             <SelectGroup>
                               <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Fornecedores</SelectLabel>
                               {fornLinks.map(link => (
-                                <SelectItem key={link.id} value={link.id}>{link.nick || link.token.slice(0, 8)}</SelectItem>
+                                <SelectItem key={link.id} value={link.id} className="uppercase">{(link.nick || link.token.slice(0, 8)).toUpperCase()}</SelectItem>
                               ))}
                             </SelectGroup>
                           )}
@@ -3362,7 +3362,7 @@ const DelayEsportivo = () => {
                 const renderLink = (link: typeof shareLinks[0]) => (
                   <div key={link.id} className={`flex items-center justify-between p-3 rounded-lg border ${link.ativo ? "border-border" : "border-border/30 opacity-50"}`}>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{link.nick || "Sem nick"}</p>
+                      <p className="font-medium text-sm truncate uppercase">{link.nick || "Sem nick"}</p>
                       <p className="text-[11px] text-muted-foreground">{link.ativo ? "Ativo" : "Revogado"}</p>
                     </div>
                     {link.ativo && (
