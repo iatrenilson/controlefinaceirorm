@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { format, isPast, parseISO, addDays, isBefore } from "date-fns";
+import { format, isPast, parseISO, addDays, isBefore, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +28,8 @@ interface Cliente {
   telefone: string;
   dataEmprestimo: string;
   dataPagamento: string;
+  parcelas: number;
+  parcelaAtual: number;
 }
 
 const Emprestimos = () => {
@@ -46,6 +48,7 @@ const Emprestimos = () => {
   const [juros, setJuros] = useState("30");
   const [dataEmprestimo, setDataEmprestimo] = useState<Date>();
   const [dataPagamento, setDataPagamento] = useState<Date>();
+  const [numeroParcelas, setNumeroParcelas] = useState("1");
 
   // Summary popup state
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -123,6 +126,8 @@ const Emprestimos = () => {
         telefone: d.telefone || "",
         dataEmprestimo: d.data_emprestimo,
         dataPagamento: d.data_pagamento,
+        parcelas: Number(d.parcelas) || 1,
+        parcelaAtual: Number(d.parcela_atual) || 1,
       }))
     );
     setLoading(false);
@@ -368,6 +373,7 @@ const Emprestimos = () => {
     setJuros("");
     setDataEmprestimo(undefined);
     setDataPagamento(undefined);
+    setNumeroParcelas("1");
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -380,6 +386,7 @@ const Emprestimos = () => {
       const empValor = parseFloat(valor);
 
 
+      const totalParcelas = Math.max(1, parseInt(numeroParcelas) || 1);
       const { error } = await supabase.from("clientes").insert({
         user_id: user.id,
         nome,
@@ -388,6 +395,8 @@ const Emprestimos = () => {
         juros: parseFloat(juros),
         data_emprestimo: format(dataEmprestimo, "yyyy-MM-dd"),
         data_pagamento: format(dataPagamento, "yyyy-MM-dd"),
+        parcelas: totalParcelas,
+        parcela_atual: totalParcelas,
       });
 
       if (error) {
@@ -611,24 +620,54 @@ const Emprestimos = () => {
     if (!cliente || !user) return;
 
     const valorJuros = cliente.valor * (cliente.juros / 100);
-    const valorTotal = cliente.valor + valorJuros;
+    const valorParcela = (cliente.valor + valorJuros) / cliente.parcelas;
 
-    // Archive before deleting
+    // Se ainda tem parcelas restantes (parcelaAtual > 1), apenas avança
+    if (cliente.parcelas > 1 && cliente.parcelaAtual > 1) {
+      const novaParcelaAtual = cliente.parcelaAtual - 1;
+      const novaData = addMonths(parseISO(cliente.dataPagamento), 1);
+      const novaDataStr = format(novaData, "yyyy-MM-dd");
+
+      const { error } = await supabase
+        .from("clientes")
+        .update({ parcela_atual: novaParcelaAtual, data_pagamento: novaDataStr })
+        .eq("id", id);
+
+      if (error) {
+        toast({ title: "Erro ao registrar parcela", description: getSafeErrorMessage(error), variant: "destructive" });
+        return;
+      }
+
+      const newSaldo = saldo + valorParcela;
+      await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
+      await logTransaction("pagamento", valorParcela, saldo, newSaldo,
+        `Parcela ${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas} recebida de ${cliente.nome}`);
+      setSaldo(newSaldo);
+      fetchClientes();
+      fetchTransactions();
+      toast({
+        title: `Parcela recebida! (${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas})`,
+        description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Próximo vencimento: ${format(novaData, "dd/MM/yyyy")}`,
+      });
+      return;
+    }
+
+    // Última parcela — encerra o empréstimo
     await archiveCliente(cliente, "pago");
-
     const { error } = await supabase.from("clientes").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro ao registrar pagamento", description: getSafeErrorMessage(error), variant: "destructive" });
       return;
     }
 
-    const newSaldo = saldo + valorTotal;
+    const newSaldo = saldo + valorParcela;
     await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
-    await logTransaction("pagamento", valorTotal, saldo, newSaldo, `Pagamento recebido de ${cliente.nome} (valor + juros)`);
+    await logTransaction("pagamento", valorParcela, saldo, newSaldo,
+      `Pagamento final recebido de ${cliente.nome} (${cliente.parcelas}/${cliente.parcelas})`);
     setSaldo(newSaldo);
     fetchClientes();
     fetchTransactions();
-    toast({ title: "Pagamento recebido!", description: `R$ ${valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} devolvido à carteira.` });
+    toast({ title: "Empréstimo quitado! 🎉", description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebidos. Todas as parcelas pagas.` });
   };
 
   const stats = useMemo(() => {
@@ -667,6 +706,17 @@ const Emprestimos = () => {
                 <div className="space-y-2">
                   <Label>Valor do Empréstimo (R$)</Label>
                   <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nº de Parcelas</Label>
+                  <div className="flex gap-2">
+                    <Input type="number" min="1" max="60" placeholder="1" value={numeroParcelas} onChange={(e) => setNumeroParcelas(e.target.value)} className="flex-1" />
+                    {["1", "3", "6", "12"].map((v) => (
+                      <Button key={v} type="button" size="sm" variant={numeroParcelas === v ? "default" : "outline"} className="px-3" onClick={() => setNumeroParcelas(v)}>
+                        {v}x
+                      </Button>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Juros (%)</Label>
@@ -1097,7 +1147,14 @@ const Emprestimos = () => {
                       return (
                         <div key={c.id} className="border rounded-lg p-3 space-y-2 cursor-pointer active:bg-muted/60" onClick={() => openSummaryForCliente(c)}>
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm">{c.nome}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-medium text-sm">{c.nome}</span>
+                              {c.parcelas > 1 && (
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  Parcela {c.parcelas - c.parcelaAtual + 1}/{c.parcelas}
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                               <Badge variant={atrasado ? "destructive" : "default"} className={`text-xs ${paidJurosIds.has(c.id) ? "bg-blue-600 hover:bg-blue-700 text-white" : !atrasado ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}>
                                 {paidJurosIds.has(c.id) ? "Pago" : atrasado ? "Atraso" : "Em dia"}
@@ -1110,9 +1167,11 @@ const Emprestimos = () => {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
+                                    <AlertDialogTitle>Confirmar pagamento{c.parcelas > 1 ? ` (parcela ${c.parcelas - c.parcelaAtual + 1}/${c.parcelas})` : ""}?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      O valor de <strong>R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> será devolvido à carteira.
+                                      {c.parcelas > 1
+                                        ? <>Parcela de <strong>R$ {((c.valor + c.valor * c.juros / 100) / c.parcelas).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>. Restam {c.parcelaAtual - 1} parcela(s) após este pagamento. Vencimento avança 1 mês.</>
+                                        : <>O valor de <strong>R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> será devolvido à carteira.</>}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -1226,7 +1285,14 @@ const Emprestimos = () => {
                           const valorReceber = c.valor + valorJuros;
                           return (
                             <TableRow key={c.id} className="cursor-pointer hover:bg-muted/60" onClick={() => openSummaryForCliente(c)}>
-                              <TableCell className="font-medium">{c.nome}</TableCell>
+                              <TableCell className="font-medium">
+                                <div>{c.nome}</div>
+                                {c.parcelas > 1 && (
+                                  <div className="text-[10px] text-muted-foreground font-mono">
+                                    {c.parcelas - c.parcelaAtual + 1}/{c.parcelas}
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="font-mono">R$ {c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                               <TableCell className="font-mono">{c.juros}%</TableCell>
                               <TableCell className="font-mono text-warning">R$ {valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
@@ -1248,9 +1314,11 @@ const Emprestimos = () => {
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                       <AlertDialogHeader>
-                                        <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
+                                        <AlertDialogTitle>Confirmar pagamento{c.parcelas > 1 ? ` (${c.parcelas - c.parcelaAtual + 1}/${c.parcelas})` : ""}?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          O valor total de <strong>R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> (valor + juros) será devolvido à sua carteira.
+                                          {c.parcelas > 1
+                                            ? <>Parcela de <strong>R$ {((c.valor + c.valor * c.juros / 100) / c.parcelas).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>. Restam {c.parcelaAtual - 1} parcela(s). Vencimento avança 1 mês.</>
+                                            : <>O valor total de <strong>R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> (valor + juros) será devolvido à sua carteira.</>}
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>

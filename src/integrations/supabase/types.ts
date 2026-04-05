@@ -49,6 +49,8 @@ export type Database = {
           id: string
           juros: number
           nome: string
+          parcela_atual: number
+          parcelas: number
           telefone: string
           user_id: string
           valor: number
@@ -60,6 +62,8 @@ export type Database = {
           id?: string
           juros: number
           nome: string
+          parcela_atual?: number
+          parcelas?: number
           telefone: string
           user_id: string
           valor: number
@@ -71,6 +75,8 @@ export type Database = {
           id?: string
           juros?: number
           nome?: string
+          parcela_atual?: number
+          parcelas?: number
           telefone?: string
           user_id?: string
           valor?: number
