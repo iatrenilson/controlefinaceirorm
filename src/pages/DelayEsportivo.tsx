@@ -881,7 +881,7 @@ const DelayEsportivo = () => {
       return acc - c.depositos;
     }, 0);
 
-    const ativas = visibleClientes.filter(c => c.depositos > 0 && c.saques === 0 && (c.deposito_pendente ?? 0) <= 0).length;
+    const ativas = visibleClientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0).length;
     const saquePendenteClientes = visibleClientes.filter(c => c.status === "saque_pendente");
     const saquePendente = saquePendenteClientes.length;
     const saquePendenteTotal = saquePendenteClientes.reduce((a, c) => a + c.depositos, 0);
