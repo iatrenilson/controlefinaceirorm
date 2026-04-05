@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { format, parseISO, isPast, differenceInMonths } from "date-fns";
+import { format, parseISO, isPast, differenceInMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -280,12 +280,15 @@ const Index = () => {
     const t = transacoes.find((t) => t.id === id);
     if (!t) return;
 
-    // Se tem parcelas, diminui a parcela atual
+    // Se tem parcelas, diminui a parcela atual e avança o vencimento 1 mês
     if (t.parcelaAtual && t.parcelaAtual > 1) {
+      const novaData = addMonths(parseISO(t.dataVencimento), 1);
+      const novaDataStr = format(novaData, "yyyy-MM-dd");
       const { error } = await supabase
         .from("financeiro")
-        .update({ 
+        .update({
           parcela_atual: t.parcelaAtual - 1,
+          data_vencimento: novaDataStr,
           ultimo_pagamento: format(new Date(), "yyyy-MM-dd"),
         })
         .eq("id", id);
@@ -294,7 +297,7 @@ const Index = () => {
         return;
       }
       fetchTransacoes();
-      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s). Atualiza no próximo mês.`);
+      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s). Próximo vencimento: ${format(novaData, "dd/MM/yyyy")}`);
     } else {
       const { error } = await supabase.from("financeiro").update({ status: "paga" }).eq("id", id);
       if (error) {
