@@ -882,9 +882,10 @@ const DelayEsportivo = () => {
     }, 0);
 
     const ativas = visibleClientes.filter(c => c.depositos > 0 && c.saques === 0 && (c.deposito_pendente ?? 0) <= 0).length;
+    const saquePendente = visibleClientes.filter(c => c.status === "saque_pendente").length;
     const depositosAtivos = ativasClientes.reduce((a, c) => a + c.depositos, 0);
     const saldoTotal = bankBalances.santander + bankBalances.c6;
-    return { totalDepositos, totalSaques, totalLucro, totalCustos, saldo, saldoTotal, total: visibleClientes.length, ativas, depositosAtivos };
+    return { totalDepositos, totalSaques, totalLucro, totalCustos, saldo, saldoTotal, total: visibleClientes.length, ativas, saquePendente, depositosAtivos };
   }, [clientes, bankBalances]);
 
   const exportToXLSX = async () => {
@@ -1841,12 +1842,19 @@ const DelayEsportivo = () => {
 
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-6">
               <div className="flex items-center justify-center gap-2.5">
                 <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Operando</p>
                   <p className="text-lg font-bold font-mono">{stats.ativas}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2.5">
+                <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente</p>
+                  <p className="text-lg font-bold font-mono text-orange-400">{stats.saquePendente}</p>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2.5">
