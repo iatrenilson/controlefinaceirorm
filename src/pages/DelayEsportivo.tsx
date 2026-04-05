@@ -2054,7 +2054,7 @@ const DelayEsportivo = () => {
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">{devolvidosCount}</Badge>
               </Button>
               {activeLinks.length > 0 && (
-                <Select value={filtroNick} onValueChange={v => { setFiltroNick(v); setQuickFilter("all"); if (v !== "todos") setFiltroStatus("todos"); }}>
+                <Select value={filtroNick} onValueChange={v => { setFiltroNick(v); }}>
                   <SelectTrigger className="h-8 w-auto min-w-[110px] text-xs border-blue-500/40 text-blue-400 gap-1.5">
                     <Link className="h-3.5 w-3.5" />
                     <SelectValue placeholder="Links" />
