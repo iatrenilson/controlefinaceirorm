@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, useDeferredValue } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from "date-fns";
@@ -834,6 +834,8 @@ const DelayEsportivo = () => {
     }
     return result;
   }, [clientes, busca, filtroStatus, filtroCasa, sortMode, filtroDataSaque, allTransacoes, filtroNick, quickFilter]);
+
+  const deferredFiltered = useDeferredValue(filtered);
 
   const stats = useMemo(() => {
     const visibleClientes = clientes.filter(c => c.status !== "system");
@@ -2194,7 +2196,7 @@ const DelayEsportivo = () => {
         {/* Client Cards / Table */}
         {loading ? (
           <p className="text-center text-muted-foreground py-8">Carregando...</p>
-        ) : filtered.length === 0 ? (
+        ) : deferredFiltered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>
         ) : viewMode === "table" ? (
           /* Table View */
@@ -2213,7 +2215,7 @@ const DelayEsportivo = () => {
                 </tr>
               </thead>
               <tbody>
-                {(quickFilter === "pendentes" ? [...filtered].sort((a, b) => {
+                {(quickFilter === "pendentes" ? [...deferredFiltered].sort((a, b) => {
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
@@ -2222,7 +2224,7 @@ const DelayEsportivo = () => {
                     return 1;
                   };
                   return getOrder(a) - getOrder(b);
-                }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+                }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando") return 1;
@@ -2279,7 +2281,7 @@ const DelayEsportivo = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className={`grid grid-cols-1 gap-3 ${layoutCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
           >
-            {(quickFilter === "pendentes" ? [...filtered].sort((a, b) => {
+            {(quickFilter === "pendentes" ? [...deferredFiltered].sort((a, b) => {
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
@@ -2288,7 +2290,7 @@ const DelayEsportivo = () => {
                 return 1;
               };
               return getOrder(a) - getOrder(b);
-            }) : filtered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+            }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando") return 1;
