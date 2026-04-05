@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCasaLogo } from "@/lib/casas-apostas";
-import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon, ArrowDownCircle, ArrowUpCircle, Clock } from "lucide-react";
+import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon, ArrowDownCircle, ArrowUpCircle, Clock, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +69,11 @@ const DelayViewer = () => {
   const [transDialog, setTransDialog] = useState<{ cliente: ClienteViewer; tipo: "deposito" | "saque" | "saque_pendente" } | null>(null);
   const [transValor, setTransValor] = useState("");
   const [transLoading, setTransLoading] = useState(false);
+
+  // Edit client dialog state
+  const [editDialog, setEditDialog] = useState<ClienteViewer | null>(null);
+  const [editFields, setEditFields] = useState({ nome: "", login: "", senha: "", banco_deposito: "", informacoes_adicionais: "" });
+  const [editLoading, setEditLoading] = useState(false);
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -240,6 +245,43 @@ const DelayViewer = () => {
       .filter((t) => allClienteIds.has(t.cliente_id) && t.data_transacao >= minLucroDate && t.tipo !== "deposito")
       .reduce((a, t) => a + Number(t.lucro || 0), 0);
   }, [transacoes, allClienteIds]);
+
+  const openEditDialog = (c: ClienteViewer) => {
+    setEditDialog(c);
+    setEditFields({
+      nome: c.nome || "",
+      login: c.login || "",
+      senha: c.senha || "",
+      banco_deposito: c.banco_deposito || "",
+      informacoes_adicionais: c.informacoes_adicionais || "",
+    });
+  };
+
+  const handleEditCliente = async () => {
+    if (!editDialog) return;
+    setEditLoading(true);
+    try {
+      const { error } = await supabase
+        .from("delay_clientes")
+        .update({
+          nome: editFields.nome.trim() || editDialog.nome,
+          login: editFields.login.trim() || null,
+          senha: editFields.senha.trim() || null,
+          banco_deposito: editFields.banco_deposito.trim() || null,
+          informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editDialog.id);
+      if (error) throw error;
+      toast({ title: "Cliente atualizado!" });
+      setEditDialog(null);
+      fetchClientesSilent();
+    } catch (e: unknown) {
+      toast({ title: "Erro ao salvar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   const handleTransacao = async () => {
     if (!transDialog) return;
@@ -503,6 +545,17 @@ const DelayViewer = () => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {getStatusBadge(c)}
+                        {linkTipo === "editor" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0"
+                            onClick={() => openEditDialog(c)}
+                            title="Editar cliente"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -594,6 +647,47 @@ const DelayViewer = () => {
           )}
         </div>
       </div>
+
+      {/* Edit client dialog */}
+      <Dialog open={!!editDialog} onOpenChange={(open) => { if (!open) setEditDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Editar Cliente</DialogTitle>
+          </DialogHeader>
+          {editDialog && (
+            <div className="space-y-3 py-1">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Nome</label>
+                <Input className="h-8 text-sm" value={editFields.nome} onChange={(e) => setEditFields(p => ({ ...p, nome: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Login</label>
+                <Input className="h-8 text-sm font-mono" value={editFields.login} onChange={(e) => setEditFields(p => ({ ...p, login: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Senha</label>
+                <Input className="h-8 text-sm font-mono" value={editFields.senha} onChange={(e) => setEditFields(p => ({ ...p, senha: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Banco / PIX</label>
+                <Input className="h-8 text-sm" value={editFields.banco_deposito} onChange={(e) => setEditFields(p => ({ ...p, banco_deposito: e.target.value }))} placeholder="Ex: Santander / 99999999999" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Informações adicionais</label>
+                <Input className="h-8 text-sm" value={editFields.informacoes_adicionais} onChange={(e) => setEditFields(p => ({ ...p, informacoes_adicionais: e.target.value }))} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditDialog(null)}>
+              Cancelar
+            </Button>
+            <Button size="sm" className="h-8 text-xs" disabled={editLoading} onClick={handleEditCliente}>
+              {editLoading ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Editor transaction dialog */}
       <Dialog open={!!transDialog} onOpenChange={(open) => { if (!open) { setTransDialog(null); setTransValor(""); } }}>
