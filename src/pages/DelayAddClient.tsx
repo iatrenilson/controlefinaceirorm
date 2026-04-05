@@ -345,9 +345,6 @@ const DelayAddClient = () => {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="font-bold text-sm truncate">{c.nome}</span>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0 -ml-1" onClick={() => openEdit(c)} title="Editar">
-                        <Pencil className="h-3 w-3" />
-                      </Button>
                       <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary hover:bg-primary/30 shrink-0">
                         {c.tipo || "50/50"}
                       </Badge>
@@ -367,6 +364,9 @@ const DelayAddClient = () => {
                           {c.operacao}
                         </Badge>
                       )}
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" onClick={() => openEdit(c)} title="Editar">
+                        <Pencil className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
