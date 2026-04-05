@@ -823,7 +823,7 @@ const DelayEsportivo = () => {
       const matchNick = filtroNick === "todos" ||
         (filtroNick === "direto" && !c.created_by_token) ||
         (isOperatorLink ? c.operator_link_id === filtroNick : c.created_by_token === filtroNick);
-      const isOperando = c.depositos > 0 && c.saques === 0;
+      const isOperando = c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente";
       const matchQuick = quickFilter === "all" ||
         (quickFilter === "operando" && isOperando) ||
         (quickFilter === "pendentes" && (c.deposito_pendente ?? 0) > 0) ||
@@ -1974,7 +1974,7 @@ const DelayEsportivo = () => {
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
           const devolvidosCount = allVisible.filter(isDevolvidoFn).length;
-          const operandoCount = allVisible.filter(c => c.depositos > 0 && c.saques === 0).length;
+          const operandoCount = allVisible.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente").length;
           const redCount = allVisible.filter(c => c.lucro < 0).length;
           const activeLinks = shareLinks.filter(l => l.ativo && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka");
           return (
