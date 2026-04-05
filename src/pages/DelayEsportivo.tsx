@@ -817,7 +817,8 @@ const DelayEsportivo = () => {
       const matchBusca = c.nome.toLowerCase().includes(busca.toLowerCase()) ||
         (c.login || "").toLowerCase().includes(busca.toLowerCase());
       const isDevolvido = c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
-      const matchStatus = filtroStatus === "todos" ||
+      const quickFilterOverridesStatus = quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f));
+      const matchStatus = quickFilterOverridesStatus || filtroStatus === "todos" ||
         (filtroStatus === "ativos" && (c.status === "ativo" || c.status === "saque_pendente")) ||
         (filtroStatus === "concluidos" && c.status === "concluido" && !isDevolvido);
       const matchCasa = filtroCasa === "todas" || c.casa === filtroCasa;
