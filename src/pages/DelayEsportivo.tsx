@@ -1929,13 +1929,33 @@ const DelayEsportivo = () => {
                 <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos</p>
                 <p className="text-base font-bold font-mono">{fmt(periodStats.custos)}</p>
               </div>
-              <div className="cursor-pointer" onClick={() => setCalendarOpen(true)}>
-                <p className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">Lucro Diário</p>
-                <p className={`text-base font-bold font-mono ${periodStats.lucro >= 0 ? "text-primary" : "text-destructive"}`}>
-                  {periodStats.lucro >= 0 ? "+" : ""}{fmt(periodStats.lucro)}
-                </p>
-                <p className="text-[8px] text-muted-foreground mt-0.5">{format(selectedDate, "dd/MM/yyyy")} 📅</p>
-              </div>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <div className="cursor-pointer">
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">Lucro Diário</p>
+                    <p className={`text-base font-bold font-mono ${periodStats.lucro >= 0 ? "text-primary" : "text-destructive"}`}>
+                      {periodStats.lucro >= 0 ? "+" : ""}{fmt(periodStats.lucro)}
+                    </p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">{format(selectedDate, "dd/MM/yyyy")} 📅</p>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => { if (date) { setSelectedDate(date); setCalendarOpen(false); } }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                  {format(selectedDate, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd") && (
+                    <div className="px-3 pb-3">
+                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setSelectedDate(new Date()); setCalendarOpen(false); }}>
+                        <RotateCcw className="h-3 w-3 mr-1" /> Voltar para Hoje
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
           </CardContent>
         </Card>
@@ -2202,27 +2222,6 @@ const DelayEsportivo = () => {
               {p === "diario" ? "Diário" : p === "semanal" ? "Semanal" : "Mensal"}
             </Button>
           ))}
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger asChild>
-              <span className="sr-only">Calendário</span>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => { if (date) { setSelectedDate(date); setCalendarOpen(false); } }}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-              {format(selectedDate, "yyyy-MM-dd") !== format(new Date(), "yyyy-MM-dd") && (
-                <div className="px-3 pb-3">
-                  <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setSelectedDate(new Date()); setCalendarOpen(false); }}>
-                    <RotateCcw className="h-3 w-3 mr-1" /> Voltar para Hoje
-                  </Button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
         </div>
         </div>
 
