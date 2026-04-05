@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCasaLogo } from "@/lib/casas-apostas";
-import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon } from "lucide-react";
+import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon, ArrowDownCircle, ArrowUpCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 const rwLogo = "/rw-logo.png";
 
@@ -62,6 +64,11 @@ const DelayViewer = () => {
   const [linkTipo, setLinkTipo] = useState<string>("visualizador");
   const [lucroDate, setLucroDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Editor action dialog state
+  const [transDialog, setTransDialog] = useState<{ cliente: ClienteViewer; tipo: "deposito" | "saque" | "saque_pendente" } | null>(null);
+  const [transValor, setTransValor] = useState("");
+  const [transLoading, setTransLoading] = useState(false);
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -234,6 +241,65 @@ const DelayViewer = () => {
       .reduce((a, t) => a + Number(t.lucro || 0), 0);
   }, [transacoes, allClienteIds]);
 
+  const handleTransacao = async () => {
+    if (!transDialog) return;
+    const valor = parseFloat(transValor.replace(",", "."));
+    if (isNaN(valor) || valor <= 0) {
+      toast({ title: "Valor inválido", variant: "destructive" });
+      return;
+    }
+    setTransLoading(true);
+    try {
+      const { cliente, tipo } = transDialog;
+      if (tipo === "deposito") {
+        const novoDeposito = cliente.depositos + valor;
+        const { error } = await supabase
+          .from("delay_clientes")
+          .update({ depositos: novoDeposito, updated_at: new Date().toISOString() })
+          .eq("id", cliente.id);
+        if (error) throw error;
+        await supabase.from("delay_transacoes").insert({
+          cliente_id: cliente.id,
+          tipo: "deposito",
+          valor,
+          lucro: 0,
+          custo: 0,
+          data_transacao: format(new Date(), "yyyy-MM-dd"),
+        });
+      } else if (tipo === "saque") {
+        const novoSaque = cliente.saques + valor;
+        const lucroCalculado = novoSaque - cliente.custos - cliente.depositos;
+        const { error } = await supabase
+          .from("delay_clientes")
+          .update({ saques: novoSaque, lucro: lucroCalculado, status: "concluido", operacao: "concluido", updated_at: new Date().toISOString() })
+          .eq("id", cliente.id);
+        if (error) throw error;
+        await supabase.from("delay_transacoes").insert({
+          cliente_id: cliente.id,
+          tipo: "saque",
+          valor,
+          lucro: lucroCalculado,
+          custo: cliente.custos,
+          data_transacao: format(new Date(), "yyyy-MM-dd"),
+        });
+      } else if (tipo === "saque_pendente") {
+        const { error } = await supabase
+          .from("delay_clientes")
+          .update({ status: "ativo", operacao: "saque_pendente", deposito_pendente: valor, updated_at: new Date().toISOString() })
+          .eq("id", cliente.id);
+        if (error) throw error;
+      }
+      toast({ title: tipo === "deposito" ? "Depósito registrado!" : tipo === "saque" ? "Saque registrado!" : "Saque pendente marcado!" });
+      setTransDialog(null);
+      setTransValor("");
+      fetchClientesSilent();
+    } catch (e: unknown) {
+      toast({ title: "Erro ao registrar transação", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setTransLoading(false);
+    }
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copiado!`, duration: 1500 });
@@ -301,9 +367,15 @@ const DelayViewer = () => {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="text-[10px]">
-            <Lock className="h-3 w-3 mr-1" /> Somente leitura
-          </Badge>
+          {linkTipo === "editor" ? (
+            <Badge className="text-[10px] bg-primary/20 text-primary border-primary/30">
+              Editor
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">
+              <Lock className="h-3 w-3 mr-1" /> Somente leitura
+            </Badge>
+          )}
         </div>
 
         <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
@@ -486,6 +558,35 @@ const DelayViewer = () => {
                       </div>
                     </div>
 
+                    {linkTipo === "editor" && (
+                      <div className="flex gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                          onClick={() => { setTransDialog({ cliente: c, tipo: "deposito" }); setTransValor(""); }}
+                        >
+                          <ArrowDownCircle className="h-3.5 w-3.5" /> Depósito
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-7 text-xs gap-1 border-green-500/40 text-green-500 hover:bg-green-500/10"
+                          onClick={() => { setTransDialog({ cliente: c, tipo: "saque" }); setTransValor(""); }}
+                        >
+                          <ArrowUpCircle className="h-3.5 w-3.5" /> Saque
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
+                          onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
+                        >
+                          <Clock className="h-3.5 w-3.5" /> Pendente
+                        </Button>
+                      </div>
+                    )}
+
                   </CardContent>
                 </Card>
               );
@@ -493,6 +594,75 @@ const DelayViewer = () => {
           )}
         </div>
       </div>
+
+      {/* Editor transaction dialog */}
+      <Dialog open={!!transDialog} onOpenChange={(open) => { if (!open) { setTransDialog(null); setTransValor(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">
+              {transDialog?.tipo === "deposito" && "Registrar Depósito"}
+              {transDialog?.tipo === "saque" && "Registrar Saque"}
+              {transDialog?.tipo === "saque_pendente" && "Marcar Saque Pendente"}
+            </DialogTitle>
+          </DialogHeader>
+          {transDialog && (
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Cliente: <span className="font-semibold text-foreground">{transDialog.cliente.nome}</span>
+                {" · "}{transDialog.cliente.casa}
+              </p>
+              {transDialog.tipo !== "saque_pendente" && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">
+                    {transDialog.tipo === "deposito" ? "Depósito atual: " : "Depósito: "}
+                    <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.depositos)}</span>
+                  </p>
+                  {transDialog.tipo === "saque" && (
+                    <p className="text-xs text-muted-foreground">
+                      Custos: <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.custos)}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">
+                  {transDialog.tipo === "saque_pendente" ? "Valor esperado do saque" : "Valor (R$)"}
+                </label>
+                <Input
+                  className="h-9 text-sm font-mono"
+                  placeholder="0,00"
+                  value={transValor}
+                  onChange={(e) => setTransValor(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleTransacao(); }}
+                  autoFocus
+                />
+              </div>
+              {transDialog.tipo === "saque" && transValor && !isNaN(parseFloat(transValor.replace(",", "."))) && (
+                <div className="bg-muted/40 rounded p-2 text-xs space-y-0.5">
+                  <p className="text-muted-foreground">
+                    Lucro estimado: <span className={`font-mono font-bold ${(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos) >= 0 ? "text-green-500" : "text-destructive"}`}>
+                      {fmt(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos)}
+                    </span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setTransDialog(null); setTransValor(""); }}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              disabled={transLoading || (!transValor && transDialog?.tipo !== "saque_pendente")}
+              onClick={handleTransacao}
+            >
+              {transLoading ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
