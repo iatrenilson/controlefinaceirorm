@@ -2233,6 +2233,7 @@ const DelayEsportivo = () => {
                   };
                   return getOrder(a) - getOrder(b);
                 }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+                  if (quickFilter === "concluidas" || quickFilter === "devolvidos" || quickFilter === "red") return 0;
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando") return 1;
@@ -2299,6 +2300,7 @@ const DelayEsportivo = () => {
               };
               return getOrder(a) - getOrder(b);
             }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+              if (quickFilter === "concluidas" || quickFilter === "devolvidos" || quickFilter === "red") return 0;
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando") return 1;
