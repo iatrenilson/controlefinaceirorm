@@ -1729,10 +1729,14 @@ const DelayEsportivo = () => {
                   <span className="text-muted-foreground">Saldo Bancos (Santander + C6)</span>
                   <span className="font-mono font-medium">{fmt(bankBalances.santander + bankBalances.c6)}</span>
                 </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">Val. Saque Pendente</span>
+                  <span className="font-mono font-medium text-orange-400">{fmt(stats.saquePendenteTotal)}</span>
+                </div>
                 <div className="border-t border-border/50 my-1" />
                 <div className="flex justify-between text-[10px]">
                   <span className="font-semibold text-foreground">Total</span>
-                  <span className="font-mono font-bold">{fmt(stats.depositosAtivos + bankBalances.santander + bankBalances.c6)}</span>
+                  <span className="font-mono font-bold">{fmt(stats.depositosAtivos + bankBalances.santander + bankBalances.c6 + stats.saquePendenteTotal)}</span>
                 </div>
               </div>
             </CardContent>
