@@ -979,13 +979,14 @@ const DelayEsportivo = () => {
       else if (lucroReal < 0) resultado = "RED";
       else resultado = "SACADA";
 
-      const maskCred = (v: string | null) => {
-        if (!v) return "";
-        return v.length > 3 ? v.slice(0, 3) + "****" : "****";
-      };
+      const expDep = depositos > 0 ? depositos : c.depositos;
+      const expSaq = saques > 0 ? saques : c.saques;
+      const expCus = custos > 0 ? custos : c.custos;
+      const expLucroReal = expSaq - expDep - expCus;
+      const expLucroPra2 = (c.tipo === "50/50" && expLucroReal > 0) ? expLucroReal * 0.5 : expLucroReal;
       const rowData = [
-        `   ${c.casa}`, c.fornecedor || "Sem fornecedor", maskCred(c.login), maskCred(c.senha),
-        depositos, custos, saques, lucroReal, lucroPra2,
+        `   ${c.casa}`, c.fornecedor || "Sem fornecedor", c.login || "", c.senha || "",
+        expDep, expCus, expSaq, expLucroReal, expLucroPra2,
         format(new Date(c.created_at), "dd/MM/yyyy"),
         lastSaque ? format(new Date(lastSaque.data_transacao + "T12:00:00"), "dd/MM/yyyy") : "-",
         resultado, ""
