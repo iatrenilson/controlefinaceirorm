@@ -2241,7 +2241,7 @@ const DelayEsportivo = () => {
                     return 1;
                   };
                   return getOrder(a) - getOrder(b);
-                }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+                }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
                   if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
@@ -2308,7 +2308,7 @@ const DelayEsportivo = () => {
                 return 1;
               };
               return getOrder(a) - getOrder(b);
-            }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+            }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
               if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
