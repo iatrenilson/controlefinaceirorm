@@ -1125,18 +1125,23 @@ const Admin = () => {
                             )}
                           </TableCell>
                           <TableCell className="text-right">
-                            {!isPrivileged && (
-                              <div className="flex items-center justify-end gap-1">
-                                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setEditingSubUser(p); setSubDays("30"); }}>
-                                  <CalendarPlus className="h-3.5 w-3.5" /> Estender
-                                </Button>
-                                {hasActiveSub && (
-                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRevokeSubscription(p.user_id)}>
-                                    Revogar
+                            <div className="flex items-center justify-end gap-1">
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleEditProfile(p)} title="Editar cadastro">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              {!isPrivileged && (
+                                <>
+                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setEditingSubUser(p); setSubDays("30"); }}>
+                                    <CalendarPlus className="h-3.5 w-3.5" /> Estender
                                   </Button>
-                                )}
-                              </div>
-                            )}
+                                  {hasActiveSub && (
+                                    <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => handleRevokeSubscription(p.user_id)}>
+                                      Revogar
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
