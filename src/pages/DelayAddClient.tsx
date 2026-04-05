@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { CASAS_APOSTAS, getCasaLogo } from "@/lib/casas-apostas";
-import { UserPlus, Plus, Users, Copy, Search, Check, ChevronsUpDown, Filter } from "lucide-react";
+import { UserPlus, Plus, Users, Copy, Search, Check, ChevronsUpDown, Filter, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 const rwLogo = "/rw-logo.png";
 
 interface ClienteExterno {
@@ -56,6 +57,11 @@ const DelayAddClient = () => {
   const [linkNick, setLinkNick] = useState<string | null>(null);
   const [casaOpen, setCasaOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ativo");
+
+  // Edit dialog
+  const [editDialog, setEditDialog] = useState<ClienteExterno | null>(null);
+  const [editFields, setEditFields] = useState({ nome: "", login: "", senha: "", informacoes_adicionais: "", banco_deposito: "" });
+  const [editLoading, setEditLoading] = useState(false);
 
   const getClienteStatus = (c: ClienteExterno) => {
     if (c.saques > 0 && c.saques === c.depositos && c.lucro === 0) return "devolvido";
@@ -230,6 +236,43 @@ const DelayAddClient = () => {
     }
   };
 
+  const openEdit = (c: ClienteExterno) => {
+    setEditDialog(c);
+    setEditFields({
+      nome: c.nome || "",
+      login: c.login || "",
+      senha: c.senha || "",
+      informacoes_adicionais: c.informacoes_adicionais || "",
+      banco_deposito: c.banco_deposito || "",
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editDialog) return;
+    setEditLoading(true);
+    try {
+      const { error } = await supabase
+        .from("delay_clientes")
+        .update({
+          nome: editFields.nome.trim() || editDialog.nome,
+          login: editFields.login.trim() || null,
+          senha: editFields.senha.trim() || null,
+          informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
+          banco_deposito: editFields.banco_deposito.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editDialog.id);
+      if (error) throw error;
+      toast({ title: "Cliente atualizado!" });
+      setEditDialog(null);
+      fetchClientes(true);
+    } catch (e: unknown) {
+      toast({ title: "Erro ao salvar", description: e instanceof Error ? e.message : "Erro", variant: "destructive" });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const getBancoLabel = (banco: string | null) => {
     if (banco === "c6") return "C6 Bank";
     if (banco === "santander") return "Santander";
@@ -302,6 +345,9 @@ const DelayAddClient = () => {
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="font-bold text-sm truncate">{c.nome}</span>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0 -ml-1" onClick={() => openEdit(c)} title="Editar">
+                        <Pencil className="h-3 w-3" />
+                      </Button>
                       <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary hover:bg-primary/30 shrink-0">
                         {c.tipo || "50/50"}
                       </Badge>
@@ -380,6 +426,45 @@ const DelayAddClient = () => {
             ))}
           </div>
         )}
+
+        {/* Edit Dialog */}
+        <Dialog open={!!editDialog} onOpenChange={(open) => { if (!open) setEditDialog(null); }}>
+          <DialogContent className="w-[95vw] sm:max-w-sm max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Editar Cliente</DialogTitle>
+            </DialogHeader>
+            {editDialog && (
+              <div className="space-y-3 py-1">
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input className="h-9" value={editFields.nome} onChange={e => setEditFields(p => ({ ...p, nome: e.target.value.toUpperCase() }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Pix</Label>
+                  <Input className="h-9" value={editFields.informacoes_adicionais} onChange={e => setEditFields(p => ({ ...p, informacoes_adicionais: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Login</Label>
+                  <Input className="h-9 font-mono" value={editFields.login} onChange={e => setEditFields(p => ({ ...p, login: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Senha</Label>
+                  <Input className="h-9 font-mono" value={editFields.senha} onChange={e => setEditFields(p => ({ ...p, senha: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Banco</Label>
+                  <Input className="h-9" value={editFields.banco_deposito} onChange={e => setEditFields(p => ({ ...p, banco_deposito: e.target.value }))} placeholder="Ex: Santander" />
+                </div>
+              </div>
+            )}
+            <DialogFooter className="gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setEditDialog(null)}>Cancelar</Button>
+              <Button size="sm" disabled={editLoading} onClick={handleEditSave}>
+                {editLoading ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Form Dialog */}
         <Dialog open={showForm} onOpenChange={(open) => { if (!open) { resetForm(); setShowForm(false); } }}>
