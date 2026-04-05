@@ -696,6 +696,14 @@ const DelayEsportivo = () => {
       .reduce((a, t) => a + t.lucro, 0);
   }, [allTransacoes, clientes]);
 
+  const monthlyCustos = useMemo(() => {
+    const startStr = format(startOfMonth(new Date()), "yyyy-MM-dd");
+    const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
+    return allTransacoes
+      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao >= startStr && (t.tipo === "saque" || t.tipo === "devolucao"))
+      .reduce((a, t) => a + (t.custo ?? 0), 0);
+  }, [allTransacoes, clientes]);
+
   const fetchTransacoes = async (clienteId: string) => {
     setLoadingTransacoes(true);
     const { data, error } = await supabase
@@ -1881,7 +1889,7 @@ const DelayEsportivo = () => {
                 <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos</p>
-                  <p className="text-lg font-bold font-mono text-red-400">{fmt(stats.totalCustos)}</p>
+                  <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2.5">
