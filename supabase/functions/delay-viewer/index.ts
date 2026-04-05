@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
       clientes: clientesComNick,
       transacoes: transacoesFiltradas,
       nick: linkData.nick || null,
-      tipo: linkData.tipo,
+      tipo: linkData.tipo === null ? "editor" : linkData.tipo,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
