@@ -369,7 +369,16 @@ const DelayEsportivo = () => {
   const [filtroDataSaque, setFiltroDataSaque] = useState<Date | undefined>(undefined);
   const [filtroDataSaqueOpen, setFiltroDataSaqueOpen] = useState(false);
   const [filtroNick, setFiltroNick] = useState<string>("todos");
-  const [quickFilter, setQuickFilter] = useState<"all" | "operando" | "pendentes" | "saque_pendente" | "concluidas" | "devolvidos" | "red">("operando");
+  const [quickFilter, setQuickFilter] = useState<string[]>(["operando"]);
+  const qf = (f: string) => quickFilter.includes(f);
+  const toggleFilter = (f: string, ctrl: boolean) => {
+    if (f === "all") { setQuickFilter(["all"]); return; }
+    if (!ctrl) { setQuickFilter([f]); return; }
+    setQuickFilter(prev => {
+      const without = prev.filter(x => x !== "all");
+      return without.includes(f) ? (without.length > 1 ? without.filter(x => x !== f) : without) : [...without, f];
+    });
+  };
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -824,13 +833,13 @@ const DelayEsportivo = () => {
         (filtroNick === "direto" && !c.created_by_token) ||
         (isOperatorLink ? c.operator_link_id === filtroNick : c.created_by_token === filtroNick);
       const isOperando = c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente";
-      const matchQuick = quickFilter === "all" ||
-        (quickFilter === "operando" && isOperando) ||
-        (quickFilter === "pendentes" && (c.deposito_pendente ?? 0) > 0) ||
-        (quickFilter === "saque_pendente" && c.status === "saque_pendente") ||
-        (quickFilter === "concluidas" && c.status === "concluido" && !isDevolvido) ||
-        (quickFilter === "devolvidos" && isDevolvido) ||
-        (quickFilter === "red" && c.lucro < 0);
+      const matchQuick = quickFilter.includes("all") ||
+        (quickFilter.includes("operando") && isOperando) ||
+        (quickFilter.includes("pendentes") && (c.deposito_pendente ?? 0) > 0) ||
+        (quickFilter.includes("saque_pendente") && c.status === "saque_pendente") ||
+        (quickFilter.includes("concluidas") && c.status === "concluido" && !isDevolvido) ||
+        (quickFilter.includes("devolvidos") && isDevolvido) ||
+        (quickFilter.includes("red") && c.lucro < 0);
       return matchBusca && matchStatus && matchCasa && matchDataSaque && matchNick && matchQuick;
     });
     const casaOrder: Record<string, number> = { "Bet365": 1, "Betano": 2, "Superbet": 3, "Betfair": 4, "Sportingbet": 5, "Novibet": 6 };
@@ -1981,18 +1990,18 @@ const DelayEsportivo = () => {
             <div className="flex flex-wrap gap-2 items-center">
               <Button
                 size="sm"
-                variant={quickFilter === "all" ? "default" : "outline"}
+                variant={qf("all") ? "default" : "outline"}
                 className="gap-1.5 text-xs"
-                onClick={() => { setQuickFilter("all"); setFiltroStatus("todos"); }}
+                onClick={(e) => { toggleFilter("all", e.ctrlKey || e.metaKey); setFiltroStatus("todos"); }}
               >
                 Todos
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0">{allVisible.length}</Badge>
               </Button>
               <Button
                 size="sm"
-                variant={quickFilter === "operando" ? "default" : "outline"}
-                className={`gap-1.5 text-xs ${quickFilter === "operando" ? "bg-blue-500 hover:bg-blue-600 border-blue-500 text-white" : "border-blue-500/40 text-blue-400 hover:bg-blue-500/10"}`}
-                onClick={() => setQuickFilter("operando")}
+                variant={qf("operando") ? "default" : "outline"}
+                className={`gap-1.5 text-xs ${qf("operando") ? "bg-blue-500 hover:bg-blue-600 border-blue-500 text-white" : "border-blue-500/40 text-blue-400 hover:bg-blue-500/10"}`}
+                onClick={(e) => toggleFilter("operando", e.ctrlKey || e.metaKey)}
               >
                 <TrendingUp className="h-3.5 w-3.5" />
                 Operando
@@ -2000,9 +2009,9 @@ const DelayEsportivo = () => {
               </Button>
               <Button
                 size="sm"
-                variant={quickFilter === "pendentes" ? "default" : "outline"}
-                className={`gap-1.5 text-xs ${quickFilter === "pendentes" ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white" : "border-orange-500/40 text-orange-400 hover:bg-orange-500/10"}`}
-                onClick={() => setQuickFilter("pendentes")}
+                variant={qf("pendentes") ? "default" : "outline"}
+                className={`gap-1.5 text-xs ${qf("pendentes") ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white" : "border-orange-500/40 text-orange-400 hover:bg-orange-500/10"}`}
+                onClick={(e) => toggleFilter("pendentes", e.ctrlKey || e.metaKey)}
               >
                 <Clock className="h-3.5 w-3.5" />
                 Depósitos Pendentes
@@ -2011,9 +2020,9 @@ const DelayEsportivo = () => {
               {saquePendenteCount > 0 && (
                 <Button
                   size="sm"
-                  variant={quickFilter === "saque_pendente" ? "default" : "outline"}
-                  className={`gap-1.5 text-xs ${quickFilter === "saque_pendente" ? "bg-orange-700 hover:bg-orange-800 border-orange-700 text-white" : "border-orange-700/40 text-orange-300 hover:bg-orange-700/10"}`}
-                  onClick={() => setQuickFilter("saque_pendente")}
+                  variant={qf("saque_pendente") ? "default" : "outline"}
+                  className={`gap-1.5 text-xs ${qf("saque_pendente") ? "bg-orange-700 hover:bg-orange-800 border-orange-700 text-white" : "border-orange-700/40 text-orange-300 hover:bg-orange-700/10"}`}
+                  onClick={(e) => toggleFilter("saque_pendente", e.ctrlKey || e.metaKey)}
                 >
                   <ArrowUpCircle className="h-3.5 w-3.5" />
                   Saque Pendente
@@ -2022,9 +2031,9 @@ const DelayEsportivo = () => {
               )}
               <Button
                 size="sm"
-                variant={quickFilter === "concluidas" ? "default" : "outline"}
-                className={`gap-1.5 text-xs ${quickFilter === "concluidas" ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white" : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"}`}
-                onClick={() => setQuickFilter("concluidas")}
+                variant={qf("concluidas") ? "default" : "outline"}
+                className={`gap-1.5 text-xs ${qf("concluidas") ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white" : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"}`}
+                onClick={(e) => toggleFilter("concluidas", e.ctrlKey || e.metaKey)}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Concluídos
@@ -2033,9 +2042,9 @@ const DelayEsportivo = () => {
               {redCount > 0 && (
                 <Button
                   size="sm"
-                  variant={quickFilter === "red" ? "default" : "outline"}
-                  className={`gap-1.5 text-xs ${quickFilter === "red" ? "bg-red-600 hover:bg-red-700 border-red-600 text-white" : "border-red-500/40 text-red-400 hover:bg-red-500/10"}`}
-                  onClick={() => setQuickFilter("red")}
+                  variant={qf("red") ? "default" : "outline"}
+                  className={`gap-1.5 text-xs ${qf("red") ? "bg-red-600 hover:bg-red-700 border-red-600 text-white" : "border-red-500/40 text-red-400 hover:bg-red-500/10"}`}
+                  onClick={(e) => toggleFilter("red", e.ctrlKey || e.metaKey)}
                 >
                   <TrendingDown className="h-3.5 w-3.5" />
                   Red
@@ -2044,9 +2053,9 @@ const DelayEsportivo = () => {
               )}
               <Button
                 size="sm"
-                variant={quickFilter === "devolvidos" ? "default" : "outline"}
-                className={`gap-1.5 text-xs ${quickFilter === "devolvidos" ? "bg-yellow-600 hover:bg-yellow-700 border-yellow-600 text-white" : "border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"}`}
-                onClick={() => setQuickFilter("devolvidos")}
+                variant={qf("devolvidos") ? "default" : "outline"}
+                className={`gap-1.5 text-xs ${qf("devolvidos") ? "bg-yellow-600 hover:bg-yellow-700 border-yellow-600 text-white" : "border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"}`}
+                onClick={(e) => toggleFilter("devolvidos", e.ctrlKey || e.metaKey)}
                 title="Filtrar devolvidos"
               >
                 <TrendingUp className="h-3.5 w-3.5" />
@@ -2223,7 +2232,7 @@ const DelayEsportivo = () => {
                 </tr>
               </thead>
               <tbody>
-                {(quickFilter === "pendentes" ? [...deferredFiltered].sort((a, b) => {
+                {(quickFilter.includes("pendentes") ? [...deferredFiltered].sort((a, b) => {
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
@@ -2233,7 +2242,7 @@ const DelayEsportivo = () => {
                   };
                   return getOrder(a) - getOrder(b);
                 }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-                  if (quickFilter === "concluidas" || quickFilter === "devolvidos" || quickFilter === "red") return 0;
+                  if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando") return 1;
@@ -2290,7 +2299,7 @@ const DelayEsportivo = () => {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className={`grid grid-cols-1 gap-3 ${layoutCols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
           >
-            {(quickFilter === "pendentes" ? [...deferredFiltered].sort((a, b) => {
+            {(quickFilter.includes("pendentes") ? [...deferredFiltered].sort((a, b) => {
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
@@ -2300,7 +2309,7 @@ const DelayEsportivo = () => {
               };
               return getOrder(a) - getOrder(b);
             }) : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-              if (quickFilter === "concluidas" || quickFilter === "devolvidos" || quickFilter === "red") return 0;
+              if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando") return 1;
