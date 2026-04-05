@@ -2243,7 +2243,10 @@ const DelayEsportivo = () => {
                   };
                   return getOrder(a) - getOrder(b);
                 }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-                  if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
+                  if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) {
+                    const getLastSaque = (c: DelayCliente) => allTransacoes.filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao")).sort((x, y) => y.data_transacao.localeCompare(x.data_transacao))[0]?.data_transacao ?? "";
+                    return getLastSaque(b).localeCompare(getLastSaque(a));
+                  }
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando") return 1;
@@ -2310,7 +2313,10 @@ const DelayEsportivo = () => {
               };
               return getOrder(a) - getOrder(b);
             }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
-              if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) return 0;
+              if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) {
+                const getLastSaque = (c: DelayCliente) => allTransacoes.filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao")).sort((x, y) => y.data_transacao.localeCompare(x.data_transacao))[0]?.data_transacao ?? "";
+                return getLastSaque(b).localeCompare(getLastSaque(a));
+              }
               const getOrder = (c: DelayCliente) => {
                 if (c.status === "saque_pendente") return 0;
                 if (c.status === "ativo" && c.operacao === "operando") return 1;
