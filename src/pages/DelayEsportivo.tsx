@@ -1992,7 +1992,7 @@ const DelayEsportivo = () => {
                 size="sm"
                 variant={quickFilter === "operando" ? "default" : "outline"}
                 className={`gap-1.5 text-xs ${quickFilter === "operando" ? "bg-blue-500 hover:bg-blue-600 border-blue-500 text-white" : "border-blue-500/40 text-blue-400 hover:bg-blue-500/10"}`}
-                onClick={() => { const next = quickFilter === "operando" ? "all" : "operando"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                onClick={() => setQuickFilter("operando")}
               >
                 <TrendingUp className="h-3.5 w-3.5" />
                 Operando
@@ -2002,7 +2002,7 @@ const DelayEsportivo = () => {
                 size="sm"
                 variant={quickFilter === "pendentes" ? "default" : "outline"}
                 className={`gap-1.5 text-xs ${quickFilter === "pendentes" ? "bg-orange-500 hover:bg-orange-600 border-orange-500 text-white" : "border-orange-500/40 text-orange-400 hover:bg-orange-500/10"}`}
-                onClick={() => { const next = quickFilter === "pendentes" ? "all" : "pendentes"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                onClick={() => setQuickFilter("pendentes")}
               >
                 <Clock className="h-3.5 w-3.5" />
                 Depósitos Pendentes
@@ -2013,7 +2013,7 @@ const DelayEsportivo = () => {
                   size="sm"
                   variant={quickFilter === "saque_pendente" ? "default" : "outline"}
                   className={`gap-1.5 text-xs ${quickFilter === "saque_pendente" ? "bg-orange-700 hover:bg-orange-800 border-orange-700 text-white" : "border-orange-700/40 text-orange-300 hover:bg-orange-700/10"}`}
-                  onClick={() => { const next = quickFilter === "saque_pendente" ? "all" : "saque_pendente"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                  onClick={() => setQuickFilter("saque_pendente")}
                 >
                   <ArrowUpCircle className="h-3.5 w-3.5" />
                   Saque Pendente
@@ -2024,7 +2024,7 @@ const DelayEsportivo = () => {
                 size="sm"
                 variant={quickFilter === "concluidas" ? "default" : "outline"}
                 className={`gap-1.5 text-xs ${quickFilter === "concluidas" ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-600 text-white" : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"}`}
-                onClick={() => { const next = quickFilter === "concluidas" ? "all" : "concluidas"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                onClick={() => setQuickFilter("concluidas")}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Concluídos
@@ -2035,7 +2035,7 @@ const DelayEsportivo = () => {
                   size="sm"
                   variant={quickFilter === "red" ? "default" : "outline"}
                   className={`gap-1.5 text-xs ${quickFilter === "red" ? "bg-red-600 hover:bg-red-700 border-red-600 text-white" : "border-red-500/40 text-red-400 hover:bg-red-500/10"}`}
-                  onClick={() => { const next = quickFilter === "red" ? "all" : "red"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                  onClick={() => setQuickFilter("red")}
                 >
                   <TrendingDown className="h-3.5 w-3.5" />
                   Red
@@ -2046,7 +2046,7 @@ const DelayEsportivo = () => {
                 size="sm"
                 variant={quickFilter === "devolvidos" ? "default" : "outline"}
                 className={`gap-1.5 text-xs ${quickFilter === "devolvidos" ? "bg-yellow-600 hover:bg-yellow-700 border-yellow-600 text-white" : "border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10"}`}
-                onClick={() => { const next = quickFilter === "devolvidos" ? "all" : "devolvidos"; setQuickFilter(next); if (next !== "all") setFiltroStatus("todos"); }}
+                onClick={() => setQuickFilter("devolvidos")}
                 title="Filtrar devolvidos"
               >
                 <TrendingUp className="h-3.5 w-3.5" />
