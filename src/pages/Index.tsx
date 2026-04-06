@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, AlertTriangle } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -139,6 +139,7 @@ const Index = () => {
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "paga" | "vencida" | "em_aberto">("todos");
   const [filtroMes, setFiltroMes] = useState<string>("todos");
   const [mostrarPagas, setMostrarPagas] = useState(false);
+  const [pagasOpen, setPagasOpen] = useState(true);
   const [mesDespesas, setMesDespesas] = useState(() => format(new Date(), "yyyy-MM"));
 
   const fetchTransacoes = async () => {
@@ -753,6 +754,63 @@ const Index = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Contas Pagas */}
+      {(() => {
+        const pagas = transacoes.filter(t => t.status === "paga");
+        const parcelasRecentes = transacoes.filter(t => t.status !== "paga" && t.ultimoPagamento);
+        const itens = [...pagas, ...parcelasRecentes].sort((a, b) => {
+          const da = a.ultimoPagamento || a.dataVencimento;
+          const db = b.ultimoPagamento || b.dataVencimento;
+          return db.localeCompare(da);
+        });
+        if (itens.length === 0) return null;
+        return (
+          <Card className="border border-green-500/30 bg-green-500/5">
+            <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setPagasOpen(o => !o)}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CardTitle className="text-sm font-semibold text-green-400">Contas Pagas / Parcelas Pagas</CardTitle>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">{itens.length}</Badge>
+                </div>
+                {pagasOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </CardHeader>
+            {pagasOpen && (
+              <CardContent className="px-4 pb-4">
+                <div className="space-y-2">
+                  {itens.map(t => {
+                    const isParcela = t.parcelas && t.parcelas > 1 && t.status !== "paga";
+                    const pagoEm = t.ultimoPagamento ? format(parseISO(t.ultimoPagamento), "dd/MM/yyyy", { locale: ptBR }) : "—";
+                    const parcelaLabel = isParcela
+                      ? `Parcela ${(t.parcelaAtual ?? 0) + 1}/${t.parcelas} paga`
+                      : t.parcelas && t.parcelas > 1
+                      ? `${t.parcelas}/${t.parcelas} parcelas — Quitado`
+                      : "Paga";
+                    return (
+                      <div key={t.id} className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">{t.descricao}</p>
+                            <p className="text-[11px] text-muted-foreground">{parcelaLabel} · {pagoEm}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-4">
+                          <p className="font-mono font-bold text-sm text-green-400">
+                            -{t.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
