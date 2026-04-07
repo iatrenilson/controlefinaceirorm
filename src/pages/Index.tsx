@@ -337,7 +337,7 @@ const Index = () => {
     const saldo = receitas - despesas;
     const vencidas = transacoes.filter((t) => t.status === "vencida" || (t.status === "em_aberto" && isPast(parseISO(t.dataVencimento)))).length;
     const vencidasAPagar = transacoes.filter((t) => t.status !== "paga" && (t.status === "vencida" || (t.status === "em_aberto" && isPast(parseISO(t.dataVencimento))))).length;
-    const pagasList = transacoes.filter((t) => t.status === "paga");
+    const pagasList = transacoes.filter((t) => t.status === "paga" || (t.status !== "paga" && !!t.ultimoPagamento));
     const pagas = pagasList.length;
     const pagasTotal = pagasList.reduce((a, t) => a + t.valor, 0);
     const emAberto = transacoes.filter((t) => t.status === "em_aberto" && !isPast(parseISO(t.dataVencimento))).length;
