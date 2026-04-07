@@ -1782,36 +1782,6 @@ const DelayEsportivo = () => {
             </CardContent>
           </Card>
 
-          {/* Santander */}
-          <Card className="border-red-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="rounded-lg bg-red-500/20 p-1.5">
-                  <Building2 className="h-4 w-4 text-red-500" />
-                </div>
-                <p className="text-xs font-semibold">Santander</p>
-              </div>
-              <p className={`text-xl font-bold font-mono ${bankBalances.santander >= 0 ? "text-primary" : "text-destructive"}`}>
-                {fmt(bankBalances.santander)}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* C6 */}
-          <Card className="border-purple-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="rounded-lg bg-purple-500/20 p-1.5">
-                  <Building2 className="h-4 w-4 text-purple-500" />
-                </div>
-                <p className="text-xs font-semibold">Carteira Pessoal</p>
-              </div>
-              <p className={`text-xl font-bold font-mono ${bankBalances.c6 >= 0 ? "text-primary" : "text-destructive"}`}>
-                {fmt(bankBalances.c6)}
-              </p>
-            </CardContent>
-          </Card>
-
           {/* Saque Pendente */}
           <Card className="border-orange-500/30 bg-orange-500/5">
             <CardContent className="p-4">
@@ -1836,6 +1806,36 @@ const DelayEsportivo = () => {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Santander */}
+          <Card className="border-red-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-lg bg-red-500/20 p-1.5">
+                  <Building2 className="h-4 w-4 text-red-500" />
+                </div>
+                <p className="text-xs font-semibold">Santander</p>
+              </div>
+              <p className={`text-xl font-bold font-mono ${bankBalances.santander >= 0 ? "text-primary" : "text-destructive"}`}>
+                {fmt(bankBalances.santander)}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Carteira Pessoal */}
+          <Card className="border-purple-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-lg bg-purple-500/20 p-1.5">
+                  <Building2 className="h-4 w-4 text-purple-500" />
+                </div>
+                <p className="text-xs font-semibold">Carteira Pessoal</p>
+              </div>
+              <p className={`text-xl font-bold font-mono ${bankBalances.c6 >= 0 ? "text-primary" : "text-destructive"}`}>
+                {fmt(bankBalances.c6)}
+              </p>
             </CardContent>
           </Card>
         </div>
