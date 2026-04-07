@@ -1805,6 +1805,27 @@ const DelayEsportivo = () => {
               </p>
             </CardContent>
           </Card>
+
+          {/* Saque Pendente */}
+          <Card className="border-orange-500/30 bg-orange-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="rounded-lg bg-orange-500/20 p-1.5">
+                  <ArrowUpCircle className="h-4 w-4 text-orange-400" />
+                </div>
+                <p className="text-xs font-semibold">Saque Pendente</p>
+              </div>
+              <p className="text-xl font-bold font-mono text-orange-400">
+                {fmt(stats.saquePendenteTotal)}
+              </p>
+              <div className="mt-2 pt-2 border-t border-border/50">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">Clientes aguardando</span>
+                  <span className="font-mono font-medium text-orange-400">{stats.saquePendente}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Histórico Geral Dialog */}
