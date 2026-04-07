@@ -337,9 +337,11 @@ const Index = () => {
     const saldo = receitas - despesas;
     const vencidas = transacoes.filter((t) => t.status === "vencida" || (t.status === "em_aberto" && isPast(parseISO(t.dataVencimento)))).length;
     const vencidasAPagar = transacoes.filter((t) => t.status !== "paga" && (t.status === "vencida" || (t.status === "em_aberto" && isPast(parseISO(t.dataVencimento))))).length;
-    const pagas = transacoes.filter((t) => t.status === "paga").length;
+    const pagasList = transacoes.filter((t) => t.status === "paga");
+    const pagas = pagasList.length;
+    const pagasTotal = pagasList.reduce((a, t) => a + t.valor, 0);
     const emAberto = transacoes.filter((t) => t.status === "em_aberto" && !isPast(parseISO(t.dataVencimento))).length;
-    return { receitas, despesas, saldo, vencidas, vencidasAPagar, pagas, emAberto };
+    return { receitas, despesas, saldo, vencidas, vencidasAPagar, pagas, pagasTotal, emAberto };
   }, [transacoes]);
 
   const despesasMensal = useMemo(() => {
@@ -495,8 +497,9 @@ const Index = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Pagas</p>
                   <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-emerald-500 mt-0.5">
-                    {stats.pagas}
+                    {stats.pagasTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{stats.pagas} conta{stats.pagas !== 1 ? "s" : ""}</p>
                 </div>
               </div>
             </CardContent>
