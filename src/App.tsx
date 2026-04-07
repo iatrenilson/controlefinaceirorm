@@ -48,6 +48,7 @@ const queryClient = new QueryClient();
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
   const { hasAccess, isTrialActive, isTrialExpired, hoursLeft, trialStartedAt, loading: subLoading } = useSubscription();
+  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
 
   // Track online presence
   useEffect(() => {
@@ -61,7 +62,7 @@ const ProtectedLayout = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  if (loading || subLoading) {
+  if (loading || subLoading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>;
   }
 
@@ -69,7 +70,7 @@ const ProtectedLayout = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!hasAccess) {
+  if (!hasAccess && !isAdmin && !isModerator) {
     return <PaywallScreen isTrialExpired={isTrialExpired} hoursLeft={hoursLeft} />;
   }
 
