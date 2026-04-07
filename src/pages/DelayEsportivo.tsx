@@ -1767,11 +1767,17 @@ const DelayEsportivo = () => {
               <p className="text-xl font-bold font-mono text-blue-400">
                 {fmt(stats.depositosAtivos)}
               </p>
-              <div className="mt-2 pt-2 border-t border-border/50">
-                <div className="flex justify-between text-[10px]">
+              <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                <div className="flex justify-between text-[10px] mb-1">
                   <span className="text-muted-foreground">Contas ativas</span>
                   <span className="font-mono font-medium">{stats.ativas}</span>
                 </div>
+                {clientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0 && c.status !== "system").map(c => (
+                  <div key={c.id} className="flex justify-between text-[10px]">
+                    <span className="text-blue-300 truncate max-w-[70%]">{c.nome}</span>
+                    <span className="font-mono text-blue-400">{fmt(c.depositos)}</span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -1818,11 +1824,17 @@ const DelayEsportivo = () => {
               <p className="text-xl font-bold font-mono text-orange-400">
                 {fmt(stats.saquePendenteTotal)}
               </p>
-              <div className="mt-2 pt-2 border-t border-border/50">
-                <div className="flex justify-between text-[10px]">
+              <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                <div className="flex justify-between text-[10px] mb-1">
                   <span className="text-muted-foreground">Clientes aguardando</span>
                   <span className="font-mono font-medium text-orange-400">{stats.saquePendente}</span>
                 </div>
+                {clientes.filter(c => c.status === "saque_pendente").map(c => (
+                  <div key={c.id} className="flex justify-between text-[10px]">
+                    <span className="text-orange-300 truncate max-w-[70%]">{c.nome}</span>
+                    <span className="font-mono text-orange-400">{fmt(c.depositos)}</span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
