@@ -1720,7 +1720,7 @@ const DelayEsportivo = () => {
         </div>
 
         {/* Bank Balances Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* Saldo Total (Carteira + Bancos) */}
           <Card className="border-primary/30 bg-primary/5">
             <CardContent className="p-4">
