@@ -517,7 +517,7 @@ const DelayEsportivo = () => {
     setBankDialog(null);
     setBankValor("");
     await fetchClientes();
-    toast({ title: tipo === "depositar" ? "Depósito realizado!" : "Retirada realizada!", description: `${banco === "santander" ? "Santander" : "C6"}: ${fmt(newBalance)}` });
+    toast({ title: tipo === "depositar" ? "Depósito realizado!" : "Retirada realizada!", description: `${banco === "santander" ? "Santander" : "Carteira Pessoal"}: ${fmt(newBalance)}` });
   };
 
   const fetchClientes = useCallback(async (attempt = 1) => {
@@ -639,7 +639,7 @@ const DelayEsportivo = () => {
       setBankBalances(prev => ({ ...prev, [banco]: -depositoVal }));
     }
 
-    toast({ title: "Depósito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "C6 Bank"}` });
+    toast({ title: "Depósito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "Carteira Pessoal"}` });
     fetchClientes();
     fetchBankBalances();
   };
@@ -1739,7 +1739,7 @@ const DelayEsportivo = () => {
                   <span className="font-mono font-medium text-blue-400">{fmt(stats.depositosAtivos)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground">Saldo Bancos (Santander + C6)</span>
+                  <span className="text-muted-foreground">Saldo Bancos (Santander + Carteira Pessoal)</span>
                   <span className="font-mono font-medium">{fmt(bankBalances.santander + bankBalances.c6)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
@@ -1798,7 +1798,7 @@ const DelayEsportivo = () => {
                 <div className="rounded-lg bg-purple-500/20 p-1.5">
                   <Building2 className="h-4 w-4 text-purple-500" />
                 </div>
-                <p className="text-xs font-semibold">C6 Bank</p>
+                <p className="text-xs font-semibold">Carteira Pessoal</p>
               </div>
               <p className={`text-xl font-bold font-mono ${bankBalances.c6 >= 0 ? "text-primary" : "text-destructive"}`}>
                 {fmt(bankBalances.c6)}
@@ -2512,7 +2512,7 @@ const DelayEsportivo = () => {
                           </p>
                           <p className="text-foreground font-mono font-bold mt-0.5">
                             R$ {(c.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            <span className="text-muted-foreground font-normal ml-1">→ {c.banco_deposito === "c6" ? "C6 Bank" : "Santander"}</span>
+                            <span className="text-muted-foreground font-normal ml-1">→ {c.banco_deposito === "c6" ? "Carteira Pessoal" : "Santander"}</span>
                           </p>
                         </div>
                         <div className="flex gap-1.5 shrink-0">
@@ -2738,7 +2738,7 @@ const DelayEsportivo = () => {
                     </SelectItem>
                     <SelectItem value="c6">
                       <span className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" /> C6 Bank
+                        <Building2 className="h-4 w-4" /> Carteira Pessoal
                       </span>
                     </SelectItem>
                   </SelectContent>
@@ -2963,7 +2963,7 @@ const DelayEsportivo = () => {
                   </SelectItem>
                   <SelectItem value="c6">
                     <span className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" /> C6 Bank
+                      <Building2 className="h-4 w-4" /> Carteira Pessoal
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -3045,7 +3045,7 @@ const DelayEsportivo = () => {
                 <Building2 className="h-4 w-4 text-purple-500" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold">C6 Bank</p>
+                <p className="text-sm font-semibold">Carteira Pessoal</p>
                 <p className="text-[10px] text-muted-foreground">Saldo: {fmt(bankBalances.c6)}</p>
               </div>
             </Button>
@@ -3096,7 +3096,7 @@ const DelayEsportivo = () => {
         <DialogContent className="w-[90vw] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {bankDialog?.tipo === "depositar" ? "Depositar" : "Retirar"} - {bankDialog?.banco === "santander" ? "Santander" : "C6 Bank"}
+              {bankDialog?.tipo === "depositar" ? "Depositar" : "Retirar"} - {bankDialog?.banco === "santander" ? "Santander" : "Carteira Pessoal"}
             </DialogTitle>
             <DialogDescription>
               Saldo atual: {fmt(bankDialog?.banco === "santander" ? bankBalances.santander : bankBalances.c6)}

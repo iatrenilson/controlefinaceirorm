@@ -274,7 +274,7 @@ const DelayAddClient = () => {
   };
 
   const getBancoLabel = (banco: string | null) => {
-    if (banco === "c6") return "C6 Bank";
+    if (banco === "c6") return "Carteira Pessoal";
     if (banco === "santander") return "Santander";
     return banco || "—";
   };

@@ -399,7 +399,7 @@ const DelayDashboard = () => {
                 <Building2 className="h-4 w-4 text-purple-500" />
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">C6 Bank</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Carteira Pessoal</p>
                 <p className={`text-lg font-bold font-mono ${bankBalances.c6 >= 0 ? "text-primary" : "text-destructive"}`}>
                   {fmt(bankBalances.c6)}
                 </p>
