@@ -1894,7 +1894,7 @@ const DelayEsportivo = () => {
 
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
               <div className="flex items-center justify-center gap-2.5">
                 <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
                 <div>
@@ -1907,20 +1907,6 @@ const DelayEsportivo = () => {
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente</p>
                   <p className="text-lg font-bold font-mono text-orange-400">{stats.saquePendente}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-orange-500/10 p-2"><DollarSign className="h-4 w-4 text-orange-400" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Val. Saque Pend.</p>
-                  <p className="text-lg font-bold font-mono text-orange-400">{fmt(stats.saquePendenteTotal)}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-yellow-500/10 p-2"><ArrowDownCircle className="h-4 w-4 text-yellow-500" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Depósitos</p>
-                  <p className="text-lg font-bold font-mono">{fmt(stats.depositosAtivos)}</p>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-2.5">
