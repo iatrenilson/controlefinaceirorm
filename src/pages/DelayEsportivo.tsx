@@ -2512,7 +2512,12 @@ const DelayEsportivo = () => {
                     const lastSaque = allTransacoes
                       .filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao"))
                       .sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0];
-                    const depDate = c.data_deposito ? format(new Date(c.data_deposito), "dd/MM/yyyy") : null;
+                    const firstDep = allTransacoes
+                      .filter(t => t.cliente_id === c.id && t.tipo === "deposito")
+                      .sort((a, b) => a.data_transacao.localeCompare(b.data_transacao))[0];
+                    const depDate = c.data_deposito
+                      ? format(new Date(c.data_deposito), "dd/MM/yyyy")
+                      : firstDep ? format(new Date(firstDep.data_transacao + "T12:00:00"), "dd/MM/yyyy") : null;
                     const saqueDate = lastSaque ? format(new Date(lastSaque.data_transacao + "T12:00:00"), "dd/MM/yyyy") : null;
                     if (!depDate && !saqueDate) return null;
                     return (
