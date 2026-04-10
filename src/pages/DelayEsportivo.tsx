@@ -2507,17 +2507,20 @@ const DelayEsportivo = () => {
                     )}
                   </div>
 
-                  {/* Data do Saque */}
+                  {/* Datas */}
                   {(() => {
                     const lastSaque = allTransacoes
                       .filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao"))
                       .sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0];
-                    return lastSaque ? (
-                      <p className="mt-1.5 text-muted-foreground text-center text-[11px]">
-                        <CalendarDays className="inline h-3.5 w-3.5 mr-1 align-text-bottom" />
-                        Saque: {format(new Date(lastSaque.data_transacao + "T12:00:00"), "dd/MM/yyyy")}
-                      </p>
-                    ) : null;
+                    const depDate = c.data_deposito ? format(new Date(c.data_deposito), "dd/MM/yyyy") : null;
+                    const saqueDate = lastSaque ? format(new Date(lastSaque.data_transacao + "T12:00:00"), "dd/MM/yyyy") : null;
+                    if (!depDate && !saqueDate) return null;
+                    return (
+                      <div className="mt-1.5 flex justify-center gap-3 text-[11px] text-muted-foreground">
+                        {depDate && <span><CalendarDays className="inline h-3 w-3 mr-0.5 align-text-bottom text-blue-400" />Dep: <span className="text-blue-400">{depDate}</span></span>}
+                        {saqueDate && <span><CalendarDays className="inline h-3 w-3 mr-0.5 align-text-bottom text-emerald-400" />Saque: <span className="text-emerald-400">{saqueDate}</span></span>}
+                      </div>
+                    );
                   })()}
 
                   {/* Pending Deposit Approval */}
