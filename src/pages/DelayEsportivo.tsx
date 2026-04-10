@@ -1200,7 +1200,7 @@ const DelayEsportivo = () => {
       const chosenToken: string | null = (selectedLinkToken && selectedLinkToken !== "__none__") ? selectedLinkToken : null;
 
       const { data: newCliente, error } = await supabase.from("delay_clientes")
-        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco, created_by_token: chosenToken, operator_link_id: (selectedOperatorLinkId && selectedOperatorLinkId !== "__none__") ? selectedOperatorLinkId : null } as any)
+        .insert({ nome: form.nome, casa: form.casa, login: form.login || null, senha: form.senha || null, fornecedor: form.fornecedor || null, tipo: form.tipo, status: form.status, operacao: form.operacao, user_id: user!.id, depositos: depositoVal, banco_deposito: depositoBanco, created_by_token: chosenToken, operator_link_id: (selectedOperatorLinkId && selectedOperatorLinkId !== "__none__") ? selectedOperatorLinkId : null, ...(depositoVal > 0 ? { data_deposito: new Date().toISOString() } : {}) } as any)
         .select().single();
       if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
       else {
@@ -2517,7 +2517,11 @@ const DelayEsportivo = () => {
                       .sort((a, b) => a.data_transacao.localeCompare(b.data_transacao))[0];
                     const depDate = c.data_deposito
                       ? format(new Date(c.data_deposito), "dd/MM/yyyy")
-                      : firstDep ? format(new Date(firstDep.data_transacao + "T12:00:00"), "dd/MM/yyyy") : null;
+                      : firstDep
+                        ? format(new Date(firstDep.data_transacao + "T12:00:00"), "dd/MM/yyyy")
+                        : c.depositos > 0
+                          ? format(new Date(c.created_at), "dd/MM/yyyy")
+                          : null;
                     const saqueDate = lastSaque ? format(new Date(lastSaque.data_transacao + "T12:00:00"), "dd/MM/yyyy") : null;
                     if (!depDate && !saqueDate) return null;
                     return (
