@@ -46,6 +46,7 @@ interface DelayCliente {
   custos: number;
   lucro: number;
   created_at: string;
+  updated_at?: string;
   sort_order?: number;
   deposito_pendente?: number;
   banco_deposito?: string;
@@ -2295,6 +2296,9 @@ const DelayEsportivo = () => {
                   };
                   return getOrder(a) - getOrder(b);
                 }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+                  if (quickFilter.includes("saque_pendente")) {
+                    return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+                  }
                   if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) {
                     const getLastSaque = (c: DelayCliente) => allTransacoes.filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao")).sort((x, y) => y.data_transacao.localeCompare(x.data_transacao))[0]?.data_transacao ?? "";
                     return getLastSaque(b).localeCompare(getLastSaque(a));
@@ -2365,6 +2369,9 @@ const DelayEsportivo = () => {
               };
               return getOrder(a) - getOrder(b);
             }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+              if (quickFilter.includes("saque_pendente")) {
+                return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
+              }
               if (quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f))) {
                 const getLastSaque = (c: DelayCliente) => allTransacoes.filter(t => t.cliente_id === c.id && (t.tipo === "saque" || t.tipo === "devolucao")).sort((x, y) => y.data_transacao.localeCompare(x.data_transacao))[0]?.data_transacao ?? "";
                 return getLastSaque(b).localeCompare(getLastSaque(a));
