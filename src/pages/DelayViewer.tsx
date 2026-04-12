@@ -283,6 +283,20 @@ const DelayViewer = () => {
     }
   };
 
+  const handleSaquePendente = async (cliente: ClienteViewer) => {
+    try {
+      const { error } = await supabase
+        .from("delay_clientes")
+        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
+        .eq("id", cliente.id);
+      if (error) throw error;
+      toast({ title: "Saque pendente marcado!" });
+      fetchClientesSilent();
+    } catch (e: unknown) {
+      toast({ title: "Erro ao marcar saque pendente", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+    }
+  };
+
   const handleTransacao = async () => {
     if (!transDialog) return;
     const valor = parseFloat(transValor.replace(",", "."));
@@ -638,7 +652,7 @@ const DelayViewer = () => {
                             size="sm"
                             variant="outline"
                             className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
-                            onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
+                            onClick={() => handleSaquePendente(c)}
                           >
                             <Clock className="h-3.5 w-3.5" /> Saque Pendente
                           </Button>
