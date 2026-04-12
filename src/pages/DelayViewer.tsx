@@ -283,19 +283,6 @@ const DelayViewer = () => {
     }
   };
 
-  const handleSaquePendente = async (cliente: ClienteViewer) => {
-    try {
-      const { error } = await supabase
-        .from("delay_clientes")
-        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
-        .eq("id", cliente.id);
-      if (error) throw error;
-      toast({ title: "Saque pendente marcado!" });
-      fetchClientesSilent();
-    } catch (e: unknown) {
-      toast({ title: "Erro ao marcar saque pendente", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
-    }
-  };
 
   const handleTransacao = async () => {
     if (!transDialog) return;
@@ -339,11 +326,27 @@ const DelayViewer = () => {
           data_transacao: format(new Date(), "yyyy-MM-dd"),
         });
       } else if (tipo === "saque_pendente") {
+        const novoDeposito = cliente.depositos + valor;
+        const now = new Date().toISOString();
         const { error } = await supabase
           .from("delay_clientes")
-          .update({ status: "ativo", operacao: "saque_pendente", deposito_pendente: valor, updated_at: new Date().toISOString() })
+          .update({
+            status: "saque_pendente",
+            operacao: "saque_pendente",
+            depositos: novoDeposito,
+            data_deposito: now,
+            updated_at: now,
+          })
           .eq("id", cliente.id);
         if (error) throw error;
+        await supabase.from("delay_transacoes").insert({
+          cliente_id: cliente.id,
+          tipo: "deposito",
+          valor,
+          lucro: 0,
+          custo: 0,
+          data_transacao: format(new Date(), "yyyy-MM-dd"),
+        });
       }
       toast({ title: tipo === "deposito" ? "Depósito registrado!" : tipo === "saque" ? "Saque registrado!" : "Saque pendente marcado!" });
       setTransDialog(null);
@@ -652,7 +655,7 @@ const DelayViewer = () => {
                             size="sm"
                             variant="outline"
                             className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
-                            onClick={() => handleSaquePendente(c)}
+                            onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
                           >
                             <Clock className="h-3.5 w-3.5" /> Saque Pendente
                           </Button>
@@ -740,7 +743,7 @@ const DelayViewer = () => {
               )}
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">
-                  {transDialog.tipo === "saque_pendente" ? "Valor esperado do saque" : "Valor (R$)"}
+                  {transDialog.tipo === "saque_pendente" ? "Valor Depositado (R$)" : "Valor (R$)"}
                 </label>
                 <Input
                   className="h-9 text-sm font-mono"
@@ -769,7 +772,7 @@ const DelayViewer = () => {
             <Button
               size="sm"
               className="h-8 text-xs"
-              disabled={transLoading || (!transValor && transDialog?.tipo !== "saque_pendente")}
+              disabled={transLoading || !transValor}
               onClick={handleTransacao}
             >
               {transLoading ? "Salvando..." : "Confirmar"}
