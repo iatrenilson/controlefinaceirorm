@@ -29,6 +29,7 @@ export const CASAS_APOSTAS: CasaAposta[] = [
   { nome: "Luva Bet", logo: "https://www.google.com/s2/favicons?domain=luvabet.com&sz=32" },
   { nome: "Seguro Bet", logo: "https://www.google.com/s2/favicons?domain=segurobet.com&sz=32" },
   { nome: "Reals Bet", logo: "https://www.google.com/s2/favicons?domain=realsbet.com&sz=32" },
+  { nome: "Betboo", logo: "https://www.google.com/s2/favicons?domain=betboo.com&sz=32" },
   { nome: "Outro", logo: "" },
 ];
 
