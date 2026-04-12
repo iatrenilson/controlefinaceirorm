@@ -611,32 +611,38 @@ const DelayViewer = () => {
                       </div>
                     </div>
 
-                    {linkTipo === "editor" && (
+                    {(linkTipo === "editor" || linkTipo === "visualizador_individual") && (
                       <div className="flex gap-1.5 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
-                          onClick={() => { setTransDialog({ cliente: c, tipo: "deposito" }); setTransValor(""); }}
-                        >
-                          <ArrowDownCircle className="h-3.5 w-3.5" /> Depósito
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-7 text-xs gap-1 border-green-500/40 text-green-500 hover:bg-green-500/10"
-                          onClick={() => { setTransDialog({ cliente: c, tipo: "saque" }); setTransValor(""); }}
-                        >
-                          <ArrowUpCircle className="h-3.5 w-3.5" /> Saque
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
-                          onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
-                        >
-                          <Clock className="h-3.5 w-3.5" /> Pendente
-                        </Button>
+                        {linkTipo === "editor" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-7 text-xs gap-1 border-primary/40 text-primary hover:bg-primary/10"
+                              onClick={() => { setTransDialog({ cliente: c, tipo: "deposito" }); setTransValor(""); }}
+                            >
+                              <ArrowDownCircle className="h-3.5 w-3.5" /> Depósito
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 h-7 text-xs gap-1 border-green-500/40 text-green-500 hover:bg-green-500/10"
+                              onClick={() => { setTransDialog({ cliente: c, tipo: "saque" }); setTransValor(""); }}
+                            >
+                              <ArrowUpCircle className="h-3.5 w-3.5" /> Saque
+                            </Button>
+                          </>
+                        )}
+                        {c.status !== "saque_pendente" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
+                            onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
+                          >
+                            <Clock className="h-3.5 w-3.5" /> Saque Pendente
+                          </Button>
+                        )}
                       </div>
                     )}
 
