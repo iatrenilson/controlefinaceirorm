@@ -849,7 +849,7 @@ const DelayEsportivo = () => {
       const isOperando = c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente";
       const matchQuick = quickFilter.includes("all") ||
         (quickFilter.includes("operando") && isOperando) ||
-        (quickFilter.includes("pendentes") && (c.deposito_pendente ?? 0) > 0) ||
+        (quickFilter.includes("pendentes") && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0) ||
         (quickFilter.includes("saque_pendente") && c.status === "saque_pendente") ||
         (quickFilter.includes("concluidas") && c.status === "concluido" && !isDevolvido) ||
         (quickFilter.includes("devolvidos") && isDevolvido) ||
@@ -2098,7 +2098,7 @@ const DelayEsportivo = () => {
         {/* Quick Filters - left */}
         {(() => {
           const allVisible = clientes.filter(c => c.status !== "system");
-          const pendentesCount = allVisible.filter(c => (c.deposito_pendente ?? 0) > 0).length;
+          const pendentesCount = allVisible.filter(c => c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0).length;
           const saquePendenteCount = allVisible.filter(c => c.status === "saque_pendente").length;
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
@@ -2335,12 +2335,12 @@ const DelayEsportivo = () => {
                   const getOrder = (c: DelayCliente) => {
                     if (c.status === "saque_pendente") return 0;
                     if (c.status === "ativo" && c.operacao === "operando" && (c.deposito_pendente ?? 0) <= 0) return 1;
-                    if ((c.deposito_pendente ?? 0) > 0) return 2;
+                    if (c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0) return 2;
                     if (c.status === "concluido") return 3;
                     return 1;
                   };
                   return getOrder(a) - getOrder(b);
-                }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+                }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => c.status === "saque_pendente" || (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
                   if (quickFilter.includes("saque_pendente")) {
                     return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
                   }
@@ -2413,7 +2413,7 @@ const DelayEsportivo = () => {
                 return 1;
               };
               return getOrder(a) - getOrder(b);
-            }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
+            }) : quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f)) ? [...deferredFiltered] : deferredFiltered.filter(c => c.status === "saque_pendente" || (c.deposito_pendente ?? 0) <= 0)).sort((a, b) => {
               if (quickFilter.includes("saque_pendente")) {
                 return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
               }
@@ -2467,7 +2467,7 @@ const DelayEsportivo = () => {
                         {c.depositos === 0 && c.saques === 0 && !(c.deposito_pendente && c.deposito_pendente > 0) && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-primary/20 text-primary hover:bg-primary/30 shrink-0">Ativo</Badge>
                         )}
-                        {(c.deposito_pendente ?? 0) > 0 && (
+                        {c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0 && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 shrink-0 flex items-center gap-1 animate-pulse">
                             <Clock className="h-3 w-3" />
                             Depósito Pendente
