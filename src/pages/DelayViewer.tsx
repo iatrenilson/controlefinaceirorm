@@ -66,8 +66,9 @@ const DelayViewer = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Editor action dialog state
-  const [transDialog, setTransDialog] = useState<{ cliente: ClienteViewer; tipo: "deposito" | "saque" | "saque_pendente" } | null>(null);
+  const [transDialog, setTransDialog] = useState<{ cliente: ClienteViewer; tipo: "deposito" | "saque" | "saque_pendente" | "saque_fornecedor" } | null>(null);
   const [transValor, setTransValor] = useState("");
+  const [transCusto, setTransCusto] = useState("");
   const [transLoading, setTransLoading] = useState(false);
 
   // Edit client dialog state
@@ -347,10 +348,25 @@ const DelayViewer = () => {
           custo: 0,
           data_transacao: format(new Date(), "yyyy-MM-dd"),
         });
+      } else if (tipo === "saque_fornecedor") {
+        const custo = parseFloat(transCusto.replace(",", ".")) || 0;
+        const now = new Date().toISOString();
+        const { error } = await supabase
+          .from("delay_clientes")
+          .update({
+            status: "saque_pendente",
+            operacao: "saque_pendente",
+            deposito_pendente: valor,
+            custos: custo,
+            updated_at: now,
+          })
+          .eq("id", cliente.id);
+        if (error) throw error;
       }
-      toast({ title: tipo === "deposito" ? "Depósito registrado!" : tipo === "saque" ? "Saque registrado!" : "Saque pendente marcado!" });
+      toast({ title: tipo === "deposito" ? "Depósito registrado!" : tipo === "saque" ? "Saque registrado!" : tipo === "saque_fornecedor" ? "Saque enviado para confirmação!" : "Saque pendente marcado!" });
       setTransDialog(null);
       setTransValor("");
+      setTransCusto("");
       fetchClientesSilent();
     } catch (e: unknown) {
       toast({ title: "Erro ao registrar transação", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
@@ -650,6 +666,16 @@ const DelayViewer = () => {
                             </Button>
                           </>
                         )}
+                        {linkTipo === "visualizador_individual" && c.status !== "saque_pendente" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-7 text-xs gap-1 border-green-500/40 text-green-500 hover:bg-green-500/10"
+                            onClick={() => { setTransDialog({ cliente: c, tipo: "saque_fornecedor" }); setTransValor(""); setTransCusto(""); }}
+                          >
+                            <ArrowUpCircle className="h-3.5 w-3.5" /> Saque
+                          </Button>
+                        )}
                         {c.status !== "saque_pendente" && (
                           <Button
                             size="sm"
@@ -713,60 +739,79 @@ const DelayViewer = () => {
       </Dialog>
 
       {/* Editor transaction dialog */}
-      <Dialog open={!!transDialog} onOpenChange={(open) => { if (!open) { setTransDialog(null); setTransValor(""); } }}>
+      <Dialog open={!!transDialog} onOpenChange={(open) => { if (!open) { setTransDialog(null); setTransValor(""); setTransCusto(""); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm">
               {transDialog?.tipo === "deposito" && "Registrar Depósito"}
               {transDialog?.tipo === "saque" && "Registrar Saque"}
               {transDialog?.tipo === "saque_pendente" && "Marcar Saque Pendente"}
+              {transDialog?.tipo === "saque_fornecedor" && `Saque — ${transDialog.cliente.nome}`}
             </DialogTitle>
           </DialogHeader>
           {transDialog && (
             <div className="space-y-3 py-2">
-              <p className="text-xs text-muted-foreground">
-                Cliente: <span className="font-semibold text-foreground">{transDialog.cliente.nome}</span>
-                {" · "}{transDialog.cliente.casa}
-              </p>
-              {transDialog.tipo !== "saque_pendente" && (
-                <div className="space-y-1.5">
+              {transDialog.tipo === "saque_fornecedor" ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Casa de Aposta</label>
+                    <div className="h-9 px-3 rounded-md border border-input bg-muted/30 flex items-center text-sm font-medium">
+                      {transDialog.cliente.casa}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Valor</label>
+                    <Input className="h-9 text-sm font-mono" placeholder="0,00" value={transValor}
+                      onChange={(e) => setTransValor(e.target.value)} autoFocus />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Custo da Conta</label>
+                    <Input className="h-9 text-sm font-mono" placeholder="0,00" value={transCusto}
+                      onChange={(e) => setTransCusto(e.target.value)} />
+                  </div>
+                </>
+              ) : (
+                <>
                   <p className="text-xs text-muted-foreground">
-                    {transDialog.tipo === "deposito" ? "Depósito atual: " : "Depósito: "}
-                    <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.depositos)}</span>
+                    Cliente: <span className="font-semibold text-foreground">{transDialog.cliente.nome}</span>
+                    {" · "}{transDialog.cliente.casa}
                   </p>
-                  {transDialog.tipo === "saque" && (
-                    <p className="text-xs text-muted-foreground">
-                      Custos: <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.custos)}</span>
-                    </p>
+                  {transDialog.tipo !== "saque_pendente" && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs text-muted-foreground">
+                        {transDialog.tipo === "deposito" ? "Depósito atual: " : "Depósito: "}
+                        <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.depositos)}</span>
+                      </p>
+                      {transDialog.tipo === "saque" && (
+                        <p className="text-xs text-muted-foreground">
+                          Custos: <span className="font-mono font-semibold text-foreground">{fmt(transDialog.cliente.custos)}</span>
+                        </p>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-              <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">
-                  {transDialog.tipo === "saque_pendente" ? "Valor Depositado (R$)" : "Valor (R$)"}
-                </label>
-                <Input
-                  className="h-9 text-sm font-mono"
-                  placeholder="0,00"
-                  value={transValor}
-                  onChange={(e) => setTransValor(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleTransacao(); }}
-                  autoFocus
-                />
-              </div>
-              {transDialog.tipo === "saque" && transValor && !isNaN(parseFloat(transValor.replace(",", "."))) && (
-                <div className="bg-muted/40 rounded p-2 text-xs space-y-0.5">
-                  <p className="text-muted-foreground">
-                    Lucro estimado: <span className={`font-mono font-bold ${(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos) >= 0 ? "text-green-500" : "text-destructive"}`}>
-                      {fmt(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos)}
-                    </span>
-                  </p>
-                </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">
+                      {transDialog.tipo === "saque_pendente" ? "Valor Depositado (R$)" : "Valor (R$)"}
+                    </label>
+                    <Input className="h-9 text-sm font-mono" placeholder="0,00" value={transValor}
+                      onChange={(e) => setTransValor(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleTransacao(); }} autoFocus />
+                  </div>
+                  {transDialog.tipo === "saque" && transValor && !isNaN(parseFloat(transValor.replace(",", "."))) && (
+                    <div className="bg-muted/40 rounded p-2 text-xs space-y-0.5">
+                      <p className="text-muted-foreground">
+                        Lucro estimado: <span className={`font-mono font-bold ${(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos) >= 0 ? "text-green-500" : "text-destructive"}`}>
+                          {fmt(parseFloat(transValor.replace(",", ".")) - transDialog.cliente.custos - transDialog.cliente.depositos)}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setTransDialog(null); setTransValor(""); }}>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setTransDialog(null); setTransValor(""); setTransCusto(""); }}>
               Cancelar
             </Button>
             <Button
@@ -775,7 +820,7 @@ const DelayViewer = () => {
               disabled={transLoading || !transValor}
               onClick={handleTransacao}
             >
-              {transLoading ? "Salvando..." : "Confirmar"}
+              {transLoading ? "Salvando..." : transDialog?.tipo === "saque_fornecedor" ? "Confirmar Saque" : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1647,9 +1647,54 @@ const DelayEsportivo = () => {
   };
 
   const handleReverterSaquePendente = async (cliente: DelayCliente) => {
-    const { error } = await supabase.from("delay_clientes").update({ status: "ativo" }).eq("id", cliente.id);
+    const { error } = await supabase.from("delay_clientes").update({ status: "ativo", deposito_pendente: 0 }).eq("id", cliente.id);
     if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
     else toast({ title: "Status revertido!", description: `${cliente.nome} voltou para Ativo.` });
+    await fetchClientes();
+  };
+
+  const handleConfirmarSaqueFornecedor = async (cliente: DelayCliente) => {
+    if (!user) return;
+    const valor = cliente.deposito_pendente ?? 0;
+    const custo = cliente.custos ?? 0;
+    const lucroBruto = (valor - custo) - cliente.depositos;
+    const lucroFinal = (cliente.tipo === "50/50" && lucroBruto > 0) ? lucroBruto / 2 : lucroBruto;
+    const now = new Date().toISOString();
+
+    const { error } = await supabase.from("delay_clientes").update({
+      saques: valor,
+      lucro: lucroFinal,
+      status: "concluido",
+      operacao: "concluido",
+      deposito_pendente: 0,
+      updated_at: now,
+    }).eq("id", cliente.id);
+    if (error) { toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" }); return; }
+
+    await supabase.from("delay_transacoes").insert({
+      cliente_id: cliente.id,
+      user_id: user.id,
+      tipo: "saque",
+      valor,
+      custo,
+      lucro: lucroFinal,
+      casa: cliente.casa,
+      dividir_lucro: cliente.tipo === "50/50",
+      data_transacao: format(new Date(), "yyyy-MM-dd"),
+      banco_destino: "santander",
+    } as any);
+
+    // Credit santander
+    const currentBalance = bankBalances.santander;
+    const creditAmount = lucroFinal > 0 ? cliente.depositos + lucroFinal : cliente.depositos;
+    const { data: existing } = await supabase.from("bank_balances").select("id").eq("user_id", user.id).eq("banco", "santander").maybeSingle();
+    if (existing) {
+      await supabase.from("bank_balances").update({ saldo: currentBalance + creditAmount, updated_at: now }).eq("id", existing.id);
+    } else {
+      await supabase.from("bank_balances").insert({ user_id: user.id, banco: "santander", saldo: currentBalance + creditAmount });
+    }
+    setBankBalances(prev => ({ ...prev, santander: currentBalance + creditAmount }));
+    toast({ title: "Saque confirmado!", description: `${cliente.nome} concluído com lucro de ${fmt(lucroFinal)}` });
     await fetchClientes();
   };
 
@@ -2539,8 +2584,36 @@ const DelayEsportivo = () => {
                     );
                   })()}
 
+                  {/* Saque aguardando confirmação (enviado pelo fornecedor) */}
+                  {c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0 && (
+                    <div className="mt-2 p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs">
+                          <p className="text-amber-400 font-semibold flex items-center gap-1">
+                            <ArrowUpCircle className="h-3 w-3" />
+                            Saque aguardando confirmação
+                          </p>
+                          <p className="text-foreground font-mono font-bold mt-0.5">
+                            R$ {(c.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            {c.custos > 0 && <span className="text-muted-foreground font-normal ml-1">· Custo: R$ {c.custos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>}
+                          </p>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Button size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-500 border-0 text-xs h-7 px-3"
+                            onClick={() => handleConfirmarSaqueFornecedor(c)}>
+                            <Check className="h-3 w-3 mr-1" /> Confirmar
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive text-xs h-7 px-2"
+                            onClick={() => handleReverterSaquePendente(c)}>
+                            <RotateCcw className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Pending Deposit Approval */}
-                  {(c.deposito_pendente ?? 0) > 0 && (
+                  {c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0 && (
                     <div className="mt-2 p-2.5 rounded-md border border-orange-500/30 bg-orange-500/10">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xs">
