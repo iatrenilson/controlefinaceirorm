@@ -111,7 +111,7 @@ function gerarPDF(data: FormData) {
     .city-date {
       text-align: center;
       margin-top: 2em;
-      margin-bottom: 7cm;
+      margin-bottom: 3cm;
       font-size: 12pt;
     }
     .sig-wrap {
@@ -179,7 +179,7 @@ function gerarPDF(data: FormData) {
     <span class="sig-cpf">${data.cpf}</span>
   </div>
 
-  <div style="height: 6cm;"></div>
+  <div style="height: 2cm;"></div>
 
 <script>
   window.onload = function() {
