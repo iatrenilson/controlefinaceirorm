@@ -401,9 +401,11 @@ export default function Declaracoes() {
                   <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{c.nome}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {[c.cpf, c.rg && `RG ${c.rg}`, c.cidade && `${c.cidade}-${c.estado}`, c.senhaGov && "🔑 GOV"].filter(Boolean).join(" · ")}
-                      </p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                        {c.cpf && <span className="text-xs text-muted-foreground">CPF: {c.cpf}</span>}
+                        {c.senhaGov && <span className="text-xs text-muted-foreground">Senha GOV: {c.senhaGov}</span>}
+                        {c.rg && <span className="text-xs text-muted-foreground">RG: {c.rg}</span>}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
