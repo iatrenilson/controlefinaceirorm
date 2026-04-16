@@ -422,7 +422,7 @@ export default function Declaracoes() {
                 {clientes.map(c => (
                   <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{c.nome}</p>
+                      <p className="text-sm font-medium truncate uppercase">{c.nome}</p>
                       <div className="flex flex-col gap-0.5 mt-0.5">
                         {c.cpf && (
                           <div className="flex items-center gap-1">
