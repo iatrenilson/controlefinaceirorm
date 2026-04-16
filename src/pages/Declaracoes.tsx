@@ -375,26 +375,6 @@ export default function Declaracoes() {
           </div>
         </div>
 
-        {/* Declarações */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />Criar Nova Declaração
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
-            </Button>
-            <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
-            </Button>
-            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Residência
-            </Button>
-          </CardContent>
-        </Card>
-
         {/* Clientes cadastrados */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -435,6 +415,26 @@ export default function Declaracoes() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Declarações */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />Criar Nova Declaração
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
+              <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
+            </Button>
+            <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
+              <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
+            </Button>
+            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
+              <Plus className="h-4 w-4" />Declaração de Residência
+            </Button>
           </CardContent>
         </Card>
       </div>
