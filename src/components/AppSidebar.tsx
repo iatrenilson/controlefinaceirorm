@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { NavLink } from "@/components/NavLink";
@@ -190,6 +190,14 @@ export function AppSidebar() {
                     <NavLink to="/delay-dashboard" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                       <PieChart className="h-[18px] w-[18px]" />
                       <span>Dashboard Delay</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Declarações">
+                    <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                      <FileText className="h-[18px] w-[18px]" />
+                      <span>Declarações</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

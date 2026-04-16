@@ -28,6 +28,7 @@ import Perfil from "./pages/Perfil";
 import NotFound from "./pages/NotFound";
 import DelayAddClient from "./pages/DelayAddClient";
 import DelayViewer from "./pages/DelayViewer";
+import Declaracoes from "./pages/Declaracoes";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useUserRole();
@@ -104,6 +105,7 @@ const ProtectedLayout = () => {
             <Route path="/admin" element={<AdminRoute />} />
             <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
+            <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
