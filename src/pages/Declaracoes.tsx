@@ -222,6 +222,7 @@ function gerarPDF(data: FormData) {
 function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
   const dataEscrita = dataExtenso();
+  const cidadeEstado = `${data.cidade}-${data.estado.toUpperCase()}`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -231,13 +232,50 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   <style>
     @page { size:A4 portrait;margin:2.5cm 3cm 2cm 3cm; }
     html,body { margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5; }
-    h1 { text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:4em;line-height:1.4; }
-    .body-text { text-align:justify;line-height:1.5;margin-bottom:2.5em;font-size:12pt; }
-    .verdade { text-align:left;margin:0;font-size:12pt;line-height:1.5; }
-    .city-date { text-align:left;margin-top:2.5em;margin-bottom:2cm;font-size:12pt; }
+    h1 {
+      text-align:center;
+      font-size:14pt;
+      font-weight:bold;
+      text-decoration:underline;
+      text-transform:uppercase;
+      margin-top:0;
+      margin-bottom:4em;
+      line-height:1.4;
+    }
+    .body-text {
+      text-align:justify;
+      line-height:1.5;
+      margin-bottom:2em;
+      font-size:12pt;
+    }
+    .verdade {
+      text-align:center;
+      font-size:12pt;
+      line-height:1.5;
+      margin-top:0;
+      margin-bottom:4cm;
+    }
+    .city-date {
+      text-align:center;
+      font-size:12pt;
+      line-height:1.5;
+      margin-top:0;
+      margin-bottom:2.5cm;
+    }
     .sig-wrap { text-align:center; }
-    .sig-dots { display:block;font-size:12pt;letter-spacing:1px;margin-bottom:0.3em; }
-    .sig-name { font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center; }
+    .sig-line {
+      display:block;
+      width:10cm;
+      margin:0 auto 0.4em auto;
+      border-top:1px solid #000;
+    }
+    .sig-name {
+      font-weight:bold;
+      font-size:12pt;
+      text-transform:uppercase;
+      display:block;
+      text-align:center;
+    }
     @media print { html,body{margin:0;padding:0;} .no-print{display:none!important;} }
   </style>
 </head>
@@ -245,20 +283,25 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   <div class="no-print" style="background:#fffbe6;border:1px solid #f0c040;padding:10px 16px;margin-bottom:18px;font-family:sans-serif;font-size:11pt;border-radius:4px;">
     <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.
   </div>
+
   <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
+
   <p class="body-text">
-    <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de <strong>identidade RG: nº ${data.rg}
-    / ${data.orgaoEmissor.toUpperCase()}</strong>, CPF nº <strong>${data.cpf}</strong>,
+    Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de <strong>identidade RG: nº
+    ${data.rg} / ${data.orgaoEmissor.toUpperCase()}</strong>, CPF nº <strong>${data.cpf}</strong>,
     filho de <strong>${data.nomePai.toUpperCase()}</strong> e <strong>${data.nomeMae.toUpperCase()}</strong>,
     DECLARO que não possuo segundo endereço de guarda de acervo.
   </p>
+
   <p class="verdade">Por ser verdade, firmo o presente.</p>
-  <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
+
+  <p class="city-date">${dataEscrita} ${cidadeEstado}</p>
+
   <div class="sig-wrap">
-    <span class="sig-dots">................................................................................</span>
+    <span class="sig-line"></span>
     <span class="sig-name">${data.nome.toUpperCase()}</span>
   </div>
-  <div style="height:2cm;"></div>
+
 <script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>
 </body>
 </html>`;
