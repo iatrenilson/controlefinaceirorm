@@ -26,6 +26,7 @@ interface Cliente {
   cep: string;
   cidade: string;
   estado: string;
+  senhaGov: string;
 }
 
 type ClienteForm = Omit<Cliente, "id">;
@@ -34,6 +35,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  senhaGov: "",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -400,7 +402,7 @@ export default function Declaracoes() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{c.nome}</p>
                       <p className="text-xs text-muted-foreground">
-                        {[c.cpf, c.rg && `RG ${c.rg}`, c.cidade && `${c.cidade}-${c.estado}`].filter(Boolean).join(" · ")}
+                        {[c.cpf, c.rg && `RG ${c.rg}`, c.cidade && `${c.cidade}-${c.estado}`, c.senhaGov && "🔑 GOV"].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -453,7 +455,7 @@ export default function Declaracoes() {
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
               <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
-                value={formCliente.nome} onChange={e => setC("nome", e.target.value)} />
+                value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
             </div>
             {/* CPF + RG */}
             <div className="grid grid-cols-2 gap-3">
@@ -542,6 +544,17 @@ export default function Declaracoes() {
               <Label className="text-xs">Estado (sigla)</Label>
               <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
                 value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
+            </div>
+
+            {/* Senha GOV */}
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1.5">
+                Senha GOV.br
+                <span className="text-[10px] font-normal text-muted-foreground">(salva localmente, não compartilhada)</span>
+              </Label>
+              <Input className="h-9 text-sm font-mono" placeholder="Senha de acesso gov.br"
+                type="text"
+                value={formCliente.senhaGov} onChange={e => setC("senhaGov", e.target.value)} />
             </div>
           </div>
           <DialogFooter className="gap-2">
