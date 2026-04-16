@@ -65,7 +65,7 @@ function gerarPDF(data: FormData) {
   <style>
     @page {
       size: A4 portrait;
-      margin: 3cm 3cm 2.5cm 3cm;
+      margin: 2.5cm 2cm 2cm 2cm;
     }
     html, body {
       margin: 0;
