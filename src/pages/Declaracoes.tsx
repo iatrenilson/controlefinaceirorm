@@ -346,7 +346,15 @@ export default function Declaracoes() {
             <div className="space-y-1">
               <Label className="text-xs">CPF (para linha de assinatura)</Label>
               <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                value={form.cpf} onChange={(e) => set("cpf", e.target.value)} />
+                value={form.cpf}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                  let masked = digits;
+                  if (digits.length > 9) masked = digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+                  else if (digits.length > 6) masked = digits.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+                  else if (digits.length > 3) masked = digits.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+                  set("cpf", masked);
+                }} />
             </div>
 
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
