@@ -53,6 +53,7 @@ function formatDate(value: string) {
 function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
 
   const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
   const enderecoCompleto = `${data.endereco}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
@@ -61,7 +62,7 @@ function gerarPDF(data: FormData) {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Declaração</title>
+  <title>${primeiroNome} - Declaração de não estar respondendo a inquérito policial ou a processo criminal</title>
   <style>
     @page {
       size: A4 portrait;
