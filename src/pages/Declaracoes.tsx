@@ -52,66 +52,139 @@ function formatDate(value: string) {
 
 function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
-  const cidadeEstado = `${data.cidade}-${data.estado}`;
+  const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+
+  const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
+  const enderecoCompleto = `${data.endereco}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
+  <title>Declaração</title>
   <style>
-    @page { size: A4; margin: 3cm 2.5cm; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Times New Roman", Times, serif; font-size: 12pt; color: #000; background: #fff; }
-    .container { max-width: 100%; }
-    h1 { text-align: center; font-size: 13pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2em; line-height: 1.4; }
-    .body-text { text-indent: 2cm; text-align: justify; line-height: 1.8; margin-bottom: 1.5em; font-size: 12pt; }
-    .art { font-style: italic; text-align: justify; margin-bottom: 0.5em; line-height: 1.6; }
-    .city-date { text-align: center; margin-top: 2em; margin-bottom: 3em; font-size: 12pt; }
-    .signature { text-align: center; margin-top: 1em; }
-    .signature-line { display: inline-block; width: 12cm; border-top: 1px solid #000; margin-bottom: 0.3em; }
-    .signature-name { font-weight: bold; font-size: 12pt; text-transform: uppercase; }
-    .signature-cpf { font-size: 12pt; }
+    @page {
+      size: A4 portrait;
+      margin: 3cm 3cm 2.5cm 3cm;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12pt;
+      color: #000;
+      background: #fff;
+      line-height: 1.5;
+    }
+    h1 {
+      text-align: center;
+      font-size: 14pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 1.8em;
+      line-height: 1.5;
+      letter-spacing: 0;
+    }
+    .body-text {
+      text-indent: 1.5cm;
+      text-align: justify;
+      line-height: 1.6;
+      margin-bottom: 1.5em;
+      font-size: 12pt;
+    }
+    .art-label {
+      font-style: italic;
+      margin-bottom: 0.2em;
+      line-height: 1.5;
+    }
+    .art-dash {
+      font-style: italic;
+      margin-bottom: 0.5em;
+      line-height: 1.5;
+    }
+    .art-body {
+      font-style: italic;
+      text-align: justify;
+      line-height: 1.6;
+      margin-bottom: 1em;
+    }
+    .city-date {
+      text-align: center;
+      margin-top: 2em;
+      margin-bottom: 4em;
+      font-size: 12pt;
+    }
+    .sig-wrap {
+      text-align: center;
+    }
+    .sig-line {
+      display: block;
+      width: 10cm;
+      margin: 0 auto 0.4em auto;
+      border-top: 1px solid #000;
+    }
+    .sig-name {
+      font-weight: bold;
+      font-size: 12pt;
+      text-transform: uppercase;
+      display: block;
+    }
+    .sig-cpf {
+      font-size: 12pt;
+      display: block;
+    }
+    /* Remove browser headers/footers in print */
     @media print {
-      body { -webkit-print-color-adjust: exact; }
+      html, body { margin: 0; padding: 0; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
 <body>
-<div class="container">
+
+  <!-- Aviso (não imprime) -->
+  <div class="no-print" style="background:#fffbe6;border:1px solid #f0c040;padding:10px 16px;margin-bottom:18px;font-family:sans-serif;font-size:11pt;border-radius:4px;">
+    <strong>Antes de imprimir:</strong> No diálogo de impressão, desmarque a opção <b>"Cabeçalhos e rodapés"</b> (ou "Headers and footers") para que o documento fique limpo.
+  </div>
+
   <h1>Declaração de Inexistência de Inquéritos Policiais ou<br>Processos Criminais</h1>
 
   <p class="body-text">
     Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
-    ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, residência no(a), ${data.endereco}
-    ${data.bairro ? "- " + data.bairro + "," : ","} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}, RG nº ${data.rg}, ${data.orgaoEmissor.toUpperCase()}, expedido em ${formatDate(data.dataExpedicao)}
+    ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()},
+    residência no(a), ${enderecoCompleto}, RG
+    nº ${data.rg}, ${data.orgaoEmissor.toUpperCase()}, expedido em ${formatDate(data.dataExpedicao)}
     declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente
     de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais
     cominações legais aplicáveis.
   </p>
 
-  <p class="art"><em>"Art. 299</em></p>
-  <p class="art">–</p>
-  <p class="art">
-    <em>Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou
-    fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar
-    obrigação ou alterar a verdade sobre o fato juridicamente relevante.</em>
+  <p class="art-label">"Art. 299</p>
+  <p class="art-dash">–</p>
+  <p class="art-body">
+    Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele
+    inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de
+    prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.
   </p>
-  <br/>
-  <p class="art">
-    <em>Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três)
-    anos, se o documento é particular."</em>
+  <p class="art-body">
+    Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1
+    (um) a 3 (três) anos, se o documento é particular."
   </p>
 
   <p class="city-date">${cidadeEstado} ${hoje}.</p>
 
-  <div class="signature">
-    <div style="margin-bottom:0.3em;"><span class="signature-line"></span></div>
-    <div class="signature-name">${data.nome.toUpperCase()}</div>
-    <div class="signature-cpf">${data.cpf}</div>
+  <div class="sig-wrap">
+    <span class="sig-line"></span>
+    <span class="sig-name">${data.nome.toUpperCase()}</span>
+    <span class="sig-cpf">${data.cpf}</span>
   </div>
-</div>
-<script>window.onload = function(){ window.print(); }</script>
+
+<script>
+  window.onload = function() {
+    // Small delay to ensure fonts are loaded
+    setTimeout(function(){ window.print(); }, 400);
+  };
+</script>
 </body>
 </html>`;
 
