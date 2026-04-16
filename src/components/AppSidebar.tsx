@@ -194,10 +194,10 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Declarações">
+                  <SidebarMenuButton asChild tooltip="Clientes / Declarações">
                     <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                       <FileText className="h-[18px] w-[18px]" />
-                      <span>Declarações</span>
+                      <span>Clientes / Declarações</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
