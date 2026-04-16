@@ -302,19 +302,34 @@ export default function Declaracoes() {
             <div className="space-y-1">
               <Label className="text-xs">Endereço (Rua/Beco, número)</Label>
               <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco, 58"
-                value={form.endereco} onChange={(e) => set("endereco", e.target.value)} />
+                value={form.endereco}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\b\w/g, (c) => c.toUpperCase());
+                  set("endereco", v);
+                }} />
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
                 <Input className="h-9 text-sm" placeholder="Bairro"
-                  value={form.bairro} onChange={(e) => set("bairro", e.target.value)} />
+                  value={form.bairro}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\b\w/g, (c) => c.toUpperCase());
+                    set("bairro", v);
+                  }} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
-                <Input className="h-9 text-sm" placeholder="00.000-000"
-                  value={form.cep} onChange={(e) => set("cep", e.target.value)} />
+                <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
+                  value={form.cep}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    let masked = digits;
+                    if (digits.length > 5) masked = digits.replace(/(\d{2})(\d{3})(\d{1,3})/, "$1.$2-$3");
+                    else if (digits.length > 2) masked = digits.replace(/(\d{2})(\d{1,3})/, "$1.$2");
+                    set("cep", masked);
+                  }} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
