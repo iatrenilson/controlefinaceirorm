@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { FileText, Plus, Download, Paperclip, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,100 +9,66 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// ─── Declaração de Inquérito ───────────────────────────────────────────────
-interface FormData {
+// ─── Cliente ───────────────────────────────────────────────────────────────
+interface Cliente {
+  id: string;
   nome: string;
-  estadoCivil: string;
-  dataNascimento: string;
+  rg: string;
+  orgaoEmissor: string;
+  dataExpedicao: string;
+  cpf: string;
   nomePai: string;
   nomeMae: string;
+  estadoCivil: string;
+  dataNascimento: string;
   endereco: string;
   bairro: string;
   cep: string;
   cidade: string;
   estado: string;
-  rg: string;
-  orgaoEmissor: string;
-  dataExpedicao: string;
-  cpf: string;
 }
 
+type ClienteForm = Omit<Cliente, "id">;
+
+const EMPTY_CLIENTE: ClienteForm = {
+  nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
+  cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
+  dataNascimento: "", endereco: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+};
+
+// ─── Declaração de Inquérito ───────────────────────────────────────────────
+interface FormData {
+  nome: string; estadoCivil: string; dataNascimento: string;
+  nomePai: string; nomeMae: string; endereco: string; bairro: string;
+  cep: string; cidade: string; estado: string; rg: string;
+  orgaoEmissor: string; dataExpedicao: string; cpf: string;
+}
 const EMPTY_FORM: FormData = {
-  nome: "",
-  estadoCivil: "Solteiro(a)",
-  dataNascimento: "",
-  nomePai: "",
-  nomeMae: "",
-  endereco: "",
-  bairro: "",
-  cep: "",
-  cidade: "MANAUS",
-  estado: "AM",
-  rg: "",
-  orgaoEmissor: "SSP-AM",
-  dataExpedicao: "",
-  cpf: "",
+  nome: "", estadoCivil: "Solteiro(a)", dataNascimento: "", nomePai: "", nomeMae: "",
+  endereco: "", bairro: "", cep: "", cidade: "MANAUS", estado: "AM",
+  rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "", cpf: "",
 };
 
 // ─── Declaração de Acervo ──────────────────────────────────────────────────
 interface FormDataAcervo {
-  nome: string;
-  rg: string;
-  orgaoEmissor: string;
-  cpf: string;
-  nomePai: string;
-  nomeMae: string;
-  cidade: string;
-  estado: string;
+  nome: string; rg: string; orgaoEmissor: string; cpf: string;
+  nomePai: string; nomeMae: string; cidade: string; estado: string;
 }
-
 const EMPTY_FORM_ACERVO: FormDataAcervo = {
-  nome: "",
-  rg: "",
-  orgaoEmissor: "SSP-AM",
-  cpf: "",
-  nomePai: "",
-  nomeMae: "",
-  cidade: "Manaus",
-  estado: "AM",
+  nome: "", rg: "", orgaoEmissor: "SSP-AM", cpf: "",
+  nomePai: "", nomeMae: "", cidade: "Manaus", estado: "AM",
 };
 
 // ─── Declaração de Residência ──────────────────────────────────────────────
 interface FormDataResidencia {
-  // Quem assina (declarante)
-  nomeDeclarante: string;
-  rgDeclarante: string;
-  orgaoDeclarante: string;
-  cpfDeclarante: string;
-  // Quem mora lá (declarado)
-  nomeDeclarado: string;
-  rgDeclarado: string;
-  orgaoDeclarado: string;
-  cpfDeclarado: string;
-  nomePai: string;
-  nomeMae: string;
-  // Endereço
-  endereco: string;
-  cep: string;
-  cidade: string;
-  estado: string;
+  nomeDeclarante: string; rgDeclarante: string; orgaoDeclarante: string; cpfDeclarante: string;
+  nomeDeclarado: string; rgDeclarado: string; orgaoDeclarado: string; cpfDeclarado: string;
+  nomePai: string; nomeMae: string; endereco: string; cep: string; cidade: string; estado: string;
 }
-
 const EMPTY_FORM_RES: FormDataResidencia = {
-  nomeDeclarante: "",
-  rgDeclarante: "",
-  orgaoDeclarante: "SSP-AM",
-  cpfDeclarante: "",
-  nomeDeclarado: "",
-  rgDeclarado: "",
-  orgaoDeclarado: "SSP-AM",
-  cpfDeclarado: "",
-  nomePai: "",
-  nomeMae: "",
-  endereco: "",
-  cep: "",
-  cidade: "Manaus",
-  estado: "AM",
+  nomeDeclarante: "", rgDeclarante: "", orgaoDeclarante: "SSP-AM", cpfDeclarante: "",
+  nomeDeclarado: "", rgDeclarado: "", orgaoDeclarado: "SSP-AM", cpfDeclarado: "",
+  nomePai: "", nomeMae: "", endereco: "", cep: "", cidade: "Manaus", estado: "AM",
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -111,41 +77,38 @@ function formatDate(value: string) {
   const [y, m, d] = value.split("-");
   return `${d}/${m}/${y}`;
 }
-
 function dataExtenso(): string {
   const raw = format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
   return raw.replace(/\bde ([a-z])/, (_, l) => `de ${l.toUpperCase()}`);
 }
-
 function maskCpf(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 11);
-  if (digits.length > 9) return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
-  if (digits.length > 6) return digits.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
-  if (digits.length > 3) return digits.replace(/(\d{3})(\d{1,3})/, "$1.$2");
-  return digits;
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length > 9) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+  if (d.length > 6) return d.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+  if (d.length > 3) return d.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+  return d;
 }
-
 function maskCep(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (digits.length > 5) return digits.replace(/(\d{2})(\d{3})(\d{1,3})/, "$1.$2-$3");
-  if (digits.length > 2) return digits.replace(/(\d{2})(\d{1,3})/, "$1.$2");
-  return digits;
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  if (d.length > 5) return d.replace(/(\d{2})(\d{3})(\d{1,3})/, "$1.$2-$3");
+  if (d.length > 2) return d.replace(/(\d{2})(\d{1,3})/, "$1.$2");
+  return d;
 }
+function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-function buildAnexos(
-  attachments: Array<{ dataUrl: string; label: string }>
-): { html: string; pdfJsHead: string; initScript: string } {
+// ─── Attachment builder ───────────────────────────────────────────────────
+function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
+  html: string; pdfJsHead: string; initScript: string;
+} {
   let html = "";
   const pdfRenderCalls: string[] = [];
   let hasPdf = false;
   let counter = 0;
-
   for (const { dataUrl, label } of attachments) {
     const isPdf = dataUrl.startsWith("data:application/pdf");
     if (isPdf) {
       hasPdf = true;
       const id = `pdf-attach-${++counter}`;
-      // Store data URL in a hidden element to avoid huge inline JS strings
       html += `
   <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" style="display:none;"></div>
   <div style="page-break-before:always;">
@@ -161,17 +124,14 @@ function buildAnexos(
   </div>`;
     }
   }
-
   const pdfJsHead = hasPdf
-    ? `<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>`
-    : "";
-
+    ? `<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>` : "";
   const initScript = hasPdf
     ? `pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   async function renderPdf(dataId,containerId){
-    const dataEl=document.getElementById(dataId);
-    const dataUrl=decodeURIComponent(dataEl.getAttribute('data-url'));
-    const pdf=await pdfjsLib.getDocument(dataUrl).promise;
+    const el=document.getElementById(dataId);
+    const url=decodeURIComponent(el.getAttribute('data-url'));
+    const pdf=await pdfjsLib.getDocument(url).promise;
     const container=document.getElementById(containerId);
     for(let i=1;i<=pdf.numPages;i++){
       const page=await pdf.getPage(i);
@@ -184,333 +144,222 @@ function buildAnexos(
     }
   }
   window.onload=async function(){
-    try{await Promise.all([${pdfRenderCalls.map((c) => c).join(",")}]);}catch(e){console.error(e);}
+    try{await Promise.all([${pdfRenderCalls.join(",")}]);}catch(e){console.error(e);}
     setTimeout(function(){window.print();},800);
   };`
     : `window.onload=function(){setTimeout(function(){window.print();},400);};`;
-
   return { html, pdfJsHead, initScript };
 }
 
-// ─── PDF: Inquérito Policial ───────────────────────────────────────────────
+// ─── PDF generators ───────────────────────────────────────────────────────
 function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
-
   const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
   const enderecoCompleto = `${data.endereco}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
-
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de não estar respondendo a inquérito policial ou a processo criminal</title>
-  <style>
-    @page { size: A4 portrait; margin: 2.5cm 2cm 2cm 2cm; }
-    html, body { margin:0;padding:0;font-family:"Times New Roman",Times,serif;font-size:12pt;color:#000;background:#fff;line-height:1.5; }
-    h1 { text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;margin-bottom:1.8em;line-height:1.5; }
-    .body-text { text-indent:1.5cm;text-align:justify;line-height:1.6;margin-bottom:1.5em;font-size:12pt; }
-    .art-label { font-style:italic;margin-bottom:0.2em;line-height:1.5; }
-    .art-dash { font-style:italic;margin-bottom:0.5em;line-height:1.5; }
-    .art-body { font-style:italic;text-align:justify;line-height:1.6;margin-bottom:1em; }
-    .city-date { text-align:center;margin-top:2em;margin-bottom:3cm;font-size:12pt; }
-    .sig-wrap { text-align:center; }
-    .sig-line { display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000; }
-    .sig-name { font-weight:bold;font-size:12pt;text-transform:uppercase;display:block; }
-    .sig-cpf { font-size:12pt;display:block; }
-    @media print { html,body{margin:0;padding:0;} .no-print{display:none!important;} }
-  </style>
-</head>
-<body>
+  <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:"Times New Roman",Times,serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+  h1{text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;margin-bottom:1.8em;line-height:1.5;}
+  .body-text{text-indent:1.5cm;text-align:justify;line-height:1.6;margin-bottom:1.5em;font-size:12pt;}
+  .art-label{font-style:italic;margin-bottom:0.2em;line-height:1.5;}.art-dash{font-style:italic;margin-bottom:0.5em;line-height:1.5;}
+  .art-body{font-style:italic;text-align:justify;line-height:1.6;margin-bottom:1em;}
+  .city-date{text-align:center;margin-top:2em;margin-bottom:3cm;font-size:12pt;}
+  .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
+  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;}.sig-cpf{font-size:12pt;display:block;}
+  @media print{html,body{margin:0;padding:0;}.no-print{display:none!important;}}</style></head><body>
   <div class="no-print" style="background:#fffbe6;border:1px solid #f0c040;padding:10px 16px;margin-bottom:18px;font-family:sans-serif;font-size:11pt;border-radius:4px;">
-    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.
-  </div>
+    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.</div>
   <h1>Declaração de Inexistência de Inquéritos Policiais ou<br>Processos Criminais</h1>
-  <p class="body-text">
-    Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
-    ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()},
-    residência no(a), ${enderecoCompleto}, RG
+  <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
+    ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, residência no(a), ${enderecoCompleto}, RG
     nº ${data.rg}, ${data.orgaoEmissor.toUpperCase()}, expedido em ${formatDate(data.dataExpedicao)}
     declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente
-    de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais
-    cominações legais aplicáveis.
-  </p>
-  <p class="art-label">"Art. 299</p>
-  <p class="art-dash">–</p>
-  <p class="art-body">
-    Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele
-    inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de
-    prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.
-  </p>
-  <p class="art-body">
-    Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1
-    (um) a 3 (três) anos, se o documento é particular."
-  </p>
+    de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.</p>
+  <p class="art-label">"Art. 299</p><p class="art-dash">–</p>
+  <p class="art-body">Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
+  <p class="art-body">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular."</p>
   <p class="city-date">${cidadeEstado} ${hoje}.</p>
-  <div class="sig-wrap">
-    <span class="sig-line"></span>
-    <span class="sig-name">${data.nome.toUpperCase()}</span>
-    <span class="sig-cpf">${data.cpf}</span>
-  </div>
+  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span><span class="sig-cpf">${data.cpf}</span></div>
   <div style="height:2cm;"></div>
-<script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>
-</body>
-</html>`;
-
+  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-// ─── PDF: Segundo Endereço de Guarda de Acervo ────────────────────────────
 function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
   const dataEscrita = dataExtenso();
   const cidadeEstado = `${data.cidade}-${data.estado.toUpperCase()}`;
-
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Segundo Endereço de Guarda de Acervo</title>
-  <style>
-    @page { size:A4 portrait;margin:2.5cm 3cm 2cm 3cm; }
-    html,body { margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5; }
-    h1 {
-      text-align:center;
-      font-size:14pt;
-      font-weight:bold;
-      text-decoration:underline;
-      text-transform:uppercase;
-      margin-top:0;
-      margin-bottom:4em;
-      line-height:1.4;
-    }
-    .body-text {
-      text-align:justify;
-      line-height:1.5;
-      margin-bottom:2em;
-      font-size:12pt;
-    }
-    .verdade {
-      text-align:center;
-      font-size:12pt;
-      line-height:1.5;
-      margin-top:0;
-      margin-bottom:4cm;
-    }
-    .city-date {
-      text-align:center;
-      font-size:12pt;
-      line-height:1.5;
-      margin-top:0;
-      margin-bottom:2.5cm;
-    }
-    .sig-wrap { text-align:center; }
-    .sig-line {
-      display:block;
-      width:10cm;
-      margin:0 auto 0.4em auto;
-      border-top:1px solid #000;
-    }
-    .sig-name {
-      font-weight:bold;
-      font-size:12pt;
-      text-transform:uppercase;
-      display:block;
-      text-align:center;
-    }
-    @media print { html,body{margin:0;padding:0;} .no-print{display:none!important;} }
-  </style>
-</head>
-<body>
+  <style>@page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+  h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:4em;line-height:1.4;}
+  .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
+  .verdade{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:4cm;}
+  .city-date{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:2.5cm;}
+  .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
+  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+  @media print{html,body{margin:0;padding:0;}.no-print{display:none!important;}}</style></head><body>
   <div class="no-print" style="background:#fffbe6;border:1px solid #f0c040;padding:10px 16px;margin-bottom:18px;font-family:sans-serif;font-size:11pt;border-radius:4px;">
-    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.
-  </div>
-
+    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.</div>
   <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
-
-  <p class="body-text">
-    Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de <strong>identidade RG: nº
+  <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de <strong>identidade RG: nº
     ${data.rg} / ${data.orgaoEmissor.toUpperCase()}</strong>, CPF nº <strong>${data.cpf}</strong>,
     filho de <strong>${data.nomePai.toUpperCase()}</strong> e <strong>${data.nomeMae.toUpperCase()}</strong>,
-    DECLARO que não possuo segundo endereço de guarda de acervo.
-  </p>
-
+    DECLARO que não possuo segundo endereço de guarda de acervo.</p>
   <p class="verdade">Por ser verdade, firmo o presente.</p>
-
   <p class="city-date">${dataEscrita} ${cidadeEstado}</p>
-
-  <div class="sig-wrap">
-    <span class="sig-line"></span>
-    <span class="sig-name">${data.nome.toUpperCase()}</span>
-  </div>
-
-<script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>
-</body>
-</html>`;
-
+  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span></div>
+  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-// ─── PDF: Declaração de Residência ────────────────────────────────────────
-function gerarPDFResidencia(
-  data: FormDataResidencia,
-  rgDataUrl: string | null,
-  compDataUrl: string | null
-) {
+function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
   const primeiroNome = data.nomeDeclarante.trim().split(/\s+/)[0] || "Declaração";
   const dataEscrita = dataExtenso();
   const endFormatado = `${data.endereco.toUpperCase()}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
   if (rgDataUrl) attachmentList.push({ dataUrl: rgDataUrl, label: "Anexo: Documento de Identidade (RG)" });
   if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
-
-  const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Residência</title>
   ${pdfJsHead}
-  <style>
-    @page { size:A4 portrait;margin:2.5cm 3cm 2cm 3cm; }
-    html,body { margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5; }
-    h1 { text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:4em;line-height:1.4; }
-    .body-text { text-align:justify;line-height:1.5;margin-bottom:3em;font-size:12pt; }
-    .declaro-ainda { text-align:justify;line-height:1.5;margin-bottom:1.5em;font-size:12pt; }
-    .art-block { margin-left:2cm;margin-bottom:0; }
-    .art-text { font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0; }
-    .pena-text { font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin-top:0.8em;margin-bottom:0; }
-    .city-date { text-align:left;margin-top:4cm;margin-bottom:3cm;font-size:12pt; }
-    .sig-wrap { text-align:center; }
-    .sig-dots { display:block;font-size:12pt;letter-spacing:1px;margin-bottom:0.3em; }
-    .sig-name { font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center; }
-    @media print { html,body{margin:0;padding:0;} .no-print{display:none!important;} }
-  </style>
-</head>
-<body>
+  <style>@page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+  h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:4em;line-height:1.4;}
+  .body-text{text-align:justify;line-height:1.5;margin-bottom:3em;font-size:12pt;}
+  .declaro-ainda{text-align:justify;line-height:1.5;margin-bottom:1.5em;font-size:12pt;}
+  .art-block{margin-left:2cm;margin-bottom:0;}
+  .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;}
+  .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin-top:0.8em;margin-bottom:0;}
+  .city-date{text-align:left;margin-top:4cm;margin-bottom:3cm;font-size:12pt;}
+  .sig-wrap{text-align:center;}.sig-dots{display:block;font-size:12pt;letter-spacing:1px;margin-bottom:0.3em;}
+  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+  @media print{html,body{margin:0;padding:0;}.no-print{display:none!important;}}</style></head><body>
   <div class="no-print" style="background:#fffbe6;border:1px solid #f0c040;padding:10px 16px;margin-bottom:18px;font-family:sans-serif;font-size:11pt;border-radius:4px;">
-    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.
-  </div>
-
+    <strong>Antes de imprimir:</strong> Desmarque <b>"Cabeçalhos e rodapés"</b> no diálogo de impressão.</div>
   <h1>Declaração de Residência</h1>
-
-  <p class="body-text">
-    <strong>${data.nomeDeclarante.toUpperCase()}</strong>, RG nº <strong>${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}</strong>,
-    CPF nº <strong>${data.cpfDeclarante}</strong>,
-    <strong>DECLARO</strong> para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83)
+  <p class="body-text"><strong>${data.nomeDeclarante.toUpperCase()}</strong>, RG nº <strong>${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}</strong>,
+    CPF nº <strong>${data.cpfDeclarante}</strong>, <strong>DECLARO</strong> para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83)
     que o Sr.(a) <strong>${data.nomeDeclarado.toUpperCase()}</strong>, portador da cédula de identidade (RG)
     nº <strong>${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}</strong>, CPF nº <strong>${data.cpfDeclarado}</strong>,
     filho de <strong>${data.nomePai.toUpperCase()}</strong> e <strong>${data.nomeMae.toUpperCase()}</strong>,
-    é residente e domiciliada na <strong>${endFormatado}</strong>
-  </p>
-
-  <p class="declaro-ainda">
-    Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção
-    penal prevista no art. 299 do código penal, <em>in verbis</em>:
-  </p>
-
+    é residente e domiciliada na <strong>${endFormatado}</strong></p>
+  <p class="declaro-ainda">Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, <em>in verbis</em>:</p>
   <div class="art-block">
-    <p class="art-text">
-      Art. 299 – Omitir, em documento público ou particular, declaração
-      que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou
-      diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação
-      ou alterar a verdade sobre o fato juridicamente relevante.
-    </p>
-    <p class="pena-text">
-      Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e
-      reclusão de 1 (um) a 3 (três) anos, se o documento é particular.
-    </p>
+    <p class="art-text">Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
+    <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
   </div>
-
   <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
-
-  <div class="sig-wrap">
-    <span class="sig-dots">................................................................................</span>
-    <span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span>
-  </div>
-
+  <div class="sig-wrap"><span class="sig-dots">................................................................................</span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span></div>
   ${anexos}
-
-<script>${initScript}<\/script>
-</body>
-</html>`;
-
+  <script>${initScript}<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
 
+// ─── Seletor de cliente reutilizável ──────────────────────────────────────
+function ClienteSelector({ clientes, label, onSelect }: {
+  clientes: Cliente[];
+  label: string;
+  onSelect: (c: Cliente) => void;
+}) {
+  if (clientes.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-primary font-semibold">{label}</Label>
+      <Select onValueChange={(id) => { const c = clientes.find(x => x.id === id); if (c) onSelect(c); }}>
+        <SelectTrigger className="h-9 text-sm border-primary/40 bg-primary/5">
+          <SelectValue placeholder="— Selecionar cliente cadastrado —" />
+        </SelectTrigger>
+        <SelectContent>
+          {clientes.map(c => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.nome} {c.cpf ? `· ${c.cpf}` : ""}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // ─── Componente principal ──────────────────────────────────────────────────
 export default function Declaracoes() {
-  // Diálogo 1 — Inquérito Policial
+  // Clientes cadastrados
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    try { return JSON.parse(localStorage.getItem("decl_clientes") || "[]"); }
+    catch { return []; }
+  });
+  const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
+
+  useEffect(() => {
+    localStorage.setItem("decl_clientes", JSON.stringify(clientes));
+  }, [clientes]);
+
+  const setC = (field: keyof ClienteForm, value: string) =>
+    setFormCliente(prev => ({ ...prev, [field]: value }));
+
+  const abrirNovoCliente = () => {
+    setEditandoId(null);
+    setFormCliente(EMPTY_CLIENTE);
+    setDialogClienteOpen(true);
+  };
+  const abrirEditarCliente = (c: Cliente) => {
+    setEditandoId(c.id);
+    const { id: _id, ...rest } = c;
+    setFormCliente(rest);
+    setDialogClienteOpen(true);
+  };
+  const salvarCliente = () => {
+    if (!formCliente.nome) { alert("Preencha o Nome."); return; }
+    if (editandoId) {
+      setClientes(prev => prev.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c));
+    } else {
+      setClientes(prev => [...prev, { id: Date.now().toString(), ...formCliente }]);
+    }
+    setDialogClienteOpen(false);
+  };
+  const excluirCliente = (id: string) => {
+    if (!confirm("Excluir este cliente?")) return;
+    setClientes(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Diálogo 1 — Inquérito
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  const set = (field: keyof FormData, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
-  // Diálogo 2 — Segundo Endereço de Acervo
+  // Diálogo 2 — Acervo
   const [dialogAcervoOpen, setDialogAcervoOpen] = useState(false);
   const [formAcervo, setFormAcervo] = useState<FormDataAcervo>(EMPTY_FORM_ACERVO);
+  const setA = (field: keyof FormDataAcervo, value: string) => setFormAcervo(prev => ({ ...prev, [field]: value }));
 
-  // Diálogo 3 — Declaração de Residência
+  // Diálogo 3 — Residência
   const [dialogResOpen, setDialogResOpen] = useState(false);
   const [formRes, setFormRes] = useState<FormDataResidencia>(EMPTY_FORM_RES);
+  const setR = (field: keyof FormDataResidencia, value: string) => setFormRes(prev => ({ ...prev, [field]: value }));
   const [rgDataUrl, setRgDataUrl] = useState<string | null>(null);
-  const [rgNome, setRgNome] = useState<string>("");
+  const [rgNome, setRgNome] = useState("");
   const [compDataUrl, setCompDataUrl] = useState<string | null>(null);
-  const [compNome, setCompNome] = useState<string>("");
+  const [compNome, setCompNome] = useState("");
   const rgInputRef = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
 
-  const set = (field: keyof FormData, value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
-
-  const setA = (field: keyof FormDataAcervo, value: string) =>
-    setFormAcervo((prev) => ({ ...prev, [field]: value }));
-
-  const setR = (field: keyof FormDataResidencia, value: string) =>
-    setFormRes((prev) => ({ ...prev, [field]: value }));
-
-  const handleFileRead = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setUrl: (v: string | null) => void,
-    setName: (v: string) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
+    const file = e.target.files?.[0]; if (!file) return;
     setName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => setUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
-
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
-
-  const handleGerar = () => {
-    if (!form.nome || !form.dataNascimento || !form.rg) {
-      alert("Preencha pelo menos Nome, Data de Nascimento e RG.");
-      return;
-    }
-    gerarPDF(form);
-  };
-
-  const handleGerarAcervo = () => {
-    if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) {
-      alert("Preencha pelo menos Nome, RG e CPF.");
-      return;
-    }
-    gerarPDFAcervo(formAcervo);
-  };
-
-  const handleGerarResidencia = () => {
-    if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
-      alert("Preencha pelo menos Nome do Declarante, Nome do Declarado e Endereço.");
-      return;
-    }
-    gerarPDFResidencia(formRes, rgDataUrl, compDataUrl);
-  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -526,50 +375,117 @@ export default function Declaracoes() {
           </div>
         </div>
 
-        {/* Action card */}
+        {/* Declarações */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Criar Nova Declaração
+              <FileText className="h-4 w-4 text-primary" />Criar Nova Declaração
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />
-              Declaração de Não Estar Respondendo a Inquérito Policial
+              <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
             </Button>
             <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />
-              Declaração de Segundo Endereço de Guarda de Acervo
+              <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
             </Button>
             <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />
-              Declaração de Residência
+              <Plus className="h-4 w-4" />Declaração de Residência
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Clientes cadastrados */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />Clientes Cadastrados
+              {clientes.length > 0 && (
+                <span className="ml-1 text-xs font-normal bg-primary/10 text-primary rounded-full px-2 py-0.5">{clientes.length}</span>
+              )}
+            </CardTitle>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
+              <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {clientes.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
+              </p>
+            ) : (
+              <div className="divide-y divide-border/50">
+                {clientes.map(c => (
+                  <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{c.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[c.cpf, c.rg && `RG ${c.rg}`, c.cidade && `${c.cidade}-${c.estado}`].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Dialog 1: Inquérito Policial ── */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* ── Dialog: Cadastro de Cliente ── */}
+      <Dialog open={dialogClienteOpen} onOpenChange={setDialogClienteOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais
+              <UserPlus className="h-4 w-4 text-primary" />
+              {editandoId ? "Editar Cliente" : "Cadastrar Cliente"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Nome */}
             <div className="space-y-1">
-              <Label className="text-xs">Nome Completo</Label>
-              <Input className="h-9 text-sm uppercase" placeholder="Nome completo do declarante"
-                value={form.nome} onChange={(e) => set("nome", e.target.value)} />
+              <Label className="text-xs">Nome Completo *</Label>
+              <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
+                value={formCliente.nome} onChange={e => setC("nome", e.target.value)} />
             </div>
+            {/* CPF + RG */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">CPF</Label>
+                <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
+                  value={formCliente.cpf} onChange={e => setC("cpf", maskCpf(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">RG</Label>
+                <Input className="h-9 text-sm font-mono" placeholder="00000000"
+                  value={formCliente.rg} onChange={e => setC("rg", e.target.value)} />
+              </div>
+            </div>
+            {/* Órgão + Data Expedição */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Órgão Emissor RG</Label>
+                <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
+                  value={formCliente.orgaoEmissor} onChange={e => setC("orgaoEmissor", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data de Expedição RG</Label>
+                <Input className="h-9 text-sm" type="date"
+                  value={formCliente.dataExpedicao} onChange={e => setC("dataExpedicao", e.target.value)} />
+              </div>
+            </div>
+            {/* Estado Civil + Data Nascimento */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Estado Civil</Label>
-                <Select value={form.estadoCivil} onValueChange={(v) => set("estadoCivil", v)}>
+                <Select value={formCliente.estadoCivil} onValueChange={v => setC("estadoCivil", v)}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
@@ -583,80 +499,163 @@ export default function Declaracoes() {
               <div className="space-y-1">
                 <Label className="text-xs">Data de Nascimento</Label>
                 <Input className="h-9 text-sm" type="date"
-                  value={form.dataNascimento} onChange={(e) => set("dataNascimento", e.target.value)} />
+                  value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
               </div>
             </div>
+            {/* Pais */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Nome do Pai</Label>
                 <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
-                  value={form.nomePai} onChange={(e) => set("nomePai", e.target.value)} />
+                  value={formCliente.nomePai} onChange={e => setC("nomePai", e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Nome da Mãe</Label>
                 <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
-                  value={form.nomeMae} onChange={(e) => set("nomeMae", e.target.value)} />
+                  value={formCliente.nomeMae} onChange={e => setC("nomeMae", e.target.value)} />
               </div>
             </div>
+            {/* Endereço */}
             <div className="space-y-1">
               <Label className="text-xs">Endereço (Rua/Beco, número)</Label>
               <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco, 58"
-                value={form.endereco}
-                onChange={(e) => { const v = e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()); set("endereco", v); }} />
+                value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
                 <Input className="h-9 text-sm" placeholder="Bairro"
-                  value={form.bairro}
-                  onChange={(e) => { const v = e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()); set("bairro", v); }} />
+                  value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
                 <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
-                  value={form.cep} onChange={(e) => set("cep", maskCep(e.target.value))} />
+                  value={formCliente.cep} onChange={e => setC("cep", maskCep(e.target.value))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
-                <Input className="h-9 text-sm" value={form.cidade} onChange={(e) => set("cidade", e.target.value)} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Número do RG</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="00000000"
-                  value={form.rg} onChange={(e) => set("rg", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Órgão Emissor</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
-                  value={form.orgaoEmissor} onChange={(e) => set("orgaoEmissor", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data de Expedição</Label>
-                <Input className="h-9 text-sm" type="date"
-                  value={form.dataExpedicao} onChange={(e) => set("dataExpedicao", e.target.value)} />
+                <Input className="h-9 text-sm"
+                  value={formCliente.cidade} onChange={e => setC("cidade", e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">CPF (para linha de assinatura)</Label>
-              <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                value={form.cpf} onChange={(e) => set("cpf", maskCpf(e.target.value))} />
+              <Label className="text-xs">Estado (sigla)</Label>
+              <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
+                value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
             </div>
-            <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
-              A data da declaração será preenchida automaticamente com a data de hoje ({format(new Date(), "dd/MM/yyyy")}).
-            </p>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleGerar}>
-              <Download className="h-3.5 w-3.5" />Gerar PDF
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente}>
+              <UserPlus className="h-3.5 w-3.5" />{editandoId ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── Dialog 2: Segundo Endereço de Acervo ── */}
+      {/* ── Dialog 1: Inquérito Policial ── */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
+              setForm({
+                nome: c.nome, estadoCivil: c.estadoCivil, dataNascimento: c.dataNascimento,
+                nomePai: c.nomePai, nomeMae: c.nomeMae, endereco: c.endereco, bairro: c.bairro,
+                cep: c.cep, cidade: c.cidade.toUpperCase(), estado: c.estado,
+                rg: c.rg, orgaoEmissor: c.orgaoEmissor, dataExpedicao: c.dataExpedicao, cpf: c.cpf,
+              });
+            }} />
+            {clientes.length > 0 && <div className="border-t border-dashed border-border/60" />}
+            <div className="space-y-1">
+              <Label className="text-xs">Nome Completo</Label>
+              <Input className="h-9 text-sm uppercase" value={form.nome} onChange={e => set("nome", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Estado Civil</Label>
+                <Select value={form.estadoCivil} onValueChange={v => set("estadoCivil", v)}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
+                    <SelectItem value="Casado(a)">Casado(a)</SelectItem>
+                    <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
+                    <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
+                    <SelectItem value="União Estável">União Estável</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data de Nascimento</Label>
+                <Input className="h-9 text-sm" type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nome do Pai</Label>
+                <Input className="h-9 text-sm uppercase" value={form.nomePai} onChange={e => set("nomePai", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nome da Mãe</Label>
+                <Input className="h-9 text-sm uppercase" value={form.nomeMae} onChange={e => set("nomeMae", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Endereço</Label>
+              <Input className="h-9 text-sm" value={form.endereco} onChange={e => set("endereco", titleCase(e.target.value))} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Bairro</Label>
+                <Input className="h-9 text-sm" value={form.bairro} onChange={e => set("bairro", titleCase(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">CEP</Label>
+                <Input className="h-9 text-sm font-mono" value={form.cep} onChange={e => set("cep", maskCep(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cidade</Label>
+                <Input className="h-9 text-sm" value={form.cidade} onChange={e => set("cidade", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">RG</Label>
+                <Input className="h-9 text-sm font-mono" value={form.rg} onChange={e => set("rg", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Órgão Emissor</Label>
+                <Input className="h-9 text-sm uppercase" value={form.orgaoEmissor} onChange={e => set("orgaoEmissor", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data de Expedição</Label>
+                <Input className="h-9 text-sm" type="date" value={form.dataExpedicao} onChange={e => set("dataExpedicao", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">CPF</Label>
+              <Input className="h-9 text-sm font-mono" value={form.cpf} onChange={e => set("cpf", maskCpf(e.target.value))} />
+            </div>
+            <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
+              Data preenchida automaticamente: {format(new Date(), "dd/MM/yyyy")}.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+              if (!form.nome || !form.dataNascimento || !form.rg) { alert("Preencha Nome, Data de Nascimento e RG."); return; }
+              gerarPDF(form);
+            }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog 2: Acervo ── */}
       <Dialog open={dialogAcervoOpen} onOpenChange={setDialogAcervoOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -666,49 +665,46 @@ export default function Declaracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
+              setFormAcervo({ nome: c.nome, rg: c.rg, orgaoEmissor: c.orgaoEmissor, cpf: c.cpf, nomePai: c.nomePai, nomeMae: c.nomeMae, cidade: c.cidade, estado: c.estado });
+            }} />
+            {clientes.length > 0 && <div className="border-t border-dashed border-border/60" />}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo</Label>
-              <Input className="h-9 text-sm uppercase" placeholder="Nome completo do declarante"
-                value={formAcervo.nome} onChange={(e) => setA("nome", e.target.value)} />
+              <Input className="h-9 text-sm uppercase" value={formAcervo.nome} onChange={e => setA("nome", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Número do RG</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="00000000"
-                  value={formAcervo.rg} onChange={(e) => setA("rg", e.target.value)} />
+                <Label className="text-xs">RG</Label>
+                <Input className="h-9 text-sm font-mono" value={formAcervo.rg} onChange={e => setA("rg", e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Órgão Emissor</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
-                  value={formAcervo.orgaoEmissor} onChange={(e) => setA("orgaoEmissor", e.target.value)} />
+                <Input className="h-9 text-sm uppercase" value={formAcervo.orgaoEmissor} onChange={e => setA("orgaoEmissor", e.target.value)} />
               </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">CPF</Label>
-              <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                value={formAcervo.cpf} onChange={(e) => setA("cpf", maskCpf(e.target.value))} />
+              <Input className="h-9 text-sm font-mono" value={formAcervo.cpf} onChange={e => setA("cpf", maskCpf(e.target.value))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Nome do Pai</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
-                  value={formAcervo.nomePai} onChange={(e) => setA("nomePai", e.target.value)} />
+                <Input className="h-9 text-sm uppercase" value={formAcervo.nomePai} onChange={e => setA("nomePai", e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Nome da Mãe</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
-                  value={formAcervo.nomeMae} onChange={(e) => setA("nomeMae", e.target.value)} />
+                <Input className="h-9 text-sm uppercase" value={formAcervo.nomeMae} onChange={e => setA("nomeMae", e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
-                <Input className="h-9 text-sm" value={formAcervo.cidade} onChange={(e) => setA("cidade", e.target.value)} />
+                <Input className="h-9 text-sm" value={formAcervo.cidade} onChange={e => setA("cidade", e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Estado (sigla)</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="AM"
-                  value={formAcervo.estado} onChange={(e) => setA("estado", e.target.value)} />
+                <Label className="text-xs">Estado</Label>
+                <Input className="h-9 text-sm uppercase w-20" value={formAcervo.estado} onChange={e => setA("estado", e.target.value)} />
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
@@ -717,203 +713,175 @@ export default function Declaracoes() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogAcervoOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleGerarAcervo}>
-              <Download className="h-3.5 w-3.5" />Gerar PDF
-            </Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+              if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) { alert("Preencha Nome, RG e CPF."); return; }
+              gerarPDFAcervo(formAcervo);
+            }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── Dialog 3: Declaração de Residência ── */}
+      {/* ── Dialog 3: Residência ── */}
       <Dialog open={dialogResOpen} onOpenChange={setDialogResOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Declaração de Residência
+              <FileText className="h-4 w-4 text-primary" />Declaração de Residência
             </DialogTitle>
           </DialogHeader>
-
           <div className="space-y-5 py-2">
             {/* Declarante */}
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Declarante (quem assina)</p>
               <div className="space-y-3">
+                <ClienteSelector clientes={clientes} label="Selecionar declarante" onSelect={c => {
+                  setR("nomeDeclarante", c.nome); setR("rgDeclarante", c.rg);
+                  setR("orgaoDeclarante", c.orgaoEmissor); setR("cpfDeclarante", c.cpf);
+                }} />
                 <div className="space-y-1">
                   <Label className="text-xs">Nome Completo</Label>
-                  <Input className="h-9 text-sm uppercase" placeholder="Nome de quem assina a declaração"
-                    value={formRes.nomeDeclarante} onChange={(e) => setR("nomeDeclarante", e.target.value)} />
+                  <Input className="h-9 text-sm uppercase" value={formRes.nomeDeclarante} onChange={e => setR("nomeDeclarante", e.target.value)} />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">RG</Label>
-                    <Input className="h-9 text-sm font-mono" placeholder="00000000"
-                      value={formRes.rgDeclarante} onChange={(e) => setR("rgDeclarante", e.target.value)} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.rgDeclarante} onChange={e => setR("rgDeclarante", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Órgão Emissor</Label>
-                    <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
-                      value={formRes.orgaoDeclarante} onChange={(e) => setR("orgaoDeclarante", e.target.value)} />
+                    <Input className="h-9 text-sm uppercase" value={formRes.orgaoDeclarante} onChange={e => setR("orgaoDeclarante", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">CPF</Label>
-                    <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                      value={formRes.cpfDeclarante} onChange={(e) => setR("cpfDeclarante", maskCpf(e.target.value))} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.cpfDeclarante} onChange={e => setR("cpfDeclarante", maskCpf(e.target.value))} />
                   </div>
                 </div>
               </div>
             </div>
-
             <div className="border-t border-border/50" />
-
             {/* Declarado */}
             <div>
-              <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Declarado (quem reside no endereço)</p>
+              <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Declarado (quem reside)</p>
               <div className="space-y-3">
+                <ClienteSelector clientes={clientes} label="Selecionar declarado" onSelect={c => {
+                  setR("nomeDeclarado", c.nome); setR("rgDeclarado", c.rg);
+                  setR("orgaoDeclarado", c.orgaoEmissor); setR("cpfDeclarado", c.cpf);
+                  setR("nomePai", c.nomePai); setR("nomeMae", c.nomeMae);
+                  setR("endereco", c.endereco); setR("cep", c.cep);
+                  setR("cidade", c.cidade); setR("estado", c.estado);
+                }} />
                 <div className="space-y-1">
                   <Label className="text-xs">Nome Completo</Label>
-                  <Input className="h-9 text-sm uppercase" placeholder="Nome de quem reside no endereço"
-                    value={formRes.nomeDeclarado} onChange={(e) => setR("nomeDeclarado", e.target.value)} />
+                  <Input className="h-9 text-sm uppercase" value={formRes.nomeDeclarado} onChange={e => setR("nomeDeclarado", e.target.value)} />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">RG</Label>
-                    <Input className="h-9 text-sm font-mono" placeholder="00000000"
-                      value={formRes.rgDeclarado} onChange={(e) => setR("rgDeclarado", e.target.value)} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.rgDeclarado} onChange={e => setR("rgDeclarado", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Órgão Emissor</Label>
-                    <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
-                      value={formRes.orgaoDeclarado} onChange={(e) => setR("orgaoDeclarado", e.target.value)} />
+                    <Input className="h-9 text-sm uppercase" value={formRes.orgaoDeclarado} onChange={e => setR("orgaoDeclarado", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">CPF</Label>
-                    <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                      value={formRes.cpfDeclarado} onChange={(e) => setR("cpfDeclarado", maskCpf(e.target.value))} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.cpfDeclarado} onChange={e => setR("cpfDeclarado", maskCpf(e.target.value))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Nome do Pai</Label>
-                    <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
-                      value={formRes.nomePai} onChange={(e) => setR("nomePai", e.target.value)} />
+                    <Input className="h-9 text-sm uppercase" value={formRes.nomePai} onChange={e => setR("nomePai", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Nome da Mãe</Label>
-                    <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
-                      value={formRes.nomeMae} onChange={(e) => setR("nomeMae", e.target.value)} />
+                    <Input className="h-9 text-sm uppercase" value={formRes.nomeMae} onChange={e => setR("nomeMae", e.target.value)} />
                   </div>
                 </div>
               </div>
             </div>
-
             <div className="border-t border-border/50" />
-
             {/* Endereço */}
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Endereço</p>
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Endereço completo (Rua, número)</Label>
-                  <Input className="h-9 text-sm" placeholder="Ex: Rua RM da Chisa, S/N"
-                    value={formRes.endereco}
-                    onChange={(e) => { const v = e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()); setR("endereco", v); }} />
+                  <Label className="text-xs">Endereço completo</Label>
+                  <Input className="h-9 text-sm" value={formRes.endereco} onChange={e => setR("endereco", titleCase(e.target.value))} />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">CEP</Label>
-                    <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
-                      value={formRes.cep} onChange={(e) => setR("cep", maskCep(e.target.value))} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.cep} onChange={e => setR("cep", maskCep(e.target.value))} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Cidade</Label>
-                    <Input className="h-9 text-sm" value={formRes.cidade} onChange={(e) => setR("cidade", e.target.value)} />
+                    <Input className="h-9 text-sm" value={formRes.cidade} onChange={e => setR("cidade", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Estado</Label>
-                    <Input className="h-9 text-sm uppercase" placeholder="AM"
-                      value={formRes.estado} onChange={(e) => setR("estado", e.target.value)} />
+                    <Input className="h-9 text-sm uppercase" value={formRes.estado} onChange={e => setR("estado", e.target.value)} />
                   </div>
                 </div>
               </div>
             </div>
-
             <div className="border-t border-border/50" />
-
             {/* Anexos */}
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Anexos (opcional)</p>
               <div className="space-y-3">
-                {/* RG */}
                 <div className="space-y-1">
                   <Label className="text-xs">RG (imagem ou PDF)</Label>
                   {rgDataUrl ? (
                     <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
                       <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                       <span className="truncate flex-1 text-xs">{rgNome}</span>
-                      <button onClick={clearRg} className="flex-shrink-0 text-muted-foreground hover:text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                      <button onClick={clearRg}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                     </div>
                   ) : (
-                    <div>
-                      <input
-                        ref={rgInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        className="hidden"
-                        onChange={(e) => handleFileRead(e, setRgDataUrl, setRgNome)}
-                      />
+                    <>
+                      <input ref={rgInputRef} type="file" accept="image/*,application/pdf" className="hidden"
+                        onChange={e => handleFileRead(e, setRgDataUrl, setRgNome)} />
                       <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
                         onClick={() => rgInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />
-                        Anexar RG
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG
                       </Button>
-                    </div>
+                    </>
                   )}
                 </div>
-
-                {/* Comprovante */}
                 <div className="space-y-1">
                   <Label className="text-xs">Comprovante de Residência (imagem ou PDF)</Label>
                   {compDataUrl ? (
                     <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
                       <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                       <span className="truncate flex-1 text-xs">{compNome}</span>
-                      <button onClick={clearComp} className="flex-shrink-0 text-muted-foreground hover:text-destructive">
-                        <X className="h-3.5 w-3.5" />
-                      </button>
+                      <button onClick={clearComp}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                     </div>
                   ) : (
-                    <div>
-                      <input
-                        ref={compInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        className="hidden"
-                        onChange={(e) => handleFileRead(e, setCompDataUrl, setCompNome)}
-                      />
+                    <>
+                      <input ref={compInputRef} type="file" accept="image/*,application/pdf" className="hidden"
+                        onChange={e => handleFileRead(e, setCompDataUrl, setCompNome)} />
                       <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
                         onClick={() => compInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />
-                        Anexar Comprovante de Residência
+                        <Paperclip className="h-3.5 w-3.5" />Anexar Comprovante de Residência
                       </Button>
-                    </div>
+                    </>
                   )}
                 </div>
-
                 <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
-                  Os anexos serão impressos em páginas separadas após a declaração. Data gerada automaticamente ({dataExtenso()}).
+                  Anexos impressos em páginas separadas. Data: {dataExtenso()}.
                 </p>
               </div>
             </div>
           </div>
-
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogResOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleGerarResidencia}>
-              <Download className="h-3.5 w-3.5" />Gerar PDF
-            </Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+              if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
+                alert("Preencha Declarante, Declarado e Endereço."); return;
+              }
+              gerarPDFResidencia(formRes, rgDataUrl, compDataUrl);
+            }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
