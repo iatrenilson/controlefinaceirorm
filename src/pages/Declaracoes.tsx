@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -263,6 +263,28 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   if (win) { win.document.write(html); win.document.close(); }
 }
 
+// ─── Botão copiar ─────────────────────────────────────────────────────────
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex-shrink-0 p-0.5 rounded text-muted-foreground hover:text-primary transition-colors"
+      title="Copiar"
+    >
+      {copied
+        ? <Check className="h-3 w-3 text-green-500" />
+        : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
 // ─── Seletor de cliente reutilizável ──────────────────────────────────────
 function ClienteSelector({ clientes, label, onSelect }: {
   clientes: Cliente[];
@@ -399,12 +421,24 @@ export default function Declaracoes() {
               <div className="divide-y divide-border/50">
                 {clientes.map(c => (
                   <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{c.nome}</p>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                        {c.cpf && <span className="text-xs text-muted-foreground">CPF: {c.cpf}</span>}
-                        {c.senhaGov && <span className="text-xs text-muted-foreground">Senha GOV: {c.senhaGov}</span>}
-                        {c.rg && <span className="text-xs text-muted-foreground">RG: {c.rg}</span>}
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        {c.cpf && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">CPF: <span className="font-mono">{c.cpf}</span></span>
+                            <CopyButton value={c.cpf} />
+                          </div>
+                        )}
+                        {c.senhaGov && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Senha GOV: <span className="font-mono">{c.senhaGov}</span></span>
+                            <CopyButton value={c.senhaGov} />
+                          </div>
+                        )}
+                        {c.rg && (
+                          <span className="text-xs text-muted-foreground">RG: <span className="font-mono">{c.rg}</span></span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
