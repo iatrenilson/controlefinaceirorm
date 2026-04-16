@@ -132,20 +132,64 @@ function maskCep(raw: string): string {
   return digits;
 }
 
-function anexoPage(dataUrl: string, label: string): string {
-  const isPdf = dataUrl.startsWith("data:application/pdf");
-  if (isPdf) {
-    return `
-  <div style="page-break-before:always;width:100%;height:26cm;display:flex;flex-direction:column;gap:8px;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0;">${label}</p>
-    <embed src="${dataUrl}" type="application/pdf" width="100%" height="100%" style="border:none;" />
+function buildAnexos(
+  attachments: Array<{ dataUrl: string; label: string }>
+): { html: string; pdfJsHead: string; initScript: string } {
+  let html = "";
+  const pdfRenderCalls: string[] = [];
+  let hasPdf = false;
+  let counter = 0;
+
+  for (const { dataUrl, label } of attachments) {
+    const isPdf = dataUrl.startsWith("data:application/pdf");
+    if (isPdf) {
+      hasPdf = true;
+      const id = `pdf-attach-${++counter}`;
+      // Store data URL in a hidden element to avoid huge inline JS strings
+      html += `
+  <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" style="display:none;"></div>
+  <div style="page-break-before:always;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;">${label}</p>
+    <div id="${id}"></div>
   </div>`;
+      pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
+    } else {
+      html += `
+  <div style="page-break-before:always;text-align:center;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;text-align:left;">${label}</p>
+    <img src="${dataUrl}" style="max-width:100%;max-height:25cm;object-fit:contain;display:block;margin:0 auto;" />
+  </div>`;
+    }
   }
-  return `
-  <div style="page-break-before:always;width:100%;display:flex;flex-direction:column;gap:8px;align-items:center;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0;align-self:flex-start;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;max-height:25cm;object-fit:contain;display:block;" />
-  </div>`;
+
+  const pdfJsHead = hasPdf
+    ? `<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>`
+    : "";
+
+  const initScript = hasPdf
+    ? `pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  async function renderPdf(dataId,containerId){
+    const dataEl=document.getElementById(dataId);
+    const dataUrl=decodeURIComponent(dataEl.getAttribute('data-url'));
+    const pdf=await pdfjsLib.getDocument(dataUrl).promise;
+    const container=document.getElementById(containerId);
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const vp=page.getViewport({scale:1.8});
+      const canvas=document.createElement('canvas');
+      canvas.width=vp.width;canvas.height=vp.height;
+      canvas.style.cssText='max-width:100%;display:block;margin:0 auto 8px auto;';
+      container.appendChild(canvas);
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    }
+  }
+  window.onload=async function(){
+    try{await Promise.all([${pdfRenderCalls.map((c) => c).join(",")}]);}catch(e){console.error(e);}
+    setTimeout(function(){window.print();},800);
+  };`
+    : `window.onload=function(){setTimeout(function(){window.print();},400);};`;
+
+  return { html, pdfJsHead, initScript };
 }
 
 // ─── PDF: Inquérito Policial ───────────────────────────────────────────────
@@ -320,16 +364,17 @@ function gerarPDFResidencia(
   const dataEscrita = dataExtenso();
   const endFormatado = `${data.endereco.toUpperCase()}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
-  const anexos = [
-    rgDataUrl ? anexoPage(rgDataUrl, "Anexo: Documento de Identidade (RG)") : "",
-    compDataUrl ? anexoPage(compDataUrl, "Anexo: Comprovante de Residência") : "",
-  ].join("");
+  const attachmentList: Array<{ dataUrl: string; label: string }> = [];
+  if (rgDataUrl) attachmentList.push({ dataUrl: rgDataUrl, label: "Anexo: Documento de Identidade (RG)" });
+  if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência" });
+  const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <title>${primeiroNome} - Declaração de Residência</title>
+  ${pdfJsHead}
   <style>
     @page { size:A4 portrait;margin:2.5cm 3cm 2cm 3cm; }
     html,body { margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5; }
@@ -390,7 +435,7 @@ function gerarPDFResidencia(
 
   ${anexos}
 
-<script>window.onload=function(){setTimeout(function(){window.print();},400);};</script>
+<script>${initScript}<\/script>
 </body>
 </html>`;
 
