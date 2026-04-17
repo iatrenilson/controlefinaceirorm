@@ -175,7 +175,7 @@ function gerarPDF(data: FormData) {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
   <style>
-    @page{size:A4 portrait;margin:1cm 1cm 2cm 1cm;}
+    @page{size:A4 portrait;margin:1cm 2cm 2cm 2cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
     h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:0.6em;line-height:1.15;}
     .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:12pt;}
@@ -219,7 +219,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
     : `<strong>${paiAcervo || maeAcervo}</strong>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Segundo Endereço de Guarda de Acervo</title>
-  <style>@page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+  <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
   h1{text-align:center;font-size:12pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
   .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
   .verdade{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:5cm;}
@@ -253,7 +253,7 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   <title>${primeiroNome} - Declaração de Residência</title>
   ${pdfJsHead}
   <style>
-    @page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}
+    @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
     h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
     .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:0.3em;font-size:12pt;}
