@@ -1,4 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -337,20 +339,51 @@ function ClienteSelector({ clientes, label, onSelect }: {
   );
 }
 
+// ─── Helpers DB ────────────────────────────────────────────────────────────
+function rowToCliente(row: Record<string, unknown>): Cliente {
+  return {
+    id: row.id as string,
+    nome: (row.nome as string) ?? "",
+    rg: (row.rg as string) ?? "",
+    orgaoEmissor: (row.orgao_emissor as string) ?? "SSP-AM",
+    dataExpedicao: (row.data_expedicao as string) ?? "",
+    cpf: (row.cpf as string) ?? "",
+    nomePai: (row.nome_pai as string) ?? "",
+    nomeMae: (row.nome_mae as string) ?? "",
+    estadoCivil: (row.estado_civil as string) ?? "Solteiro(a)",
+    dataNascimento: (row.data_nascimento as string) ?? "",
+    endereco: (row.endereco as string) ?? "",
+    numero: (row.numero as string) ?? "",
+    bairro: (row.bairro as string) ?? "",
+    cep: (row.cep as string) ?? "",
+    cidade: (row.cidade as string) ?? "Manaus",
+    estado: (row.estado as string) ?? "AM",
+    senhaGov: (row.senha_gov as string) ?? "",
+  };
+}
+
 // ─── Componente principal ──────────────────────────────────────────────────
 export default function Declaracoes() {
+  const { toast } = useToast();
+
   // Clientes cadastrados
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    try { return JSON.parse(localStorage.getItem("decl_clientes") || "[]"); }
-    catch { return []; }
-  });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loadingClientes, setLoadingClientes] = useState(true);
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
+  const [savingCliente, setSavingCliente] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem("decl_clientes", JSON.stringify(clientes));
-  }, [clientes]);
+  const fetchClientes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("declaracao_clientes")
+      .select("*")
+      .order("nome", { ascending: true });
+    if (!error && data) setClientes(data.map(rowToCliente));
+    setLoadingClientes(false);
+  }, []);
+
+  useEffect(() => { fetchClientes(); }, [fetchClientes]);
 
   const setC = (field: keyof ClienteForm, value: string) =>
     setFormCliente(prev => ({ ...prev, [field]: value }));
@@ -366,17 +399,49 @@ export default function Declaracoes() {
     setFormCliente(rest);
     setDialogClienteOpen(true);
   };
-  const salvarCliente = () => {
-    if (!formCliente.nome) { alert("Preencha o Nome."); return; }
-    if (editandoId) {
-      setClientes(prev => prev.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c));
-    } else {
-      setClientes(prev => [...prev, { id: Date.now().toString(), ...formCliente }]);
+  const salvarCliente = async () => {
+    if (!formCliente.nome) { toast({ title: "Preencha o Nome.", variant: "destructive" }); return; }
+    setSavingCliente(true);
+    const payload = {
+      nome: formCliente.nome,
+      rg: formCliente.rg,
+      orgao_emissor: formCliente.orgaoEmissor,
+      data_expedicao: formCliente.dataExpedicao,
+      cpf: formCliente.cpf,
+      nome_pai: formCliente.nomePai,
+      nome_mae: formCliente.nomeMae,
+      estado_civil: formCliente.estadoCivil,
+      data_nascimento: formCliente.dataNascimento,
+      endereco: formCliente.endereco,
+      numero: formCliente.numero,
+      bairro: formCliente.bairro,
+      cep: formCliente.cep,
+      cidade: formCliente.cidade,
+      estado: formCliente.estado,
+      senha_gov: formCliente.senhaGov,
+      updated_at: new Date().toISOString(),
+    };
+    try {
+      if (editandoId) {
+        const { error } = await supabase.from("declaracao_clientes").update(payload).eq("id", editandoId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("declaracao_clientes").insert(payload);
+        if (error) throw error;
+      }
+      await fetchClientes();
+      setDialogClienteOpen(false);
+      toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
+    } catch (e: unknown) {
+      toast({ title: "Erro ao salvar cliente", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setSavingCliente(false);
     }
-    setDialogClienteOpen(false);
   };
-  const excluirCliente = (id: string) => {
+  const excluirCliente = async (id: string) => {
     if (!confirm("Excluir este cliente?")) return;
+    const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id);
+    if (error) { toast({ title: "Erro ao excluir", variant: "destructive" }); return; }
     setClientes(prev => prev.filter(c => c.id !== id));
   };
 
@@ -439,7 +504,9 @@ export default function Declaracoes() {
             </Button>
           </CardHeader>
           <CardContent>
-            {clientes.length === 0 ? (
+            {loadingClientes ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
+            ) : clientes.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
                 Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
               </p>
@@ -628,8 +695,8 @@ export default function Declaracoes() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente}>
-              <UserPlus className="h-3.5 w-3.5" />{editandoId ? "Salvar Alterações" : "Cadastrar"}
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente} disabled={savingCliente}>
+              <UserPlus className="h-3.5 w-3.5" />{savingCliente ? "Salvando..." : editandoId ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
