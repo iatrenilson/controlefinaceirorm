@@ -232,9 +232,9 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
     h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
     .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:2.5em;font-size:12pt;}
     .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:1em;font-size:12pt;}
-    .art-block{margin-left:2cm;margin-right:0;margin-bottom:0.8em;}
-    .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;}
-    .pena-text{font-style:italic;text-align:left;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;}
+    .art-block{margin-bottom:0.8em;}
+    .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;text-indent:2cm;}
+    .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;text-indent:0;}
     .city-date{text-align:left;margin-top:3cm;margin-bottom:2.5cm;font-size:12pt;}
     .sig-wrap{text-align:center;}
     .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
