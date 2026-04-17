@@ -68,12 +68,12 @@ const EMPTY_FORM_ACERVO: FormDataAcervo = {
 interface FormDataResidencia {
   nomeDeclarante: string; rgDeclarante: string; orgaoDeclarante: string; cpfDeclarante: string;
   nomeDeclarado: string; rgDeclarado: string; orgaoDeclarado: string; cpfDeclarado: string;
-  nomePai: string; nomeMae: string; endereco: string; numero: string; cep: string; cidade: string; estado: string;
+  nomePai: string; nomeMae: string; endereco: string; numero: string; bairro: string; cep: string; cidade: string; estado: string;
 }
 const EMPTY_FORM_RES: FormDataResidencia = {
   nomeDeclarante: "", rgDeclarante: "", orgaoDeclarante: "SSP-AM", cpfDeclarante: "",
   nomeDeclarado: "", rgDeclarado: "", orgaoDeclarado: "SSP-AM", cpfDeclarado: "",
-  nomePai: "", nomeMae: "", endereco: "", numero: "", cep: "", cidade: "Manaus", estado: "AM",
+  nomePai: "", nomeMae: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -271,7 +271,8 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
-  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
+  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
   // Redimensiona imagens grandes para caber na página sem criar folha em branco
   if (rgDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
@@ -1399,11 +1400,17 @@ export default function Declaracoes() {
                     <Input className="h-9 text-sm" placeholder="58" value={formRes.numero} onChange={e => setR("numero", e.target.value)} />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Bairro</Label>
+                    <Input className="h-9 text-sm" placeholder="Ex: Cidade Nova" value={formRes.bairro} onChange={e => setR("bairro", titleCase(e.target.value))} />
+                  </div>
                   <div className="space-y-1">
                     <Label className="text-xs">CEP</Label>
                     <Input className="h-9 text-sm font-mono" value={formRes.cep} onChange={e => setR("cep", maskCep(e.target.value))} />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Cidade</Label>
                     <Input className="h-9 text-sm" value={formRes.cidade} onChange={e => setR("cidade", e.target.value)} />
