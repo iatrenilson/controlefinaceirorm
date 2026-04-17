@@ -92,7 +92,7 @@ function maskCpf(raw: string): string {
   return d;
 }
 function maskRg(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 9);
+  const d = raw.replace(/\D/g, "");
   if (d.length <= 1) return d;
   return d.slice(0, d.length - 1) + "-" + d.slice(-1);
 }
