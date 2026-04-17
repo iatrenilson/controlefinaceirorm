@@ -106,6 +106,30 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
+// ─── Redimensiona imagem para caber em uma página A4 antes de imprimir ───
+async function fitImageToPage(dataUrl: string): Promise<string> {
+  if (!dataUrl.startsWith("data:image")) return dataUrl;
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      // Área imprimível: 17cm × 22cm a 150 dpi ≈ 1003 × 1299 px
+      const MAX_W = 1003, MAX_H = 1299;
+      const scale = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1);
+      if (scale >= 1) { resolve(dataUrl); return; } // já cabe, não redimensiona
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      const ctx = c.getContext("2d")!;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", 0.92)); // JPEG qualidade 92%
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 // ─── Attachment builder ───────────────────────────────────────────────────
 function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
   html: string; pdfJsHead: string; initScript: string;
@@ -243,14 +267,15 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
+async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
-  if (rgDataUrl) attachmentList.push({ dataUrl: rgDataUrl, label: "Anexo: Documento de Identidade (RG)" });
-  if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência" });
+  // Redimensiona imagens grandes para caber na página sem criar folha em branco
+  if (rgDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
+  if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>Declaração de Residência - ${primeiroNome}</title>
