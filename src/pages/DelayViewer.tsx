@@ -288,28 +288,16 @@ const DelayViewer = () => {
   const handleContaQueimada = async (cliente: ClienteViewer) => {
     setTransLoading(true);
     try {
-      const valor = 1000;
-      const novoDeposito = cliente.depositos + valor;
       const now = new Date().toISOString();
       const { error } = await supabase
         .from("delay_clientes")
         .update({
           status: "saque_pendente",
           operacao: "saque_pendente",
-          depositos: novoDeposito,
-          data_deposito: now,
           updated_at: now,
         })
         .eq("id", cliente.id);
       if (error) throw error;
-      await supabase.from("delay_transacoes").insert({
-        cliente_id: cliente.id,
-        tipo: "deposito",
-        valor,
-        lucro: 0,
-        custo: 0,
-        data_transacao: format(new Date(), "yyyy-MM-dd"),
-      });
       toast({ title: "Conta Queimada! Aguardando aprovação do administrador." });
       fetchClientesSilent();
     } catch (e: unknown) {
