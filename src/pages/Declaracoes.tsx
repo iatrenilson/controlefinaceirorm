@@ -185,7 +185,7 @@ function gerarPDF(data: FormData) {
     .sig-cpf{font-size:13pt;display:block;text-align:center;}
     @media print{html,body{margin:0;padding:0;}}
   </style></head><body>
-  <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU<br>PROCESSOS CRIMINAIS</h1>
+  <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS<br>OU<br>PROCESSOS CRIMINAIS</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
     ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, residência no(a), ${enderecoCompleto}, RG
     nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.</p>
