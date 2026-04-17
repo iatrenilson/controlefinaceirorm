@@ -377,66 +377,160 @@ export default function Declaracoes() {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
-    const resultado: Partial<ClienteForm> = {};
-    const t = text.replace(/\r\n/g, "\n");
+    const r: Partial<ClienteForm> = {};
+    // Normaliza: remove múltiplos espaços, split em linhas limpas
+    const linhas = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const up = (s: string) => s.toUpperCase();
+    const isNome = (s: string) => /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÀÇ]{2,}(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÀÇ]{2,})+$/.test(s.trim());
+    const parseData = (s: string) => {
+      const m = s.match(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/);
+      if (!m) return null;
+      return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+    };
+    // Retorna valor: mesma linha após label OU próxima linha não-vazia
+    const valorApos = (i: number, linha: string, labelRe: RegExp): string => {
+      const mesmaLinha = linha.replace(labelRe, "").replace(/^[\s:.\-]+/, "").trim();
+      if (mesmaLinha.length > 1) return mesmaLinha;
+      for (let j = i + 1; j < Math.min(i + 4, linhas.length); j++) {
+        if (linhas[j].trim().length > 1) return linhas[j].trim();
+      }
+      return "";
+    };
 
-    // CPF
-    const cpfM = t.match(/(?:CPF|C\.P\.F)[:\s#.]*(\d[\d.\- ]{8,13}\d)/i)
-      || t.match(/(\d{3}[\. ]?\d{3}[\. ]?\d{3}[-]?\d{2})(?!\d)/);
-    if (cpfM) resultado.cpf = maskCpf(cpfM[1].replace(/\D/g, ""));
+    for (let i = 0; i < linhas.length; i++) {
+      const l = linhas[i];
+      const U = up(l);
 
-    // RG
-    const rgM = t.match(/(?:RG|R\.G\.|Identidade|Registro Geral)[:\s#.]*(\d[\d.\-\/]{4,14})/i);
-    if (rgM) resultado.rg = maskRg(rgM[1].replace(/\D/g, ""));
+      // ── CPF ──
+      if (!r.cpf) {
+        const m = l.match(/\b(\d{3}[\. ]?\d{3}[\. ]?\d{3}[\-\. ]?\d{2})\b/);
+        if (m && m[1].replace(/\D/g,"").length === 11) r.cpf = maskCpf(m[1].replace(/\D/g,""));
+      }
 
-    // Nome
-    const nomeM = t.match(/(?:^|\n)Nome[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/im)
-      || t.match(/(?:^|\n)([A-ZÁÉÍÓÚÃÕÂÊÔÀÇ]{2,}(?:\s[A-ZÁÉÍÓÚÃÕÂÊÔÀÇ]{2,}){1,6})/m);
-    if (nomeM) resultado.nome = nomeM[1].trim().toUpperCase();
+      // ── CEP ──
+      if (!r.cep) {
+        const m = l.match(/\b(\d{2}[\. ]?\d{3}[\-]?\d{3})\b/);
+        if (m && m[1].replace(/\D/g,"").length === 8) r.cep = maskCep(m[1].replace(/\D/g,""));
+      }
 
-    // Data de nascimento
-    const nascM = t.match(/(?:Nasc(?:imento)?|Data de Nasc)[:\s.]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
-    if (nascM) {
-      const [d, m, y] = nascM[1].split(/[\/\-\.]/);
-      resultado.dataNascimento = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+      // ── RG / REGISTRO GERAL ──
+      if (!r.rg && /REGISTRO\s*GERAL|^R\.?G\.?$|^RG$/.test(U)) {
+        const val = valorApos(i, l, /REGISTRO\s*GERAL|R\.?G\.?/i);
+        const m = val.match(/(\d[\d\.\-]{4,14})/);
+        if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
+      }
+      // RG inline: "RG: 1234567-8" ou "Nº 1234567-8"
+      if (!r.rg) {
+        const m = l.match(/\b(?:RG|R\.G\.)[:\s#]*(\d[\d\.\-\/]{4,14})/i);
+        if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
+      }
+
+      // ── NOME ──
+      if (!r.nome && /^NOME$|^NOME COMPLETO$|^NOME DO PORTADOR/.test(U)) {
+        const val = valorApos(i, l, /^NOME(\s+COMPLETO|\s+DO\s+PORTADOR)?/i);
+        if (val && isNome(up(val))) r.nome = up(val);
+      }
+      if (!r.nome && /^NOME[:\s]+/i.test(l)) {
+        const val = l.replace(/^NOME[:\s]+/i, "").trim();
+        if (val && isNome(up(val))) r.nome = up(val);
+      }
+
+      // ── FILIAÇÃO (pai na próxima linha, mãe na seguinte) ──
+      if (/^FILIA[ÇC][AÃ]O$/.test(U)) {
+        for (let j = i+1; j < Math.min(i+5, linhas.length); j++) {
+          const v = linhas[j].trim();
+          if (!v || /DATA|CPF|RG|CEP|NASC/.test(up(v))) break;
+          if (isNome(up(v))) {
+            if (!r.nomePai) r.nomePai = up(v);
+            else if (!r.nomeMae) { r.nomeMae = up(v); break; }
+          }
+        }
+      }
+
+      // ── NOME DO PAI ──
+      if (!r.nomePai && /^(?:NOME\s+DO\s+)?PAI$|^NOME DO PAI/.test(U)) {
+        const val = valorApos(i, l, /(?:NOME\s+DO\s+)?PAI/i);
+        if (val && isNome(up(val))) r.nomePai = up(val);
+      }
+      if (!r.nomePai && /PAI[:\s]+/i.test(l) && !/BRASIL|ESTADO|REPUB/.test(U)) {
+        const val = l.replace(/.*PAI[:\s]+/i,"").trim();
+        if (val && isNome(up(val))) r.nomePai = up(val);
+      }
+
+      // ── NOME DA MÃE ──
+      if (!r.nomeMae && /^(?:NOME\s+DA\s+)?M[ÃA]E$|^NOME DA M[ÃA]E/.test(U)) {
+        const val = valorApos(i, l, /(?:NOME\s+DA\s+)?M[ÃA]E/i);
+        if (val && isNome(up(val))) r.nomeMae = up(val);
+      }
+      if (!r.nomeMae && /M[ÃA]E[:\s]+/i.test(l) && !/BRASIL|ESTADO/.test(U)) {
+        const val = l.replace(/.*M[ÃA]E[:\s]+/i,"").trim();
+        if (val && isNome(up(val))) r.nomeMae = up(val);
+      }
+
+      // ── DATA DE NASCIMENTO ──
+      if (!r.dataNascimento && /NASCIMENTO|DATA\s+NASC|DT\.?\s*NASC/.test(U)) {
+        const val = valorApos(i, l, /DATA\s+(?:DE\s+)?NASCIMENTO|DT\.?\s*NASC/i);
+        const d = parseData(val) || parseData(l);
+        if (d) r.dataNascimento = d;
+      }
+
+      // ── DATA DE EXPEDIÇÃO / EMISSÃO ──
+      if (!r.dataExpedicao && /EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O|DATA\s+EMI|DT\.?\s*EXP/.test(U)) {
+        const val = valorApos(i, l, /(?:DATA\s+(?:DE\s+)?)?(?:EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O)|DT\.?\s*EXP/i);
+        const d = parseData(val) || parseData(l);
+        if (d) r.dataExpedicao = d;
+      }
+
+      // ── ÓRGÃO EMISSOR ──
+      if (!r.orgaoEmissor) {
+        const m = l.match(/\b((?:SSP|PC|DETRAN|MD|PM|DPF|SEDS|SESP|SEPC|CRB)[-\/\s]?[A-Z]{2})\b/i);
+        if (m) r.orgaoEmissor = m[1].replace(/\s/,"-").toUpperCase();
+      }
+      if (!r.orgaoEmissor && /ÓRG[AÃ]O\s+EMISSOR|ORGAO\s*EMISSOR/i.test(U)) {
+        const val = valorApos(i, l, /ÓRG[AÃ]O\s+EMISSOR|ORGAO\s*EMISSOR/i);
+        if (val) r.orgaoEmissor = up(val);
+      }
+
+      // ── ENDEREÇO ──
+      if (!r.endereco && /^(?:ENDERE[ÇC]O|LOGRADOURO)/.test(U)) {
+        const val = valorApos(i, l, /^(?:ENDERE[ÇC]O|LOGRADOURO)/i);
+        if (val && val.length > 4) r.endereco = up(val);
+      }
+
+      // ── BAIRRO ──
+      if (!r.bairro && /^BAIRRO/.test(U)) {
+        const val = valorApos(i, l, /^BAIRRO/i);
+        if (val) r.bairro = up(val);
+      }
+
+      // ── CIDADE ──
+      if (!r.cidade && /^(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)/.test(U)) {
+        const val = valorApos(i, l, /^(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)/i);
+        if (val) r.cidade = val.split(/[-\/]/)[0].trim();
+      }
+
+      // ── Nº ──
+      if (!r.numero) {
+        const m = l.match(/\bN[º°ú]\.?\s*(\d{1,6})\b/i);
+        if (m) r.numero = m[1];
+      }
     }
 
-    // Pai
-    const paiM = t.match(/(?:Pai|Father|Nome do Pai)[:\s]+([A-ZÀ-Úa-zà-ú\s]{5,60}?)(?:\n|Mãe|Mae|$)/i);
-    if (paiM) resultado.nomePai = paiM[1].trim().toUpperCase();
-
-    // Mãe
-    const maeM = t.match(/(?:M[aã]e|Mother|Nome da M[aã]e)[:\s]+([A-ZÀ-Úa-zà-ú\s]{5,60}?)(?:\n|Pai|$)/i);
-    if (maeM) resultado.nomeMae = maeM[1].trim().toUpperCase();
-
-    // CEP
-    const cepM = t.match(/CEP[:\s]*(\d{2}\.?\d{3}-?\d{3})/i) || t.match(/(\d{2}\.\d{3}-\d{3})/);
-    if (cepM) resultado.cep = maskCep(cepM[1].replace(/\D/g, ""));
-
-    // Endereço
-    const endM = t.match(/(?:End(?:ere[çc]o)?|Rua|Av(?:enida)?\.?)[:\s.]+([^\n,]{5,80})/i);
-    if (endM) resultado.endereco = endM[1].trim().toUpperCase();
-
-    // Número
-    const numM = t.match(/N[º°ú][\s.]*(\d{1,6})/i);
-    if (numM) resultado.numero = numM[1];
-
-    // Órgão Emissor RG
-    const orgaoM = t.match(/(?:SSP|PC|DETRAN|MD|PM|DPF|SEDS|SESP|SEPC)[-\/]?([A-Z]{2})/);
-    if (orgaoM) resultado.orgaoEmissor = orgaoM[0].replace("/","").replace("-","");
-
-    // Data de expedição
-    const expM = t.match(/(?:Expedi[çc][aã]o|Data Exp(?:edição)?)[:\s.]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
-    if (expM) {
-      const [d, m, y] = expM[1].split(/[\/\-\.]/);
-      resultado.dataExpedicao = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    // ── Fallback: busca todas as datas e atribui por ordem ──
+    if (!r.dataNascimento || !r.dataExpedicao) {
+      const allDates = [...text.matchAll(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g)]
+        .map(m => `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`);
+      if (!r.dataNascimento && allDates[0]) r.dataNascimento = allDates[0];
+      if (!r.dataExpedicao && allDates[1]) r.dataExpedicao = allDates[1];
     }
 
-    // Cidade
-    const cidadeM = t.match(/(?:Cidade|Munic[íi]pio|Local)[:\s]+([A-ZÀ-Úa-zà-ú\s]{3,40}?)(?:\s*[-\/]|\n|$)/i);
-    if (cidadeM) resultado.cidade = cidadeM[1].trim();
+    // ── Fallback: CPF em qualquer lugar ──
+    if (!r.cpf) {
+      const m = text.match(/\b(\d{3}[\. ]?\d{3}[\. ]?\d{3}[-]?\d{2})\b/);
+      if (m && m[1].replace(/\D/g,"").length === 11) r.cpf = maskCpf(m[1].replace(/\D/g,""));
+    }
 
-    return resultado;
+    return r;
   }, []);
 
   const handleImportarDocumento = useCallback(async (file: File) => {
