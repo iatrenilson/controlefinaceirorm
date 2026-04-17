@@ -374,6 +374,8 @@ export default function Declaracoes() {
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
   const [importando, setImportando] = useState(false);
+  const [textoExtraido, setTextoExtraido] = useState<string>("");
+  const [mostrarTexto, setMostrarTexto] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
@@ -575,10 +577,12 @@ export default function Declaracoes() {
         await worker.terminate();
       }
 
+      setTextoExtraido(texto);
       const campos = parsearTexto(texto);
       const total = Object.keys(campos).length;
       if (total === 0) {
-        toast({ title: "Nenhum dado encontrado", description: "Não foi possível extrair informações do documento.", variant: "destructive" });
+        setMostrarTexto(true);
+        toast({ title: "Nenhum campo reconhecido", description: "Veja o texto extraído abaixo para verificar.", variant: "destructive" });
       } else {
         setFormCliente(prev => ({ ...prev, ...campos }));
         toast({ title: `${total} campo(s) preenchido(s) automaticamente!` });
@@ -849,7 +853,29 @@ export default function Declaracoes() {
                 {importando ? "Lendo documento..." : "Importar Documento (PDF ou Imagem)"}
               </Button>
               <span className="text-[10px] text-muted-foreground">Preenche o cadastro automaticamente</span>
+              {textoExtraido && (
+                <button type="button" onClick={() => setMostrarTexto(v => !v)}
+                  className="text-[10px] underline text-muted-foreground ml-auto">
+                  {mostrarTexto ? "Ocultar texto lido" : "Ver texto extraído"}
+                </button>
+              )}
             </div>
+            {mostrarTexto && textoExtraido && (
+              <div className="rounded border border-border bg-muted/30 p-2">
+                <p className="text-[10px] text-muted-foreground mb-1 font-semibold">Texto extraído pelo OCR (copie e envie para suporte):</p>
+                <textarea
+                  readOnly
+                  className="w-full text-[10px] font-mono bg-transparent resize-none outline-none text-foreground"
+                  rows={8}
+                  value={textoExtraido}
+                />
+                <button type="button"
+                  className="text-[10px] underline text-primary mt-1"
+                  onClick={() => { navigator.clipboard.writeText(textoExtraido); toast({ title: "Texto copiado!" }); }}>
+                  Copiar texto
+                </button>
+              </div>
+            )}
             {/* Nome */}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
