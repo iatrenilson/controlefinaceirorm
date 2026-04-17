@@ -373,6 +373,129 @@ export default function Declaracoes() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
+  const [importando, setImportando] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
+    const resultado: Partial<ClienteForm> = {};
+    const t = text.replace(/\r\n/g, "\n");
+
+    // CPF
+    const cpfM = t.match(/(?:CPF|C\.P\.F)[:\s#.]*(\d[\d.\- ]{8,13}\d)/i)
+      || t.match(/(\d{3}[\. ]?\d{3}[\. ]?\d{3}[-]?\d{2})(?!\d)/);
+    if (cpfM) resultado.cpf = maskCpf(cpfM[1].replace(/\D/g, ""));
+
+    // RG
+    const rgM = t.match(/(?:RG|R\.G\.|Identidade|Registro Geral)[:\s#.]*(\d[\d.\-\/]{4,14})/i);
+    if (rgM) resultado.rg = maskRg(rgM[1].replace(/\D/g, ""));
+
+    // Nome
+    const nomeM = t.match(/(?:^|\n)Nome[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/im)
+      || t.match(/(?:^|\n)([A-ZÁÉÍÓÚÃÕÂÊÔÀÇ]{2,}(?:\s[A-ZÁÉÍÓÚÃÕÂÊÔÀÇ]{2,}){1,6})/m);
+    if (nomeM) resultado.nome = nomeM[1].trim().toUpperCase();
+
+    // Data de nascimento
+    const nascM = t.match(/(?:Nasc(?:imento)?|Data de Nasc)[:\s.]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    if (nascM) {
+      const [d, m, y] = nascM[1].split(/[\/\-\.]/);
+      resultado.dataNascimento = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+
+    // Pai
+    const paiM = t.match(/(?:Pai|Father|Nome do Pai)[:\s]+([A-ZÀ-Úa-zà-ú\s]{5,60}?)(?:\n|Mãe|Mae|$)/i);
+    if (paiM) resultado.nomePai = paiM[1].trim().toUpperCase();
+
+    // Mãe
+    const maeM = t.match(/(?:M[aã]e|Mother|Nome da M[aã]e)[:\s]+([A-ZÀ-Úa-zà-ú\s]{5,60}?)(?:\n|Pai|$)/i);
+    if (maeM) resultado.nomeMae = maeM[1].trim().toUpperCase();
+
+    // CEP
+    const cepM = t.match(/CEP[:\s]*(\d{2}\.?\d{3}-?\d{3})/i) || t.match(/(\d{2}\.\d{3}-\d{3})/);
+    if (cepM) resultado.cep = maskCep(cepM[1].replace(/\D/g, ""));
+
+    // Endereço
+    const endM = t.match(/(?:End(?:ere[çc]o)?|Rua|Av(?:enida)?\.?)[:\s.]+([^\n,]{5,80})/i);
+    if (endM) resultado.endereco = endM[1].trim().toUpperCase();
+
+    // Número
+    const numM = t.match(/N[º°ú][\s.]*(\d{1,6})/i);
+    if (numM) resultado.numero = numM[1];
+
+    // Órgão Emissor RG
+    const orgaoM = t.match(/(?:SSP|PC|DETRAN|MD|PM|DPF|SEDS|SESP|SEPC)[-\/]?([A-Z]{2})/);
+    if (orgaoM) resultado.orgaoEmissor = orgaoM[0].replace("/","").replace("-","");
+
+    // Data de expedição
+    const expM = t.match(/(?:Expedi[çc][aã]o|Data Exp(?:edição)?)[:\s.]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    if (expM) {
+      const [d, m, y] = expM[1].split(/[\/\-\.]/);
+      resultado.dataExpedicao = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+
+    // Cidade
+    const cidadeM = t.match(/(?:Cidade|Munic[íi]pio|Local)[:\s]+([A-ZÀ-Úa-zà-ú\s]{3,40}?)(?:\s*[-\/]|\n|$)/i);
+    if (cidadeM) resultado.cidade = cidadeM[1].trim();
+
+    return resultado;
+  }, []);
+
+  const handleImportarDocumento = useCallback(async (file: File) => {
+    setImportando(true);
+    try {
+      let texto = "";
+
+      if (file.type === "application/pdf") {
+        // Extrai texto do PDF via PDF.js (CDN)
+        const pdfjsLib = await new Promise<any>((res, rej) => {
+          if ((window as any).pdfjsLib) { res((window as any).pdfjsLib); return; }
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+          s.onload = () => {
+            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            res((window as any).pdfjsLib);
+          };
+          s.onerror = rej;
+          document.head.appendChild(s);
+        });
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          texto += content.items.map((item: any) => item.str).join(" ") + "\n";
+        }
+      } else {
+        // Imagem: usa Tesseract.js via CDN
+        const Tesseract = await new Promise<any>((res, rej) => {
+          if ((window as any).Tesseract) { res((window as any).Tesseract); return; }
+          const s = document.createElement("script");
+          s.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
+          s.onload = () => res((window as any).Tesseract);
+          s.onerror = rej;
+          document.head.appendChild(s);
+        });
+        const worker = await Tesseract.createWorker("por");
+        const { data } = await worker.recognize(file);
+        texto = data.text;
+        await worker.terminate();
+      }
+
+      const campos = parsearTexto(texto);
+      const total = Object.keys(campos).length;
+      if (total === 0) {
+        toast({ title: "Nenhum dado encontrado", description: "Não foi possível extrair informações do documento.", variant: "destructive" });
+      } else {
+        setFormCliente(prev => ({ ...prev, ...campos }));
+        toast({ title: `${total} campo(s) preenchido(s) automaticamente!` });
+      }
+    } catch (e) {
+      toast({ title: "Erro ao ler documento", description: "Verifique se o arquivo é válido.", variant: "destructive" });
+    } finally {
+      setImportando(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }, [parsearTexto, toast]);
 
   const saveClientesToCloud = useCallback(async (list: Cliente[]) => {
     await supabase.auth.updateUser({ data: { decl_clientes: list } });
@@ -611,6 +734,28 @@ export default function Declaracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Importar Documento */}
+            <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleImportarDocumento(f); }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs border-primary/50 text-primary hover:bg-primary/10"
+                disabled={importando}
+                onClick={() => importInputRef.current?.click()}
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+                {importando ? "Lendo documento..." : "Importar Documento (PDF ou Imagem)"}
+              </Button>
+              <span className="text-[10px] text-muted-foreground">Preenche o cadastro automaticamente</span>
+            </div>
             {/* Nome */}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
