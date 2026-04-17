@@ -226,6 +226,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   .city-date{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:4.5cm;}
   .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
   .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+  .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
   @media print{html,body{margin:0;padding:0;}}</style></head><body>
   <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de identidade
@@ -234,7 +235,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
     DECLARO que não possuo segundo endereço de guarda de acervo.</p>
   <p class="verdade">Por ser verdade, firmo o presente.</p>
   <p class="city-date">${dataFormatada}</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span></div>
+  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span><span class="sig-cpf">${data.cpf}</span></div>
   <script>window.onload=function(){setTimeout(function(){window.print();window.close();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
@@ -265,6 +266,7 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
     .sig-wrap{text-align:center;}
     .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
     .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+    .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
     @media print{html,body{margin:0;padding:0;}}
   </style></head><body>
   <h1>Declaração de Residência</h1>
@@ -280,7 +282,7 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   </div>
   <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
   <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span></div>
+  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span><span class="sig-cpf">${data.cpfDeclarante}</span></div>
   ${anexos}
   <script>${initScript}<\/script></body></html>`;
   const win = window.open("", "_blank");
