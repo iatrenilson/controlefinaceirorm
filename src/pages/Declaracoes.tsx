@@ -166,8 +166,8 @@ function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
-  const numStr = data.numero ? ` ${data.numero}` : "";
-  const bairroStr = data.bairro ? `, ${data.bairro.toUpperCase()},` : ",";
+  const numStr = data.numero ? `, Nº ${data.numero}` : "";
+  const bairroStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
