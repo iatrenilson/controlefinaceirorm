@@ -128,9 +128,9 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
       html += `
-  <div style="page-break-before:always;text-align:center;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;text-align:left;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;max-height:25cm;object-fit:contain;display:block;margin:0 auto;" />
+  <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 6px 0;text-align:left;">${label}</p>
+    <img src="${dataUrl}" style="max-width:100%;max-height:22cm;object-fit:contain;display:block;margin:0 auto;" />
   </div>`;
     }
   }
@@ -145,17 +145,17 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
     const container=document.getElementById(containerId);
     for(let i=1;i<=pdf.numPages;i++){
       const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale:1.8});
+      const vp=page.getViewport({scale:1.5});
       const canvas=document.createElement('canvas');
       canvas.width=vp.width;canvas.height=vp.height;
-      canvas.style.cssText='max-width:100%;display:block;margin:0 auto 8px auto;';
+      canvas.style.cssText='max-width:100%;max-height:22cm;width:auto;display:block;margin:0 auto 8px auto;';
       container.appendChild(canvas);
       await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
     }
   }
   window.onload=async function(){
     try{await Promise.all([${pdfRenderCalls.join(",")}]);}catch(e){console.error(e);}
-    setTimeout(function(){window.print();},800);
+    setTimeout(function(){window.print();},1200);
   };`
     : `window.onload=function(){setTimeout(function(){window.print();},400);};`;
   return { html, pdfJsHead, initScript };
