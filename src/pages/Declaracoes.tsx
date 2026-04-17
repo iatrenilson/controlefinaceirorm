@@ -180,7 +180,7 @@ function gerarPDF(data: FormData) {
     .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:13pt;}
     .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:13pt;}
     .sig-wrap{text-align:center;}
-    .sig-line{display:block;margin:0 auto 0.4em auto;border-top:1px solid #000;}
+    .sig-line{display:block;width:8cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
     .sig-name{font-weight:normal;font-size:13pt;text-transform:uppercase;display:block;text-align:center;}
     .sig-cpf{font-size:13pt;display:block;text-align:center;}
     @media print{html,body{margin:0;padding:0;}}
@@ -193,19 +193,11 @@ function gerarPDF(data: FormData) {
   <p class="validade">Esta declaração tem validade de <strong>90</strong> dias.</p>
   <p class="city-date">${cidadeEstado}, ${hoje}</p>
   <div class="sig-wrap">
-    <span class="sig-line" id="sig-line"></span>
-    <span class="sig-name" id="sig-name">${data.nome.toUpperCase()}</span>
+    <span class="sig-line"></span>
+    <span class="sig-name">${data.nome.toUpperCase()}</span>
     <span class="sig-cpf">${data.cpf}</span>
   </div>
-  <script>
-    window.onload=function(){
-      var name=document.getElementById('sig-name');
-      var line=document.getElementById('sig-line');
-      var pxCm=96/2.54;
-      line.style.width=(name.offsetWidth + 4*pxCm)+'px';
-      setTimeout(function(){window.print();},400);
-    };
-  <\/script></body></html>`;
+  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
