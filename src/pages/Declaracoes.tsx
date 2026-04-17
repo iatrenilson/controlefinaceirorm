@@ -241,7 +241,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
 }
 
 function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
-  const primeiroNome = capitalize(data.nomeDeclarante.trim().split(/\s+/)[0] || "Declaração");
+  const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
