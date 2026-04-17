@@ -462,7 +462,7 @@ export default function Declaracoes() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Button onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
+            <Button variant="outline" onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
             </Button>
             <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
