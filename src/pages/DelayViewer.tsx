@@ -285,6 +285,40 @@ const DelayViewer = () => {
   };
 
 
+  const handleContaQueimada = async (cliente: ClienteViewer) => {
+    setTransLoading(true);
+    try {
+      const valor = 1000;
+      const novoDeposito = cliente.depositos + valor;
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("delay_clientes")
+        .update({
+          status: "saque_pendente",
+          operacao: "saque_pendente",
+          depositos: novoDeposito,
+          data_deposito: now,
+          updated_at: now,
+        })
+        .eq("id", cliente.id);
+      if (error) throw error;
+      await supabase.from("delay_transacoes").insert({
+        cliente_id: cliente.id,
+        tipo: "deposito",
+        valor,
+        lucro: 0,
+        custo: 0,
+        data_transacao: format(new Date(), "yyyy-MM-dd"),
+      });
+      toast({ title: "Conta Queimada! Aguardando aprovação do administrador." });
+      fetchClientesSilent();
+    } catch (e: unknown) {
+      toast({ title: "Erro ao registrar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+    } finally {
+      setTransLoading(false);
+    }
+  };
+
   const handleTransacao = async () => {
     if (!transDialog) return;
     const valor = parseFloat(transValor.replace(",", "."));
@@ -680,8 +714,16 @@ const DelayViewer = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            disabled={transLoading}
                             className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
-                            onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
+                            onClick={() => {
+                              if (linkTipo === "visualizador_individual") {
+                                handleContaQueimada(c);
+                              } else {
+                                setTransDialog({ cliente: c, tipo: "saque_pendente" });
+                                setTransValor("");
+                              }
+                            }}
                           >
                             <Clock className="h-3.5 w-3.5" /> {linkTipo === "visualizador_individual" ? "Conta Queimada" : "Saque Pendente"}
                           </Button>
