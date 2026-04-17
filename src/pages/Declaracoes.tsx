@@ -226,17 +226,21 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Residência</title>
   ${pdfJsHead}
-  <style>@page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
-  h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:4em;line-height:1.4;}
-  .body-text{text-align:justify;line-height:1.5;margin-bottom:3em;font-size:12pt;}
-  .declaro-ainda{text-align:justify;line-height:1.5;margin-bottom:1.5em;font-size:12pt;}
-  .art-block{margin-left:2cm;margin-bottom:0;}
-  .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;}
-  .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin-top:0.8em;margin-bottom:0;}
-  .city-date{text-align:left;margin-top:4cm;margin-bottom:3cm;font-size:12pt;}
-  .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
-  @media print{html,body{margin:0;padding:0;}}</style></head><body>
+  <style>
+    @page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}
+    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+    h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
+    .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:2.5em;font-size:12pt;}
+    .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:1em;font-size:12pt;}
+    .art-block{margin-left:2cm;margin-right:0;margin-bottom:0.8em;}
+    .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;}
+    .pena-text{font-style:italic;text-align:left;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;}
+    .city-date{text-align:left;margin-top:3cm;margin-bottom:2.5cm;font-size:12pt;}
+    .sig-wrap{text-align:center;}
+    .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
+    .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+    @media print{html,body{margin:0;padding:0;}}
+  </style></head><body>
   <h1>Declaração de Residência</h1>
   <p class="body-text"><strong>${data.nomeDeclarante.toUpperCase()}</strong>, RG nº <strong>${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}</strong>,
     CPF nº <strong>${data.cpfDeclarante}</strong>, <strong>DECLARO</strong> para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83)
@@ -247,8 +251,8 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   <p class="declaro-ainda">Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, <em>in verbis</em>:</p>
   <div class="art-block">
     <p class="art-text">Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
-    <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
   </div>
+  <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
   <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
   <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span></div>
   ${anexos}
