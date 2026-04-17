@@ -214,7 +214,9 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   const dataFormatada = `${cidadeEstado}, ${dia} de ${mes} de ${ano}`;
   const paiAcervo = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const maeAcervo = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
-  const filhoDeAcervo = paiAcervo && maeAcervo ? `${paiAcervo} e ${maeAcervo}` : paiAcervo || maeAcervo;
+  const filhoDeAcervoHtml = paiAcervo && maeAcervo
+    ? `<strong>${paiAcervo}</strong> e <strong>${maeAcervo}</strong>`
+    : `<strong>${paiAcervo || maeAcervo}</strong>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Segundo Endereço de Guarda de Acervo</title>
   <style>@page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
@@ -228,7 +230,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de identidade
     RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf},
-    filho de <strong>${filhoDeAcervo}</strong>,
+    filho de ${filhoDeAcervoHtml},
     DECLARO que não possuo segundo endereço de guarda de acervo.</p>
   <p class="verdade">Por ser verdade, firmo o presente.</p>
   <p class="city-date">${dataFormatada}</p>
