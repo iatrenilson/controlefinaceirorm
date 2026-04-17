@@ -154,10 +154,12 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
 }
 
 // ─── PDF generators ───────────────────────────────────────────────────────
+function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
+
 function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
+  const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
   const enderecoCompleto = `${data.endereco}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
@@ -189,7 +191,7 @@ function gerarPDF(data: FormData) {
 }
 
 function gerarPDFAcervo(data: FormDataAcervo) {
-  const primeiroNome = data.nome.trim().split(/\s+/)[0] || "Declaração";
+  const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const cidadeEstado = `${data.cidade}-${data.estado.toUpperCase()}`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
@@ -216,7 +218,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
 }
 
 function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
-  const primeiroNome = data.nomeDeclarante.trim().split(/\s+/)[0] || "Declaração";
+  const primeiroNome = capitalize(data.nomeDeclarante.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const endFormatado = `${data.endereco.toUpperCase()}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
