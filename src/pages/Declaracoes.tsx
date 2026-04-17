@@ -22,6 +22,7 @@ interface Cliente {
   estadoCivil: string;
   dataNascimento: string;
   endereco: string;
+  numero: string;
   bairro: string;
   cep: string;
   cidade: string;
@@ -34,20 +35,20 @@ type ClienteForm = Omit<Cliente, "id">;
 const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
-  dataNascimento: "", endereco: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
   senhaGov: "",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
 interface FormData {
   nome: string; estadoCivil: string; dataNascimento: string;
-  nomePai: string; nomeMae: string; endereco: string; bairro: string;
+  nomePai: string; nomeMae: string; endereco: string; numero: string; bairro: string;
   cep: string; cidade: string; estado: string; rg: string;
   orgaoEmissor: string; dataExpedicao: string; cpf: string;
 }
 const EMPTY_FORM: FormData = {
   nome: "", estadoCivil: "Solteiro(a)", dataNascimento: "", nomePai: "", nomeMae: "",
-  endereco: "", bairro: "", cep: "", cidade: "MANAUS", estado: "AM",
+  endereco: "", numero: "", bairro: "", cep: "", cidade: "MANAUS", estado: "AM",
   rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "", cpf: "",
 };
 
@@ -65,12 +66,12 @@ const EMPTY_FORM_ACERVO: FormDataAcervo = {
 interface FormDataResidencia {
   nomeDeclarante: string; rgDeclarante: string; orgaoDeclarante: string; cpfDeclarante: string;
   nomeDeclarado: string; rgDeclarado: string; orgaoDeclarado: string; cpfDeclarado: string;
-  nomePai: string; nomeMae: string; endereco: string; cep: string; cidade: string; estado: string;
+  nomePai: string; nomeMae: string; endereco: string; numero: string; cep: string; cidade: string; estado: string;
 }
 const EMPTY_FORM_RES: FormDataResidencia = {
   nomeDeclarante: "", rgDeclarante: "", orgaoDeclarante: "SSP-AM", cpfDeclarante: "",
   nomeDeclarado: "", rgDeclarado: "", orgaoDeclarado: "SSP-AM", cpfDeclarado: "",
-  nomePai: "", nomeMae: "", endereco: "", cep: "", cidade: "Manaus", estado: "AM",
+  nomePai: "", nomeMae: "", endereco: "", numero: "", cep: "", cidade: "Manaus", estado: "AM",
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -165,8 +166,9 @@ function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
+  const numStr = data.numero ? `, Nº ${data.numero}` : "";
   const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
-  const enderecoCompleto = `${data.endereco}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
+  const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de não estar respondendo a inquérito policial ou a processo criminal</title>
   <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:"Times New Roman",Times,serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
@@ -225,7 +227,8 @@ function gerarPDFAcervo(data: FormDataAcervo) {
 function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarante.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
-  const endFormatado = `${data.endereco.toUpperCase()}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const numResStr = data.numero ? `, Nº ${data.numero}` : "";
+  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}, Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
   if (rgDataUrl) attachmentList.push({ dataUrl: rgDataUrl, label: "Anexo: Documento de Identidade (RG)" });
   if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência" });
@@ -559,10 +562,17 @@ export default function Declaracoes() {
               </div>
             </div>
             {/* Endereço */}
-            <div className="space-y-1">
-              <Label className="text-xs">Endereço (Rua/Beco, número)</Label>
-              <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco, 58"
-                value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Endereço (Rua/Beco)</Label>
+                <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco"
+                  value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nº</Label>
+                <Input className="h-9 text-sm" placeholder="58"
+                  value={formCliente.numero} onChange={e => setC("numero", e.target.value)} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
@@ -620,7 +630,7 @@ export default function Declaracoes() {
             <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
               setForm({
                 nome: c.nome, estadoCivil: c.estadoCivil, dataNascimento: c.dataNascimento,
-                nomePai: c.nomePai, nomeMae: c.nomeMae, endereco: c.endereco, bairro: c.bairro,
+                nomePai: c.nomePai, nomeMae: c.nomeMae, endereco: c.endereco, numero: c.numero, bairro: c.bairro,
                 cep: c.cep, cidade: c.cidade.toUpperCase(), estado: c.estado,
                 rg: c.rg, orgaoEmissor: c.orgaoEmissor, dataExpedicao: c.dataExpedicao, cpf: c.cpf,
               });
@@ -659,9 +669,15 @@ export default function Declaracoes() {
                 <Input className="h-9 text-sm uppercase" value={form.nomeMae} onChange={e => set("nomeMae", e.target.value)} />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Endereço</Label>
-              <Input className="h-9 text-sm" value={form.endereco} onChange={e => set("endereco", titleCase(e.target.value))} />
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Endereço (Rua/Beco)</Label>
+                <Input className="h-9 text-sm" value={form.endereco} onChange={e => set("endereco", titleCase(e.target.value))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nº</Label>
+                <Input className="h-9 text-sm" placeholder="58" value={form.numero} onChange={e => set("numero", e.target.value)} />
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
@@ -821,7 +837,7 @@ export default function Declaracoes() {
                   setR("nomeDeclarado", c.nome); setR("rgDeclarado", c.rg);
                   setR("orgaoDeclarado", c.orgaoEmissor); setR("cpfDeclarado", c.cpf);
                   setR("nomePai", c.nomePai); setR("nomeMae", c.nomeMae);
-                  setR("endereco", c.endereco); setR("cep", c.cep);
+                  setR("endereco", c.endereco); setR("numero", c.numero); setR("cep", c.cep);
                   setR("cidade", c.cidade); setR("estado", c.estado);
                 }} />
                 <div className="space-y-1">
@@ -859,9 +875,15 @@ export default function Declaracoes() {
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Endereço</p>
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Endereço completo</Label>
-                  <Input className="h-9 text-sm" value={formRes.endereco} onChange={e => setR("endereco", titleCase(e.target.value))} />
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-3 space-y-1">
+                    <Label className="text-xs">Endereço (Rua/Beco)</Label>
+                    <Input className="h-9 text-sm" value={formRes.endereco} onChange={e => setR("endereco", titleCase(e.target.value))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nº</Label>
+                    <Input className="h-9 text-sm" placeholder="58" value={formRes.numero} onChange={e => setR("numero", e.target.value)} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
