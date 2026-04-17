@@ -175,7 +175,7 @@ function gerarPDF(data: FormData) {
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
+  <title>Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais - ${primeiroNome}</title>
   <style>
     @page{size:A4 portrait;margin:1cm 2cm 2cm 2cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
@@ -220,7 +220,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
     ? `<strong>${paiAcervo}</strong> e <strong>${maeAcervo}</strong>`
     : `<strong>${paiAcervo || maeAcervo}</strong>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>${primeiroNome} - Declaração de Segundo Endereço de Guarda de Acervo</title>
+  <title>Declaração de Segundo Endereço de Guarda de Acervo - ${primeiroNome}</title>
   <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
   h1{text-align:center;font-size:12pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
   .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
@@ -253,7 +253,7 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
   if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>${primeiroNome} - Declaração de Residência</title>
+  <title>Declaração de Residência - ${primeiroNome}</title>
   ${pdfJsHead}
   <style>
     @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
