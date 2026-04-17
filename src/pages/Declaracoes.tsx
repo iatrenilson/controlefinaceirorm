@@ -227,7 +227,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   @media print{html,body{margin:0;padding:0;}}</style></head><body>
   <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de identidade
-    <strong>RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}</strong>, <strong>CPF nº ${data.cpf}</strong>,
+    RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf},
     filho de <strong>${filhoDeAcervo}</strong>,
     DECLARO que não possuo segundo endereço de guarda de acervo.</p>
   <p class="verdade">Por ser verdade, firmo o presente.</p>
