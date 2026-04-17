@@ -375,11 +375,44 @@ export default function Declaracoes() {
   const [savingCliente, setSavingCliente] = useState(false);
 
   const fetchClientes = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("declaracao_clientes")
-      .select("*")
-      .order("nome", { ascending: true });
-    if (!error && data) setClientes(data.map(rowToCliente));
+    try {
+      const { data, error } = await supabase
+        .from("declaracao_clientes")
+        .select("*")
+        .order("nome", { ascending: true });
+      if (!error && data) {
+        // Supabase disponível: usa banco de dados
+        setClientes(data.map(rowToCliente));
+        // Migra dados do localStorage para Supabase se houver
+        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+        if (local.length > 0 && data.length === 0) {
+          // Migra automaticamente do localStorage para Supabase
+          for (const c of local) {
+            await supabase.from("declaracao_clientes").insert({
+              nome: c.nome, rg: c.rg, orgao_emissor: c.orgaoEmissor,
+              data_expedicao: c.dataExpedicao, cpf: c.cpf, nome_pai: c.nomePai,
+              nome_mae: c.nomeMae, estado_civil: c.estadoCivil,
+              data_nascimento: c.dataNascimento, endereco: c.endereco,
+              numero: c.numero, bairro: c.bairro, cep: c.cep,
+              cidade: c.cidade, estado: c.estado, senha_gov: c.senhaGov,
+              updated_at: new Date().toISOString(),
+            });
+          }
+          localStorage.removeItem("decl_clientes");
+          // Recarrega após migração
+          const { data: d2 } = await supabase.from("declaracao_clientes").select("*").order("nome");
+          if (d2) setClientes(d2.map(rowToCliente));
+        }
+      } else {
+        // Tabela ainda não existe: usa localStorage
+        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+        setClientes(local);
+      }
+    } catch {
+      // Fallback para localStorage em caso de erro
+      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+      setClientes(local);
+    }
     setLoadingClientes(false);
   }, []);
 
@@ -422,12 +455,24 @@ export default function Declaracoes() {
       updated_at: new Date().toISOString(),
     };
     try {
+      let usedSupabase = false;
       if (editandoId) {
         const { error } = await supabase.from("declaracao_clientes").update(payload).eq("id", editandoId);
-        if (error) throw error;
+        if (!error) usedSupabase = true;
       } else {
         const { error } = await supabase.from("declaracao_clientes").insert(payload);
-        if (error) throw error;
+        if (!error) usedSupabase = true;
+      }
+      if (!usedSupabase) {
+        // Fallback localStorage
+        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+        if (editandoId) {
+          const updated = local.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c);
+          localStorage.setItem("decl_clientes", JSON.stringify(updated));
+        } else {
+          local.push({ id: Date.now().toString(), ...formCliente });
+          localStorage.setItem("decl_clientes", JSON.stringify(local));
+        }
       }
       await fetchClientes();
       setDialogClienteOpen(false);
@@ -441,7 +486,11 @@ export default function Declaracoes() {
   const excluirCliente = async (id: string) => {
     if (!confirm("Excluir este cliente?")) return;
     const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id);
-    if (error) { toast({ title: "Erro ao excluir", variant: "destructive" }); return; }
+    if (error) {
+      // Fallback localStorage
+      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+      localStorage.setItem("decl_clientes", JSON.stringify(local.filter(c => c.id !== id)));
+    }
     setClientes(prev => prev.filter(c => c.id !== id));
   };
 
