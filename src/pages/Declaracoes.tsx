@@ -172,12 +172,12 @@ function gerarPDF(data: FormData) {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
   <style>
-    @page{size:A4 portrait;margin:2.5cm 3cm 2.5cm 3cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.4;}
-    h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:0.8em;line-height:1.4;}
-    .body-text{text-align:justify;line-height:1.4;margin-top:0;margin-bottom:0.7em;font-size:12pt;}
-    .art-text{text-align:justify;line-height:1.4;margin-top:0;margin-bottom:0.7em;font-size:12pt;}
-    .validade{text-align:left;line-height:1.4;margin-top:0;margin-bottom:0;font-size:12pt;}
+    @page{size:A4 portrait;margin:2.5cm 2.5cm 2.5cm 2.5cm;}
+    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
+    h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:0.5em;line-height:1.15;}
+    .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.5em;font-size:12pt;}
+    .art-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.5em;font-size:12pt;}
+    .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:12pt;}
     .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:12pt;}
     .sig-wrap{text-align:center;}
     .sig-line{display:block;margin:0 auto 0.4em auto;border-top:1px solid #000;}
