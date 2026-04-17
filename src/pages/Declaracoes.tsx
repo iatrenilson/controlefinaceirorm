@@ -172,17 +172,17 @@ function gerarPDF(data: FormData) {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
   <style>
-    @page{size:A4 portrait;margin:2cm 2cm 2cm 2cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000;background:#fff;line-height:1.3;}
-    h1{text-align:center;font-size:13pt;font-weight:bold;margin-top:0;margin-bottom:0.8em;line-height:1.3;}
-    .body-text{text-align:justify;line-height:1.3;margin-top:0;margin-bottom:0.6em;font-size:11pt;}
-    .art-text{text-align:justify;line-height:1.3;margin-top:0;margin-bottom:0.6em;font-size:11pt;}
-    .validade{text-align:left;line-height:1.3;margin-top:0;margin-bottom:0;font-size:11pt;}
-    .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:11pt;}
+    @page{size:A4 portrait;margin:2.5cm 3cm 2.5cm 3cm;}
+    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.4;}
+    h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:0.8em;line-height:1.4;}
+    .body-text{text-align:justify;line-height:1.4;margin-top:0;margin-bottom:0.7em;font-size:12pt;}
+    .art-text{text-align:justify;line-height:1.4;margin-top:0;margin-bottom:0.7em;font-size:12pt;}
+    .validade{text-align:left;line-height:1.4;margin-top:0;margin-bottom:0;font-size:12pt;}
+    .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:12pt;}
     .sig-wrap{text-align:center;}
-    .sig-line{display:block;width:100%;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-    .sig-name{font-weight:normal;font-size:11pt;text-transform:uppercase;display:block;text-align:center;}
-    .sig-cpf{font-size:11pt;display:block;text-align:center;}
+    .sig-line{display:block;margin:0 auto 0.4em auto;border-top:1px solid #000;}
+    .sig-name{font-weight:normal;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+    .sig-cpf{font-size:12pt;display:block;text-align:center;}
     @media print{html,body{margin:0;padding:0;}}
   </style></head><body>
   <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU<br>PROCESSOS CRIMINAIS</h1>
@@ -192,8 +192,20 @@ function gerarPDF(data: FormData) {
   <p class="art-text">Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
   <p class="validade">Esta declaração tem validade de <strong>90</strong> dias.</p>
   <p class="city-date">${cidadeEstado}, ${hoje}</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span><span class="sig-cpf">${data.cpf}</span></div>
-  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
+  <div class="sig-wrap">
+    <span class="sig-line" id="sig-line"></span>
+    <span class="sig-name" id="sig-name">${data.nome.toUpperCase()}</span>
+    <span class="sig-cpf">${data.cpf}</span>
+  </div>
+  <script>
+    window.onload=function(){
+      var name=document.getElementById('sig-name');
+      var line=document.getElementById('sig-line');
+      var pxCm=96/2.54;
+      line.style.width=(name.offsetWidth + 4*pxCm)+'px';
+      setTimeout(function(){window.print();},400);
+    };
+  <\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
