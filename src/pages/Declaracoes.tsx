@@ -173,16 +173,16 @@ function gerarPDF(data: FormData) {
   <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
   <style>
     @page{size:A4 portrait;margin:2cm 1cm 2cm 1cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000;background:#fff;line-height:1.15;}
-    h1{text-align:center;font-size:18pt;font-weight:bold;margin-top:0;margin-bottom:0.6em;line-height:1.15;}
-    .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:13pt;}
-    .art-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:13pt;}
-    .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:13pt;}
-    .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:13pt;}
+    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
+    h1{text-align:center;font-size:16pt;font-weight:bold;margin-top:0;margin-bottom:0.6em;line-height:1.15;}
+    .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:12pt;}
+    .art-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:12pt;}
+    .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:12pt;}
+    .city-date{text-align:center;margin-top:1.5em;margin-bottom:2cm;font-size:12pt;}
     .sig-wrap{text-align:center;}
     .sig-line{display:block;width:8cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-    .sig-name{font-weight:normal;font-size:13pt;text-transform:uppercase;display:block;text-align:center;}
-    .sig-cpf{font-size:13pt;display:block;text-align:center;}
+    .sig-name{font-weight:normal;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+    .sig-cpf{font-size:12pt;display:block;text-align:center;}
     @media print{html,body{margin:0;padding:0;}}
   </style></head><body>
   <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU<br>PROCESSOS CRIMINAIS</h1>
