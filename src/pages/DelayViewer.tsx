@@ -683,7 +683,7 @@ const DelayViewer = () => {
                             className="flex-1 h-7 text-xs gap-1 border-yellow-500/40 text-yellow-500 hover:bg-yellow-500/10"
                             onClick={() => { setTransDialog({ cliente: c, tipo: "saque_pendente" }); setTransValor(""); }}
                           >
-                            <Clock className="h-3.5 w-3.5" /> Saque Pendente
+                            <Clock className="h-3.5 w-3.5" /> {linkTipo === "visualizador_individual" ? "Conta Queimada" : "Saque Pendente"}
                           </Button>
                         )}
                       </div>
@@ -745,7 +745,7 @@ const DelayViewer = () => {
             <DialogTitle className="text-sm">
               {transDialog?.tipo === "deposito" && "Registrar Depósito"}
               {transDialog?.tipo === "saque" && "Registrar Saque"}
-              {transDialog?.tipo === "saque_pendente" && "Marcar Saque Pendente"}
+              {transDialog?.tipo === "saque_pendente" && (linkTipo === "visualizador_individual" ? "Conta Queimada" : "Marcar Saque Pendente")}
               {transDialog?.tipo === "saque_fornecedor" && `Saque — ${transDialog.cliente.nome}`}
             </DialogTitle>
           </DialogHeader>
