@@ -232,8 +232,8 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
     @page{size:A4 portrait;margin:2.5cm 3cm 2cm 3cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
     h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
-    .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:1em;font-size:12pt;}
-    .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:1em;font-size:12pt;}
+    .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:0.3em;font-size:12pt;}
+    .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:2em;font-size:12pt;}
     .art-block{margin-bottom:0.8em;}
     .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;text-indent:2cm;}
     .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;text-indent:0;}
