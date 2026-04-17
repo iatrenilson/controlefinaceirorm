@@ -174,7 +174,7 @@ function gerarPDF(data: FormData) {
   <style>
     @page{size:A4 portrait;margin:2cm 1cm 2cm 1cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:13pt;color:#000;background:#fff;line-height:1.15;}
-    h1{text-align:center;font-size:18pt;font-weight:bold;margin-top:0;margin-bottom:0.6em;line-height:1.15;}
+    h1{text-align:center;font-size:18pt;font-weight:bold;margin-top:-1.5cm;margin-bottom:0.6em;line-height:1.15;}
     .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:13pt;}
     .art-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:13pt;}
     .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:13pt;}
