@@ -237,7 +237,7 @@ function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, 
     .art-block{margin-bottom:0.8em;}
     .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;text-indent:2cm;}
     .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;text-indent:0;}
-    .city-date{text-align:left;margin-top:3cm;margin-bottom:2.5cm;font-size:12pt;}
+    .city-date{text-align:left;margin-top:3cm;margin-bottom:4cm;font-size:12pt;}
     .sig-wrap{text-align:center;}
     .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
     .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
