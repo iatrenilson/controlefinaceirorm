@@ -200,7 +200,7 @@ function gerarPDF(data: FormData) {
     <span class="sig-name">${data.nome.toUpperCase()}</span>
     <span class="sig-cpf">${data.cpf}</span>
   </div>
-  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
+  <script>window.onload=function(){setTimeout(function(){window.print();window.close();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
@@ -227,7 +227,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   <p class="verdade">Por ser verdade, firmo o presente.</p>
   <p class="city-date">${dataEscrita} ${cidadeEstado}</p>
   <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span></div>
-  <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
+  <script>window.onload=function(){setTimeout(function(){window.print();window.close();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
 }
