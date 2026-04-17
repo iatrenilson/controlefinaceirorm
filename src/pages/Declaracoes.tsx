@@ -90,6 +90,11 @@ function maskCpf(raw: string): string {
   if (d.length > 3) return d.replace(/(\d{3})(\d{1,3})/, "$1.$2");
   return d;
 }
+function maskRg(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 9);
+  if (d.length <= 1) return d;
+  return d.slice(0, d.length - 1) + "-" + d.slice(-1);
+}
 function maskCep(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 8);
   if (d.length > 5) return d.replace(/(\d{2})(\d{3})(\d{1,3})/, "$1.$2-$3");
@@ -502,8 +507,8 @@ export default function Declaracoes() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">RG</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="00000000"
-                  value={formCliente.rg} onChange={e => setC("rg", e.target.value)} />
+                <Input className="h-9 text-sm font-mono" placeholder="0000000-0"
+                  value={formCliente.rg} onChange={e => setC("rg", maskRg(e.target.value))} />
               </div>
             </div>
             {/* Órgão + Data Expedição */}
@@ -675,7 +680,7 @@ export default function Declaracoes() {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">RG</Label>
-                <Input className="h-9 text-sm font-mono" value={form.rg} onChange={e => set("rg", e.target.value)} />
+                <Input className="h-9 text-sm font-mono" placeholder="0000000-0" value={form.rg} onChange={e => set("rg", maskRg(e.target.value))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Órgão Emissor</Label>
@@ -725,7 +730,7 @@ export default function Declaracoes() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">RG</Label>
-                <Input className="h-9 text-sm font-mono" value={formAcervo.rg} onChange={e => setA("rg", e.target.value)} />
+                <Input className="h-9 text-sm font-mono" placeholder="0000000-0" value={formAcervo.rg} onChange={e => setA("rg", maskRg(e.target.value))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Órgão Emissor</Label>
@@ -794,7 +799,7 @@ export default function Declaracoes() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">RG</Label>
-                    <Input className="h-9 text-sm font-mono" value={formRes.rgDeclarante} onChange={e => setR("rgDeclarante", e.target.value)} />
+                    <Input className="h-9 text-sm font-mono" placeholder="0000000-0" value={formRes.rgDeclarante} onChange={e => setR("rgDeclarante", maskRg(e.target.value))} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Órgão Emissor</Label>
@@ -826,7 +831,7 @@ export default function Declaracoes() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">RG</Label>
-                    <Input className="h-9 text-sm font-mono" value={formRes.rgDeclarado} onChange={e => setR("rgDeclarado", e.target.value)} />
+                    <Input className="h-9 text-sm font-mono" placeholder="0000000-0" value={formRes.rgDeclarado} onChange={e => setR("rgDeclarado", maskRg(e.target.value))} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Órgão Emissor</Label>
