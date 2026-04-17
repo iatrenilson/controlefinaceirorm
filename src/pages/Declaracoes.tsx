@@ -1352,8 +1352,8 @@ export default function Declaracoes() {
                   setR("nomeDeclarado", c.nome); setR("rgDeclarado", c.rg);
                   setR("orgaoDeclarado", c.orgaoEmissor); setR("cpfDeclarado", c.cpf);
                   setR("nomePai", c.nomePai); setR("nomeMae", c.nomeMae);
-                  setR("endereco", c.endereco); setR("numero", c.numero); setR("cep", c.cep);
-                  setR("cidade", c.cidade); setR("estado", c.estado);
+                  setR("endereco", c.endereco); setR("numero", c.numero); setR("bairro", c.bairro);
+                  setR("cep", c.cep); setR("cidade", c.cidade); setR("estado", c.estado);
                 }} />
                 <div className="space-y-1">
                   <Label className="text-xs">Nome Completo</Label>
