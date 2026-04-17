@@ -374,47 +374,45 @@ export default function Declaracoes() {
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
 
+  const saveClientesToCloud = useCallback(async (list: Cliente[]) => {
+    await supabase.auth.updateUser({ data: { decl_clientes: list } });
+  }, []);
+
   const fetchClientes = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("declaracao_clientes")
-        .select("*")
-        .order("nome", { ascending: true });
-      if (!error && data) {
-        // Supabase disponível: usa banco de dados
-        setClientes(data.map(rowToCliente));
-        // Migra dados do localStorage para Supabase se houver
-        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
-        if (local.length > 0 && data.length === 0) {
-          // Migra automaticamente do localStorage para Supabase
-          for (const c of local) {
-            await supabase.from("declaracao_clientes").insert({
-              nome: c.nome, rg: c.rg, orgao_emissor: c.orgaoEmissor,
-              data_expedicao: c.dataExpedicao, cpf: c.cpf, nome_pai: c.nomePai,
-              nome_mae: c.nomeMae, estado_civil: c.estadoCivil,
-              data_nascimento: c.dataNascimento, endereco: c.endereco,
-              numero: c.numero, bairro: c.bairro, cep: c.cep,
-              cidade: c.cidade, estado: c.estado, senha_gov: c.senhaGov,
-              updated_at: new Date().toISOString(),
-            });
+      const { data: { user } } = await supabase.auth.getUser();
+      const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
+      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+
+      if (cloud.length > 0) {
+        // Cloud tem dados: usa cloud (sincronizado entre dispositivos)
+        setClientes(cloud);
+        // Se local tem dados que não estão na cloud, mescla e salva
+        if (local.length > 0) {
+          const merged = [...cloud];
+          for (const lc of local) {
+            if (!cloud.find(c => c.cpf === lc.cpf && c.nome === lc.nome)) merged.push(lc);
+          }
+          if (merged.length > cloud.length) {
+            await saveClientesToCloud(merged);
+            setClientes(merged);
           }
           localStorage.removeItem("decl_clientes");
-          // Recarrega após migração
-          const { data: d2 } = await supabase.from("declaracao_clientes").select("*").order("nome");
-          if (d2) setClientes(d2.map(rowToCliente));
         }
-      } else {
-        // Tabela ainda não existe: usa localStorage
-        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+      } else if (local.length > 0) {
+        // Só tem no local: migra para cloud
+        await saveClientesToCloud(local);
+        localStorage.removeItem("decl_clientes");
         setClientes(local);
+      } else {
+        setClientes([]);
       }
     } catch {
-      // Fallback para localStorage em caso de erro
       const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
       setClientes(local);
     }
     setLoadingClientes(false);
-  }, []);
+  }, [saveClientesToCloud]);
 
   useEffect(() => { fetchClientes(); }, [fetchClientes]);
 
@@ -455,26 +453,14 @@ export default function Declaracoes() {
       updated_at: new Date().toISOString(),
     };
     try {
-      let usedSupabase = false;
+      let novaLista: Cliente[];
       if (editandoId) {
-        const { error } = await supabase.from("declaracao_clientes").update(payload).eq("id", editandoId);
-        if (!error) usedSupabase = true;
+        novaLista = clientes.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c);
       } else {
-        const { error } = await supabase.from("declaracao_clientes").insert(payload);
-        if (!error) usedSupabase = true;
+        novaLista = [...clientes, { id: Date.now().toString(), ...formCliente }];
       }
-      if (!usedSupabase) {
-        // Fallback localStorage
-        const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
-        if (editandoId) {
-          const updated = local.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c);
-          localStorage.setItem("decl_clientes", JSON.stringify(updated));
-        } else {
-          local.push({ id: Date.now().toString(), ...formCliente });
-          localStorage.setItem("decl_clientes", JSON.stringify(local));
-        }
-      }
-      await fetchClientes();
+      await saveClientesToCloud(novaLista);
+      setClientes(novaLista);
       setDialogClienteOpen(false);
       toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
     } catch (e: unknown) {
@@ -485,13 +471,9 @@ export default function Declaracoes() {
   };
   const excluirCliente = async (id: string) => {
     if (!confirm("Excluir este cliente?")) return;
-    const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id);
-    if (error) {
-      // Fallback localStorage
-      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
-      localStorage.setItem("decl_clientes", JSON.stringify(local.filter(c => c.id !== id)));
-    }
-    setClientes(prev => prev.filter(c => c.id !== id));
+    const novaLista = clientes.filter(c => c.id !== id);
+    await saveClientesToCloud(novaLista);
+    setClientes(novaLista);
   };
 
   // Diálogo 1 — Inquérito
