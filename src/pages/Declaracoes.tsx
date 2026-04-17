@@ -164,34 +164,35 @@ function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).t
 
 function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
-  const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
-  const numStr = data.numero ? `, Nº ${data.numero}` : "";
-  const bairroStr = data.bairro ? ` - ${data.bairro},` : ",";
+  const numStr = data.numero ? ` ${data.numero}` : "";
+  const bairroStr = data.bairro ? `, ${data.bairro.toUpperCase()},` : ",";
   const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>${primeiroNome} - Declaração de não estar respondendo a inquérito policial ou a processo criminal</title>
-  <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:"Times New Roman",Times,serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
-  h1{text-align:center;font-size:14pt;font-weight:bold;text-transform:uppercase;margin-bottom:1.8em;line-height:1.5;}
-  .body-text{text-indent:1.5cm;text-align:justify;line-height:1.6;margin-bottom:1.5em;font-size:12pt;}
-  .art-label{font-style:italic;margin-bottom:0.2em;line-height:1.5;}.art-dash{font-style:italic;margin-bottom:0.5em;line-height:1.5;}
-  .art-body{font-style:italic;text-align:justify;line-height:1.6;margin-bottom:1em;}
-  .city-date{text-align:center;margin-top:2em;margin-bottom:3cm;font-size:12pt;}
-  .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;}.sig-cpf{font-size:12pt;display:block;}
-  @media print{html,body{margin:0;padding:0;}}</style></head><body>
-  <h1>Declaração de Inexistência de Inquéritos Policiais ou<br>Processos Criminais</h1>
+  <title>${primeiroNome} - Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</title>
+  <style>
+    @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
+    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
+    h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:1em;line-height:1.4;}
+    .body-text{text-align:justify;line-height:1.5;margin-bottom:1em;font-size:12pt;}
+    .art-text{text-align:justify;line-height:1.5;margin-bottom:1em;font-size:12pt;}
+    .validade{text-align:left;line-height:1.5;margin-bottom:0;font-size:12pt;}
+    .city-date{text-align:center;margin-top:2em;margin-bottom:3cm;font-size:12pt;}
+    .sig-wrap{text-align:center;}
+    .sig-line{display:block;width:100%;margin:0 auto 0.5em auto;border-top:1px solid #000;}
+    .sig-name{font-weight:normal;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
+    .sig-cpf{font-size:12pt;display:block;text-align:center;}
+    @media print{html,body{margin:0;padding:0;}}
+  </style></head><body>
+  <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU<br>PROCESSOS CRIMINAIS</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
     ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, residência no(a), ${enderecoCompleto}, RG
-    nº ${data.rg}, ${data.orgaoEmissor.toUpperCase()}, expedido em ${formatDate(data.dataExpedicao)}
-    declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente
-    de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.</p>
-  <p class="art-label">"Art. 299</p><p class="art-dash">–</p>
-  <p class="art-body">Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
-  <p class="art-body">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular."</p>
-  <p class="city-date">${cidadeEstado} ${hoje}.</p>
+    nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.</p>
+  <p class="art-text">Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
+  <p class="validade">Esta declaração tem validade de <strong>90</strong> dias.</p>
+  <p class="city-date">${cidadeEstado}, ${hoje}</p>
   <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span><span class="sig-cpf">${data.cpf}</span></div>
-  <div style="height:2cm;"></div>
   <script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body></html>`;
   const win = window.open("", "_blank");
   if (win) { win.document.write(html); win.document.close(); }
