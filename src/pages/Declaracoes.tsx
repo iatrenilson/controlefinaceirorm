@@ -380,156 +380,183 @@ export default function Declaracoes() {
 
   const parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
-    // Normaliza: remove múltiplos espaços, split em linhas limpas
     const linhas = text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-    const up = (s: string) => s.toUpperCase();
-    const isNome = (s: string) => /^[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÀÇ]{2,}(\s[A-ZÁÉÍÓÚÃÕÂÊÎÔÛÀÇ]{2,})+$/.test(s.trim());
+    const up = (s: string) => s.toUpperCase().trim();
+
     const parseData = (s: string) => {
-      const m = s.match(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/);
+      const m = s.match(/(\d{2})[\/\-\.\s](\d{2})[\/\-\.\s](\d{4})/);
       if (!m) return null;
-      return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+      const [,d,mo,y] = m;
+      if (parseInt(mo) > 12 || parseInt(d) > 31) return null;
+      return `${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;
     };
-    // Retorna valor: mesma linha após label OU próxima linha não-vazia
-    const valorApos = (i: number, linha: string, labelRe: RegExp): string => {
-      const mesmaLinha = linha.replace(labelRe, "").replace(/^[\s:.\-]+/, "").trim();
-      if (mesmaLinha.length > 1) return mesmaLinha;
-      for (let j = i + 1; j < Math.min(i + 4, linhas.length); j++) {
-        if (linhas[j].trim().length > 1) return linhas[j].trim();
+
+    // Pega valor: mesmo após label na mesma linha OU próxima(s) linha(s)
+    const proximo = (i: number, re: RegExp, linhas2 = linhas): string => {
+      const resto = linhas2[i].replace(re,"").replace(/^[\s:.\-–]+/,"").trim();
+      if (resto.length > 1) return resto;
+      for (let j = i+1; j < Math.min(i+4, linhas2.length); j++) {
+        const v = linhas2[j].trim();
+        if (v.length > 1) return v;
       }
       return "";
     };
 
+    // Verifica se string parece um nome (2+ palavras, letras)
+    const pareceNome = (s: string) => {
+      const limpo = s.replace(/[^A-ZÀ-Úa-zà-ú\s]/g,"").trim();
+      const palavras = limpo.split(/\s+/).filter(p => p.length >= 2);
+      return palavras.length >= 2 && palavras.length <= 8 && limpo.length >= 5 && !/\d/.test(s);
+    };
+
+    // ── Varredura linha por linha ──
     for (let i = 0; i < linhas.length; i++) {
       const l = linhas[i];
       const U = up(l);
 
-      // ── CPF ──
+      // CPF — qualquer formato com 11 dígitos
       if (!r.cpf) {
-        const m = l.match(/\b(\d{3}[\. ]?\d{3}[\. ]?\d{3}[\-\. ]?\d{2})\b/);
-        if (m && m[1].replace(/\D/g,"").length === 11) r.cpf = maskCpf(m[1].replace(/\D/g,""));
+        const raw = l.replace(/[^\d]/g,"");
+        if (raw.length === 11 && !raw.startsWith("00000") && /CPF/i.test(l + (linhas[i-1]||""))) {
+          r.cpf = maskCpf(raw);
+        } else {
+          const m = l.match(/(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})(?!\d)/);
+          if (m) { const d = m[1].replace(/\D/g,""); if (d.length === 11) r.cpf = maskCpf(d); }
+        }
       }
 
-      // ── CEP ──
-      if (!r.cep) {
-        const m = l.match(/\b(\d{2}[\. ]?\d{3}[\-]?\d{3})\b/);
-        if (m && m[1].replace(/\D/g,"").length === 8) r.cep = maskCep(m[1].replace(/\D/g,""));
-      }
-
-      // ── RG / REGISTRO GERAL ──
-      if (!r.rg && /REGISTRO\s*GERAL|^R\.?G\.?$|^RG$/.test(U)) {
-        const val = valorApos(i, l, /REGISTRO\s*GERAL|R\.?G\.?/i);
-        const m = val.match(/(\d[\d\.\-]{4,14})/);
-        if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
-      }
-      // RG inline: "RG: 1234567-8" ou "Nº 1234567-8"
+      // RG
       if (!r.rg) {
-        const m = l.match(/\b(?:RG|R\.G\.)[:\s#]*(\d[\d\.\-\/]{4,14})/i);
-        if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
+        if (/REGISTRO\s*GERAL|^\s*R\.?G\.?\s*$/.test(U)) {
+          const val = proximo(i, /REGISTRO\s*GERAL|R\.?G\.?/i);
+          const m = val.match(/(\d[\d\.\-\/\s]{4,14}\d)/);
+          if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
+        }
+        if (!r.rg) {
+          const m = l.match(/\bR\.?G\.?[:\s#Nº°]*(\d[\d\.\-\/]{4,14})/i);
+          if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
+        }
       }
 
-      // ── NOME ──
-      if (!r.nome && /^NOME$|^NOME COMPLETO$|^NOME DO PORTADOR/.test(U)) {
-        const val = valorApos(i, l, /^NOME(\s+COMPLETO|\s+DO\s+PORTADOR)?/i);
-        if (val && isNome(up(val))) r.nome = up(val);
-      }
-      if (!r.nome && /^NOME[:\s]+/i.test(l)) {
-        const val = l.replace(/^NOME[:\s]+/i, "").trim();
-        if (val && isNome(up(val))) r.nome = up(val);
+      // NOME — label na linha, valor na mesma ou próxima
+      if (!r.nome) {
+        if (/^\s*NOME\s*$|^\s*NOME\s+COMPLETO\s*$|^\s*NOME\s+DO\s+(?:PORTADOR|TITULAR)/i.test(l)) {
+          const val = proximo(i, /NOME(\s+COMPLETO|\s+DO\s+\w+)?/i);
+          if (pareceNome(val)) r.nome = up(val);
+        } else if (/^\s*NOME\s*[:\-]/i.test(l)) {
+          const val = l.replace(/^\s*NOME\s*[:\-]\s*/i,"").trim();
+          if (pareceNome(val)) r.nome = up(val);
+        }
       }
 
-      // ── FILIAÇÃO (pai na próxima linha, mãe na seguinte) ──
-      if (/^FILIA[ÇC][AÃ]O$/.test(U)) {
-        for (let j = i+1; j < Math.min(i+5, linhas.length); j++) {
+      // FILIAÇÃO — bloco com pai e mãe
+      if (/^\s*FILIA[ÇC][AÃ]O\s*$/i.test(l)) {
+        let found = 0;
+        for (let j = i+1; j < Math.min(i+6, linhas.length); j++) {
           const v = linhas[j].trim();
-          if (!v || /DATA|CPF|RG|CEP|NASC/.test(up(v))) break;
-          if (isNome(up(v))) {
-            if (!r.nomePai) r.nomePai = up(v);
-            else if (!r.nomeMae) { r.nomeMae = up(v); break; }
+          if (!v || /DATA|CPF|\d{2}\/\d{2}|NASC|EXPEDIC|EMISSOR|VALIDADE/i.test(v)) break;
+          if (pareceNome(v)) {
+            if (found === 0 && !r.nomePai) { r.nomePai = up(v); found++; }
+            else if (found === 1 && !r.nomeMae) { r.nomeMae = up(v); break; }
           }
         }
       }
 
-      // ── NOME DO PAI ──
-      if (!r.nomePai && /^(?:NOME\s+DO\s+)?PAI$|^NOME DO PAI/.test(U)) {
-        const val = valorApos(i, l, /(?:NOME\s+DO\s+)?PAI/i);
-        if (val && isNome(up(val))) r.nomePai = up(val);
-      }
-      if (!r.nomePai && /PAI[:\s]+/i.test(l) && !/BRASIL|ESTADO|REPUB/.test(U)) {
-        const val = l.replace(/.*PAI[:\s]+/i,"").trim();
-        if (val && isNome(up(val))) r.nomePai = up(val);
-      }
-
-      // ── NOME DA MÃE ──
-      if (!r.nomeMae && /^(?:NOME\s+DA\s+)?M[ÃA]E$|^NOME DA M[ÃA]E/.test(U)) {
-        const val = valorApos(i, l, /(?:NOME\s+DA\s+)?M[ÃA]E/i);
-        if (val && isNome(up(val))) r.nomeMae = up(val);
-      }
-      if (!r.nomeMae && /M[ÃA]E[:\s]+/i.test(l) && !/BRASIL|ESTADO/.test(U)) {
-        const val = l.replace(/.*M[ÃA]E[:\s]+/i,"").trim();
-        if (val && isNome(up(val))) r.nomeMae = up(val);
+      // PAI
+      if (!r.nomePai) {
+        if (/^\s*(?:NOME\s+DO\s+)?PAI\s*$|^\s*NOME\s+DO\s+PAI\s*$/i.test(l)) {
+          const val = proximo(i, /(?:NOME\s+DO\s+)?PAI/i);
+          if (pareceNome(val)) r.nomePai = up(val);
+        } else if (/\bPAI\s*[:\-]\s*/i.test(l) && !/BRASIL|ESTADO|REPUBLICA/i.test(l)) {
+          const val = l.replace(/.*\bPAI\s*[:\-]\s*/i,"").trim();
+          if (pareceNome(val)) r.nomePai = up(val);
+        }
       }
 
-      // ── DATA DE NASCIMENTO ──
-      if (!r.dataNascimento && /NASCIMENTO|DATA\s+NASC|DT\.?\s*NASC/.test(U)) {
-        const val = valorApos(i, l, /DATA\s+(?:DE\s+)?NASCIMENTO|DT\.?\s*NASC/i);
+      // MÃE
+      if (!r.nomeMae) {
+        if (/^\s*(?:NOME\s+DA\s+)?M[ÃA]E\s*$|^\s*NOME\s+DA\s+M[ÃA]E\s*$/i.test(l)) {
+          const val = proximo(i, /(?:NOME\s+DA\s+)?M[ÃA]E/i);
+          if (pareceNome(val)) r.nomeMae = up(val);
+        } else if (/\bM[ÃA]E\s*[:\-]\s*/i.test(l) && !/BRASIL|ESTADO/i.test(l)) {
+          const val = l.replace(/.*\bM[ÃA]E\s*[:\-]\s*/i,"").trim();
+          if (pareceNome(val)) r.nomeMae = up(val);
+        }
+      }
+
+      // DATA DE NASCIMENTO
+      if (!r.dataNascimento && /NASC(?:IMENTO)?/i.test(U)) {
+        const val = proximo(i, /DATA\s+(?:DE\s+)?NASC(?:IMENTO)?|DT\.?\s*NASC/i);
         const d = parseData(val) || parseData(l);
         if (d) r.dataNascimento = d;
       }
 
-      // ── DATA DE EXPEDIÇÃO / EMISSÃO ──
-      if (!r.dataExpedicao && /EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O|DATA\s+EMI|DT\.?\s*EXP/.test(U)) {
-        const val = valorApos(i, l, /(?:DATA\s+(?:DE\s+)?)?(?:EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O)|DT\.?\s*EXP/i);
+      // DATA DE EXPEDIÇÃO / EMISSÃO
+      if (!r.dataExpedicao && /EXPEDI|EMISS[AÃ]O|DT\.?\s*EXP/i.test(U)) {
+        const val = proximo(i, /DATA\s+(?:DE\s+)?(?:EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O)|DT\.?\s*EXP/i);
         const d = parseData(val) || parseData(l);
         if (d) r.dataExpedicao = d;
       }
 
-      // ── ÓRGÃO EMISSOR ──
+      // ÓRGÃO EMISSOR
       if (!r.orgaoEmissor) {
-        const m = l.match(/\b((?:SSP|PC|DETRAN|MD|PM|DPF|SEDS|SESP|SEPC|CRB)[-\/\s]?[A-Z]{2})\b/i);
-        if (m) r.orgaoEmissor = m[1].replace(/\s/,"-").toUpperCase();
+        const m = l.match(/\b((?:SSP|SPTC|PC|DETRAN|MD|PMAM|PM|DPF|SEDS|SESP|SEPC|CRB|SDS|PCAM|SESDC)[-\/\s]?(?:[A-Z]{2})?)\b/);
+        if (m && m[1].length >= 2) r.orgaoEmissor = m[1].replace(/\s/,"-").toUpperCase().replace(/-$/,"");
       }
-      if (!r.orgaoEmissor && /ÓRG[AÃ]O\s+EMISSOR|ORGAO\s*EMISSOR/i.test(U)) {
-        const val = valorApos(i, l, /ÓRG[AÃ]O\s+EMISSOR|ORGAO\s*EMISSOR/i);
-        if (val) r.orgaoEmissor = up(val);
-      }
-
-      // ── ENDEREÇO ──
-      if (!r.endereco && /^(?:ENDERE[ÇC]O|LOGRADOURO)/.test(U)) {
-        const val = valorApos(i, l, /^(?:ENDERE[ÇC]O|LOGRADOURO)/i);
-        if (val && val.length > 4) r.endereco = up(val);
+      if (!r.orgaoEmissor && /ÓRG[AÃ]O\s*EMISSOR|ORGAO\s*EMISSOR/i.test(U)) {
+        const val = proximo(i, /ÓRG[AÃ]O\s*EMISSOR|ORGAO\s*EMISSOR/i);
+        if (val && val.length < 30) r.orgaoEmissor = up(val);
       }
 
-      // ── BAIRRO ──
-      if (!r.bairro && /^BAIRRO/.test(U)) {
-        const val = valorApos(i, l, /^BAIRRO/i);
-        if (val) r.bairro = up(val);
+      // ENDEREÇO
+      if (!r.endereco && /^\s*(?:ENDERE[ÇC]O|LOGRADOURO)\s*[:\-]?\s*/i.test(l)) {
+        const val = proximo(i, /ENDERE[ÇC]O|LOGRADOURO/i);
+        if (val.length > 4) r.endereco = up(val);
       }
 
-      // ── CIDADE ──
-      if (!r.cidade && /^(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)/.test(U)) {
-        const val = valorApos(i, l, /^(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)/i);
-        if (val) r.cidade = val.split(/[-\/]/)[0].trim();
+      // BAIRRO
+      if (!r.bairro && /^\s*BAIRRO\s*[:\-]?\s*/i.test(l)) {
+        const val = proximo(i, /BAIRRO/i);
+        if (val.length > 2) r.bairro = up(val);
       }
 
-      // ── Nº ──
+      // CIDADE / NATURALIDADE / MUNICÍPIO
+      if (!r.cidade && /^\s*(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)\s*[:\-]?\s*/i.test(l)) {
+        const val = proximo(i, /MUNIC[ÍI]PIO|CIDADE|NATURALIDADE/i);
+        if (val) r.cidade = val.split(/[\-\/]/)[0].trim();
+      }
+
+      // CEP
+      if (!r.cep) {
+        const m = l.match(/\b(\d{2}[\.\s]?\d{3}[\-\s]?\d{3})\b/);
+        if (m) { const d = m[1].replace(/\D/g,""); if (d.length === 8) r.cep = maskCep(d); }
+      }
+
+      // Nº
       if (!r.numero) {
-        const m = l.match(/\bN[º°ú]\.?\s*(\d{1,6})\b/i);
+        const m = l.match(/\bN[º°ú\.]\s*(\d{1,6})\b/i);
         if (m) r.numero = m[1];
       }
     }
 
-    // ── Fallback: busca todas as datas e atribui por ordem ──
-    if (!r.dataNascimento || !r.dataExpedicao) {
-      const allDates = [...text.matchAll(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g)]
-        .map(m => `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`);
-      if (!r.dataNascimento && allDates[0]) r.dataNascimento = allDates[0];
-      if (!r.dataExpedicao && allDates[1]) r.dataExpedicao = allDates[1];
+    // ── Fallback global: busca datas ──
+    const todasDatas = [...text.matchAll(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g)]
+      .map(m => parseData(m[0])).filter(Boolean) as string[];
+    if (!r.dataNascimento && todasDatas[0]) r.dataNascimento = todasDatas[0];
+    if (!r.dataExpedicao && todasDatas[1]) r.dataExpedicao = todasDatas[1];
+
+    // ── Fallback global: CPF ──
+    if (!r.cpf) {
+      for (const m of text.matchAll(/(\d[\d\s\.\-]{9,15}\d)/g)) {
+        const d = m[1].replace(/\D/g,"");
+        if (d.length === 11) { r.cpf = maskCpf(d); break; }
+      }
     }
 
-    // ── Fallback: CPF em qualquer lugar ──
-    if (!r.cpf) {
-      const m = text.match(/\b(\d{3}[\. ]?\d{3}[\. ]?\d{3}[-]?\d{2})\b/);
-      if (m && m[1].replace(/\D/g,"").length === 11) r.cpf = maskCpf(m[1].replace(/\D/g,""));
+    // ── Fallback global: RG (sequência de 7-10 dígitos após palavra RG ou isolada) ──
+    if (!r.rg) {
+      const m = text.match(/\bR\.?G\.?[:\s#Nº°]*(\d[\d\.\-]{5,12})/i);
+      if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
     }
 
     return r;
