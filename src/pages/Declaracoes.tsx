@@ -106,9 +106,9 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// Slot padrão de cartão de identidade: 360 × 270 px
-// (≈ 9,5 cm × 7,1 cm no papel — equivale ao tamanho físico de um RG)
-const RG_SLOT_W = 360, RG_SLOT_H = 270, RG_GAP = 20;
+// Slot padrão de cartão de identidade: 520 × 370 px por face
+// (resolução interna para qualidade — exibido em ~13 cm via CSS no PDF)
+const RG_SLOT_W = 520, RG_SLOT_H = 370, RG_GAP = 24;
 
 function drawInSlot(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number) {
   const scale = Math.min(RG_SLOT_W / img.naturalWidth, RG_SLOT_H / img.naturalHeight, 1);
@@ -138,22 +138,22 @@ async function fitRGSlot(dataUrl: string): Promise<string> {
   });
 }
 
-// ─── Frente + Verso do RG lado a lado (mesma página, mesma linha) ────────
+// ─── Frente em cima, Verso abaixo (empilhados verticalmente, modo horizontal) ──
 async function mergeImagesVertically(url1: string, url2: string): Promise<string> {
   return new Promise<string>((resolve) => {
     const img1 = new Image(), img2 = new Image();
     let loaded = 0;
     const tryMerge = () => {
       if (++loaded < 2) return;
-      // Cada card: RG_SLOT_W × RG_SLOT_H, dispostos lado a lado
+      // Frente no topo, Verso abaixo — cada face ocupa RG_SLOT_W × RG_SLOT_H
       const canvas = document.createElement("canvas");
-      canvas.width = RG_SLOT_W * 2 + RG_GAP;
-      canvas.height = RG_SLOT_H;
+      canvas.width = RG_SLOT_W;
+      canvas.height = RG_SLOT_H * 2 + RG_GAP;
       const ctx = canvas.getContext("2d")!;
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawInSlot(ctx, img1, 0, 0);                    // Frente à esquerda
-      drawInSlot(ctx, img2, RG_SLOT_W + RG_GAP, 0);  // Verso à direita
+      drawInSlot(ctx, img1, 0, 0);                    // Frente no topo
+      drawInSlot(ctx, img2, 0, RG_SLOT_H + RG_GAP);  // Verso abaixo
       resolve(canvas.toDataURL("image/jpeg", 0.92));
     };
     img1.onload = tryMerge; img2.onload = tryMerge;
@@ -185,14 +185,14 @@ async function fitImageToPage(dataUrl: string): Promise<string> {
 }
 
 // ─── Attachment builder ───────────────────────────────────────────────────
-function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
+function buildAnexos(attachments: Array<{ dataUrl: string; label: string; imgWidth?: string }>): {
   html: string; pdfJsHead: string; initScript: string;
 } {
   let html = "";
   const pdfRenderCalls: string[] = [];
   let hasPdf = false;
   let counter = 0;
-  for (const { dataUrl, label } of attachments) {
+  for (const { dataUrl, label, imgWidth } of attachments) {
     const isPdf = dataUrl.startsWith("data:application/pdf");
     if (isPdf) {
       hasPdf = true;
@@ -205,10 +205,14 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
   </div>`;
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
+      // imgWidth: tamanho fixo de exibição em cm (ex: "13cm") — para RG em tamanho de documento real
+      const imgStyle = imgWidth
+        ? `display:block;width:${imgWidth};max-width:100%;height:auto;margin:0 auto;`
+        : `max-width:100%;height:auto;object-fit:contain;display:block;`;
       html += `
   <div style="page-break-before:always;page-break-inside:avoid;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:24cm;">
     <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 12px 0;text-align:center;width:100%;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;height:auto;object-fit:contain;display:block;" />
+    <img src="${dataUrl}" style="${imgStyle}" />
   </div>`;
     }
   }
@@ -327,13 +331,13 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const attachmentList: Array<{ dataUrl: string; label: string }> = [];
+  const attachmentList: Array<{ dataUrl: string; label: string; imgWidth?: string }> = [];
   if (rgDataUrl) {
     // Sempre usa slot padrão de RG (tamanho fixo, independente de 1 ou 2 fotos)
     const rgFinal = (rgDataUrl2 && rgDataUrl.startsWith("data:image") && rgDataUrl2.startsWith("data:image"))
-      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)  // frente + verso → slots idênticos
-      : await fitRGSlot(rgDataUrl);                         // só frente → mesmo slot padrão
-    attachmentList.push({ dataUrl: rgFinal, label: "Anexo: Documento de Identidade (RG)" });
+      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)  // frente topo, verso abaixo
+      : await fitRGSlot(rgDataUrl);                         // só frente → slot padrão
+    attachmentList.push({ dataUrl: rgFinal, label: "Anexo: Documento de Identidade (RG)", imgWidth: "13cm" });
   }
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
