@@ -138,21 +138,22 @@ async function fitRGSlot(dataUrl: string): Promise<string> {
   });
 }
 
-// ─── Frente + Verso do RG em slots idênticos, mesma imagem ───────────────
+// ─── Frente + Verso do RG lado a lado (mesma página, mesma linha) ────────
 async function mergeImagesVertically(url1: string, url2: string): Promise<string> {
   return new Promise<string>((resolve) => {
     const img1 = new Image(), img2 = new Image();
     let loaded = 0;
     const tryMerge = () => {
       if (++loaded < 2) return;
+      // Cada card: RG_SLOT_W × RG_SLOT_H, dispostos lado a lado
       const canvas = document.createElement("canvas");
-      canvas.width = RG_SLOT_W;
-      canvas.height = RG_SLOT_H * 2 + RG_GAP;
+      canvas.width = RG_SLOT_W * 2 + RG_GAP;
+      canvas.height = RG_SLOT_H;
       const ctx = canvas.getContext("2d")!;
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawInSlot(ctx, img1, 0, 0);
-      drawInSlot(ctx, img2, 0, RG_SLOT_H + RG_GAP);
+      drawInSlot(ctx, img1, 0, 0);                    // Frente à esquerda
+      drawInSlot(ctx, img2, RG_SLOT_W + RG_GAP, 0);  // Verso à direita
       resolve(canvas.toDataURL("image/jpeg", 0.92));
     };
     img1.onload = tryMerge; img2.onload = tryMerge;
@@ -198,16 +199,16 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
       const id = `pdf-attach-${++counter}`;
       html += `
   <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" style="display:none;"></div>
-  <div style="page-break-before:always;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;">${label}</p>
-    <div id="${id}"></div>
+  <div style="page-break-before:always;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:24cm;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 12px 0;text-align:center;width:100%;">${label}</p>
+    <div id="${id}" style="width:100%;text-align:center;"></div>
   </div>`;
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
       html += `
-  <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 6px 0;text-align:left;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;max-height:22cm;object-fit:contain;display:block;margin:0 auto;" />
+  <div style="page-break-before:always;page-break-inside:avoid;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:24cm;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 12px 0;text-align:center;width:100%;">${label}</p>
+    <img src="${dataUrl}" style="max-width:100%;height:auto;object-fit:contain;display:block;" />
   </div>`;
     }
   }
