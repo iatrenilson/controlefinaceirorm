@@ -437,6 +437,7 @@ export default function Declaracoes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
+  const [mostrarClientes, setMostrarClientes] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
@@ -913,60 +914,69 @@ export default function Declaracoes() {
         {/* Clientes cadastrados */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />Clientes Cadastrados
-              {clientes.length > 0 && (
-                <span className="ml-1 text-xs font-normal bg-primary/10 text-primary rounded-full px-2 py-0.5">{clientes.length}</span>
-              )}
-            </CardTitle>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-left flex-1 min-w-0"
+              onClick={() => setMostrarClientes(v => !v)}
+            >
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />Clientes Cadastrados
+                {clientes.length > 0 && (
+                  <span className="ml-1 text-xs font-normal bg-primary/10 text-primary rounded-full px-2 py-0.5">{clientes.length}</span>
+                )}
+              </CardTitle>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${mostrarClientes ? "rotate-180" : ""}`} />
+            </button>
+            <Button size="sm" className="h-8 text-xs gap-1.5 ml-2" onClick={abrirNovoCliente}>
               <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
             </Button>
           </CardHeader>
-          <CardContent>
-            {loadingClientes ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
-            ) : clientes.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
-              </p>
-            ) : (
-              <div className="divide-y divide-border/50">
-                {clientes.map(c => (
-                  <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate uppercase">{c.nome}</p>
-                      <div className="flex flex-col gap-0.5 mt-0.5">
-                        {c.cpf && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">CPF: <span className="font-mono">{c.cpf}</span></span>
-                            <CopyButton value={c.cpf} />
-                          </div>
-                        )}
-                        {c.senhaGov && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">Senha GOV: <span className="font-mono">{c.senhaGov}</span></span>
-                            <CopyButton value={c.senhaGov} />
-                          </div>
-                        )}
-                        {c.rg && (
-                          <span className="text-xs text-muted-foreground">RG: <span className="font-mono">{c.rg}</span></span>
-                        )}
+          {mostrarClientes && (
+            <CardContent>
+              {loadingClientes ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
+              ) : clientes.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
+                </p>
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {clientes.map(c => (
+                    <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate uppercase">{c.nome}</p>
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          {c.cpf && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">CPF: <span className="font-mono">{c.cpf}</span></span>
+                              <CopyButton value={c.cpf} />
+                            </div>
+                          )}
+                          {c.senhaGov && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">Senha GOV: <span className="font-mono">{c.senhaGov}</span></span>
+                              <CopyButton value={c.senhaGov} />
+                            </div>
+                          )}
+                          {c.rg && (
+                            <span className="text-xs text-muted-foreground">RG: <span className="font-mono">{c.rg}</span></span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          )}
         </Card>
 
         {/* Declarações */}
