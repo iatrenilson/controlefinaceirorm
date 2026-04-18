@@ -106,61 +106,80 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// ─── Redimensiona imagem para caber em uma página A4 antes de imprimir ───
-async function fitImageToPage(dataUrl: string): Promise<string> {
+// Slot padrão de cartão de identidade: 560 × 400 px
+// (≈ 14,8 cm × 10,6 cm no papel — tamanho real de RG)
+const RG_SLOT_W = 560, RG_SLOT_H = 400, RG_GAP = 20;
+
+function drawInSlot(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number) {
+  const scale = Math.min(RG_SLOT_W / img.naturalWidth, RG_SLOT_H / img.naturalHeight, 1);
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  ctx.fillStyle = "#f5f5f5";
+  ctx.fillRect(x, y, RG_SLOT_W, RG_SLOT_H);
+  ctx.drawImage(img, x + Math.round((RG_SLOT_W - w) / 2), y + Math.round((RG_SLOT_H - h) / 2), w, h);
+}
+
+// ─── Uma foto do RG em tamanho padrão de cartão ───────────────────────────
+async function fitRGSlot(dataUrl: string): Promise<string> {
   if (!dataUrl.startsWith("data:image")) return dataUrl;
   return new Promise<string>((resolve) => {
     const img = new Image();
     img.onload = () => {
-      // Área imprimível: 17cm × 22cm a 150 dpi ≈ 1003 × 1299 px
-      const MAX_W = 1003, MAX_H = 1299;
-      const scale = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1);
-      if (scale >= 1) { resolve(dataUrl); return; } // já cabe, não redimensiona
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.naturalWidth * scale);
-      c.height = Math.round(img.naturalHeight * scale);
-      const ctx = c.getContext("2d")!;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      resolve(c.toDataURL("image/jpeg", 0.92)); // JPEG qualidade 92%
+      const canvas = document.createElement("canvas");
+      canvas.width = RG_SLOT_W; canvas.height = RG_SLOT_H;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, RG_SLOT_W, RG_SLOT_H);
+      drawInSlot(ctx, img, 0, 0);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
   });
 }
 
-// ─── Combina frente + verso do RG em uma única imagem (mesma página) ─────
+// ─── Frente + Verso do RG em slots idênticos, mesma imagem ───────────────
 async function mergeImagesVertically(url1: string, url2: string): Promise<string> {
   return new Promise<string>((resolve) => {
     const img1 = new Image(), img2 = new Image();
     let loaded = 0;
     const tryMerge = () => {
       if (++loaded < 2) return;
-      const MAX_W = 1003, MAX_H = 1299, GAP = 16;
-      const s1 = Math.min(MAX_W / img1.naturalWidth, 1);
-      const s2 = Math.min(MAX_W / img2.naturalWidth, 1);
-      const w1 = Math.round(img1.naturalWidth * s1), h1 = Math.round(img1.naturalHeight * s1);
-      const w2 = Math.round(img2.naturalWidth * s2), h2 = Math.round(img2.naturalHeight * s2);
-      const totalH = h1 + GAP + h2;
-      const hs = totalH > MAX_H ? MAX_H / totalH : 1;
       const canvas = document.createElement("canvas");
-      canvas.width = MAX_W;
-      canvas.height = Math.round(totalH * hs);
+      canvas.width = RG_SLOT_W;
+      canvas.height = RG_SLOT_H * 2 + RG_GAP;
       const ctx = canvas.getContext("2d")!;
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      const fw1 = Math.round(w1 * hs), fh1 = Math.round(h1 * hs);
-      const fw2 = Math.round(w2 * hs), fh2 = Math.round(h2 * hs);
-      ctx.drawImage(img1, Math.round((MAX_W - fw1) / 2), 0, fw1, fh1);
-      ctx.drawImage(img2, Math.round((MAX_W - fw2) / 2), fh1 + Math.round(GAP * hs), fw2, fh2);
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawInSlot(ctx, img1, 0, 0);
+      drawInSlot(ctx, img2, 0, RG_SLOT_H + RG_GAP);
       resolve(canvas.toDataURL("image/jpeg", 0.92));
     };
     img1.onload = tryMerge; img2.onload = tryMerge;
     img1.onerror = () => resolve(url1); img2.onerror = () => resolve(url1);
     img1.src = url1; img2.src = url2;
+  });
+}
+
+// ─── Redimensiona imagem genérica para caber na página (comprovante etc) ─
+async function fitImageToPage(dataUrl: string): Promise<string> {
+  if (!dataUrl.startsWith("data:image")) return dataUrl;
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_W = 1003, MAX_H = 1299;
+      const scale = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1);
+      if (scale >= 1) { resolve(dataUrl); return; }
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      const ctx = c.getContext("2d")!;
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", 0.92));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
   });
 }
 
@@ -309,10 +328,10 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
   if (rgDataUrl) {
-    // Se há frente + verso, combina em uma única imagem (mesma página 2)
+    // Sempre usa slot padrão de RG (tamanho fixo, independente de 1 ou 2 fotos)
     const rgFinal = (rgDataUrl2 && rgDataUrl.startsWith("data:image") && rgDataUrl2.startsWith("data:image"))
-      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)
-      : await fitImageToPage(rgDataUrl);
+      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)  // frente + verso → slots idênticos
+      : await fitRGSlot(rgDataUrl);                         // só frente → mesmo slot padrão
     attachmentList.push({ dataUrl: rgFinal, label: "Anexo: Documento de Identidade (RG)" });
   }
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
