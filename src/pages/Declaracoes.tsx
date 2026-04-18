@@ -130,6 +130,40 @@ async function fitImageToPage(dataUrl: string): Promise<string> {
   });
 }
 
+// ─── Combina frente + verso do RG em uma única imagem (mesma página) ─────
+async function mergeImagesVertically(url1: string, url2: string): Promise<string> {
+  return new Promise<string>((resolve) => {
+    const img1 = new Image(), img2 = new Image();
+    let loaded = 0;
+    const tryMerge = () => {
+      if (++loaded < 2) return;
+      const MAX_W = 1003, MAX_H = 1299, GAP = 16;
+      const s1 = Math.min(MAX_W / img1.naturalWidth, 1);
+      const s2 = Math.min(MAX_W / img2.naturalWidth, 1);
+      const w1 = Math.round(img1.naturalWidth * s1), h1 = Math.round(img1.naturalHeight * s1);
+      const w2 = Math.round(img2.naturalWidth * s2), h2 = Math.round(img2.naturalHeight * s2);
+      const totalH = h1 + GAP + h2;
+      const hs = totalH > MAX_H ? MAX_H / totalH : 1;
+      const canvas = document.createElement("canvas");
+      canvas.width = MAX_W;
+      canvas.height = Math.round(totalH * hs);
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      const fw1 = Math.round(w1 * hs), fh1 = Math.round(h1 * hs);
+      const fw2 = Math.round(w2 * hs), fh2 = Math.round(h2 * hs);
+      ctx.drawImage(img1, Math.round((MAX_W - fw1) / 2), 0, fw1, fh1);
+      ctx.drawImage(img2, Math.round((MAX_W - fw2) / 2), fh1 + Math.round(GAP * hs), fw2, fh2);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
+    };
+    img1.onload = tryMerge; img2.onload = tryMerge;
+    img1.onerror = () => resolve(url1); img2.onerror = () => resolve(url1);
+    img1.src = url1; img2.src = url2;
+  });
+}
+
 // ─── Attachment builder ───────────────────────────────────────────────────
 function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
   html: string; pdfJsHead: string; initScript: string;
@@ -267,15 +301,20 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
+async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
-  // Redimensiona imagens grandes para caber na página sem criar folha em branco
-  if (rgDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
+  if (rgDataUrl) {
+    // Se há frente + verso, combina em uma única imagem (mesma página 2)
+    const rgFinal = (rgDataUrl2 && rgDataUrl.startsWith("data:image") && rgDataUrl2.startsWith("data:image"))
+      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)
+      : await fitImageToPage(rgDataUrl);
+    attachmentList.push({ dataUrl: rgFinal, label: "Anexo: Documento de Identidade (RG)" });
+  }
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
@@ -847,9 +886,12 @@ export default function Declaracoes() {
   const setR = (field: keyof FormDataResidencia, value: string) => setFormRes(prev => ({ ...prev, [field]: value }));
   const [rgDataUrl, setRgDataUrl] = useState<string | null>(null);
   const [rgNome, setRgNome] = useState("");
+  const [rgDataUrl2, setRgDataUrl2] = useState<string | null>(null);
+  const [rgNome2, setRgNome2] = useState("");
   const [compDataUrl, setCompDataUrl] = useState<string | null>(null);
   const [compNome, setCompNome] = useState("");
   const rgInputRef = useRef<HTMLInputElement>(null);
+  const rgInputRef2 = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
@@ -860,6 +902,7 @@ export default function Declaracoes() {
     reader.readAsDataURL(file);
   };
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
+  const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
 
   return (
@@ -949,7 +992,7 @@ export default function Declaracoes() {
             <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
             </Button>
-            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
+            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearRg2(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Residência
             </Button>
           </CardContent>
@@ -1427,8 +1470,9 @@ export default function Declaracoes() {
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Anexos (opcional)</p>
               <div className="space-y-3">
+                {/* RG Frente */}
                 <div className="space-y-1">
-                  <Label className="text-xs">RG (imagem ou PDF)</Label>
+                  <Label className="text-xs">RG — Frente (imagem ou PDF)</Label>
                   {rgDataUrl ? (
                     <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
                       <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -1441,7 +1485,27 @@ export default function Declaracoes() {
                         onChange={e => handleFileRead(e, setRgDataUrl, setRgNome)} />
                       <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
                         onClick={() => rgInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Frente)
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {/* RG Verso — aparece junto na mesma página */}
+                <div className="space-y-1">
+                  <Label className="text-xs">RG — Verso <span className="font-normal text-muted-foreground">(opcional · ficará na mesma página)</span></Label>
+                  {rgDataUrl2 ? (
+                    <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
+                      <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="truncate flex-1 text-xs">{rgNome2}</span>
+                      <button onClick={clearRg2}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
+                    </div>
+                  ) : (
+                    <>
+                      <input ref={rgInputRef2} type="file" accept="image/*,application/pdf" className="hidden"
+                        onChange={e => handleFileRead(e, setRgDataUrl2, setRgNome2)} />
+                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
+                        onClick={() => rgInputRef2.current?.click()}>
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Verso)
                       </Button>
                     </>
                   )}
@@ -1477,7 +1541,7 @@ export default function Declaracoes() {
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              gerarPDFResidencia(formRes, rgDataUrl, compDataUrl);
+              gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
