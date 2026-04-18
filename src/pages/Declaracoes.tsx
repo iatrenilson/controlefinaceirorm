@@ -983,19 +983,47 @@ export default function Declaracoes() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />Criar Nova Declaração
+              <FileText className="h-4 w-4 text-primary" />Criar Documento
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Button variant="outline" onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
-            </Button>
-            <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
-            </Button>
-            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Residência
-            </Button>
+          <CardContent className="flex flex-col gap-4">
+            {/* Declarações */}
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Declarações</p>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
+                  <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
+                </Button>
+                <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
+                  <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
+                </Button>
+                <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
+                  <Plus className="h-4 w-4" />Declaração de Residência
+                </Button>
+              </div>
+            </div>
+            {/* Outros documentos — em desenvolvimento */}
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Outros Documentos</p>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" disabled className="gap-2 w-fit opacity-50 cursor-not-allowed">
+                  <Plus className="h-4 w-4" />Processo / CR
+                  <span className="ml-1 text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">Em breve</span>
+                </Button>
+                <Button variant="outline" disabled className="gap-2 w-fit opacity-50 cursor-not-allowed">
+                  <Plus className="h-4 w-4" />Autorização de Compra
+                  <span className="ml-1 text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">Em breve</span>
+                </Button>
+                <Button variant="outline" disabled className="gap-2 w-fit opacity-50 cursor-not-allowed">
+                  <Plus className="h-4 w-4" />Guia de Recolhimento
+                  <span className="ml-1 text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">Em breve</span>
+                </Button>
+                <Button variant="outline" disabled className="gap-2 w-fit opacity-50 cursor-not-allowed">
+                  <Plus className="h-4 w-4" />CRAF
+                  <span className="ml-1 text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">Em breve</span>
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
