@@ -128,6 +128,43 @@ async function fitImageToPage(dataUrl: string): Promise<string> {
   });
 }
 
+// ─── Mescla frente e verso do RG em uma única imagem (mesma folha) ────────
+async function mergeImagesVertical(url1: string, url2: string): Promise<string> {
+  // Carrega as duas imagens em paralelo
+  const loadImg = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src;
+  });
+  const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
+
+  // Área útil de uma página A4 impressa (largura × altura em px ~120dpi)
+  const PAGE_W = 1003;
+  const SLOT_H = 620;  // cada imagem ocupa metade da folha (com margem)
+  const GAP = 30;      // espaço entre frente e verso
+
+  // Escala cada imagem para caber no slot (largura total × metade da altura)
+  const scaleImg = (img: HTMLImageElement) =>
+    Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
+
+  const s1 = scaleImg(img1), s2 = scaleImg(img2);
+  const w1 = Math.round(img1.naturalWidth * s1), h1 = Math.round(img1.naturalHeight * s1);
+  const w2 = Math.round(img2.naturalWidth * s2), h2 = Math.round(img2.naturalHeight * s2);
+
+  const c = document.createElement("canvas");
+  c.width = PAGE_W;
+  c.height = h1 + GAP + h2;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // Centraliza cada imagem horizontalmente
+  ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
+  ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
+
+  return c.toDataURL("image/jpeg", 0.92);
+}
+
 // ─── Attachment builder ───────────────────────────────────────────────────
 function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
   html: string; pdfJsHead: string; initScript: string;
@@ -272,14 +309,13 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
-  // Redimensiona imagens grandes para caber na página sem criar folha em branco
   if (rgDataUrl && !rgDataUrl2) {
-    // Apenas frente — sem indicação de lado
+    // Só frente — comportamento original, uma página
     attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl && rgDataUrl2) {
-    // Frente e verso — páginas separadas com label indicando o lado
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG – Frente)" });
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl2), label: "Anexo: Documento de Identidade (RG – Verso)" });
+    // Frente e verso — mescla as duas imagens numa única página
+    const merged = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
+    attachmentList.push({ dataUrl: merged, label: "Anexo: Documento de Identidade (RG)" });
   }
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
