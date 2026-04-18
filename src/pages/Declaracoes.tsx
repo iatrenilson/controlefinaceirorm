@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -438,6 +438,7 @@ export default function Declaracoes() {
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [mostrarClientes, setMostrarClientes] = useState(false);
+  const [dadosVisiveis, setDadosVisiveis] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
@@ -927,9 +928,21 @@ export default function Declaracoes() {
               </CardTitle>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${mostrarClientes ? "rotate-180" : ""}`} />
             </button>
-            <Button size="sm" className="h-8 text-xs gap-1.5 ml-2" onClick={abrirNovoCliente}>
-              <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
-            </Button>
+            <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+              {mostrarClientes && (
+                <Button
+                  size="icon" variant="ghost"
+                  className="h-8 w-8"
+                  title={dadosVisiveis ? "Ocultar dados" : "Mostrar dados"}
+                  onClick={() => setDadosVisiveis(v => !v)}
+                >
+                  {dadosVisiveis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              )}
+              <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
+                <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
+              </Button>
+            </div>
           </CardHeader>
           {mostrarClientes && (
             <CardContent>
@@ -941,25 +954,31 @@ export default function Declaracoes() {
                 </p>
               ) : (
                 <div className="divide-y divide-border/50">
-                  {clientes.map(c => (
+                  {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
                     <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate uppercase">{c.nome}</p>
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           {c.cpf && (
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">CPF: <span className="font-mono">{c.cpf}</span></span>
-                              <CopyButton value={c.cpf} />
+                              <span className="text-xs text-muted-foreground">
+                                CPF: <span className="font-mono">{dadosVisiveis ? c.cpf : "•••.•••.•••-••"}</span>
+                              </span>
+                              {dadosVisiveis && <CopyButton value={c.cpf} />}
                             </div>
                           )}
                           {c.senhaGov && (
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">Senha GOV: <span className="font-mono">{c.senhaGov}</span></span>
-                              <CopyButton value={c.senhaGov} />
+                              <span className="text-xs text-muted-foreground">
+                                Senha GOV: <span className="font-mono">{dadosVisiveis ? c.senhaGov : "••••••••"}</span>
+                              </span>
+                              {dadosVisiveis && <CopyButton value={c.senhaGov} />}
                             </div>
                           )}
                           {c.rg && (
-                            <span className="text-xs text-muted-foreground">RG: <span className="font-mono">{c.rg}</span></span>
+                            <span className="text-xs text-muted-foreground">
+                              RG: <span className="font-mono">{dadosVisiveis ? c.rg : "•••••••-•"}</span>
+                            </span>
                           )}
                         </div>
                       </div>
