@@ -397,12 +397,8 @@ export default function Declaracoes() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
-  const [importando, setImportando] = useState(false);
-  const [textoExtraido, setTextoExtraido] = useState<string>("");
-  const [mostrarTexto, setMostrarTexto] = useState(false);
-  const importInputRef = useRef<HTMLInputElement>(null);
 
-  const parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
+  const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
     // Normaliza espaços múltiplos em cada linha (CNH digital tem "CPF   000.000.000-00")
     const linhas = text.split(/\n/).map(l => l.trim().replace(/\s+/g, " ")).filter(l => l.length > 0);
@@ -720,108 +716,6 @@ export default function Declaracoes() {
     return r;
   }, []);
 
-  const handleImportarDocumento = useCallback(async (file: File) => {
-    setImportando(true);
-    try {
-      let texto = "";
-
-      if (file.type === "application/pdf") {
-        // Extrai texto do PDF via PDF.js (CDN)
-        const pdfjsLib = await new Promise<any>((res, rej) => {
-          if ((window as any).pdfjsLib) { res((window as any).pdfjsLib); return; }
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-          s.onload = () => {
-            (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
-              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-            res((window as any).pdfjsLib);
-          };
-          s.onerror = rej;
-          document.head.appendChild(s);
-        });
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          // Preserva quebras de linha usando posição Y dos itens
-          let lastY: number | null = null;
-          const linhasPage: string[] = [];
-          let linhaAtual = "";
-          for (const item of content.items as any[]) {
-            const y = item.transform?.[5] ?? 0;
-            if (lastY !== null && Math.abs(y - lastY) > 3) {
-              if (linhaAtual.trim()) linhasPage.push(linhaAtual.trim());
-              linhaAtual = item.str;
-            } else {
-              linhaAtual += (linhaAtual && item.str ? " " : "") + item.str;
-            }
-            lastY = y;
-          }
-          if (linhaAtual.trim()) linhasPage.push(linhaAtual.trim().replace(/\s+/g, " "));
-          texto += linhasPage.reverse().join("\n") + "\n";
-        }
-
-        // CNH digital: dados podem estar como IMAGEM dentro do PDF (não texto).
-        // Se o parser não encontrou nome/CPF/RG no texto, renderiza a 1ª página
-        // como canvas e roda OCR — igual ao fluxo de imagem.
-        const previewCampos = parsearTexto(texto);
-        const temDadosUteis = !!(previewCampos.nome || previewCampos.cpf || previewCampos.rg);
-        if (!temDadosUteis) {
-          const page1 = await pdf.getPage(1);
-          const vp = page1.getViewport({ scale: 2.5 }); // escala alta para melhor OCR
-          const canvas = document.createElement("canvas");
-          canvas.width = vp.width; canvas.height = vp.height;
-          const ctx = canvas.getContext("2d")!;
-          await page1.render({ canvasContext: ctx, viewport: vp }).promise;
-
-          const Tesseract = await new Promise<any>((res, rej) => {
-            if ((window as any).Tesseract) { res((window as any).Tesseract); return; }
-            const s = document.createElement("script");
-            s.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
-            s.onload = () => res((window as any).Tesseract);
-            s.onerror = rej;
-            document.head.appendChild(s);
-          });
-          const worker = await Tesseract.createWorker("por");
-          const { data } = await worker.recognize(canvas);
-          texto = data.text; // substitui pelo texto do OCR
-          await worker.terminate();
-        }
-      } else {
-        // Imagem: usa Tesseract.js via CDN
-        const Tesseract = await new Promise<any>((res, rej) => {
-          if ((window as any).Tesseract) { res((window as any).Tesseract); return; }
-          const s = document.createElement("script");
-          s.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
-          s.onload = () => res((window as any).Tesseract);
-          s.onerror = rej;
-          document.head.appendChild(s);
-        });
-        const worker = await Tesseract.createWorker("por");
-        const { data } = await worker.recognize(file);
-        texto = data.text;
-        await worker.terminate();
-      }
-
-      setTextoExtraido(texto);
-      const campos = parsearTexto(texto);
-      const total = Object.keys(campos).length;
-      if (total === 0) {
-        setMostrarTexto(true);
-        toast({ title: "Nenhum campo reconhecido", description: "Veja o texto extraído abaixo para verificar.", variant: "destructive" });
-      } else {
-        setFormCliente(prev => ({ ...prev, ...campos }));
-        toast({ title: `${total} campo(s) preenchido(s) automaticamente!` });
-      }
-    } catch (e) {
-      toast({ title: "Erro ao ler documento", description: "Verifique se o arquivo é válido.", variant: "destructive" });
-    } finally {
-      setImportando(false);
-      if (importInputRef.current) importInputRef.current.value = "";
-    }
-  }, [parsearTexto, toast]);
-
   const saveClientesToCloud = useCallback(async (list: Cliente[]) => {
     await supabase.auth.updateUser({ data: { decl_clientes: list } });
   }, []);
@@ -1059,50 +953,6 @@ export default function Declaracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Importar Documento */}
-            <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5">
-              <input
-                ref={importInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleImportarDocumento(f); }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 text-xs border-primary/50 text-primary hover:bg-primary/10"
-                disabled={importando}
-                onClick={() => importInputRef.current?.click()}
-              >
-                <Paperclip className="h-3.5 w-3.5" />
-                {importando ? "Lendo documento..." : "Importar Documento (PDF ou Imagem)"}
-              </Button>
-              <span className="text-[10px] text-muted-foreground">Preenche o cadastro automaticamente</span>
-              {textoExtraido && (
-                <button type="button" onClick={() => setMostrarTexto(v => !v)}
-                  className="text-[10px] underline text-muted-foreground ml-auto">
-                  {mostrarTexto ? "Ocultar texto lido" : "Ver texto extraído"}
-                </button>
-              )}
-            </div>
-            {mostrarTexto && textoExtraido && (
-              <div className="rounded border border-border bg-muted/30 p-2">
-                <p className="text-[10px] text-muted-foreground mb-1 font-semibold">Texto extraído pelo OCR (copie e envie para suporte):</p>
-                <textarea
-                  readOnly
-                  className="w-full text-[10px] font-mono bg-transparent resize-none outline-none text-foreground"
-                  rows={8}
-                  value={textoExtraido}
-                />
-                <button type="button"
-                  className="text-[10px] underline text-primary mt-1"
-                  onClick={() => { navigator.clipboard.writeText(textoExtraido); toast({ title: "Texto copiado!" }); }}>
-                  Copiar texto
-                </button>
-              </div>
-            )}
             {/* Nome */}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
