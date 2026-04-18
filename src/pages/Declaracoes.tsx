@@ -496,7 +496,7 @@ export default function Declaracoes() {
     };
 
     // Palavras que indicam cabeçalhos de campo — não são nomes de pessoa
-    const LABEL_WORDS = /\b(NOME|DATA|NASC|CPF|FILIA|PAI|MAE|MÃE|RG|REGISTRO|GERAL|EXPEDI|EMISSOR|VALIDADE|ENDERE|BAIRRO|CEP|ESTADO|CIDADE|NATURAL|DOC|IDENTIDADE|HABILI|CATEG|PRONTU|CNH|SENATRAN|BRASIL|TRANSPORT|REPUB|MINIST|RENACH|SECRETARIA|FEDERAL|NACIONAL|TRANSITO|TRÂNSITO|PORTADOR|TITULAR|PROCESSO)\b/i;
+    const LABEL_WORDS = /\b(NOME|DATA|NASC|CPF|FILIA|PAI|MAE|MÃE|RG|REGISTRO|GERAL|EXPEDI|EMISSOR|VALID|DISPON|DIGITAL|ASSIN|CERTIF|SERPRO|CONFORM|PROVISÓ|PROGRAM|ENDERE|BAIRRO|CEP|ESTADO|CIDADE|NATURAL|DOC|IDENTIDADE|HABILI|CATEG|PRONTU|CNH|SENATRAN|BRASIL|TRANSPORT|REPUB|MINIST|RENACH|SECRETARIA|FEDERAL|NACIONAL|TRANSITO|TRÂNSITO|PORTADOR|TITULAR|PROCESSO|DISPONÍV|HTTP|ASSINAT|INTEGRI|AUTENT)\b/i;
 
     // Remove datas de uma string para extrair só o nome
     const extrairNome = (s: string) => s.replace(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g,"").replace(/\s+/g," ").trim();
@@ -507,8 +507,10 @@ export default function Declaracoes() {
       const U = up(l);
 
       // CPF — busca padrão XXX.XXX.XXX-XX ou 11 dígitos seguidos
+      // Normaliza espaços ao redor de pontos/hífens (CNH digital: "123 . 456 . 789 - 00")
       if (!r.cpf) {
-        const m = l.match(/\b(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})\b/);
+        const lNorm = l.replace(/(\d)\s*\.\s*(\d)/g,"$1.$2").replace(/(\d)\s*-\s*(\d)/g,"$1-$2");
+        const m = lNorm.match(/\b(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})\b/);
         if (m) {
           const d = m[1].replace(/\D/g,"");
           if (d.length === 11 && !d.startsWith("00000")) r.cpf = maskCpf(d);
@@ -659,7 +661,11 @@ export default function Declaracoes() {
 
     // ── Fallback global: CPF ──
     if (!r.cpf) {
-      const normText = text.replace(/\s+/g," ");
+      // Normaliza espaços ao redor de separadores (CNH digital: "123 . 456 . 789 - 00")
+      const normText = text
+        .replace(/(\d)\s*\.\s*(\d)/g,"$1.$2")
+        .replace(/(\d)\s*-\s*(\d)/g,"$1-$2")
+        .replace(/\s+/g," ");
       for (const m of normText.matchAll(/\b(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})\b/g)) {
         const d = m[1].replace(/\D/g,"");
         if (d.length === 11 && !d.startsWith("00000")) { r.cpf = maskCpf(d); break; }
@@ -692,18 +698,16 @@ export default function Declaracoes() {
       }
     }
 
-    // ── CNH: NOME — fallback após cabeçalho SENATRAN ──
+    // ── CNH: NOME — fallback geral por todo o texto ──
     if (!r.nome) {
-      // Remove tudo até SENATRAN (cabeçalho da CNH)
-      const posSENATRAN = text.search(/SENATRAN/i);
-      const posHAB = text.search(/HABILITAÇÃO/i);
-      const posCorte = Math.max(posSENATRAN, posHAB);
-      const semCabecalho = posCorte >= 0 ? text.slice(posCorte) : text;
-      for (const linha of semCabecalho.split(/\n/).map(l => l.trim().replace(/\s+/g," "))) {
-        if (LABEL_WORDS.test(linha)) continue;           // Pula linhas de label
-        if (/^\d/.test(linha)) continue;                 // Pula linhas que começam com número
+      for (const linha of linhas) {
+        if (LABEL_WORDS.test(linha)) continue;            // Pula linhas de label/cabeçalho
+        if (/^\d/.test(linha)) continue;                  // Pula linhas que começam com número
+        if (linha.endsWith(":")) continue;                // Pula labels que terminam com ":"
+        if (/^https?:\/\//i.test(linha)) continue;       // Pula URLs
+        if (linha.length > 60) continue;                  // Pula linhas muito longas (não são nomes)
         const val = extrairNome(linha);
-        if (pareceNome(val) && val.split(/\s+/).length >= 2) {
+        if (pareceNome(val) && val.split(/\s+/).length >= 2 && val.length <= 50) {
           r.nome = up(val); break;
         }
       }
