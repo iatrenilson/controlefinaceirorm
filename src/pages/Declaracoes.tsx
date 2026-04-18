@@ -509,15 +509,50 @@ export default function Declaracoes() {
         }
       }
 
-      // FILIAÇÃO — bloco com pai e mãe
-      if (/^FILIA[ÇC][AÃ]O\s*$/i.test(l)) {
-        let found = 0;
-        for (let j = i+1; j < Math.min(i+6, linhas.length); j++) {
-          const v = linhas[j].trim();
-          if (!v || /DATA|CPF|\d{2}\/\d{2}|NASC|EXPEDIC|EMISSOR|VALIDADE/i.test(v)) break;
-          if (pareceNome(v)) {
-            if (found === 0 && !r.nomePai) { r.nomePai = up(v); found++; }
-            else if (found === 1 && !r.nomeMae) { r.nomeMae = up(v); break; }
+      // FILIAÇÃO — bloco com pai e mãe (CNH digital pode ter vários formatos)
+      if (/\bFILIA[ÇC][AÃ]O\b/i.test(l)) {
+        // Caso A: "FILIAÇÃO: PAI / MÃE" ou "FILIAÇÃO PAI MÃE" inline
+        const afterFil = l.replace(/.*?\bFILIA[ÇC][AÃ]O\s*[:\-]?\s*/i,"").trim();
+        if (afterFil) {
+          const slash = afterFil.split(/\s*\/\s*/);
+          if (slash.length >= 2) {
+            if (pareceNome(slash[0]) && !r.nomePai) r.nomePai = up(slash[0]);
+            if (pareceNome(slash[1]) && !r.nomeMae) r.nomeMae = up(slash[1]);
+          } else if (pareceNome(afterFil) && !r.nomePai) {
+            r.nomePai = up(afterFil);
+          }
+        }
+        // Caso B: nomes nas próximas linhas (janela ampliada, break menos agressivo)
+        if (!r.nomePai || !r.nomeMae) {
+          let found = r.nomePai ? 1 : 0;
+          for (let j = i+1; j < Math.min(i+10, linhas.length); j++) {
+            const v = linhas[j].trim();
+            if (!v) continue;
+            // Para apenas em linhas claramente de outro campo (início da linha)
+            if (/^(?:NACIONAL|CATEGOR|PRONTU|RENACH|REGISTRO|CPF|DOC\.?\s*IDENT|HABILI|VALIDADE|CAT\s*HAB|Nº\s*REG)/i.test(v)) break;
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) break; // linha só com data isolada
+            // Dois nomes na mesma linha (CNH digital pode concatenar)
+            if (!r.nomePai && !r.nomeMae) {
+              const words = v.split(/\s+/);
+              if (words.length > 6 && words.length <= 14 && !/\d/.test(v)) {
+                const slash2 = v.split(/\s*\/\s*/);
+                if (slash2.length >= 2 && pareceNome(slash2[0]) && pareceNome(slash2[1])) {
+                  r.nomePai = up(slash2[0]); r.nomeMae = up(slash2[1]); break;
+                }
+                // Divide no meio como última tentativa
+                const mid = Math.ceil(words.length / 2);
+                const n1 = words.slice(0, mid).join(" ");
+                const n2 = words.slice(mid).join(" ");
+                if (n1.split(/\s+/).length >= 2 && n2.split(/\s+/).length >= 2) {
+                  r.nomePai = up(n1); r.nomeMae = up(n2); break;
+                }
+              }
+            }
+            // Um nome por linha
+            if (pareceNome(v)) {
+              if (found === 0 && !r.nomePai) { r.nomePai = up(v); found++; }
+              else if (found >= 1 && !r.nomeMae) { r.nomeMae = up(v); break; }
+            }
           }
         }
       }
