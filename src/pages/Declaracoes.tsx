@@ -553,7 +553,14 @@ export default function Declaracoes() {
           const val = l.replace(/^NOME\s*[:\-]\s*/i,"").trim();
           if (pareceNome(val)) r.nome = up(val);
         }
-        // Caso 3: CNH — "NOME DATA DE NASCIMENTO" (dois labels na mesma linha)
+        // Caso 3: CNH física — "2 e 1 NOME E SOBRENOME" (número + NOME + outros campos)
+        // O valor do nome está na próxima linha
+        else if (/^\d[\de\s]+NOME\b/i.test(l)) {
+          const nextLine = linhas[i+1]?.trim() || "";
+          const val = extrairNome(nextLine);
+          if (pareceNome(val)) r.nome = up(val);
+        }
+        // Caso 4: CNH — "NOME DATA DE NASCIMENTO" (dois labels na mesma linha)
         // O valor está na PRÓXIMA linha junto com a data
         else if (/^NOME\b/i.test(l) && LABEL_WORDS.test(l)) {
           const nextLine = linhas[i+1]?.trim() || "";
@@ -603,16 +610,19 @@ export default function Declaracoes() {
       }
 
       // DATA DE NASCIMENTO
+      // CNH usa "3 DATA, LOCAL E UF DE NASCIMENTO" na label e a data na próxima linha
       if (!r.dataNascimento && /NASC(?:IMENTO)?/i.test(U)) {
         const val = proximo(i, /DATA\s+(?:DE\s+)?NASC(?:IMENTO)?|DT\.?\s*NASC/i);
-        const d = parseData(val) || parseData(l);
+        // Se proximo retornou a própria label (sem data), tenta linha seguinte explicitamente
+        const d = parseData(val) || parseData(l) || parseData(linhas[i+1] ?? "") || parseData(linhas[i+2] ?? "");
         if (d) r.dataNascimento = d;
       }
 
       // DATA DE EXPEDIÇÃO / EMISSÃO
+      // CNH usa "4a DATA EMISSÃO" na label e a data na próxima linha
       if (!r.dataExpedicao && /EXPEDI|EMISS[AÃ]O|DT\.?\s*EXP/i.test(U)) {
         const val = proximo(i, /DATA\s+(?:DE\s+)?(?:EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O)|DT\.?\s*EXP/i);
-        const d = parseData(val) || parseData(l);
+        const d = parseData(val) || parseData(l) || parseData(linhas[i+1] ?? "") || parseData(linhas[i+2] ?? "");
         if (d) r.dataExpedicao = d;
       }
 
@@ -657,11 +667,27 @@ export default function Declaracoes() {
       }
     }
 
-    // ── Fallback global: busca datas ──
+    // ── Fallback global: busca datas por faixa de ano plausível ──
+    // dataNascimento: ano <= 2008 (mínimo 16 anos para habilitação)
+    // dataExpedicao : ano >= 2000 (documento recente)
+    // Evita pegar a data de "1ª HABILITAÇÃO" como nascimento
+    const anoAtual = new Date().getFullYear();
     const todasDatas = [...text.matchAll(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g)]
       .map(m => parseData(m[0])).filter(Boolean) as string[];
-    if (!r.dataNascimento && todasDatas[0]) r.dataNascimento = todasDatas[0];
-    if (!r.dataExpedicao && todasDatas[1]) r.dataExpedicao = todasDatas[1];
+    if (!r.dataNascimento) {
+      const nascCandidata = todasDatas.find(d => {
+        const ano = parseInt(d.slice(0,4));
+        return ano >= 1920 && ano <= anoAtual - 16;
+      });
+      if (nascCandidata) r.dataNascimento = nascCandidata;
+    }
+    if (!r.dataExpedicao) {
+      const expCandidata = todasDatas.find(d => {
+        const ano = parseInt(d.slice(0,4));
+        return ano >= 2000 && ano <= anoAtual + 10;
+      });
+      if (expCandidata) r.dataExpedicao = expCandidata;
+    }
 
     // ── Fallback global: CPF ──
     if (!r.cpf) {
@@ -685,8 +711,8 @@ export default function Declaracoes() {
     // ── CNH: DOC. IDENTIDADE / ORG. EMISSOR (ex: "1735427-7 SSP/AM") ──
     if (!r.rg || !r.orgaoEmissor) {
       const normText = text.replace(/\s+/g," ");
-      // Label "DOC. IDENTIDADE / ORG. EMISSOR / UF" seguido pelos valores
-      const cnh1 = normText.match(/DOC\.?\s*IDENTIDADE[\s\/,]+ORG\.?\s*EMISSOR[\s\/,A-Z]*[:\s]*([^\n]{5,40})/i);
+      // Label "DOC. IDENTIDADE / ÓRG. EMISSOR / UF" seguido pelos valores (aceita ÓRG e ORG)
+      const cnh1 = normText.match(/DOC\.?\s*IDENTIDADE[\s\/,]+[ÓO]?RG\.?\s*EMISSOR[\s\/,A-Z]*[:\s]*([^\n]{5,40})/i);
       if (cnh1) {
         const partes = cnh1[1].trim().split(/\s+/);
         for (const p of partes) {
