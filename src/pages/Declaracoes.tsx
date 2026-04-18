@@ -265,7 +265,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
+async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
@@ -273,7 +273,14 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
   // Redimensiona imagens grandes para caber na página sem criar folha em branco
-  if (rgDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
+  if (rgDataUrl && !rgDataUrl2) {
+    // Apenas frente — sem indicação de lado
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
+  } else if (rgDataUrl && rgDataUrl2) {
+    // Frente e verso — páginas separadas com label indicando o lado
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG – Frente)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl2), label: "Anexo: Documento de Identidade (RG – Verso)" });
+  }
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
@@ -834,9 +841,12 @@ export default function Declaracoes() {
   const setR = (field: keyof FormDataResidencia, value: string) => setFormRes(prev => ({ ...prev, [field]: value }));
   const [rgDataUrl, setRgDataUrl] = useState<string | null>(null);
   const [rgNome, setRgNome] = useState("");
+  const [rgDataUrl2, setRgDataUrl2] = useState<string | null>(null);
+  const [rgNome2, setRgNome2] = useState("");
   const [compDataUrl, setCompDataUrl] = useState<string | null>(null);
   const [compNome, setCompNome] = useState("");
   const rgInputRef = useRef<HTMLInputElement>(null);
+  const rgInputRef2 = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
@@ -847,6 +857,7 @@ export default function Declaracoes() {
     reader.readAsDataURL(file);
   };
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
+  const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
 
   return (
@@ -1372,6 +1383,7 @@ export default function Declaracoes() {
               <div className="space-y-3">
                 <div className="space-y-1">
                   <Label className="text-xs">RG (imagem ou PDF)</Label>
+                  {/* RG Frente */}
                   {rgDataUrl ? (
                     <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
                       <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -1384,7 +1396,24 @@ export default function Declaracoes() {
                         onChange={e => handleFileRead(e, setRgDataUrl, setRgNome)} />
                       <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
                         onClick={() => rgInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Frente)
+                      </Button>
+                    </>
+                  )}
+                  {/* RG Verso — aparece sempre (com ou sem frente) */}
+                  {rgDataUrl2 ? (
+                    <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
+                      <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="truncate flex-1 text-xs">{rgNome2}</span>
+                      <button onClick={clearRg2}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
+                    </div>
+                  ) : (
+                    <>
+                      <input ref={rgInputRef2} type="file" accept="image/*,application/pdf" className="hidden"
+                        onChange={e => handleFileRead(e, setRgDataUrl2, setRgNome2)} />
+                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
+                        onClick={() => rgInputRef2.current?.click()}>
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Verso)
                       </Button>
                     </>
                   )}
@@ -1420,7 +1449,7 @@ export default function Declaracoes() {
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              gerarPDFResidencia(formRes, rgDataUrl, compDataUrl);
+              gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
