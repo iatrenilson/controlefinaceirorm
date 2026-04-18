@@ -106,9 +106,9 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// Slot padrão de cartão de identidade: 560 × 400 px
-// (≈ 14,8 cm × 10,6 cm no papel — tamanho real de RG)
-const RG_SLOT_W = 560, RG_SLOT_H = 400, RG_GAP = 20;
+// Slot padrão de cartão de identidade: 360 × 270 px
+// (≈ 9,5 cm × 7,1 cm no papel — equivale ao tamanho físico de um RG)
+const RG_SLOT_W = 360, RG_SLOT_H = 270, RG_GAP = 20;
 
 function drawInSlot(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number) {
   const scale = Math.min(RG_SLOT_W / img.naturalWidth, RG_SLOT_H / img.naturalHeight, 1);
