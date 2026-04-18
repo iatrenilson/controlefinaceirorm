@@ -510,9 +510,10 @@ export default function Declaracoes() {
       }
 
       // FILIAÇÃO — bloco com pai e mãe (CNH digital pode ter vários formatos)
-      if (/\bFILIA[ÇC][AÃ]O\b/i.test(l)) {
+      // Regex aceita OCR comuns: FILIAÇÃO / FILIACAO / FILIAGAO
+      if (/\bFILIA[ÇCG][AÃA]O\b/i.test(l)) {
         // Caso A: "FILIAÇÃO: PAI / MÃE" ou "FILIAÇÃO PAI MÃE" inline
-        const afterFil = l.replace(/.*?\bFILIA[ÇC][AÃ]O\s*[:\-]?\s*/i,"").trim();
+        const afterFil = l.replace(/.*?\bFILIA[ÇCG][AÃA]O\s*[:\-]?\s*/i,"").trim();
         if (afterFil) {
           const slash = afterFil.split(/\s*\/\s*/);
           if (slash.length >= 2) {
@@ -525,12 +526,14 @@ export default function Declaracoes() {
         // Caso B: nomes nas próximas linhas (janela ampliada, break menos agressivo)
         if (!r.nomePai || !r.nomeMae) {
           let found = r.nomePai ? 1 : 0;
-          for (let j = i+1; j < Math.min(i+10, linhas.length); j++) {
+          for (let j = i+1; j < Math.min(i+12, linhas.length); j++) {
             const v = linhas[j].trim();
             if (!v) continue;
-            // Para apenas em linhas claramente de outro campo (início da linha)
-            if (/^(?:NACIONAL|CATEGOR|PRONTU|RENACH|REGISTRO|CPF|DOC\.?\s*IDENT|HABILI|VALIDADE|CAT\s*HAB|Nº\s*REG)/i.test(v)) break;
+            // Para em linhas claramente de outro campo
+            if (/^(?:NACIONAL|CATEGOR|PRONTU|RENACH|REGISTRO|CPF|DOC\.?\s*IDENT|HABILI|VALIDADE|CAT\s*HAB|Nº\s*REG|CARTEIRA|MINISTERIO|MINIST[ÉE]RIO|SENATRAN|BRASIL|DETRAN)/i.test(v)) break;
             if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) break; // linha só com data isolada
+            // Ignora linhas de cabeçalho/label (ex: "CARTEIRA NACIONAL", "REPÚBLICA FEDERATIVA")
+            if (LABEL_WORDS.test(v)) continue;
             // Dois nomes na mesma linha (CNH digital pode concatenar)
             if (!r.nomePai && !r.nomeMae) {
               const words = v.split(/\s+/);
@@ -624,9 +627,10 @@ export default function Declaracoes() {
         if (val) r.cidade = val.split(/[\-\/]/)[0].trim();
       }
 
-      // CEP
-      if (!r.cep) {
-        const m = l.match(/\b(\d{2}[\.\s]?\d{3}[\-\s]?\d{3})\b/);
+      // CEP — só extrai se a linha menciona "CEP" explicitamente
+      // (CNH não tem campo CEP; sem esse filtro números do RENACH/RG são capturados errado)
+      if (!r.cep && /\bCEP\b/i.test(l)) {
+        const m = l.match(/\b(\d{5}[\-\s]?\d{3})\b/);
         if (m) { const d = m[1].replace(/\D/g,""); if (d.length === 8) r.cep = maskCep(d); }
       }
 
