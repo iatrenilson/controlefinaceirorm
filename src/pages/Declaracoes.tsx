@@ -964,7 +964,7 @@ export default function Declaracoes() {
                               <span className="text-xs text-muted-foreground">
                                 CPF: <span className="font-mono">{dadosVisiveis ? c.cpf : "•••.•••.•••-••"}</span>
                               </span>
-                              {dadosVisiveis && <CopyButton value={c.cpf} />}
+                              <CopyButton value={c.cpf} />
                             </div>
                           )}
                           {c.senhaGov && (
@@ -972,7 +972,7 @@ export default function Declaracoes() {
                               <span className="text-xs text-muted-foreground">
                                 Senha GOV: <span className="font-mono">{dadosVisiveis ? c.senhaGov : "••••••••"}</span>
                               </span>
-                              {dadosVisiveis && <CopyButton value={c.senhaGov} />}
+                              <CopyButton value={c.senhaGov} />
                             </div>
                           )}
                           {c.rg && (
