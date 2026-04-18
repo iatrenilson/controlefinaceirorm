@@ -106,63 +106,7 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// Slot padrão de cartão de identidade: 520 × 370 px por face
-// (resolução interna para qualidade — exibido em ~13 cm via CSS no PDF)
-const RG_SLOT_W = 520, RG_SLOT_H = 370, RG_GAP = 24;
-
-function drawInSlot(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number) {
-  const scale = Math.min(RG_SLOT_W / img.naturalWidth, RG_SLOT_H / img.naturalHeight, 1);
-  const w = Math.round(img.naturalWidth * scale);
-  const h = Math.round(img.naturalHeight * scale);
-  ctx.fillStyle = "#f5f5f5";
-  ctx.fillRect(x, y, RG_SLOT_W, RG_SLOT_H);
-  ctx.drawImage(img, x + Math.round((RG_SLOT_W - w) / 2), y + Math.round((RG_SLOT_H - h) / 2), w, h);
-}
-
-// ─── Uma foto do RG em tamanho padrão de cartão ───────────────────────────
-async function fitRGSlot(dataUrl: string): Promise<string> {
-  if (!dataUrl.startsWith("data:image")) return dataUrl;
-  return new Promise<string>((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = RG_SLOT_W; canvas.height = RG_SLOT_H;
-      const ctx = canvas.getContext("2d")!;
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, RG_SLOT_W, RG_SLOT_H);
-      drawInSlot(ctx, img, 0, 0);
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
-
-// ─── Frente à esquerda + Verso à direita (lado a lado, mesma linha) ──────
-async function mergeImagesVertically(url1: string, url2: string): Promise<string> {
-  return new Promise<string>((resolve) => {
-    const img1 = new Image(), img2 = new Image();
-    let loaded = 0;
-    const tryMerge = () => {
-      if (++loaded < 2) return;
-      // Cada card: RG_SLOT_W × RG_SLOT_H, dispostos lado a lado
-      const canvas = document.createElement("canvas");
-      canvas.width = RG_SLOT_W * 2 + RG_GAP;
-      canvas.height = RG_SLOT_H;
-      const ctx = canvas.getContext("2d")!;
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawInSlot(ctx, img1, 0, 0);                    // Frente à esquerda
-      drawInSlot(ctx, img2, RG_SLOT_W + RG_GAP, 0);  // Verso à direita
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
-    };
-    img1.onload = tryMerge; img2.onload = tryMerge;
-    img1.onerror = () => resolve(url1); img2.onerror = () => resolve(url1);
-    img1.src = url1; img2.src = url2;
-  });
-}
-
-// ─── Redimensiona imagem genérica para caber na página (comprovante etc) ─
+// ─── Redimensiona imagem para caber em uma página A4 antes de imprimir ───
 async function fitImageToPage(dataUrl: string): Promise<string> {
   if (!dataUrl.startsWith("data:image")) return dataUrl;
   return new Promise<string>((resolve) => {
@@ -199,16 +143,16 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
       const id = `pdf-attach-${++counter}`;
       html += `
   <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" style="display:none;"></div>
-  <div style="page-break-before:always;min-height:24cm;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 20px 0;">${label}</p>
-    <div id="${id}" style="width:100%;"></div>
+  <div style="page-break-before:always;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;">${label}</p>
+    <div id="${id}"></div>
   </div>`;
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
       html += `
-  <div style="page-break-before:always;page-break-inside:avoid;min-height:24cm;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 20px 0;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;height:auto;object-fit:contain;display:block;" />
+  <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 6px 0;text-align:left;">${label}</p>
+    <img src="${dataUrl}" style="max-width:100%;max-height:22cm;object-fit:contain;display:block;margin:0 auto;" />
   </div>`;
     }
   }
@@ -321,20 +265,15 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
+async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
-  if (rgDataUrl) {
-    // Sempre usa slot padrão de RG (tamanho fixo, independente de 1 ou 2 fotos)
-    const rgFinal = (rgDataUrl2 && rgDataUrl.startsWith("data:image") && rgDataUrl2.startsWith("data:image"))
-      ? await mergeImagesVertically(rgDataUrl, rgDataUrl2)  // frente à esquerda, verso à direita
-      : await fitRGSlot(rgDataUrl);                         // só frente → slot padrão
-    attachmentList.push({ dataUrl: rgFinal, label: "Anexo: Documento de Identidade (RG)" });
-  }
+  // Redimensiona imagens grandes para caber na página sem criar folha em branco
+  if (rgDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
@@ -936,12 +875,9 @@ export default function Declaracoes() {
   const setR = (field: keyof FormDataResidencia, value: string) => setFormRes(prev => ({ ...prev, [field]: value }));
   const [rgDataUrl, setRgDataUrl] = useState<string | null>(null);
   const [rgNome, setRgNome] = useState("");
-  const [rgDataUrl2, setRgDataUrl2] = useState<string | null>(null);
-  const [rgNome2, setRgNome2] = useState("");
   const [compDataUrl, setCompDataUrl] = useState<string | null>(null);
   const [compNome, setCompNome] = useState("");
   const rgInputRef = useRef<HTMLInputElement>(null);
-  const rgInputRef2 = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
@@ -952,7 +888,6 @@ export default function Declaracoes() {
     reader.readAsDataURL(file);
   };
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
-  const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
 
   return (
@@ -1042,7 +977,7 @@ export default function Declaracoes() {
             <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
             </Button>
-            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearRg2(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
+            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Residência
             </Button>
           </CardContent>
@@ -1520,9 +1455,8 @@ export default function Declaracoes() {
             <div>
               <p className="text-xs font-semibold text-primary mb-2 uppercase tracking-wide">Anexos (opcional)</p>
               <div className="space-y-3">
-                {/* RG Frente */}
                 <div className="space-y-1">
-                  <Label className="text-xs">RG — Frente (imagem ou PDF)</Label>
+                  <Label className="text-xs">RG (imagem ou PDF)</Label>
                   {rgDataUrl ? (
                     <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
                       <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -1535,27 +1469,7 @@ export default function Declaracoes() {
                         onChange={e => handleFileRead(e, setRgDataUrl, setRgNome)} />
                       <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
                         onClick={() => rgInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Frente)
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {/* RG Verso — aparece junto na mesma página */}
-                <div className="space-y-1">
-                  <Label className="text-xs">RG — Verso <span className="font-normal text-muted-foreground">(opcional · ficará na mesma página)</span></Label>
-                  {rgDataUrl2 ? (
-                    <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
-                      <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <span className="truncate flex-1 text-xs">{rgNome2}</span>
-                      <button onClick={clearRg2}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
-                    </div>
-                  ) : (
-                    <>
-                      <input ref={rgInputRef2} type="file" accept="image/*,application/pdf" className="hidden"
-                        onChange={e => handleFileRead(e, setRgDataUrl2, setRgNome2)} />
-                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                        onClick={() => rgInputRef2.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Verso)
+                        <Paperclip className="h-3.5 w-3.5" />Anexar RG
                       </Button>
                     </>
                   )}
@@ -1591,7 +1505,7 @@ export default function Declaracoes() {
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
+              gerarPDFResidencia(formRes, rgDataUrl, compDataUrl);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
