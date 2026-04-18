@@ -755,8 +755,34 @@ export default function Declaracoes() {
             lastY = y;
           }
           if (linhaAtual.trim()) linhasPage.push(linhaAtual.trim().replace(/\s+/g, " "));
-          // Inverte porque PDF.js retorna de baixo para cima
           texto += linhasPage.reverse().join("\n") + "\n";
+        }
+
+        // CNH digital: dados podem estar como IMAGEM dentro do PDF (não texto).
+        // Se o parser não encontrou nome/CPF/RG no texto, renderiza a 1ª página
+        // como canvas e roda OCR — igual ao fluxo de imagem.
+        const previewCampos = parsearTexto(texto);
+        const temDadosUteis = !!(previewCampos.nome || previewCampos.cpf || previewCampos.rg);
+        if (!temDadosUteis) {
+          const page1 = await pdf.getPage(1);
+          const vp = page1.getViewport({ scale: 2.5 }); // escala alta para melhor OCR
+          const canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          const ctx = canvas.getContext("2d")!;
+          await page1.render({ canvasContext: ctx, viewport: vp }).promise;
+
+          const Tesseract = await new Promise<any>((res, rej) => {
+            if ((window as any).Tesseract) { res((window as any).Tesseract); return; }
+            const s = document.createElement("script");
+            s.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
+            s.onload = () => res((window as any).Tesseract);
+            s.onerror = rej;
+            document.head.appendChild(s);
+          });
+          const worker = await Tesseract.createWorker("por");
+          const { data } = await worker.recognize(canvas);
+          texto = data.text; // substitui pelo texto do OCR
+          await worker.terminate();
         }
       } else {
         // Imagem: usa Tesseract.js via CDN
