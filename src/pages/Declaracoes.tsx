@@ -12,6 +12,21 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
+type ClienteStatus = "aguardando" | "enviado" | "deferido" | "analise";
+
+const STATUS_LABELS: Record<ClienteStatus, string> = {
+  aguardando: "Aguardando doc.",
+  enviado:    "Enviado",
+  deferido:   "Deferido",
+  analise:    "Em análise",
+};
+const STATUS_COLORS: Record<ClienteStatus, string> = {
+  aguardando: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
+  enviado:    "bg-blue-500/20 text-blue-400 border-blue-500/40",
+  deferido:   "bg-green-500/20 text-green-400 border-green-500/40",
+  analise:    "bg-orange-500/20 text-orange-400 border-orange-500/40",
+};
+
 interface Cliente {
   id: string;
   nome: string;
@@ -30,6 +45,7 @@ interface Cliente {
   cidade: string;
   estado: string;
   senhaGov: string;
+  status?: ClienteStatus;
 }
 
 type ClienteForm = Omit<Cliente, "id">;
@@ -38,7 +54,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "",
+  senhaGov: "", status: "aguardando",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -863,6 +879,12 @@ export default function Declaracoes() {
     setClientes(novaLista);
   };
 
+  const alterarStatus = async (id: string, status: ClienteStatus) => {
+    const novaLista = clientes.map(c => c.id === id ? { ...c, status } : c);
+    await saveClientesToCloud(novaLista);
+    setClientes(novaLista);
+  };
+
   // Diálogo 1 — Inquérito
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -972,7 +994,21 @@ export default function Declaracoes() {
                             <text x="21" y="9"  fontSize="5.5" fill="white"   fontWeight="bold" fontFamily="Arial" letterSpacing="0.3">SINARM</text>
                             <text x="21" y="16" fontSize="5"   fill="#9ca3af" fontWeight="600"  fontFamily="Arial" letterSpacing="0.5">CAC</text>
                           </svg>
-                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Dropdown de status */}
+                            <Select
+                              value={c.status ?? "aguardando"}
+                              onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
+                            >
+                              <SelectTrigger className={`h-6 text-[10px] px-2 border rounded-full w-auto gap-1 font-semibold ${STATUS_COLORS[c.status ?? "aguardando"]}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
+                                  <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
