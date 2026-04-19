@@ -437,8 +437,8 @@ export default function Declaracoes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
-  const [mostrarClientes, setMostrarClientes] = useState(false);
-  const [dadosVisiveis, setDadosVisiveis] = useState(false);
+  const [mostrarClientes, setMostrarClientes] = useState(true);
+  const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
