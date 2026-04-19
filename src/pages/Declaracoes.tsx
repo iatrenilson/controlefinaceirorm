@@ -979,7 +979,7 @@ export default function Declaracoes() {
                       <div className="pl-0 pr-2 pt-2 pb-2">
                         {/* Linha 1: logo + botões */}
                         <div className="flex items-center justify-between">
-                          <svg viewBox="0 0 80 36" width="110" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                          <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                             {/* Círculo externo */}
                             <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
                             {/* Círculo médio */}
