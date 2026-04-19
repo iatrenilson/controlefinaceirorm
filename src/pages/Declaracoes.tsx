@@ -299,7 +299,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
     ? `<strong>${paiAcervo}</strong> e <strong>${maeAcervo}</strong>`
     : `<strong>${paiAcervo || maeAcervo}</strong>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>Declaração de Segundo Endereço de Guarda de Acervo - ${primeiroNome}</title>
+  <title>Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}</title>
   <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
   h1{text-align:center;font-size:12pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
   .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
@@ -309,7 +309,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
   .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
   @media print{html,body{margin:0;padding:0;}}</style></head><body>
-  <h1>Declaração de Segundo Endereço de Guarda de Acervo</h1>
+  <h1>Comprovante de Segundo Endereço de Guarda do Acervo</h1>
   <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de identidade
     RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf},
     filho de ${filhoDeAcervoHtml},
@@ -1109,7 +1109,7 @@ export default function Declaracoes() {
               <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
             </Button>
             <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Segundo Endereço de Guarda de Acervo
+              <Plus className="h-4 w-4" />Comprovante de Segundo Endereço de Guarda do Acervo
             </Button>
             <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
               <Plus className="h-4 w-4" />Declaração de Residência
@@ -1364,7 +1364,7 @@ export default function Declaracoes() {
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              Declaração de Segundo Endereço de Guarda de Acervo
+              Comprovante de Segundo Endereço de Guarda do Acervo
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
