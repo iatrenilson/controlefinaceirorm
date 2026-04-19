@@ -958,7 +958,7 @@ export default function Declaracoes() {
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
 
                       {/* Cabeçalho: logo + nome + ações */}
-                      <div className="flex items-center justify-between pl-0 pr-2 pt-3 pb-2">
+                      <div className="flex items-center justify-between pl-3 pr-2 pt-3 pb-2">
                         {/* Logo rente à borda esquerda */}
                         <svg viewBox="0 0 36 20" width="68" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                           <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
