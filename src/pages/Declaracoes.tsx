@@ -960,12 +960,22 @@ export default function Declaracoes() {
                       {/* Cabeçalho: nome + ações */}
                       <div className="flex items-center justify-between px-4 pt-3 pb-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          {/* Escudo PF */}
-                          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-600/15 border border-blue-500/30 flex items-center justify-center">
-                            <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="none">
-                              <path d="M12 2L4 6v6c0 4.97 3.47 9.63 8 10.93C16.53 21.63 20 16.97 20 12V6L12 2z" fill="#2563eb" fillOpacity="0.9"/>
-                              <path d="M12 2L4 6v6c0 4.97 3.47 9.63 8 10.93C16.53 21.63 20 16.97 20 12V6L12 2z" stroke="#60a5fa" strokeWidth="0.8" fill="none"/>
-                              <text x="12" y="15.5" textAnchor="middle" fontSize="6" fill="white" fontWeight="bold" fontFamily="Arial">PF</text>
+                          {/* Logo SINARM CAC */}
+                          <div className="flex-shrink-0 flex items-center justify-center">
+                            <svg viewBox="0 0 36 20" width="72" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              {/* Mira/alvo */}
+                              <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
+                              <circle cx="10" cy="10" r="5.5" stroke="#e5e7eb" strokeWidth="1"/>
+                              <circle cx="10" cy="10" r="2"   fill="#e5e7eb"/>
+                              {/* Linhas cruzadas */}
+                              <line x1="10" y1="1"  x2="10" y2="4.5"  stroke="#e5e7eb" strokeWidth="1"/>
+                              <line x1="10" y1="15.5" x2="10" y2="19" stroke="#e5e7eb" strokeWidth="1"/>
+                              <line x1="1"  y1="10" x2="4.5"  y2="10" stroke="#e5e7eb" strokeWidth="1"/>
+                              <line x1="15.5" y1="10" x2="19" y2="10" stroke="#e5e7eb" strokeWidth="1"/>
+                              {/* Texto SINARM */}
+                              <text x="21" y="9" fontSize="5.5" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.3">SINARM</text>
+                              {/* Texto CAC */}
+                              <text x="21" y="16" fontSize="5" fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="0.5">CAC</text>
                             </svg>
                           </div>
                           <p className="text-sm font-bold uppercase tracking-wide truncate">{c.nome}</p>
