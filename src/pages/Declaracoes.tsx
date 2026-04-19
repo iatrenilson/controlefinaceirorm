@@ -1020,16 +1020,16 @@ export default function Declaracoes() {
                           </div>
                         </div>
                         {/* Linha 2: nome alinhado com a borda esquerda do círculo da logo */}
-                        <p className="text-sm font-bold uppercase tracking-wide truncate mt-1 pl-3">{c.nome}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide truncate mt-1 pl-3">{c.nome}</p>
                       </div>
 
                       {/* Dados — estilo LOGIN / SENHA / RG */}
-                      <div className="pl-3 pr-3 pb-3 flex flex-col gap-1">
+                      <div className="pl-3 pr-3 pb-2 flex flex-col gap-0.5">
                         {c.cpf && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2 min-w-0">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-shrink-0">CPF</span>
-                              <span className="text-sm font-mono font-semibold truncate">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">CPF</span>
+                              <span className="text-xs font-mono font-semibold truncate">
                                 {dadosVisiveis ? c.cpf : "•••.•••.•••-••"}
                               </span>
                             </div>
@@ -1038,9 +1038,9 @@ export default function Declaracoes() {
                         )}
                         {c.senhaGov && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2 min-w-0">
-                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-shrink-0">SENHA</span>
-                              <span className="text-sm font-mono font-semibold truncate">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">SENHA</span>
+                              <span className="text-xs font-mono font-semibold truncate">
                                 {dadosVisiveis ? c.senhaGov : "••••••••"}
                               </span>
                             </div>
@@ -1048,9 +1048,9 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.rg && (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider flex-shrink-0">RG</span>
-                            <span className="text-sm font-mono font-semibold">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">RG</span>
+                            <span className="text-xs font-mono font-semibold">
                               {dadosVisiveis ? c.rg : "•••••••-•"}
                             </span>
                           </div>
