@@ -15,7 +15,7 @@ import { ptBR } from "date-fns/locale";
 type ClienteStatus = "aguardando" | "enviado" | "deferido" | "analise";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
-  aguardando: "Aguardando doc.",
+  aguardando: "Documentação",
   enviado:    "Enviado",
   deferido:   "Deferido",
   analise:    "Em análise",
@@ -1000,7 +1000,7 @@ export default function Declaracoes() {
                               value={c.status ?? "aguardando"}
                               onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
                             >
-                              <SelectTrigger className={`h-6 text-[10px] px-2 border rounded-full w-auto gap-1 font-semibold ${STATUS_COLORS[c.status ?? "aguardando"]}`}>
+                              <SelectTrigger className={`h-5 text-[9px] px-1.5 border rounded-full w-auto gap-0.5 font-semibold ${STATUS_COLORS[c.status ?? "aguardando"]}`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
