@@ -20,11 +20,11 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   deferido: "text-green-400 border-green-500/50 bg-green-500/10",
-  analise:  "text-orange-400 border-orange-500/50 bg-orange-500/10",
+  analise:  "text-blue-400 border-blue-500/50 bg-blue-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
   deferido: "bg-green-400",
-  analise:  "bg-orange-400",
+  analise:  "bg-blue-400",
 };
 
 interface Cliente {
