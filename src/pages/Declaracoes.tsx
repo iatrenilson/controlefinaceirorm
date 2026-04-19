@@ -953,42 +953,53 @@ export default function Declaracoes() {
                   Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
                 </p>
               ) : (
-                <div className="divide-y divide-border/50">
+                <div className="flex flex-col gap-3">
                   {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
-                    <div key={c.id} className="flex items-center justify-between py-2.5 gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate uppercase">{c.nome}</p>
-                        <div className="flex flex-col gap-0.5 mt-0.5">
-                          {c.cpf && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">
-                                CPF: <span className="font-mono">{dadosVisiveis ? c.cpf : "•••.•••.•••-••"}</span>
-                              </span>
-                              <CopyButton value={c.cpf} />
-                            </div>
-                          )}
-                          {c.senhaGov && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">
-                                Senha GOV: <span className="font-mono">{dadosVisiveis ? c.senhaGov : "••••••••"}</span>
-                              </span>
-                              <CopyButton value={c.senhaGov} />
-                            </div>
-                          )}
-                          {c.rg && (
-                            <span className="text-xs text-muted-foreground">
-                              RG: <span className="font-mono">{dadosVisiveis ? c.rg : "•••••••-•"}</span>
-                            </span>
-                          )}
+                    <div key={c.id} className="rounded-xl border border-border bg-muted/20 overflow-hidden">
+                      {/* Cabeçalho do card */}
+                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
+                        <p className="text-sm font-bold uppercase tracking-wide truncate">{c.nome}</p>
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                      {/* Dados do card */}
+                      <div className="px-4 py-2.5 flex flex-col gap-1.5">
+                        {c.cpf && (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">CPF</span>
+                              <span className="text-sm font-mono font-semibold truncate">
+                                {dadosVisiveis ? c.cpf : "•••.•••.•••-••"}
+                              </span>
+                            </div>
+                            <CopyButton value={c.cpf} />
+                          </div>
+                        )}
+                        {c.senhaGov && (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">Senha GOV</span>
+                              <span className="text-sm font-mono font-semibold truncate">
+                                {dadosVisiveis ? c.senhaGov : "••••••••"}
+                              </span>
+                            </div>
+                            <CopyButton value={c.senhaGov} />
+                          </div>
+                        )}
+                        {c.rg && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">RG</span>
+                            <span className="text-sm font-mono font-semibold">
+                              {dadosVisiveis ? c.rg : "•••••••-•"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
