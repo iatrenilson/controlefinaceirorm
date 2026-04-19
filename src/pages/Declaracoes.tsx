@@ -49,6 +49,7 @@ interface Cliente {
   estado: string;
   senhaGov: string;
   status?: ClienteStatus;
+  status2?: ClienteStatus;
 }
 
 type ClienteForm = Omit<Cliente, "id">;
@@ -57,7 +58,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", status: "doc",
+  senhaGov: "", status: "doc", status2: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -888,6 +889,12 @@ export default function Declaracoes() {
     setClientes(novaLista);
   };
 
+  const alterarStatus2 = async (id: string, status2: ClienteStatus) => {
+    const novaLista = clientes.map(c => c.id === id ? { ...c, status2 } : c);
+    await saveClientesToCloud(novaLista);
+    setClientes(novaLista);
+  };
+
   // Diálogo 1 — Inquérito
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -1013,6 +1020,22 @@ export default function Declaracoes() {
                                 <>
                                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status ?? "doc"]}`} />
                                   <span>{STATUS_LABELS[c.status ?? "doc"]}</span>
+                                </>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
+                                  <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select
+                              value={c.status2 ?? "doc"}
+                              onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}
+                            >
+                              <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status2 ?? "doc"]}`}>
+                                <>
+                                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status2 ?? "doc"]}`} />
+                                  <span>{STATUS_LABELS[c.status2 ?? "doc"]}</span>
                                 </>
                               </SelectTrigger>
                               <SelectContent>
