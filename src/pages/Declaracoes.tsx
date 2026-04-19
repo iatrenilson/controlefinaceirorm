@@ -983,16 +983,22 @@ export default function Declaracoes() {
                       <div className="pl-3 pr-2 pt-3 pb-2">
                         {/* Linha 1: logo + botões */}
                         <div className="flex items-center justify-between">
-                          <svg viewBox="1.5 0 34.5 20" width="88" height="25" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                            <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
-                            <circle cx="10" cy="10" r="5.5" stroke="#e5e7eb" strokeWidth="1"/>
-                            <circle cx="10" cy="10" r="2"   fill="#e5e7eb"/>
-                            <line x1="10" y1="1"    x2="10" y2="4.5"  stroke="#e5e7eb" strokeWidth="1"/>
-                            <line x1="10" y1="15.5" x2="10" y2="19"   stroke="#e5e7eb" strokeWidth="1"/>
-                            <line x1="1"  y1="10"   x2="4.5"  y2="10" stroke="#e5e7eb" strokeWidth="1"/>
-                            <line x1="15.5" y1="10" x2="19"   y2="10" stroke="#e5e7eb" strokeWidth="1"/>
-                            <text x="21" y="9"  fontSize="5.5" fill="white"   fontWeight="bold" fontFamily="Arial" letterSpacing="0.3">SINARM</text>
-                            <text x="21" y="16" fontSize="5"   fill="#9ca3af" fontWeight="600"  fontFamily="Arial" letterSpacing="0.5">CAC</text>
+                          <svg viewBox="0 0 80 36" width="110" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                            {/* Círculo externo */}
+                            <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                            {/* Círculo médio */}
+                            <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                            {/* Ponto central */}
+                            <circle cx="18" cy="18" r="3.5" fill="#e5e7eb"/>
+                            {/* Miras */}
+                            <line x1="18" y1="1"  x2="18" y2="7"   stroke="#e5e7eb" strokeWidth="1.5"/>
+                            <line x1="18" y1="29" x2="18" y2="35"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                            <line x1="1"  y1="18" x2="7"   y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
+                            <line x1="29" y1="18" x2="35"  y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
+                            {/* Texto SINARM */}
+                            <text x="40" y="17" fontSize="11" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">SINARM</text>
+                            {/* Texto CAC */}
+                            <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
                           </svg>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {/* Dropdown de status */}
