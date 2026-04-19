@@ -19,8 +19,12 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
   analise:  "Em análise",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
-  deferido: "text-green-400",
-  analise:  "text-orange-400",
+  deferido: "text-green-400 border-green-500/50 bg-green-500/10",
+  analise:  "text-orange-400 border-orange-500/50 bg-orange-500/10",
+};
+const STATUS_DOT: Record<ClienteStatus, string> = {
+  deferido: "bg-green-400",
+  analise:  "bg-orange-400",
 };
 
 interface Cliente {
@@ -997,13 +1001,20 @@ export default function Declaracoes() {
                             <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
                           </svg>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Dropdown de status — só seta, sem texto padrão */}
+                            {/* Dropdown de status — badge estilo pill com ponto */}
                             <Select
                               value={c.status ?? ""}
                               onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
                             >
-                              <SelectTrigger className={`h-6 w-6 p-0 border-0 bg-transparent shadow-none focus:ring-0 ${c.status ? STATUS_COLORS[c.status] : "text-muted-foreground"}`}>
-                                <ChevronDown className="h-4 w-4" />
+                              <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${c.status ? STATUS_COLORS[c.status] : "text-muted-foreground border-border bg-transparent"}`}>
+                                {c.status ? (
+                                  <>
+                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status]}`} />
+                                    <span>{STATUS_LABELS[c.status]}</span>
+                                  </>
+                                ) : (
+                                  <ChevronDown className="h-3 w-3" />
+                                )}
                               </SelectTrigger>
                               <SelectContent>
                                 {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
