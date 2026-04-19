@@ -57,7 +57,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", status: undefined,
+  senhaGov: "", status: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -1006,18 +1006,14 @@ export default function Declaracoes() {
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {/* Dropdown de status — badge estilo pill com ponto */}
                             <Select
-                              value={c.status ?? ""}
+                              value={c.status ?? "doc"}
                               onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
                             >
-                              <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${c.status ? STATUS_COLORS[c.status] : "text-muted-foreground border-border bg-transparent"}`}>
-                                {c.status ? (
-                                  <>
-                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status]}`} />
-                                    <span>{STATUS_LABELS[c.status]}</span>
-                                  </>
-                                ) : (
-                                  <ChevronDown className="h-3 w-3" />
-                                )}
+                              <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status ?? "doc"]}`}>
+                                <>
+                                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status ?? "doc"]}`} />
+                                  <span>{STATUS_LABELS[c.status ?? "doc"]}</span>
+                                </>
                               </SelectTrigger>
                               <SelectContent>
                                 {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
