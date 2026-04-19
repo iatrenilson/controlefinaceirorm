@@ -961,7 +961,7 @@ export default function Declaracoes() {
                       <div className="pl-3 pr-2 pt-3 pb-2">
                         {/* Linha 1: logo + botões */}
                         <div className="flex items-center justify-between">
-                          <svg viewBox="0 0 36 20" width="68" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                          <svg viewBox="0 0 36 20" width="90" height="25" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                             <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
                             <circle cx="10" cy="10" r="5.5" stroke="#e5e7eb" strokeWidth="1"/>
                             <circle cx="10" cy="10" r="2"   fill="#e5e7eb"/>
