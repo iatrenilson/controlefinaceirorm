@@ -184,6 +184,8 @@ const DelayViewer = () => {
     let list = clientes.filter((c) => {
       if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
       if (getClienteStatus(c) === "aguardando" && filtroStatus !== "aguardando") return false;
+      // Oculta contas queimadas (saque_pendente) do painel do operador — vão para o admin
+      if (linkTipo === "visualizador_individual" && c.status === "saque_pendente") return false;
       return true;
     });
 
@@ -298,8 +300,9 @@ const DelayViewer = () => {
         })
         .eq("id", cliente.id);
       if (error) throw error;
-      toast({ title: "Conta Queimada! Aguardando aprovação do administrador." });
-      fetchClientesSilent();
+      // Remove imediatamente do painel do operador
+      setClientes(prev => prev.map(c => c.id === cliente.id ? { ...c, status: "saque_pendente", operacao: "saque_pendente" } : c));
+      toast({ title: "Conta Queimada! Enviado para aprovação do administrador." });
     } catch (e: unknown) {
       toast({ title: "Erro ao registrar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
     } finally {
