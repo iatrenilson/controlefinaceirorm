@@ -980,7 +980,7 @@ export default function Declaracoes() {
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
 
                       {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
-                      <div className="pl-3 pr-2 pt-3 pb-2">
+                      <div className="pl-0 pr-2 pt-2 pb-2">
                         {/* Linha 1: logo + botões */}
                         <div className="flex items-center justify-between">
                           <svg viewBox="0 0 80 36" width="110" height="36" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -1023,8 +1023,8 @@ export default function Declaracoes() {
                             </Button>
                           </div>
                         </div>
-                        {/* Linha 2: nome — mesmo recuo da logo (herdado do container pl-3) */}
-                        <p className="text-sm font-bold uppercase tracking-wide truncate mt-1">{c.nome}</p>
+                        {/* Linha 2: nome alinhado com a borda esquerda do círculo da logo */}
+                        <p className="text-sm font-bold uppercase tracking-wide truncate mt-1 pl-3">{c.nome}</p>
                       </div>
 
                       {/* Dados — estilo LOGIN / SENHA / RG */}
