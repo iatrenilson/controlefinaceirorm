@@ -992,27 +992,10 @@ export default function Declaracoes() {
                   {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
 
-                      {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
-                      <div className="pl-0 pr-2 pt-2 pb-2">
-                        {/* Linha 1: logo + botões */}
+                      {/* Cabeçalho: nome + botões */}
+                      <div className="pl-3 pr-2 pt-2 pb-2">
+                        {/* Linha 1: botões alinhados à direita */}
                         <div className="flex items-center justify-between">
-                          <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                            {/* Círculo externo */}
-                            <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Círculo médio */}
-                            <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Ponto central */}
-                            <circle cx="18" cy="18" r="3.5" fill="#e5e7eb"/>
-                            {/* Miras */}
-                            <line x1="18" y1="1"  x2="18" y2="7"   stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="18" y1="29" x2="18" y2="35"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="1"  y1="18" x2="7"   y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="29" y1="18" x2="35"  y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Texto SINARM */}
-                            <text x="40" y="17" fontSize="11" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">SINARM</text>
-                            {/* Texto CAC */}
-                            <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
-                          </svg>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {/* Dropdown de status — badge estilo pill com ponto */}
                             <Select
@@ -1055,8 +1038,7 @@ export default function Declaracoes() {
                             </Button>
                           </div>
                         </div>
-                        {/* Linha 2: nome alinhado com a borda esquerda do círculo da logo */}
-                        <p className="text-xs font-bold uppercase tracking-wide truncate mt-1 pl-3">{c.nome}</p>
+                        <p className="text-xs font-bold uppercase tracking-wide truncate mt-1">{c.nome}</p>
                       </div>
 
                       {/* Dados — estilo LOGIN / SENHA / RG */}
