@@ -12,17 +12,20 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "deferido" | "analise";
+type ClienteStatus = "doc" | "deferido" | "analise";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
+  doc:      "Doc",
   deferido: "Deferido",
   analise:  "Em análise",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
+  doc:      "text-white border-white/40 bg-white/10",
   deferido: "text-green-400 border-green-500/50 bg-green-500/10",
   analise:  "text-blue-400 border-blue-500/50 bg-blue-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
+  doc:      "bg-white",
   deferido: "bg-green-400",
   analise:  "bg-blue-400",
 };
