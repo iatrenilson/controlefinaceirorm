@@ -22,12 +22,12 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   doc:      "text-white border-white/40 bg-white/10",
   deferido: "text-green-400 border-green-500/50 bg-green-500/10",
-  analise:  "text-blue-400 border-blue-500/50 bg-blue-500/10",
+  analise:  "text-yellow-300/80 border-yellow-400/40 bg-yellow-400/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
   doc:      "bg-white",
   deferido: "bg-green-400",
-  analise:  "bg-blue-400",
+  analise:  "bg-yellow-300/80",
 };
 
 interface Cliente {
