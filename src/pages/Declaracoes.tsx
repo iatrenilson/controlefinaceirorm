@@ -957,30 +957,32 @@ export default function Declaracoes() {
                   {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
 
-                      {/* Cabeçalho: logo + nome + ações */}
-                      <div className="flex items-center justify-between pl-3 pr-2 pt-3 pb-2">
-                        {/* Logo rente à borda esquerda */}
-                        <svg viewBox="0 0 36 20" width="68" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                          <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
-                          <circle cx="10" cy="10" r="5.5" stroke="#e5e7eb" strokeWidth="1"/>
-                          <circle cx="10" cy="10" r="2"   fill="#e5e7eb"/>
-                          <line x1="10" y1="1"    x2="10" y2="4.5"  stroke="#e5e7eb" strokeWidth="1"/>
-                          <line x1="10" y1="15.5" x2="10" y2="19"   stroke="#e5e7eb" strokeWidth="1"/>
-                          <line x1="1"  y1="10"   x2="4.5"  y2="10" stroke="#e5e7eb" strokeWidth="1"/>
-                          <line x1="15.5" y1="10" x2="19"   y2="10" stroke="#e5e7eb" strokeWidth="1"/>
-                          <text x="21" y="9"  fontSize="5.5" fill="white"   fontWeight="bold" fontFamily="Arial" letterSpacing="0.3">SINARM</text>
-                          <text x="21" y="16" fontSize="5"   fill="#9ca3af" fontWeight="600"  fontFamily="Arial" letterSpacing="0.5">CAC</text>
-                        </svg>
-                        {/* Nome logo após a logo, alinhado à esquerda */}
-                        <p className="text-sm font-bold uppercase tracking-wide truncate flex-1 ml-2">{c.nome}</p>
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                      {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
+                      <div className="pl-3 pr-2 pt-3 pb-2">
+                        {/* Linha 1: logo + botões */}
+                        <div className="flex items-center justify-between">
+                          <svg viewBox="0 0 36 20" width="68" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                            <circle cx="10" cy="10" r="8.5" stroke="#e5e7eb" strokeWidth="1"/>
+                            <circle cx="10" cy="10" r="5.5" stroke="#e5e7eb" strokeWidth="1"/>
+                            <circle cx="10" cy="10" r="2"   fill="#e5e7eb"/>
+                            <line x1="10" y1="1"    x2="10" y2="4.5"  stroke="#e5e7eb" strokeWidth="1"/>
+                            <line x1="10" y1="15.5" x2="10" y2="19"   stroke="#e5e7eb" strokeWidth="1"/>
+                            <line x1="1"  y1="10"   x2="4.5"  y2="10" stroke="#e5e7eb" strokeWidth="1"/>
+                            <line x1="15.5" y1="10" x2="19"   y2="10" stroke="#e5e7eb" strokeWidth="1"/>
+                            <text x="21" y="9"  fontSize="5.5" fill="white"   fontWeight="bold" fontFamily="Arial" letterSpacing="0.3">SINARM</text>
+                            <text x="21" y="16" fontSize="5"   fill="#9ca3af" fontWeight="600"  fontFamily="Arial" letterSpacing="0.5">CAC</text>
+                          </svg>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
+                        {/* Linha 2: nome alinhado à esquerda */}
+                        <p className="text-sm font-bold uppercase tracking-wide truncate mt-1">{c.nome}</p>
                       </div>
 
                       {/* Dados — estilo LOGIN / SENHA / RG */}
