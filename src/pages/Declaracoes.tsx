@@ -953,28 +953,40 @@ export default function Declaracoes() {
                   Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
                 </p>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
-                    <div key={c.id} className="rounded-xl border border-border bg-muted/20 overflow-hidden">
-                      {/* Cabeçalho do card */}
-                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-                        <p className="text-sm font-bold uppercase tracking-wide truncate">{c.nome}</p>
+                    <div key={c.id} className="rounded-xl border border-blue-500/30 bg-gradient-to-b from-blue-950/40 to-slate-900/60 overflow-hidden shadow-md">
+
+                      {/* Cabeçalho colorido */}
+                      <div className="flex items-center justify-between px-3 py-2 bg-blue-900/30 border-b border-blue-500/20">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* Badge PF */}
+                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600/20 border border-blue-400/40 flex items-center justify-center">
+                            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+                              <path d="M12 2L4 6v6c0 4.97 3.47 9.63 8 10.93C16.53 21.63 20 16.97 20 12V6L12 2z" fill="#3b82f6" fillOpacity="0.8"/>
+                              <path d="M12 2L4 6v6c0 4.97 3.47 9.63 8 10.93C16.53 21.63 20 16.97 20 12V6L12 2z" stroke="#60a5fa" strokeWidth="1" fill="none"/>
+                              <text x="12" y="15" textAnchor="middle" fontSize="6.5" fill="white" fontWeight="bold" fontFamily="Arial">PF</text>
+                            </svg>
+                          </div>
+                          <p className="text-xs font-bold uppercase tracking-wide truncate text-white">{c.nome}</p>
+                        </div>
                         <div className="flex items-center gap-0.5 flex-shrink-0">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
-                            <Pencil className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-blue-300 hover:text-white hover:bg-blue-700/40" onClick={() => abrirEditarCliente(c)}>
+                            <Pencil className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => excluirCliente(c.id)}>
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
-                      {/* Dados do card */}
-                      <div className="px-4 py-2.5 flex flex-col gap-1.5">
+
+                      {/* Dados */}
+                      <div className="px-3 py-2.5 flex flex-col gap-2">
                         {c.cpf && (
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">CPF</span>
-                              <span className="text-sm font-mono font-semibold truncate">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[10px] text-blue-400/80 uppercase tracking-wide flex-shrink-0">CPF</span>
+                              <span className="text-xs font-mono font-bold text-white/90 truncate">
                                 {dadosVisiveis ? c.cpf : "•••.•••.•••-••"}
                               </span>
                             </div>
@@ -982,10 +994,10 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.senhaGov && (
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">Senha GOV</span>
-                              <span className="text-sm font-mono font-semibold truncate">
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[10px] text-blue-400/80 uppercase tracking-wide flex-shrink-0">SENHA</span>
+                              <span className="text-xs font-mono font-bold text-white/90 truncate">
                                 {dadosVisiveis ? c.senhaGov : "••••••••"}
                               </span>
                             </div>
@@ -993,9 +1005,9 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.rg && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-muted-foreground uppercase tracking-wide w-20 flex-shrink-0">RG</span>
-                            <span className="text-sm font-mono font-semibold">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-blue-400/80 uppercase tracking-wide flex-shrink-0">RG</span>
+                            <span className="text-xs font-mono font-bold text-white/90">
                               {dadosVisiveis ? c.rg : "•••••••-•"}
                             </span>
                           </div>
