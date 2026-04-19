@@ -12,19 +12,15 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "aguardando" | "enviado" | "deferido" | "analise";
+type ClienteStatus = "deferido" | "analise";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
-  aguardando: "Documentação",
-  enviado:    "Enviado",
-  deferido:   "Deferido",
-  analise:    "Em análise",
+  deferido: "Deferido",
+  analise:  "Em análise",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
-  aguardando: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
-  enviado:    "bg-blue-500/20 text-blue-400 border-blue-500/40",
-  deferido:   "bg-green-500/20 text-green-400 border-green-500/40",
-  analise:    "bg-orange-500/20 text-orange-400 border-orange-500/40",
+  deferido: "text-green-400",
+  analise:  "text-orange-400",
 };
 
 interface Cliente {
@@ -54,7 +50,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", status: "aguardando",
+  senhaGov: "", status: undefined,
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -1001,13 +997,13 @@ export default function Declaracoes() {
                             <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
                           </svg>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Dropdown de status */}
+                            {/* Dropdown de status — só seta, sem texto padrão */}
                             <Select
-                              value={c.status ?? "aguardando"}
+                              value={c.status ?? ""}
                               onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
                             >
-                              <SelectTrigger className={`h-5 text-[9px] px-1.5 border rounded-full w-auto gap-0.5 font-semibold ${STATUS_COLORS[c.status ?? "aguardando"]}`}>
-                                <SelectValue />
+                              <SelectTrigger className={`h-6 w-6 p-0 border-0 bg-transparent shadow-none focus:ring-0 ${c.status ? STATUS_COLORS[c.status] : "text-muted-foreground"}`}>
+                                <ChevronDown className="h-4 w-4" />
                               </SelectTrigger>
                               <SelectContent>
                                 {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
