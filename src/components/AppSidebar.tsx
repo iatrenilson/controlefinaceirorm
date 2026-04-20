@@ -1,5 +1,6 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -7,6 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 const rwLogo = "/rw-logo.png";
 import {
   Sidebar,
@@ -18,6 +20,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
 const navItems = [
@@ -96,6 +101,8 @@ function PlanCard() {
 export function AppSidebar() {
   const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const [criarOpen, setCriarOpen] = useState(false);
 
   const showDelaySection = isAdmin || isModerator;
 
@@ -211,6 +218,38 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+
+                  {/* Criar Declarações — colapsável */}
+                  <Collapsible open={criarOpen} onOpenChange={setCriarOpen} className="group/criar">
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip="Criar Declarações" className="w-full">
+                          <Plus className="h-[18px] w-[18px]" />
+                          <span>Criar Declarações</span>
+                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/criar:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=inquerito")} className="cursor-pointer text-xs">
+                              Inquérito Policial
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=acervo")} className="cursor-pointer text-xs">
+                              Comprovante de Acervo
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=residencia")} className="cursor-pointer text-xs">
+                              Declaração de Residência
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff } from "lucide-react";
@@ -905,6 +906,7 @@ export default function Declaracoes() {
 
   // Diálogo 2 — Acervo
   const [dialogAcervoOpen, setDialogAcervoOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [formAcervo, setFormAcervo] = useState<FormDataAcervo>(EMPTY_FORM_ACERVO);
   const setA = (field: keyof FormDataAcervo, value: string) => setFormAcervo(prev => ({ ...prev, [field]: value }));
 
@@ -921,6 +923,16 @@ export default function Declaracoes() {
   const rgInputRef = useRef<HTMLInputElement>(null);
   const rgInputRef2 = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
+
+  // Abre dialog via URL param ?open=inquerito|acervo|residencia
+  useEffect(() => {
+    const open = searchParams.get("open");
+    if (!open) return;
+    if (open === "inquerito") { setForm(EMPTY_FORM); setDialogOpen(true); }
+    else if (open === "acervo") { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }
+    else if (open === "residencia") { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }
+    setSearchParams({}, { replace: true });
+  }, [searchParams]);
 
   const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -1100,25 +1112,6 @@ export default function Declaracoes() {
           )}
         </Card>
 
-        {/* Declarações */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />Criar Nova Declaração
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Button variant="outline" onClick={() => { setForm(EMPTY_FORM); setDialogOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Não Estar Respondendo a Inquérito Policial
-            </Button>
-            <Button variant="outline" onClick={() => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Comprovante de Segundo Endereço de Guarda do Acervo
-            </Button>
-            <Button variant="outline" onClick={() => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }} className="gap-2 w-fit">
-              <Plus className="h-4 w-4" />Declaração de Residência
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {/* ── Dialog: Cadastro de Cliente ── */}
