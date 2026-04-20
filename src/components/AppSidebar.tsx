@@ -163,47 +163,58 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         ) : showDelaySection ? (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Administração</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {isAdmin && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Administração</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="Painel Admin">
+                        <NavLink to="/admin" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                          <ShieldCheck className="h-[18px] w-[18px]" />
+                          <span>Painel Admin</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Painel Admin">
-                      <NavLink to="/admin" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                        <ShieldCheck className="h-[18px] w-[18px]" />
-                        <span>Painel Admin</span>
+                    <SidebarMenuButton asChild tooltip="Delay Esportivo">
+                      <NavLink to="/delay-esportivo" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <Timer className="h-[18px] w-[18px]" />
+                        <span>Delay Esportivo</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )}
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Delay Esportivo">
-                    <NavLink to="/delay-esportivo" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                      <Timer className="h-[18px] w-[18px]" />
-                      <span>Delay Esportivo</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Dashboard Delay">
-                    <NavLink to="/delay-dashboard" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                      <PieChart className="h-[18px] w-[18px]" />
-                      <span>Dashboard Delay</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Clientes / Declarações">
-                    <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                      <FileText className="h-[18px] w-[18px]" />
-                      <span>Clientes / Declarações</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Dashboard Delay">
+                      <NavLink to="/delay-dashboard" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <PieChart className="h-[18px] w-[18px]" />
+                        <span>Dashboard Delay</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Sinarm CAC */}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Sinarm CAC</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Clientes / Declarações">
+                      <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <FileText className="h-[18px] w-[18px]" />
+                        <span>Clientes / Declarações</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         ) : null}
       </SidebarContent>
 
