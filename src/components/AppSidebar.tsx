@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronRight, Plus } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -211,10 +211,10 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Clientes / Declarações">
+                    <SidebarMenuButton asChild tooltip="Clientes">
                       <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                        <FileText className="h-[18px] w-[18px]" />
-                        <span>Clientes / Declarações</span>
+                        <Users className="h-[18px] w-[18px]" />
+                        <span>Clientes</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
