@@ -117,16 +117,19 @@ Deno.serve(async (req) => {
           }
           return false;
         }
-        if (isVodkaOnly) return c.nome.toLowerCase().includes("vodka");
+        if (isVodkaOnly) {
+          if (c.status === "saque_pendente") return false;
+          return c.nome.toLowerCase().includes("vodka");
+        }
         if (isIndividual) {
           if (!allowedTokens) return false;
-          // Contas queimadas (saque_pendente) não aparecem para o operador — só para o admin
           if (c.status === "saque_pendente") return false;
-          // Check created_by_token (old behavior) OR operator_link_id (new dedicated field)
           if (c.created_by_token && allowedTokens.has(c.created_by_token)) return true;
           if (c.operator_link_id && allowedTokens.has(c.operator_link_id)) return true;
           return false;
         }
+        // visualizador geral — também oculta queimadas
+        if (c.status === "saque_pendente") return false;
         return !c.nome.toLowerCase().includes("vodka");
       })
       .map((c: any) => {

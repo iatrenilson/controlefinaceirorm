@@ -199,8 +199,8 @@ const DelayViewer = () => {
     let list = clientes.filter((c) => {
       if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
       if (getClienteStatus(c) === "aguardando" && filtroStatus !== "aguardando") return false;
-      // Oculta contas queimadas (saque_pendente) do painel do operador — vão para o admin
-      if (linkTipo === "visualizador_individual" && c.status === "saque_pendente") return false;
+      // Oculta contas queimadas de todos os links de viewer (não editor/admin)
+      if (linkTipo !== "editor" && c.status === "saque_pendente") return false;
       return true;
     });
 
