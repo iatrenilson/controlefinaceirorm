@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronRight, Plus } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -226,7 +226,7 @@ export function AppSidebar() {
                         <SidebarMenuButton tooltip="Criar Declarações" className="w-full">
                           <Plus className="h-[18px] w-[18px]" />
                           <span>Criar Declarações</span>
-                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/criar:rotate-90" />
+                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/criar:rotate-180" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
