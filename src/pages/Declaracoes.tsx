@@ -1127,103 +1127,148 @@ export default function Declaracoes() {
             {/* Nome */}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
-              <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
-                value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
+                  value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
+                <CopyButton value={formCliente.nome} />
+              </div>
             </div>
             {/* CPF + RG */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
-                  value={formCliente.cpf} onChange={e => setC("cpf", maskCpf(e.target.value))} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm font-mono" placeholder="000.000.000-00"
+                    value={formCliente.cpf} onChange={e => setC("cpf", maskCpf(e.target.value))} />
+                  <CopyButton value={formCliente.cpf} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">RG</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="0000000-0"
-                  value={formCliente.rg} onChange={e => setC("rg", maskRg(e.target.value))} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm font-mono" placeholder="0000000-0"
+                    value={formCliente.rg} onChange={e => setC("rg", maskRg(e.target.value))} />
+                  <CopyButton value={formCliente.rg} />
+                </div>
               </div>
             </div>
             {/* Órgão + Data Expedição */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Órgão Emissor RG</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
-                  value={formCliente.orgaoEmissor} onChange={e => setC("orgaoEmissor", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase" placeholder="SSP-AM"
+                    value={formCliente.orgaoEmissor} onChange={e => setC("orgaoEmissor", e.target.value)} />
+                  <CopyButton value={formCliente.orgaoEmissor} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data de Expedição RG</Label>
-                <Input className="h-9 text-sm" type="date"
-                  value={formCliente.dataExpedicao} onChange={e => setC("dataExpedicao", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" type="date"
+                    value={formCliente.dataExpedicao} onChange={e => setC("dataExpedicao", e.target.value)} />
+                  <CopyButton value={formCliente.dataExpedicao} />
+                </div>
               </div>
             </div>
             {/* Estado Civil + Data Nascimento */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Estado Civil</Label>
-                <Select value={formCliente.estadoCivil} onValueChange={v => setC("estadoCivil", v)}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
-                    <SelectItem value="Casado(a)">Casado(a)</SelectItem>
-                    <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
-                    <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
-                    <SelectItem value="União Estável">União Estável</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-1.5">
+                  <Select value={formCliente.estadoCivil} onValueChange={v => setC("estadoCivil", v)}>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
+                      <SelectItem value="Casado(a)">Casado(a)</SelectItem>
+                      <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
+                      <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
+                      <SelectItem value="União Estável">União Estável</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <CopyButton value={formCliente.estadoCivil} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data de Nascimento</Label>
-                <Input className="h-9 text-sm" type="date"
-                  value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" type="date"
+                    value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
+                  <CopyButton value={formCliente.dataNascimento} />
+                </div>
               </div>
             </div>
             {/* Pais */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Nome do Pai</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
-                  value={formCliente.nomePai} onChange={e => setC("nomePai", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
+                    value={formCliente.nomePai} onChange={e => setC("nomePai", e.target.value)} />
+                  <CopyButton value={formCliente.nomePai} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Nome da Mãe</Label>
-                <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
-                  value={formCliente.nomeMae} onChange={e => setC("nomeMae", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
+                    value={formCliente.nomeMae} onChange={e => setC("nomeMae", e.target.value)} />
+                  <CopyButton value={formCliente.nomeMae} />
+                </div>
               </div>
             </div>
             {/* Endereço */}
             <div className="grid grid-cols-4 gap-3">
               <div className="col-span-3 space-y-1">
                 <Label className="text-xs">Endereço (Rua/Beco)</Label>
-                <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco"
-                  value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco"
+                    value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
+                  <CopyButton value={formCliente.endereco} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Nº</Label>
-                <Input className="h-9 text-sm" placeholder="58"
-                  value={formCliente.numero} onChange={e => setC("numero", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="58"
+                    value={formCliente.numero} onChange={e => setC("numero", e.target.value)} />
+                  <CopyButton value={formCliente.numero} />
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
-                <Input className="h-9 text-sm" placeholder="Bairro"
-                  value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="Bairro"
+                    value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
+                  <CopyButton value={formCliente.bairro} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
-                <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
-                  value={formCliente.cep} onChange={e => setC("cep", maskCep(e.target.value))} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
+                    value={formCliente.cep} onChange={e => setC("cep", maskCep(e.target.value))} />
+                  <CopyButton value={formCliente.cep} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
-                <Input className="h-9 text-sm"
-                  value={formCliente.cidade} onChange={e => setC("cidade", e.target.value)} />
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm"
+                    value={formCliente.cidade} onChange={e => setC("cidade", e.target.value)} />
+                  <CopyButton value={formCliente.cidade} />
+                </div>
               </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Estado (sigla)</Label>
-              <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
-                value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
+                  value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
+                <CopyButton value={formCliente.estado} />
+              </div>
             </div>
 
             {/* Senha GOV */}
@@ -1232,9 +1277,12 @@ export default function Declaracoes() {
                 Senha GOV.br
                 <span className="text-[10px] font-normal text-muted-foreground">(salva localmente, não compartilhada)</span>
               </Label>
-              <Input className="h-9 text-sm font-mono" placeholder="Senha de acesso gov.br"
-                type="text"
-                value={formCliente.senhaGov} onChange={e => setC("senhaGov", e.target.value)} />
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm font-mono" placeholder="Senha de acesso gov.br"
+                  type="text"
+                  value={formCliente.senhaGov} onChange={e => setC("senhaGov", e.target.value)} />
+                <CopyButton value={formCliente.senhaGov} />
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
