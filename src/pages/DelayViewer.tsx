@@ -120,7 +120,7 @@ const DelayViewer = () => {
         const tipo = result.tipo || "visualizador";
         const lista = (result.clientes || []).filter((c: ClienteViewer) => {
           if (queimadaIdsRef.current.has(c.id)) return false;
-          if (tipo === "visualizador_individual" && c.status === "saque_pendente") return false;
+          if (c.status === "saque_pendente") return false;
           return true;
         });
         setClientes(lista);
@@ -150,7 +150,7 @@ const DelayViewer = () => {
       const tipo = result.tipo || "visualizador";
       const lista = (result.clientes || []).filter((c: ClienteViewer) => {
         if (queimadaIdsRef.current.has(c.id)) return false;
-        if (tipo === "visualizador_individual" && c.status === "saque_pendente") return false;
+        if (c.status === "saque_pendente") return false;
         return true;
       });
       setClientes(lista);

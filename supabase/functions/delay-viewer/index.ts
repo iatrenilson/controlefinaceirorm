@@ -106,6 +106,9 @@ Deno.serve(async (req) => {
 
     const clientesComNick = (clientes || [])
       .filter((c: any) => {
+        // Contas queimadas (saque_pendente) nunca aparecem em links externos
+        if (c.status === "saque_pendente") return false;
+
         if (isFornecedor) {
           // 1. Directly assigned to this fornecedor link
           if (c.created_by_token === linkData.id) return true;
@@ -117,19 +120,13 @@ Deno.serve(async (req) => {
           }
           return false;
         }
-        if (isVodkaOnly) {
-          if (c.status === "saque_pendente") return false;
-          return c.nome.toLowerCase().includes("vodka");
-        }
+        if (isVodkaOnly) return c.nome.toLowerCase().includes("vodka");
         if (isIndividual) {
           if (!allowedTokens) return false;
-          if (c.status === "saque_pendente") return false;
           if (c.created_by_token && allowedTokens.has(c.created_by_token)) return true;
           if (c.operator_link_id && allowedTokens.has(c.operator_link_id)) return true;
           return false;
         }
-        // visualizador geral — também oculta queimadas
-        if (c.status === "saque_pendente") return false;
         return !c.nome.toLowerCase().includes("vodka");
       })
       .map((c: any) => {
