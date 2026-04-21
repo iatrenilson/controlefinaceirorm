@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,9 @@ const DelayViewer = () => {
   const [editFields, setEditFields] = useState({ nome: "", login: "", senha: "", banco_deposito: "", informacoes_adicionais: "" });
   const [editLoading, setEditLoading] = useState(false);
 
+  // IDs de contas queimadas localmente — nunca voltam no re-fetch
+  const queimadaIdsRef = useRef<Set<string>>(new Set());
+
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -114,10 +117,16 @@ const DelayViewer = () => {
       });
       const result = await res.json();
       if (res.ok) {
-        setClientes(result.clientes || []);
+        const tipo = result.tipo || "visualizador";
+        const lista = (result.clientes || []).filter((c: ClienteViewer) => {
+          if (queimadaIdsRef.current.has(c.id)) return false;
+          if (tipo === "visualizador_individual" && c.status === "saque_pendente") return false;
+          return true;
+        });
+        setClientes(lista);
         setTransacoes(result.transacoes || []);
         setViewerNick(result.nick || null);
-        setLinkTipo(result.tipo || "visualizador");
+        setLinkTipo(tipo);
       }
     } catch {}
   };
@@ -138,10 +147,16 @@ const DelayViewer = () => {
         return;
       }
 
-      setClientes(result.clientes || []);
+      const tipo = result.tipo || "visualizador";
+      const lista = (result.clientes || []).filter((c: ClienteViewer) => {
+        if (queimadaIdsRef.current.has(c.id)) return false;
+        if (tipo === "visualizador_individual" && c.status === "saque_pendente") return false;
+        return true;
+      });
+      setClientes(lista);
       setTransacoes(result.transacoes || []);
       setViewerNick(result.nick || null);
-      setLinkTipo(result.tipo || "visualizador");
+      setLinkTipo(tipo);
     } catch {
       setError("Erro ao conectar com o servidor.");
     } finally {
@@ -288,6 +303,10 @@ const DelayViewer = () => {
 
 
   const handleContaQueimada = async (cliente: ClienteViewer) => {
+    // Registra ID localmente para nunca mais aparecer no re-fetch
+    queimadaIdsRef.current.add(cliente.id);
+    // Remove imediatamente da tela
+    setClientes(prev => prev.filter(c => c.id !== cliente.id));
     setTransLoading(true);
     try {
       const now = new Date().toISOString();
@@ -300,10 +319,11 @@ const DelayViewer = () => {
         })
         .eq("id", cliente.id);
       if (error) throw error;
-      // Remove imediatamente do painel do operador
-      setClientes(prev => prev.map(c => c.id === cliente.id ? { ...c, status: "saque_pendente", operacao: "saque_pendente" } : c));
       toast({ title: "Conta Queimada! Enviado para aprovação do administrador." });
     } catch (e: unknown) {
+      // Se falhou, remove da blacklist e restaura
+      queimadaIdsRef.current.delete(cliente.id);
+      setClientes(prev => [...prev, cliente]);
       toast({ title: "Erro ao registrar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
     } finally {
       setTransLoading(false);
