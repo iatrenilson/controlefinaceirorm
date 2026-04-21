@@ -303,25 +303,26 @@ const DelayViewer = () => {
 
 
   const handleContaQueimada = async (cliente: ClienteViewer) => {
-    // Registra ID localmente para nunca mais aparecer no re-fetch
+    // Remove imediatamente da tela e registra no ref para não voltar
     queimadaIdsRef.current.add(cliente.id);
-    // Remove imediatamente da tela
     setClientes(prev => prev.filter(c => c.id !== cliente.id));
     setTransLoading(true);
     try {
-      const now = new Date().toISOString();
-      const { error } = await supabase
-        .from("delay_clientes")
-        .update({
-          status: "saque_pendente",
-          operacao: "saque_pendente",
-          updated_at: now,
-        })
-        .eq("id", cliente.id);
-      if (error) throw error;
+      // Usa a edge function (service role key) para garantir que o RLS não bloqueie
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cliente_id: cliente.id }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erro ao registrar");
       toast({ title: "Conta Queimada! Enviado para aprovação do administrador." });
     } catch (e: unknown) {
-      // Se falhou, remove da blacklist e restaura
+      // Se falhou, restaura
       queimadaIdsRef.current.delete(cliente.id);
       setClientes(prev => [...prev, cliente]);
       toast({ title: "Erro ao registrar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });

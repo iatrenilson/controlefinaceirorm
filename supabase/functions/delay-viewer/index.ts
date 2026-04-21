@@ -10,17 +10,58 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // POST: marcar conta como queimada (saque_pendente)
+  if (req.method === "POST") {
+    try {
+      const url = new URL(req.url);
+      const token = url.searchParams.get("token");
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Token obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { linkData: ld, error: le } = await supabase
+        .from("delay_share_links").select("id, user_id, ativo").eq("token", token).single()
+        .then(r => ({ linkData: r.data, error: r.error }));
+      if (le || !ld || !ld.ativo) {
+        return new Response(JSON.stringify({ error: "Link inválido" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const body = await req.json();
+      const clienteId = body.cliente_id;
+      if (!clienteId) {
+        return new Response(JSON.stringify({ error: "cliente_id obrigatório" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error: ue } = await supabase
+        .from("delay_clientes")
+        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
+        .eq("id", clienteId)
+        .eq("user_id", ld.user_id);
+      if (ue) throw ue;
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e: any) {
+      return new Response(JSON.stringify({ error: e.message || "Erro interno" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   if (req.method !== "GET") {
     return new Response(JSON.stringify({ error: "Método não suportado" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
 
   try {
     const url = new URL(req.url);
