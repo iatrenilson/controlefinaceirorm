@@ -785,42 +785,104 @@ export default function Declaracoes() {
     return r;
   }, []);
 
+  // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   const saveClientesToCloud = useCallback(async (list: Cliente[]) => {
-    await supabase.auth.updateUser({ data: { decl_clientes: list } });
+    // Upsert todos os clientes
+    if (list.length > 0) {
+      const rows = list.map(c => ({
+        id: c.id,
+        nome: c.nome,
+        rg: c.rg,
+        orgao_emissor: c.orgaoEmissor,
+        data_expedicao: c.dataExpedicao,
+        cpf: c.cpf,
+        nome_pai: c.nomePai,
+        nome_mae: c.nomeMae,
+        estado_civil: c.estadoCivil,
+        data_nascimento: c.dataNascimento,
+        endereco: c.endereco,
+        numero: c.numero,
+        bairro: c.bairro,
+        cep: c.cep,
+        cidade: c.cidade,
+        estado: c.estado,
+        senha_gov: c.senhaGov,
+        status: c.status ?? "doc",
+        status2: c.status2 ?? "doc",
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
+    }
+    // Deleta clientes removidos da lista
+    const { data: existing } = await supabase.from("declaracao_clientes").select("id");
+    const listIds = new Set(list.map(c => c.id));
+    const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
+    if (toDelete.length > 0) {
+      await supabase.from("declaracao_clientes").delete().in("id", toDelete);
+    }
   }, []);
 
   const fetchClientes = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
-      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
+      // Lê da tabela compartilhada (admin e moderador têm acesso)
+      const { data: rows, error } = await supabase
+        .from("declaracao_clientes")
+        .select("*")
+        .order("nome", { ascending: true });
 
-      if (cloud.length > 0) {
-        // Cloud tem dados: usa cloud (sincronizado entre dispositivos)
-        setClientes(cloud);
-        // Se local tem dados que não estão na cloud, mescla e salva
-        if (local.length > 0) {
-          const merged = [...cloud];
-          for (const lc of local) {
-            if (!cloud.find(c => c.cpf === lc.cpf && c.nome === lc.nome)) merged.push(lc);
+      if (!error && rows && rows.length > 0) {
+        const clientes: Cliente[] = rows.map((r: any) => ({
+          id: r.id,
+          nome: r.nome,
+          rg: r.rg,
+          orgaoEmissor: r.orgao_emissor,
+          dataExpedicao: r.data_expedicao,
+          cpf: r.cpf,
+          nomePai: r.nome_pai,
+          nomeMae: r.nome_mae,
+          estadoCivil: r.estado_civil,
+          dataNascimento: r.data_nascimento,
+          endereco: r.endereco,
+          numero: r.numero,
+          bairro: r.bairro,
+          cep: r.cep,
+          cidade: r.cidade,
+          estado: r.estado,
+          senhaGov: r.senha_gov,
+          status: (r.status ?? "doc") as ClienteStatus,
+          status2: (r.status2 ?? "doc") as ClienteStatus,
+        }));
+        setClientes(clientes);
+
+        // Migra dados antigos do user_metadata se existirem
+        const { data: { user } } = await supabase.auth.getUser();
+        const oldCloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
+        if (oldCloud.length > 0) {
+          const merged = [...clientes];
+          for (const lc of oldCloud) {
+            if (!clientes.find(c => c.cpf === lc.cpf && c.nome === lc.nome)) merged.push(lc);
           }
-          if (merged.length > cloud.length) {
+          if (merged.length > clientes.length) {
             await saveClientesToCloud(merged);
             setClientes(merged);
           }
-          localStorage.removeItem("decl_clientes");
+          // Limpa metadata antiga
+          await supabase.auth.updateUser({ data: { decl_clientes: null } });
         }
-      } else if (local.length > 0) {
-        // Só tem no local: migra para cloud
-        await saveClientesToCloud(local);
-        localStorage.removeItem("decl_clientes");
-        setClientes(local);
       } else {
-        setClientes([]);
+        // Fallback: tenta user_metadata (migração)
+        const { data: { user } } = await supabase.auth.getUser();
+        const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
+        if (cloud.length > 0) {
+          await saveClientesToCloud(cloud);
+          setClientes(cloud);
+          await supabase.auth.updateUser({ data: { decl_clientes: null } });
+        } else {
+          setClientes([]);
+        }
       }
     } catch {
-      const local: Cliente[] = JSON.parse(localStorage.getItem("decl_clientes") || "[]");
-      setClientes(local);
+      setClientes([]);
     }
     setLoadingClientes(false);
   }, [saveClientesToCloud]);

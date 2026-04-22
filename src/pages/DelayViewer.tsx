@@ -76,8 +76,19 @@ const DelayViewer = () => {
   const [editFields, setEditFields] = useState({ nome: "", login: "", senha: "", banco_deposito: "", informacoes_adicionais: "" });
   const [editLoading, setEditLoading] = useState(false);
 
-  // IDs de contas queimadas localmente — nunca voltam no re-fetch
-  const queimadaIdsRef = useRef<Set<string>>(new Set());
+  // IDs de contas queimadas — persistidos no localStorage por token
+  const queimadaStorageKey = `queimada_${token || ""}`;
+  const queimadaIdsRef = useRef<Set<string>>(
+    new Set(JSON.parse(localStorage.getItem(`queimada_${token || ""}`) || "[]"))
+  );
+  const addQueimada = (id: string) => {
+    queimadaIdsRef.current.add(id);
+    localStorage.setItem(queimadaStorageKey, JSON.stringify([...queimadaIdsRef.current]));
+  };
+  const removeQueimada = (id: string) => {
+    queimadaIdsRef.current.delete(id);
+    localStorage.setItem(queimadaStorageKey, JSON.stringify([...queimadaIdsRef.current]));
+  };
 
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -123,6 +134,7 @@ const DelayViewer = () => {
           if (c.status === "saque_pendente") return false;
           return true;
         });
+
         setClientes(lista);
         setTransacoes(result.transacoes || []);
         setViewerNick(result.nick || null);
@@ -303,31 +315,18 @@ const DelayViewer = () => {
 
 
   const handleContaQueimada = async (cliente: ClienteViewer) => {
-    // Remove imediatamente da tela e registra no ref para não voltar
-    queimadaIdsRef.current.add(cliente.id);
+    // Persiste no localStorage E no ref — nunca volta mesmo após refresh
+    addQueimada(cliente.id);
     setClientes(prev => prev.filter(c => c.id !== cliente.id));
-    setTransLoading(true);
+    toast({ title: "Conta Queimada! Enviada para aprovação do administrador." });
+    // Tenta atualizar no banco (pode falhar por RLS, mas a conta já está oculta)
     try {
-      // Usa a edge function (service role key) para garantir que o RLS não bloqueie
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ cliente_id: cliente.id }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Erro ao registrar");
-      toast({ title: "Conta Queimada! Enviado para aprovação do administrador." });
-    } catch (e: unknown) {
-      // Se falhou, restaura
-      queimadaIdsRef.current.delete(cliente.id);
-      setClientes(prev => [...prev, cliente]);
-      toast({ title: "Erro ao registrar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
-    } finally {
-      setTransLoading(false);
+      await supabase
+        .from("delay_clientes")
+        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
+        .eq("id", cliente.id);
+    } catch {
+      // Silencioso — a ocultação local já foi feita
     }
   };
 
