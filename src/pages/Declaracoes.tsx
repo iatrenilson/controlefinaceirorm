@@ -818,44 +818,64 @@ export default function Declaracoes() {
   }, []);
 
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
-  const saveClientesToCloud = useCallback(async (list: Cliente[]) => {
-    // Upsert todos os clientes
-    if (list.length > 0) {
-      const rows = list.map(c => ({
-        id: c.id,
-        nome: c.nome,
-        rg: c.rg,
-        orgao_emissor: c.orgaoEmissor,
-        data_expedicao: c.dataExpedicao,
-        cpf: c.cpf,
-        nome_pai: c.nomePai,
-        nome_mae: c.nomeMae,
-        estado_civil: c.estadoCivil,
-        data_nascimento: c.dataNascimento,
-        endereco: c.endereco,
-        numero: c.numero,
-        bairro: c.bairro,
-        cep: c.cep,
-        cidade: c.cidade,
-        estado: c.estado,
-        senha_gov: c.senhaGov,
-        status: c.status ?? "doc",
-        status2: c.status2 ?? "doc",
-        updated_at: new Date().toISOString(),
-      }));
-      const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
-      // Se colunas status/status2 ainda não existem, tenta sem elas
-      if (error && (error.message?.includes("status") || error.message?.includes("column"))) {
-        const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
-        await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
+  // Retorna true se salvou com sucesso, false caso contrário
+  const saveClientesToCloud = useCallback(async (list: Cliente[]): Promise<boolean> => {
+    try {
+      const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      // Se todos os itens têm UUIDs, é um save normal (pode deletar rows ausentes)
+      // Se algum tem ID antigo (timestamp), é migração — não deve deletar rows existentes
+      const allHaveUUIDs = list.length === 0 || list.every(c => isUUID(c.id));
+
+      // Upsert todos os clientes
+      if (list.length > 0) {
+        const rows = list.map(c => ({
+          // Só inclui id se for UUID válido (não IDs antigos baseados em timestamp)
+          ...(isUUID(c.id) ? { id: c.id } : {}),
+          nome: c.nome,
+          rg: c.rg,
+          orgao_emissor: c.orgaoEmissor,
+          data_expedicao: c.dataExpedicao,
+          cpf: c.cpf,
+          nome_pai: c.nomePai,
+          nome_mae: c.nomeMae,
+          estado_civil: c.estadoCivil,
+          data_nascimento: c.dataNascimento,
+          endereco: c.endereco,
+          numero: c.numero,
+          bairro: c.bairro,
+          cep: c.cep,
+          cidade: c.cidade,
+          estado: c.estado,
+          senha_gov: c.senhaGov,
+          status: c.status ?? "doc",
+          status2: c.status2 ?? "doc",
+          updated_at: new Date().toISOString(),
+        }));
+        const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
+        if (error) {
+          // Se colunas status/status2 ainda não existem, tenta sem elas
+          if (error.message?.includes("status") || error.message?.includes("column")) {
+            const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
+            const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
+            if (error2) return false;
+          } else {
+            // Qualquer outro erro (ex: tabela não existe, uuid inválido): retorna false sem limpar metadata
+            return false;
+          }
+        }
       }
-    }
-    // Deleta clientes removidos da lista
-    const { data: existing } = await supabase.from("declaracao_clientes").select("id");
-    const listIds = new Set(list.map(c => c.id));
-    const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
-    if (toDelete.length > 0) {
-      await supabase.from("declaracao_clientes").delete().in("id", toDelete);
+      // Deleta clientes removidos da lista (só em save normal com UUIDs, não durante migração de metadata)
+      if (allHaveUUIDs) {
+        const { data: existing } = await supabase.from("declaracao_clientes").select("id");
+        const listIds = new Set(list.map(c => c.id));
+        const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
+        if (toDelete.length > 0) {
+          await supabase.from("declaracao_clientes").delete().in("id", toDelete);
+        }
+      }
+      return true;
+    } catch {
+      return false;
     }
   }, []);
 
@@ -899,21 +919,27 @@ export default function Declaracoes() {
           for (const lc of oldCloud) {
             if (!clientes.find(c => c.cpf === lc.cpf && c.nome === lc.nome)) merged.push(lc);
           }
+          let saveDeu = true;
           if (merged.length > clientes.length) {
-            await saveClientesToCloud(merged);
-            setClientes(merged);
+            saveDeu = await saveClientesToCloud(merged);
+            if (saveDeu) setClientes(merged);
           }
-          // Limpa metadata antiga
-          await supabase.auth.updateUser({ data: { decl_clientes: null } });
+          // Só limpa metadata se o save foi confirmado com sucesso
+          if (saveDeu) {
+            await supabase.auth.updateUser({ data: { decl_clientes: null } });
+          }
         }
       } else {
         // Fallback: tenta user_metadata (migração)
         const { data: { user } } = await supabase.auth.getUser();
         const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
         if (cloud.length > 0) {
-          await saveClientesToCloud(cloud);
+          const saved = await saveClientesToCloud(cloud);
           setClientes(cloud);
-          await supabase.auth.updateUser({ data: { decl_clientes: null } });
+          // CRÍTICO: só limpa user_metadata se o save foi confirmado com sucesso
+          if (saved) {
+            await supabase.auth.updateUser({ data: { decl_clientes: null } });
+          }
         } else {
           setClientes([]);
         }
