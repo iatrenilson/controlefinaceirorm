@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -456,6 +457,37 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
 // ─── Componente principal ──────────────────────────────────────────────────
 export default function Declaracoes() {
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
+
+  // Auto-provisiona papel de moderador para glendaleite88@gmail.com
+  useEffect(() => {
+    if (!isAdmin) return;
+    const MODERATOR_EMAIL = "glendaleite88@gmail.com";
+    (async () => {
+      try {
+        // Busca o user_id pelo email na tabela profiles
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("email", MODERATOR_EMAIL)
+          .maybeSingle();
+        if (!profile?.user_id) return; // Usuário ainda não fez login
+        // Verifica se já tem o papel de moderador
+        const { data: existing } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", profile.user_id)
+          .eq("role", "moderator")
+          .maybeSingle();
+        if (existing) return; // Já tem o papel
+        // Insere o papel de moderador (admin tem permissão via RLS)
+        await supabase.from("user_roles").insert({
+          user_id: profile.user_id,
+          role: "moderator",
+        });
+      } catch { /* silencioso */ }
+    })();
+  }, [isAdmin]);
 
   // Clientes cadastrados
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -811,7 +843,12 @@ export default function Declaracoes() {
         status2: c.status2 ?? "doc",
         updated_at: new Date().toISOString(),
       }));
-      await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
+      const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
+      // Se colunas status/status2 ainda não existem, tenta sem elas
+      if (error && (error.message?.includes("status") || error.message?.includes("column"))) {
+        const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
+        await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
+      }
     }
     // Deleta clientes removidos da lista
     const { data: existing } = await supabase.from("declaracao_clientes").select("id");
