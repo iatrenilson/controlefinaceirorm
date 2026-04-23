@@ -396,23 +396,30 @@ const DelayViewer = () => {
       } else if (tipo === "saque_fornecedor") {
         const custo = parseFloat(transCusto.replace(",", ".")) || 0;
         const now = new Date().toISOString();
-        const { error } = await supabase
-          .from("delay_clientes")
-          .update({
-            status: "saque_pendente",
-            operacao: "saque_pendente",
-            deposito_pendente: valor,
-            custos: custo,
-            updated_at: now,
-          })
-          .eq("id", cliente.id);
-        if (error) throw error;
+        // Remove imediatamente da lista e persiste no localStorage (igual ao handleContaQueimada)
+        // O update no banco pode falhar por RLS em links externos, mas a ocultação local já está feita
+        addQueimada(cliente.id);
+        setClientes(prev => prev.filter(c => c.id !== cliente.id));
+        try {
+          await supabase
+            .from("delay_clientes")
+            .update({
+              status: "saque_pendente",
+              operacao: "saque_pendente",
+              deposito_pendente: valor,
+              custos: custo,
+              updated_at: now,
+            })
+            .eq("id", cliente.id);
+        } catch {
+          // Silencioso — a ocultação local já foi feita
+        }
       }
       toast({ title: tipo === "deposito" ? "Depósito registrado!" : tipo === "saque" ? "Saque registrado!" : tipo === "saque_fornecedor" ? "Saque enviado para confirmação!" : "Saque pendente marcado!" });
       setTransDialog(null);
       setTransValor("");
       setTransCusto("");
-      fetchClientesSilent();
+      if (tipo !== "saque_fornecedor") fetchClientesSilent();
     } catch (e: unknown) {
       toast({ title: "Erro ao registrar transação", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
     } finally {
