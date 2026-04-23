@@ -40,9 +40,21 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Campos extras opcionais para saque_fornecedor (valor e custo do saque)
+      const updatePayload: Record<string, any> = {
+        status: "saque_pendente",
+        operacao: "saque_pendente",
+        updated_at: new Date().toISOString(),
+      };
+      if (typeof body.deposito_pendente === "number") {
+        updatePayload.deposito_pendente = body.deposito_pendente;
+      }
+      if (typeof body.custos === "number") {
+        updatePayload.custos = body.custos;
+      }
       const { error: ue } = await supabase
         .from("delay_clientes")
-        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq("id", clienteId)
         .eq("user_id", ld.user_id);
       if (ue) throw ue;

@@ -395,22 +395,24 @@ const DelayViewer = () => {
         });
       } else if (tipo === "saque_fornecedor") {
         const custo = parseFloat(transCusto.replace(",", ".")) || 0;
-        const now = new Date().toISOString();
         // Remove imediatamente da lista e persiste no localStorage (igual ao handleContaQueimada)
-        // O update no banco pode falhar por RLS em links externos, mas a ocultação local já está feita
         addQueimada(cliente.id);
         setClientes(prev => prev.filter(c => c.id !== cliente.id));
+        // Usa a Edge Function via POST (service_role) para garantir que o update no banco passa mesmo sem RLS
         try {
-          await supabase
-            .from("delay_clientes")
-            .update({
-              status: "saque_pendente",
-              operacao: "saque_pendente",
+          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+          await fetch(url, {
+            method: "POST",
+            headers: {
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              cliente_id: cliente.id,
               deposito_pendente: valor,
               custos: custo,
-              updated_at: now,
-            })
-            .eq("id", cliente.id);
+            }),
+          });
         } catch {
           // Silencioso — a ocultação local já foi feita
         }
