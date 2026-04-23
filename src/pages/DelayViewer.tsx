@@ -131,7 +131,8 @@ const DelayViewer = () => {
         const tipo = result.tipo || "visualizador";
         const lista = (result.clientes || []).filter((c: ClienteViewer) => {
           if (queimadaIdsRef.current.has(c.id)) return false;
-          if (c.status === "saque_pendente") return false;
+          // Editor/admin pode ver saque_pendente; links de visualização não
+          if (tipo !== "editor" && c.status === "saque_pendente") return false;
           return true;
         });
 
@@ -162,7 +163,8 @@ const DelayViewer = () => {
       const tipo = result.tipo || "visualizador";
       const lista = (result.clientes || []).filter((c: ClienteViewer) => {
         if (queimadaIdsRef.current.has(c.id)) return false;
-        if (c.status === "saque_pendente") return false;
+        // Editor/admin pode ver saque_pendente; links de visualização não
+        if (tipo !== "editor" && c.status === "saque_pendente") return false;
         return true;
       });
       setClientes(lista);
@@ -319,12 +321,17 @@ const DelayViewer = () => {
     addQueimada(cliente.id);
     setClientes(prev => prev.filter(c => c.id !== cliente.id));
     toast({ title: "Conta Queimada! Enviada para aprovação do administrador." });
-    // Tenta atualizar no banco (pode falhar por RLS, mas a conta já está oculta)
+    // Usa Edge Function (service_role) para garantir que o update passa mesmo sem RLS
     try {
-      await supabase
-        .from("delay_clientes")
-        .update({ status: "saque_pendente", operacao: "saque_pendente", updated_at: new Date().toISOString() })
-        .eq("id", cliente.id);
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+      await fetch(url, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cliente_id: cliente.id }),
+      });
     } catch {
       // Silencioso — a ocultação local já foi feita
     }
