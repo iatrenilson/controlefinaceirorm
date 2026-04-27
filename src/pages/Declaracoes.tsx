@@ -1429,9 +1429,9 @@ export default function Declaracoes() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data de Nascimento</Label>
+                <Label className="text-xs text-yellow-400 font-semibold">Data de Nascimento</Label>
                 <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm" type="date"
+                  <Input className="h-9 text-sm text-yellow-400 font-semibold" type="date"
                     value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
                   <CopyButton value={formCliente.dataNascimento} />
                 </div>
