@@ -159,8 +159,8 @@ Deno.serve(async (req) => {
 
     const clientesComNick = (clientes || [])
       .filter((c: any) => {
-        // Contas queimadas (saque_pendente) nunca aparecem em links externos
-        if (c.status === "saque_pendente") return false;
+        // Contas queimadas (saque_pendente) só são ocultadas de links de visualização (não do editor/admin)
+        if (!isFornecedor && c.status === "saque_pendente") return false;
 
         if (isFornecedor) {
           // 1. Directly assigned to this fornecedor link
