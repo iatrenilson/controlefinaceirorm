@@ -1233,6 +1233,17 @@ export default function Declaracoes() {
                             </span>
                           </div>
                         )}
+                        {c.dataNascimento && (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                              <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">NASC.</span>
+                              <span className="text-xs font-mono font-semibold text-yellow-400">
+                                {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
+                              </span>
+                            </div>
+                            <CopyButton value={formatDate(c.dataNascimento)} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1253,7 +1264,7 @@ export default function Declaracoes() {
                       {/* Nome */}
                       <p className="text-xs font-bold uppercase truncate">{c.nome}</p>
 
-                      {/* CPF + Senha */}
+                      {/* CPF + Senha + Nasc */}
                       <div className="w-32 flex flex-col gap-0.5">
                         {c.cpf && (
                           <div className="flex items-center gap-1">
@@ -1271,6 +1282,15 @@ export default function Declaracoes() {
                               {dadosVisiveis ? c.senhaGov : "••••••••"}
                             </span>
                             <CopyButton value={c.senhaGov} />
+                          </div>
+                        )}
+                        {c.dataNascimento && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">NASC.</span>
+                            <span className="text-[10px] font-mono font-semibold text-yellow-400">
+                              {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
+                            </span>
+                            <CopyButton value={formatDate(c.dataNascimento)} />
                           </div>
                         )}
                       </div>
