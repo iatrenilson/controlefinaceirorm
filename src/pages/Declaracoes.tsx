@@ -496,7 +496,7 @@ export default function Declaracoes() {
   const [mostrarClientes, setMostrarClientes] = useState(true);
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
-    (localStorage.getItem("decl_view_mode") as "grid" | "list") || "grid"
+    (localStorage.getItem("decl_view_mode") as "grid" | "list") || "list"
   );
   const toggleViewMode = () => {
     setViewMode(prev => {
