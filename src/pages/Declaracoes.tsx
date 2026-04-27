@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -495,6 +495,16 @@ export default function Declaracoes() {
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [mostrarClientes, setMostrarClientes] = useState(true);
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
+    (localStorage.getItem("decl_view_mode") as "grid" | "list") || "grid"
+  );
+  const toggleViewMode = () => {
+    setViewMode(prev => {
+      const next = prev === "grid" ? "list" : "grid";
+      localStorage.setItem("decl_view_mode", next);
+      return next;
+    });
+  };
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
@@ -1102,14 +1112,24 @@ export default function Declaracoes() {
             </button>
             <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
               {mostrarClientes && (
-                <Button
-                  size="icon" variant="ghost"
-                  className="h-8 w-8"
-                  title={dadosVisiveis ? "Ocultar dados" : "Mostrar dados"}
-                  onClick={() => setDadosVisiveis(v => !v)}
-                >
-                  {dadosVisiveis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+                <>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-8 w-8"
+                    title={dadosVisiveis ? "Ocultar dados" : "Mostrar dados"}
+                    onClick={() => setDadosVisiveis(v => !v)}
+                  >
+                    {dadosVisiveis ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    size="icon" variant="ghost"
+                    className="h-8 w-8"
+                    title={viewMode === "grid" ? "Modo lista" : "Modo grade"}
+                    onClick={toggleViewMode}
+                  >
+                    {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  </Button>
+                </>
               )}
               <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
                 <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
@@ -1124,7 +1144,7 @@ export default function Declaracoes() {
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
                 </p>
-              ) : (
+              ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
@@ -1134,28 +1154,18 @@ export default function Declaracoes() {
                         {/* Linha 1: logo + botões */}
                         <div className="flex items-center justify-between">
                           <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                            {/* Círculo externo */}
                             <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Círculo médio */}
                             <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Ponto central */}
                             <circle cx="18" cy="18" r="3.5" fill="#e5e7eb"/>
-                            {/* Miras */}
                             <line x1="18" y1="1"  x2="18" y2="7"   stroke="#e5e7eb" strokeWidth="1.5"/>
                             <line x1="18" y1="29" x2="18" y2="35"  stroke="#e5e7eb" strokeWidth="1.5"/>
                             <line x1="1"  y1="18" x2="7"   y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
                             <line x1="29" y1="18" x2="35"  y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
-                            {/* Texto SINARM */}
                             <text x="40" y="17" fontSize="11" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">SINARM</text>
-                            {/* Texto CAC */}
                             <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
                           </svg>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Dropdown de status — badge estilo pill com ponto */}
-                            <Select
-                              value={c.status ?? "doc"}
-                              onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}
-                            >
+                            <Select value={c.status ?? "doc"} onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}>
                               <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status ?? "doc"]}`}>
                                 <>
                                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status ?? "doc"]}`} />
@@ -1168,10 +1178,7 @@ export default function Declaracoes() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select
-                              value={c.status2 ?? "doc"}
-                              onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}
-                            >
+                            <Select value={c.status2 ?? "doc"} onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}>
                               <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status2 ?? "doc"]}`}>
                                 <>
                                   <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status2 ?? "doc"]}`} />
@@ -1192,11 +1199,9 @@ export default function Declaracoes() {
                             </Button>
                           </div>
                         </div>
-                        {/* Linha 2: nome alinhado com a borda esquerda do círculo da logo */}
                         <p className="text-xs font-bold uppercase tracking-wide truncate mt-1 pl-3">{c.nome}</p>
                       </div>
 
-                      {/* Dados — estilo LOGIN / SENHA / RG */}
                       <div className="pl-3 pr-3 pb-2 flex flex-col gap-0.5">
                         {c.cpf && (
                           <div className="flex items-center justify-between">
@@ -1228,6 +1233,95 @@ export default function Declaracoes() {
                             </span>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* ── Modo Lista ── */
+                <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+                  {/* Cabeçalho da tabela */}
+                  <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center px-3 py-1.5 bg-muted/40">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Nome</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-32 text-center">CPF / Senha</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-20 text-center">RG</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
+                  </div>
+                  {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
+                    <div key={c.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center px-3 py-2 hover:bg-muted/20 transition-colors">
+                      {/* Nome */}
+                      <p className="text-xs font-bold uppercase truncate">{c.nome}</p>
+
+                      {/* CPF + Senha */}
+                      <div className="w-32 flex flex-col gap-0.5">
+                        {c.cpf && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">CPF</span>
+                            <span className="text-[10px] font-mono font-semibold truncate">
+                              {dadosVisiveis ? c.cpf : "•••.•••-••"}
+                            </span>
+                            <CopyButton value={c.cpf} />
+                          </div>
+                        )}
+                        {c.senhaGov && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">SENHA</span>
+                            <span className="text-[10px] font-mono font-semibold truncate">
+                              {dadosVisiveis ? c.senhaGov : "••••••••"}
+                            </span>
+                            <CopyButton value={c.senhaGov} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* RG */}
+                      <div className="w-20 text-center">
+                        {c.rg && (
+                          <span className="text-[10px] font-mono font-semibold">
+                            {dadosVisiveis ? c.rg : "•••••-•"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status pills */}
+                      <div className="w-28 flex items-center gap-1 justify-center">
+                        <Select value={c.status ?? "doc"} onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}>
+                          <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status ?? "doc"]}`}>
+                            <>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status ?? "doc"]}`} />
+                              <span>{STATUS_LABELS[c.status ?? "doc"]}</span>
+                            </>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
+                              <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={c.status2 ?? "doc"} onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}>
+                          <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status2 ?? "doc"]}`}>
+                            <>
+                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status2 ?? "doc"]}`} />
+                              <span>{STATUS_LABELS[c.status2 ?? "doc"]}</span>
+                            </>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
+                              <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Ações */}
+                      <div className="w-14 flex items-center gap-0.5 justify-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                   ))}
