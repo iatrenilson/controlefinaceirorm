@@ -994,26 +994,28 @@ export default function Declaracoes() {
       cidade: formCliente.cidade,
       estado: formCliente.estado,
       senha_gov: formCliente.senhaGov,
+      status: formCliente.status ?? "doc",
+      status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
     };
     try {
-      let novaLista: Cliente[];
       if (editandoId) {
-        novaLista = clientes.map(c => c.id === editandoId ? { id: editandoId, ...formCliente } : c);
+        const { error } = await supabase
+          .from("declaracao_clientes")
+          .update(payload)
+          .eq("id", editandoId);
+        if (error) throw error;
       } else {
-        novaLista = [...clientes, { id: Date.now().toString(), ...formCliente }];
-      }
-      const ok = await saveClientesToCloud(novaLista);
-      if (!ok) {
-        toast({ title: "Erro ao salvar", description: "Não foi possível salvar no banco de dados.", variant: "destructive" });
-        return;
+        const { error } = await supabase
+          .from("declaracao_clientes")
+          .insert(payload);
+        if (error) throw error;
       }
       setDialogClienteOpen(false);
       toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
-      // Recarrega do banco para garantir UUIDs reais e dados sincronizados
       await fetchClientes();
     } catch (e: unknown) {
-      toast({ title: "Erro ao salvar cliente", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+      toast({ title: "Erro ao salvar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
     } finally {
       setSavingCliente(false);
     }
