@@ -1818,12 +1818,20 @@ const DelayEsportivo = () => {
                   <span className="text-muted-foreground">Contas ativas</span>
                   <span className="font-mono font-medium">{stats.ativas}</span>
                 </div>
-                {clientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0 && c.status !== "system").map(c => (
-                  <div key={c.id} className="flex justify-between text-[10px]">
-                    <span className="text-blue-300 truncate max-w-[70%]">{c.nome}</span>
-                    <span className="font-mono text-blue-400">{fmt(c.depositos)}</span>
-                  </div>
-                ))}
+                {clientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0 && c.status !== "system").map(c => {
+                  const forn = c.fornecedor?.replace(/^fornecedor\s+/i, "").trim();
+                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick;
+                  const extra = [forn, opNick].filter(Boolean).join(" - ");
+                  return (
+                    <div key={c.id} className="flex justify-between items-center text-[10px] gap-1">
+                      <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                        <span className="text-blue-300 truncate shrink-0 max-w-[40%]">{c.nome}</span>
+                        {extra && <span className="text-[8px] text-white/80 truncate">{extra}</span>}
+                      </div>
+                      <span className="font-mono text-blue-400 shrink-0">{fmt(c.depositos)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -1845,12 +1853,20 @@ const DelayEsportivo = () => {
                   <span className="text-muted-foreground">Clientes aguardando</span>
                   <span className="font-mono font-medium text-orange-400">{stats.saquePendente}</span>
                 </div>
-                {clientes.filter(c => c.status === "saque_pendente").map(c => (
-                  <div key={c.id} className="flex justify-between text-[10px]">
-                    <span className="text-orange-300 truncate max-w-[70%]">{c.nome}</span>
-                    <span className="font-mono text-orange-400">{fmt(c.depositos)}</span>
-                  </div>
-                ))}
+                {clientes.filter(c => c.status === "saque_pendente").map(c => {
+                  const forn = c.fornecedor?.replace(/^fornecedor\s+/i, "").trim();
+                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick;
+                  const extra = [forn, opNick].filter(Boolean).join(" - ");
+                  return (
+                    <div key={c.id} className="flex justify-between items-center text-[10px] gap-1">
+                      <div className="flex items-center gap-1 min-w-0 overflow-hidden">
+                        <span className="text-orange-300 truncate shrink-0 max-w-[40%]">{c.nome}</span>
+                        {extra && <span className="text-[8px] text-white/80 truncate">{extra}</span>}
+                      </div>
+                      <span className="font-mono text-orange-400 shrink-0">{fmt(c.depositos)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
