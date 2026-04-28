@@ -2532,14 +2532,12 @@ const DelayEsportivo = () => {
                         </div>
                       )}
                       <div className="flex flex-col gap-0.5">
-                        {(() => {
-                          const forn = c.fornecedor?.replace(/^fornecedor\s+/i, "").trim();
-                          const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick;
-                          const parts = [forn, opNick].filter(Boolean);
-                          return parts.length > 0
-                            ? <span className="text-muted-foreground uppercase tracking-wider text-[11px]">{parts.join(" - ")}</span>
-                            : null;
-                        })()}
+                        <span className="text-muted-foreground uppercase tracking-wider text-[11px]">
+                          {c.fornecedor && c.fornecedor.trim() !== ""
+                            ? `FORNECEDOR ${c.fornecedor.replace(/^fornecedor\s+/i, "")}`
+                            : "Sem fornecedor"}
+                        </span>
+                        {(() => { const opLink = shareLinks.find(l => l.id === c.operator_link_id); return opLink?.nick ? <span className="text-muted-foreground uppercase tracking-wider text-[11px]">OPERADOR {opLink.nick}</span> : null; })()}
                       </div>
                     </div>
                   </div>
