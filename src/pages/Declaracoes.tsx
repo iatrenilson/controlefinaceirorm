@@ -831,8 +831,6 @@ export default function Declaracoes() {
   // Retorna true se salvou com sucesso, false caso contrário
   const saveClientesToCloud = useCallback(async (list: Cliente[]): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
       const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       // Se todos os itens têm UUIDs, é um save normal (pode deletar rows ausentes)
       // Se algum tem ID antigo (timestamp), é migração — não deve deletar rows existentes
@@ -843,7 +841,6 @@ export default function Declaracoes() {
         const rows = list.map(c => ({
           // Só inclui id se for UUID válido (não IDs antigos baseados em timestamp)
           ...(isUUID(c.id) ? { id: c.id } : {}),
-          user_id: user.id,
           nome: c.nome,
           rg: c.rg,
           orgao_emissor: c.orgaoEmissor,
@@ -866,11 +863,12 @@ export default function Declaracoes() {
         }));
         const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
         if (error) {
+          console.error("[saveClientesToCloud] upsert error:", error.message, error);
           // Se colunas status/status2 ainda não existem, tenta sem elas
           if (error.message?.includes("status") || error.message?.includes("column")) {
             const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
             const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
-            if (error2) return false;
+            if (error2) { console.error("[saveClientesToCloud] fallback error:", error2.message); return false; }
           } else {
             // Qualquer outro erro (ex: tabela não existe, uuid inválido): retorna false sem limpar metadata
             return false;
