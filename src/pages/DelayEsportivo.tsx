@@ -1820,7 +1820,7 @@ const DelayEsportivo = () => {
                 </div>
                 {clientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0 && c.status !== "system").map(c => {
                   const forn = c.fornecedor?.replace(/^fornecedor\s+/i, "").trim();
-                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick;
+                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick?.toUpperCase();
                   const extra = [forn, opNick].filter(Boolean).join(" - ");
                   return (
                     <div key={c.id} className="flex justify-between items-center text-[10px] gap-1">
@@ -1855,7 +1855,7 @@ const DelayEsportivo = () => {
                 </div>
                 {clientes.filter(c => c.status === "saque_pendente").map(c => {
                   const forn = c.fornecedor?.replace(/^fornecedor\s+/i, "").trim();
-                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick;
+                  const opNick = shareLinks.find(l => l.id === c.operator_link_id)?.nick?.toUpperCase();
                   const extra = [forn, opNick].filter(Boolean).join(" - ");
                   return (
                     <div key={c.id} className="flex justify-between items-center text-[10px] gap-1">
