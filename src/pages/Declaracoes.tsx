@@ -863,13 +863,11 @@ export default function Declaracoes() {
         const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
         if (error) {
           console.error("[saveClientesToCloud] upsert error:", error.message, error);
-          // Se colunas status/status2 ainda não existem, tenta sem elas
-          if (error.message?.includes("status") || error.message?.includes("column")) {
-            const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
-            const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
-            if (error2) { console.error("[saveClientesToCloud] fallback error:", error2.message); return false; }
-          } else {
-            // Qualquer outro erro (ex: tabela não existe, uuid inválido): retorna false sem limpar metadata
+          // Qualquer erro 400 = alguma coluna não existe. Tenta sem status/status2 como fallback
+          const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
+          const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
+          if (error2) {
+            console.error("[saveClientesToCloud] fallback error:", error2.message);
             return false;
           }
         }
