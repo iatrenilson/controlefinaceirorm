@@ -1826,7 +1826,7 @@ const DelayEsportivo = () => {
                       <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                         <span className="text-blue-300 truncate shrink-0 max-w-[55%]">{c.nome}</span>
                         {infoExtra && (
-                          <span className="text-[8px] text-white/80 truncate italic">{infoExtra}</span>
+                          <span className="text-[8px] text-white/80 truncate">{infoExtra}</span>
                         )}
                       </div>
                       <span className="font-mono text-blue-400 shrink-0">{fmt(c.depositos)}</span>
@@ -1862,7 +1862,7 @@ const DelayEsportivo = () => {
                       <div className="flex items-center gap-1 min-w-0 overflow-hidden">
                         <span className="text-orange-300 truncate shrink-0 max-w-[55%]">{c.nome}</span>
                         {infoExtra && (
-                          <span className="text-[8px] text-white/80 truncate italic">{infoExtra}</span>
+                          <span className="text-[8px] text-white/80 truncate">{infoExtra}</span>
                         )}
                       </div>
                       <span className="font-mono text-orange-400 shrink-0">{fmt(c.depositos)}</span>
