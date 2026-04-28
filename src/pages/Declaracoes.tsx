@@ -859,7 +859,6 @@ export default function Declaracoes() {
           senha_gov: c.senhaGov,
           status: c.status ?? "doc",
           status2: c.status2 ?? "doc",
-          updated_at: new Date().toISOString(),
         }));
         const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
         if (error) {
