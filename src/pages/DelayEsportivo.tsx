@@ -1245,18 +1245,18 @@ const DelayEsportivo = () => {
       status: "ativo",
       operacao: "ativo",
       user_id: user!.id,
-      depositos: 0,
+      depositos: c.depositos ?? 0,
       saques: 0,
       custos: 0,
       lucro: 0,
       deposito_pendente: 0,
-      banco_deposito: null,
-      created_by_token: null,
-      operator_link_id: null,
+      banco_deposito: c.banco_deposito || null,
+      created_by_token: c.created_by_token || null,
+      operator_link_id: c.operator_link_id || null,
       informacoes_adicionais: c.informacoes_adicionais || null,
     } as any);
     if (error) toast({ title: "Erro ao duplicar", description: getSafeErrorMessage(error), variant: "destructive" });
-    else { toast({ title: "Cliente duplicado!" }); setQuickFilter(["all"]); fetchClientes(); }
+    else { toast({ title: "Cliente duplicado!" }); fetchClientes(); }
   };
 
   const handleDelete = async () => {
