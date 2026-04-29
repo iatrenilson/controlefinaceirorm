@@ -1234,6 +1234,27 @@ const DelayEsportivo = () => {
     fetchClientes();
   };
 
+  const handleDuplicate = async (c: DelayCliente) => {
+    const { error } = await supabase.from("delay_clientes").insert({
+      nome: c.nome,
+      casa: c.casa,
+      login: c.login || null,
+      senha: c.senha || null,
+      fornecedor: c.fornecedor || null,
+      tipo: c.tipo,
+      status: c.status,
+      operacao: c.operacao,
+      user_id: user!.id,
+      depositos: 0,
+      banco_deposito: null,
+      created_by_token: null,
+      operator_link_id: null,
+      informacoes_adicionais: c.informacoes_adicionais || null,
+    } as any);
+    if (error) toast({ title: "Erro ao duplicar", description: getSafeErrorMessage(error), variant: "destructive" });
+    else { toast({ title: "Cliente duplicado!" }); fetchClientes(); }
+  };
+
   const handleDelete = async () => {
     if (!deleteCliente) return;
 
@@ -2498,6 +2519,7 @@ const DelayEsportivo = () => {
                       </div>
                     </div>
                     <div className="flex gap-0 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" title="Duplicar cliente" onClick={() => handleDuplicate(c)}><Copy className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(c)}><Pencil className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteCliente(c)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
@@ -2699,6 +2721,9 @@ const DelayEsportivo = () => {
                         <RotateCcw className="h-2.5 w-2.5 mr-0.5" /> Ativos
                       </Button>
                     )}
+                    <Button variant="ghost" size="icon" className="text-muted-foreground h-6 w-6 hover:text-cyan-400" onClick={() => handleDuplicate(c)} title="Duplicar cliente">
+                      <Copy className="h-3 w-3" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-muted-foreground h-6 w-6" onClick={() => openHistorico(c)} title="Detalhes">
                       <Info className="h-3 w-3" />
                     </Button>
