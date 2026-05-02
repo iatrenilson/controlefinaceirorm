@@ -832,7 +832,7 @@ const DelayEsportivo = () => {
       const isDevolvido = c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
       const quickFilterOverridesStatus = quickFilter.some(f => ["concluidas","devolvidos","red"].includes(f));
       const matchStatus = quickFilterOverridesStatus || filtroStatus === "todos" ||
-        (filtroStatus === "ativos" && (c.status === "ativo" || c.status === "saque_pendente")) ||
+        (filtroStatus === "ativos" && (c.status === "ativo" || c.status === "operando" || c.status === "saque_pendente")) ||
         (filtroStatus === "concluidos" && c.status === "concluido" && !isDevolvido);
       const matchCasa = filtroCasa === "todas" || c.casa === filtroCasa;
       const matchDataSaque = !filtroDataSaque || allTransacoes.some(t =>
@@ -846,7 +846,7 @@ const DelayEsportivo = () => {
       const matchNick = filtroNick === "todos" ||
         (filtroNick === "direto" && !c.created_by_token) ||
         (isOperatorLink ? c.operator_link_id === filtroNick : c.created_by_token === filtroNick);
-      const isOperando = c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente";
+      const isOperando = (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente") || c.status === "operando";
       const matchQuick = quickFilter.includes("all") ||
         (quickFilter.includes("operando") && isOperando) ||
         (quickFilter.includes("pendentes") && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0) ||
@@ -2950,6 +2950,7 @@ const DelayEsportivo = () => {
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="operando">Operando</SelectItem>
                         <SelectItem value="saque_pendente">Saque Pendente</SelectItem>
                         <SelectItem value="concluido">Concluído</SelectItem>
                       </SelectContent>
