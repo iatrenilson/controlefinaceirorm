@@ -846,7 +846,7 @@ const DelayEsportivo = () => {
       const matchNick = filtroNick === "todos" ||
         (filtroNick === "direto" && !c.created_by_token) ||
         (isOperatorLink ? c.operator_link_id === filtroNick : c.created_by_token === filtroNick);
-      const isOperando = c.saques === 0 && c.status === "ativo";
+      const isOperando = c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente";
       const matchQuick = quickFilter.includes("all") ||
         (quickFilter.includes("operando") && isOperando) ||
         (quickFilter.includes("pendentes") && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0) ||
