@@ -122,8 +122,9 @@ const DelayViewer = () => {
 
   const fetchClientesSilent = async () => {
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
       const res = await fetch(url, {
+        cache: "no-store",
         headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
       });
       const result = await res.json();
@@ -147,8 +148,9 @@ const DelayViewer = () => {
   const fetchClientes = async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
       const res = await fetch(url, {
+        cache: "no-store",
         headers: {
           "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
@@ -323,7 +325,7 @@ const DelayViewer = () => {
     toast({ title: "Conta Queimada! Enviada para aprovação do administrador." });
     // Usa Edge Function (service_role) para garantir que o update passa mesmo sem RLS
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
       await fetch(url, {
         method: "POST",
         headers: {
@@ -407,7 +409,7 @@ const DelayViewer = () => {
         setClientes(prev => prev.filter(c => c.id !== cliente.id));
         // Usa a Edge Function via POST (service_role) para garantir que o update no banco passa mesmo sem RLS
         try {
-          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
+          const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
           await fetch(url, {
             method: "POST",
             headers: {
