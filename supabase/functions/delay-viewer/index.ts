@@ -3,8 +3,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Cache-Control": "no-store, no-cache, must-revalidate",
+  "Cache-Control": "no-store, no-cache, must-revalidate, private",
   "Pragma": "no-cache",
+  "Vary": "*",
+  "Surrogate-Control": "no-store",
+  "CDN-Cache-Control": "no-store",
 };
 
 async function fetchViewerData(supabase: any, token: string) {
