@@ -122,10 +122,11 @@ const DelayViewer = () => {
 
   const fetchClientesSilent = async () => {
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
       const res = await fetch(url, {
-        cache: "no-store",
-        headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        method: "POST",
+        headers: { "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
       const result = await res.json();
       if (res.ok) {
@@ -148,12 +149,14 @@ const DelayViewer = () => {
   const fetchClientes = async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}`;
       const res = await fetch(url, {
-        cache: "no-store",
+        method: "POST",
         headers: {
           "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({}),
       });
       const result = await res.json();
 
