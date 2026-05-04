@@ -105,8 +105,18 @@ const DelayViewer = () => {
       fetchClientesSilent();
     }, 4000);
 
+    let hiddenAt: number | null = null;
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchClientesSilent();
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === "visible") {
+        if (hiddenAt && Date.now() - hiddenAt > 30000) {
+          window.location.reload();
+        } else {
+          fetchClientesSilent();
+        }
+        hiddenAt = null;
+      }
     };
     const handleFocus = () => fetchClientesSilent();
 
