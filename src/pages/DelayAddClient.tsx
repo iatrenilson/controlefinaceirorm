@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -289,74 +289,68 @@ const DelayAddClient = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-2xl space-y-4">
-        {/* Header */}
-        <Card>
-          <CardHeader className="text-center space-y-2 pb-3">
-            <img src={rwLogo} alt="RW Investimentos" className="h-24 sm:h-48 w-auto mx-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
-            <CardTitle className="text-xl">Delay Esportivo{linkNick ? ` - ${linkNick}` : " - Clientes"}</CardTitle>
-            <p className="text-sm text-muted-foreground">Gerencie seus clientes abaixo</p>
-          </CardHeader>
-        </Card>
-
-        {/* Client List */}
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Seus Clientes ({clientes.length})</span>
+    <div className="min-h-screen bg-background pb-8">
+      {/* Fixed compact header — equal to viewer style */}
+      <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur border-b space-y-3 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={rwLogo} alt="RW" className="h-8 w-8 rounded-full object-contain" />
+            <div>
+              <h1 className="text-sm font-bold">Delay Esportivo{linkNick ? ` - ${linkNick}` : ""}</h1>
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Users className="h-3 w-3" /> {clientes.length} clientes
+              </p>
+            </div>
           </div>
           <Button size="sm" onClick={startNew} variant={showForm ? "secondary" : "default"}>
-            <Plus className="h-4 w-4 mr-1" />
-            Novo
+            <Plus className="h-4 w-4 mr-1" /> Novo
           </Button>
         </div>
 
         {/* Status Filter */}
-        {clientes.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            {([
-              { key: "ativo", label: "Ativo" },
-              { key: "saque_pendente", label: "Saque Pendente" },
-              { key: "aguardando", label: "Aguardando" },
-              { key: "concluido", label: "Concluído" },
-              { key: "devolvido", label: "Devolvido" },
-            ] as const).filter(f => statusCounts[f.key] > 0).map(f => (
-              <Button
-                key={f.key}
-                size="sm"
-                variant={statusFilter === f.key ? "default" : "outline"}
-                className="h-7 text-xs px-2.5"
-                onClick={() => setStatusFilter(f.key)}
-              >
-                {f.label} ({statusCounts[f.key]})
-              </Button>
-            ))}
-          </div>
-        )}
+        <div className="max-w-6xl mx-auto flex items-center gap-2 flex-wrap">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          {([
+            { key: "ativo", label: "Ativo" },
+            { key: "saque_pendente", label: "Saque Pendente" },
+            { key: "aguardando", label: "Aguardando" },
+            { key: "concluido", label: "Concluído" },
+            { key: "devolvido", label: "Devolvido" },
+          ] as const).filter(f => statusCounts[f.key] > 0).map(f => (
+            <Button
+              key={f.key}
+              size="sm"
+              variant={statusFilter === f.key ? "default" : "outline"}
+              className="h-7 text-xs px-2.5"
+              onClick={() => setStatusFilter(f.key)}
+            >
+              {f.label} ({statusCounts[f.key]})
+            </Button>
+          ))}
+        </div>
 
         {/* Stats bar */}
-        {clientes.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Lucro Total</p>
-              <p className={`text-sm font-bold font-mono ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroTotal)}</p>
-            </div>
-            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Total</p>
-              <p className="text-sm font-bold">{filteredClientes.length}</p>
-            </div>
-            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Depósitos</p>
-              <p className="text-sm font-bold font-mono text-primary">{fmt(depositosAtivos)}</p>
-            </div>
+        <div className="max-w-6xl mx-auto grid grid-cols-3 gap-3">
+          <div className="rounded-lg border bg-background/60 px-4 py-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Lucro Total</p>
+            <p className={`text-base font-bold font-mono ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroTotal)}</p>
           </div>
-        )}
+          <div className="rounded-lg border bg-background/60 px-4 py-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total</p>
+            <p className="text-base font-bold">{filteredClientes.length}</p>
+          </div>
+          <div className="rounded-lg border bg-background/60 px-4 py-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Depósitos</p>
+            <p className="text-base font-bold font-mono text-primary">{fmt(depositosAtivos)}</p>
+          </div>
+        </div>
+      </div>
 
+      {/* Scrollable content */}
+      <div className="max-w-6xl mx-auto px-4 pt-56 space-y-4">
         {loadingClientes ? (
           <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-        ) : clientes.length === 0 && !showForm ? (
+        ) : clientes.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             Nenhum cliente adicionado ainda. Clique em "Novo" para começar.
           </p>
@@ -365,7 +359,7 @@ const DelayAddClient = () => {
             Nenhum cliente com este status.
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {filteredClientes.map((c) => (
               <Card key={c.id} className="overflow-hidden border-border/50">
                 <CardContent className="p-4 flex flex-col h-full">
