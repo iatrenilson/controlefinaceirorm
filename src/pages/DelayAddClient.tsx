@@ -322,7 +322,7 @@ const DelayAddClient = () => {
               {f.label} ({statusCounts[f.key]})
             </Button>
           ))}
-          <Button size="sm" onClick={startNew} variant={showForm ? "secondary" : "default"} className="ml-auto h-7 text-xs">
+          <Button size="sm" onClick={startNew} variant={showForm ? "secondary" : "default"} className="h-7 text-xs">
             <Plus className="h-3.5 w-3.5 mr-1" /> Novo
           </Button>
         </div>
