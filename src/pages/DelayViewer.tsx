@@ -227,9 +227,9 @@ const DelayViewer = () => {
   const filtered = useMemo(() => {
     let list = clientes.filter((c) => {
       if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
-      if (getClienteStatus(c) === "aguardando" && filtroStatus !== "aguardando") return false;
-      // Oculta contas queimadas de todos os links de viewer (não editor/admin)
-      if (linkTipo !== "editor" && c.status === "saque_pendente") return false;
+      if (getClienteStatus(c) === "aguardando") return false;
+      // Oculta saque_pendente de links não-editor, exceto quando está na aba Saque Pendente
+      if (linkTipo !== "editor" && c.status === "saque_pendente" && filtroStatus !== "saque_pendente") return false;
       return true;
     });
 
@@ -571,7 +571,7 @@ const DelayViewer = () => {
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           {([
             { key: "operando", label: "Operando" },
-            { key: "aguardando", label: "Aguardando" },
+            { key: "saque_pendente", label: "Saque Pendente" },
             { key: "concluido", label: "Concluídos" },
             { key: "devolvido", label: "Devolvido" },
             { key: "red", label: "Red" },
