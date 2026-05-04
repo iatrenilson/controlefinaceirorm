@@ -216,7 +216,10 @@ const DelayViewer = () => {
   const filtered = useMemo(() => {
     let list = clientes.filter((c) => {
       if (linkTipo !== "visualizador_vodka" && c.nome.toLowerCase().includes("vodka")) return false;
-      if (getClienteStatus(c) === "aguardando") return false;
+      if (getClienteStatus(c) === "aguardando") {
+        // Para editor: mostra apenas na aba "Aguardando"; para os outros links: sempre oculta
+        return linkTipo === "editor" && filtroStatus === "aguardando";
+      }
       // Oculta saque_pendente de links não-editor, exceto quando está na aba Saque Pendente
       if (linkTipo !== "editor" && c.status === "saque_pendente" && filtroStatus !== "saque_pendente") return false;
       return true;
@@ -564,7 +567,8 @@ const DelayViewer = () => {
             { key: "concluido", label: "Concluídos" },
             { key: "devolvido", label: "Devolvido" },
             { key: "red", label: "Red" },
-          ] as const).map(f => (
+            ...(linkTipo === "editor" ? [{ key: "aguardando", label: "Aguardando" }] : []),
+          ] as { key: string; label: string }[]).map(f => (
             <Button
               key={f.key}
               size="sm"
