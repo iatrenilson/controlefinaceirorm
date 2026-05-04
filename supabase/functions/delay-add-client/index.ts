@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
     // PUT: Edit a client created by this token
     if (req.method === "PUT") {
-      const { token, client_id, nome, casa, login, senha, fornecedor, tipo, banco_deposito } = await req.json();
+      const { token, client_id, nome, casa, login, senha, fornecedor, tipo, banco_deposito, informacoes_adicionais } = await req.json();
 
       if (!token || !client_id) {
         return new Response(JSON.stringify({ error: "Token e client_id são obrigatórios" }), {
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const updateData: Record<string, unknown> = {};
+      const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
       if (nome !== undefined) updateData.nome = nome;
       if (casa !== undefined) updateData.casa = casa;
       if (login !== undefined) updateData.login = login;
@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
       if (fornecedor !== undefined) updateData.fornecedor = fornecedor;
       if (tipo !== undefined) updateData.tipo = tipo;
       if (banco_deposito !== undefined) updateData.banco_deposito = banco_deposito;
+      if (informacoes_adicionais !== undefined) updateData.informacoes_adicionais = informacoes_adicionais;
 
       const { error: updateError } = await supabase
         .from("delay_clientes")

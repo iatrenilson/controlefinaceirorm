@@ -275,18 +275,21 @@ const DelayAddClient = () => {
     if (!editDialog) return;
     setEditLoading(true);
     try {
-      const { error } = await supabase
-        .from("delay_clientes")
-        .update({
+      const res = await fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          client_id: editDialog.id,
           nome: editFields.nome.trim() || editDialog.nome,
           login: editFields.login.trim() || null,
           senha: editFields.senha.trim() || null,
           informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
           banco_deposito: editFields.banco_deposito.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editDialog.id);
-      if (error) throw error;
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar");
       toast({ title: "Cliente atualizado!" });
       setEditDialog(null);
       fetchClientes(true);
