@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getCasaLogo } from "@/lib/casas-apostas";
-import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon, ArrowDownCircle, ArrowUpCircle, Clock, Pencil } from "lucide-react";
+import { Users, Copy, Search, Eye, EyeOff, Filter, Lock, CalendarIcon, ArrowDownCircle, ArrowUpCircle, Clock, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +64,8 @@ const DelayViewer = () => {
   const [linkTipo, setLinkTipo] = useState<string>("visualizador");
   const [lucroDate, setLucroDate] = useState<Date>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [lucroMesDate, setLucroMesDate] = useState<Date>(new Date());
+  const [lucroMesCalendarOpen, setLucroMesCalendarOpen] = useState(false);
 
   // Editor action dialog state
   const [transDialog, setTransDialog] = useState<{ cliente: ClienteViewer; tipo: "deposito" | "saque" | "saque_pendente" | "saque_fornecedor" } | null>(null);
@@ -279,11 +281,14 @@ const DelayViewer = () => {
       .reduce((a, t) => a + Number(t.lucro || 0), 0);
   }, [transacoes, allClienteIds, lucroDateStr]);
 
-  const lucroTotal = useMemo(() => {
+  const lucroMesTotal = useMemo(() => {
+    const year = lucroMesDate.getFullYear();
+    const month = String(lucroMesDate.getMonth() + 1).padStart(2, "0");
+    const prefix = `${year}-${month}`;
     return transacoes
-      .filter((t) => allClienteIds.has(t.cliente_id) && t.data_transacao >= minLucroDate && t.tipo !== "deposito")
+      .filter((t) => allClienteIds.has(t.cliente_id) && t.data_transacao.startsWith(prefix) && t.tipo !== "deposito")
       .reduce((a, t) => a + Number(t.lucro || 0), 0);
-  }, [transacoes, allClienteIds]);
+  }, [transacoes, allClienteIds, lucroMesDate]);
 
   const openEditDialog = (c: ClienteViewer) => {
     setEditDialog(c);
@@ -583,10 +588,29 @@ const DelayViewer = () => {
 
         {/* Stats row - fixed below filters */}
         <div className="max-w-6xl mx-auto grid grid-cols-4 gap-3">
-          <div className="rounded-lg border bg-background/60 px-4 py-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Lucro Total</p>
-            <p className={`text-base font-bold font-mono ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroTotal)}</p>
-          </div>
+          <Popover open={lucroMesCalendarOpen} onOpenChange={setLucroMesCalendarOpen}>
+            <PopoverTrigger asChild>
+              <div className="rounded-lg border bg-background/60 px-4 py-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center justify-center gap-1">Lucro Total <CalendarIcon className="h-3 w-3" /></p>
+                <p className={`text-base font-bold font-mono ${lucroMesTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroMesTotal)}</p>
+                <p className="text-[9px] text-muted-foreground capitalize mt-0.5">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR })}</p>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3 z-50" align="center">
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLucroMesDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium capitalize">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR })}</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLucroMesDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button size="sm" variant="outline" className="w-full text-xs h-7" onClick={() => { setLucroMesDate(new Date()); setLucroMesCalendarOpen(false); }}>
+                Mês Atual
+              </Button>
+            </PopoverContent>
+          </Popover>
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <div className="rounded-lg border bg-background/60 px-4 py-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
