@@ -141,13 +141,8 @@ const DelayViewer = () => {
       const result = await res.json();
       if (res.ok) {
         const tipo = result.tipo || "visualizador";
-        const lista = (result.clientes || []).filter((c: ClienteViewer) => {
-          // Nunca filtra saque_pendente do próprio operador — aparece na aba Saque Pendente
-          if (tipo !== "editor" && c.status === "saque_pendente") return false;
-          return true;
-        });
-
-        setClientes(lista);
+        // A Edge Function já controla o que retorna — não filtra aqui
+        setClientes(result.clientes || []);
         setTransacoes(result.transacoes || []);
         setViewerNick(result.nick || null);
         setLinkTipo(tipo);
@@ -175,12 +170,8 @@ const DelayViewer = () => {
       }
 
       const tipo = result.tipo || "visualizador";
-      const lista = (result.clientes || []).filter((c: ClienteViewer) => {
-        // Nunca filtra saque_pendente do próprio operador — aparece na aba Saque Pendente
-        if (tipo !== "editor" && c.status === "saque_pendente") return false;
-        return true;
-      });
-      setClientes(lista);
+      // A Edge Function já controla o que retorna — não filtra aqui
+      setClientes(result.clientes || []);
       setTransacoes(result.transacoes || []);
       setViewerNick(result.nick || null);
       setLinkTipo(tipo);
