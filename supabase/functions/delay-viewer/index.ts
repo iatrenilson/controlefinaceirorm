@@ -66,8 +66,8 @@ async function fetchViewerData(supabase: any, token: string) {
 
   const clientesComNick = (clientes || [])
     .filter((c: any) => {
-      if (!isFornecedor && c.status === "saque_pendente") return false;
       if (isFornecedor) {
+        // Editor: inclui saque_pendente dos próprios clientes
         if (c.created_by_token === linkData.id) return true;
         if (linkData.nick) {
           if (c.created_by_token && nickMap[c.created_by_token] === linkData.nick) return true;
@@ -75,13 +75,19 @@ async function fetchViewerData(supabase: any, token: string) {
         }
         return false;
       }
-      if (isVodkaOnly) return c.nome.toLowerCase().includes("vodka");
+      if (isVodkaOnly) {
+        // Vodka: inclui saque_pendente dos próprios clientes vodka
+        return c.nome.toLowerCase().includes("vodka");
+      }
       if (isIndividual) {
+        // Individual: inclui saque_pendente dos próprios clientes
         if (!allowedTokens) return false;
         if (c.created_by_token && allowedTokens.has(c.created_by_token)) return true;
         if (c.operator_link_id && allowedTokens.has(c.operator_link_id)) return true;
         return false;
       }
+      // Visualizador geral: oculta saque_pendente
+      if (c.status === "saque_pendente") return false;
       return !c.nome.toLowerCase().includes("vodka");
     })
     .map((c: any) => {
