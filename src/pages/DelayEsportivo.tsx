@@ -898,7 +898,7 @@ const DelayEsportivo = () => {
     const saquePendenteClientes = visibleClientes.filter(c => c.status === "saque_pendente");
     const saquePendente = saquePendenteClientes.length;
     const saquePendenteTotal = saquePendenteClientes.reduce((a, c) => a + c.depositos, 0);
-    const depositosAtivos = ativasClientes.reduce((a, c) => a + c.depositos, 0);
+    const depositosAtivos = visibleClientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0).reduce((a, c) => a + c.depositos, 0);
     const saldoTotal = bankBalances.santander + bankBalances.c6;
     return { totalDepositos, totalSaques, totalLucro, totalCustos, saldo, saldoTotal, total: visibleClientes.length, ativas, saquePendente, saquePendenteTotal, depositosAtivos };
   }, [clientes, bankBalances]);
