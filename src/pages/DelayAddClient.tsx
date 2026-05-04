@@ -292,22 +292,17 @@ const DelayAddClient = () => {
     <div className="min-h-screen bg-background pb-8">
       {/* Fixed compact header — equal to viewer style */}
       <div className="fixed top-0 left-0 right-0 z-10 bg-background/95 backdrop-blur border-b space-y-3 px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={rwLogo} alt="RW" className="h-8 w-8 rounded-full object-contain" />
-            <div>
-              <h1 className="text-sm font-bold">Delay Esportivo{linkNick ? ` - ${linkNick}` : ""}</h1>
-              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Users className="h-3 w-3" /> {clientes.length} clientes
-              </p>
-            </div>
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
+          <img src={rwLogo} alt="RW" className="h-8 w-8 rounded-full object-contain" />
+          <div>
+            <h1 className="text-sm font-bold">Delay Esportivo{linkNick ? ` - ${linkNick}` : ""}</h1>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" /> {clientes.length} clientes
+            </p>
           </div>
-          <Button size="sm" onClick={startNew} variant={showForm ? "secondary" : "default"}>
-            <Plus className="h-4 w-4 mr-1" /> Novo
-          </Button>
         </div>
 
-        {/* Status Filter */}
+        {/* Status Filter + Novo button */}
         <div className="max-w-6xl mx-auto flex items-center gap-2 flex-wrap">
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           {([
@@ -327,6 +322,9 @@ const DelayAddClient = () => {
               {f.label} ({statusCounts[f.key]})
             </Button>
           ))}
+          <Button size="sm" onClick={startNew} variant={showForm ? "secondary" : "default"} className="ml-auto h-7 text-xs">
+            <Plus className="h-3.5 w-3.5 mr-1" /> Novo
+          </Button>
         </div>
 
         {/* Stats bar */}
