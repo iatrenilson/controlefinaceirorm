@@ -687,7 +687,7 @@ const DelayViewer = () => {
                           )}
                           {c.fornecedor && (
                             <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-muted-foreground uppercase">Fornecedor {c.fornecedor}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase">Fornecedor {(c.fornecedor || "").replace(/^fornecedor\s+/i, "")}</span>
                             </div>
                           )}
                         </div>
