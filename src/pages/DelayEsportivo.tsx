@@ -2499,7 +2499,7 @@ const DelayEsportivo = () => {
                         {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-warning/20 text-warning hover:bg-warning/30 shrink-0">Devolvido</Badge>
                         )}
-                        {c.depositos > 0 && c.saques === 0 && (
+                        {c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 shrink-0 flex items-center gap-1">
                             <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-400"></span></span>
                             Operando
