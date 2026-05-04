@@ -98,12 +98,16 @@ const DelayAddClient = () => {
 
   const filteredClientes = useMemo(() => {
     if (statusFilter === "todos") return sortedClientes;
+    if (statusFilter === "red") return sortedClientes.filter(c => c.lucro < 0);
     return sortedClientes.filter(c => getClienteStatus(c) === statusFilter);
   }, [sortedClientes, statusFilter]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { todos: clientes.length, ativo: 0, concluido: 0, devolvido: 0, saque_pendente: 0, aguardando: 0 };
-    clientes.forEach(c => { counts[getClienteStatus(c)]++; });
+    const counts: Record<string, number> = { todos: clientes.length, ativo: 0, concluido: 0, devolvido: 0, saque_pendente: 0, aguardando: 0, red: 0 };
+    clientes.forEach(c => {
+      counts[getClienteStatus(c)]++;
+      if (c.lucro < 0) counts.red++;
+    });
     return counts;
   }, [clientes]);
 
@@ -311,6 +315,7 @@ const DelayAddClient = () => {
             { key: "aguardando", label: "Aguardando" },
             { key: "concluido", label: "Concluído" },
             { key: "devolvido", label: "Devolvido" },
+            { key: "red", label: "Red" },
           ] as const).filter(f => statusCounts[f.key] > 0).map(f => (
             <Button
               key={f.key}
