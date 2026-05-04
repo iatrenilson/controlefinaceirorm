@@ -142,8 +142,7 @@ const DelayViewer = () => {
       if (res.ok) {
         const tipo = result.tipo || "visualizador";
         const lista = (result.clientes || []).filter((c: ClienteViewer) => {
-          if (queimadaIdsRef.current.has(c.id)) return false;
-          // Editor/admin pode ver saque_pendente; links de visualização não
+          // Nunca filtra saque_pendente do próprio operador — aparece na aba Saque Pendente
           if (tipo !== "editor" && c.status === "saque_pendente") return false;
           return true;
         });
@@ -177,8 +176,7 @@ const DelayViewer = () => {
 
       const tipo = result.tipo || "visualizador";
       const lista = (result.clientes || []).filter((c: ClienteViewer) => {
-        if (queimadaIdsRef.current.has(c.id)) return false;
-        // Editor/admin pode ver saque_pendente; links de visualização não
+        // Nunca filtra saque_pendente do próprio operador — aparece na aba Saque Pendente
         if (tipo !== "editor" && c.status === "saque_pendente") return false;
         return true;
       });
