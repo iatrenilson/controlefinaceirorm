@@ -112,7 +112,7 @@ const DelayAddClient = () => {
   const fmt = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const lucroTotal = useMemo(() => clientes.reduce((a, c) => a + (c.lucro ?? 0), 0), [clientes]);
+  const lucroTotal = useMemo(() => clientes.reduce((a, c) => a + (c.custos ?? 0), 0), [clientes]);
   const depositosAtivos = useMemo(() =>
     filteredClientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0)
       .reduce((a, c) => a + c.depositos, 0),
@@ -434,32 +434,20 @@ const DelayAddClient = () => {
                       </Badge>
                     )}
                   </div>
-                  {(() => {
-                    const bruto = (c.deposito_pendente ?? 0) - (c.depositos ?? 0) - (c.custos ?? 0);
-                    const lucroDisplay = (c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0)
-                      ? (c.tipo === "50/50" ? bruto / 2 : bruto)
-                      : c.lucro;
-                    return (
-                      <div className="grid grid-cols-4 gap-1 text-center mt-2">
-                        <div className="bg-primary/10 rounded p-1.5">
-                          <p className="text-[9px] text-muted-foreground">Depósitos</p>
-                          <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
-                        </div>
-                        <div className="bg-muted/40 rounded p-1.5">
-                          <p className="text-[9px] text-muted-foreground">Saques</p>
-                          <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
-                        </div>
-                        <div className="bg-muted/40 rounded p-1.5">
-                          <p className="text-[9px] text-muted-foreground">Custos</p>
-                          <p className="text-[11px] font-bold font-mono">{fmt(c.custos)}</p>
-                        </div>
-                        <div className={`rounded p-1.5 ${lucroDisplay < 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
-                          <p className="text-[9px] text-muted-foreground">{lucroDisplay < 0 ? "Red" : "Lucro"}</p>
-                          <p className={`text-[11px] font-bold font-mono ${lucroDisplay < 0 ? "text-destructive" : "text-green-500"}`}>{fmt(lucroDisplay)}</p>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  <div className="grid grid-cols-3 gap-1 text-center mt-2">
+                    <div className="bg-primary/10 rounded p-1.5">
+                      <p className="text-[9px] text-muted-foreground">Depósitos</p>
+                      <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
+                    </div>
+                    <div className="bg-muted/40 rounded p-1.5">
+                      <p className="text-[9px] text-muted-foreground">Saques</p>
+                      <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
+                    </div>
+                    <div className="bg-green-500/10 rounded p-1.5">
+                      <p className="text-[9px] text-muted-foreground">Lucro</p>
+                      <p className="text-[11px] font-bold font-mono text-green-500">{fmt(c.custos)}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
