@@ -690,24 +690,31 @@ const DelayViewer = () => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-4 gap-1 text-center">
-                      <div className="bg-primary/10 rounded p-1.5">
-                        <p className="text-[9px] text-muted-foreground">Depósitos</p>
-                        <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
-                      </div>
-                      <div className="bg-muted/40 rounded p-1.5">
-                        <p className="text-[9px] text-muted-foreground">Saques</p>
-                        <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
-                      </div>
-                      <div className="bg-muted/40 rounded p-1.5">
-                        <p className="text-[9px] text-muted-foreground">Custos</p>
-                        <p className="text-[11px] font-bold font-mono">{fmt(c.custos)}</p>
-                      </div>
-                      <div className={`rounded p-1.5 ${c.lucro < 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
-                        <p className="text-[9px] text-muted-foreground">{c.lucro < 0 ? "Red" : "Lucro"}</p>
-                        <p className={`text-[11px] font-bold font-mono ${c.lucro < 0 ? "text-destructive" : "text-green-500"}`}>{fmt(c.lucro)}</p>
-                      </div>
-                    </div>
+                    {(() => {
+                      const pendingLucro = (c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0)
+                        ? ((c.deposito_pendente ?? 0) - (c.depositos ?? 0) - (c.custos ?? 0))
+                        : c.lucro;
+                      return (
+                        <div className="grid grid-cols-4 gap-1 text-center">
+                          <div className="bg-primary/10 rounded p-1.5">
+                            <p className="text-[9px] text-muted-foreground">Depósitos</p>
+                            <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
+                          </div>
+                          <div className="bg-muted/40 rounded p-1.5">
+                            <p className="text-[9px] text-muted-foreground">Saques</p>
+                            <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
+                          </div>
+                          <div className="bg-muted/40 rounded p-1.5">
+                            <p className="text-[9px] text-muted-foreground">Custos</p>
+                            <p className="text-[11px] font-bold font-mono">{fmt(c.custos)}</p>
+                          </div>
+                          <div className={`rounded p-1.5 ${pendingLucro < 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
+                            <p className="text-[9px] text-muted-foreground">{pendingLucro < 0 ? "Red" : "Lucro"}</p>
+                            <p className={`text-[11px] font-bold font-mono ${pendingLucro < 0 ? "text-destructive" : "text-green-500"}`}>{fmt(pendingLucro)}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {(linkTipo === "editor" || linkTipo === "visualizador_individual") && (
                       <div className="flex gap-1.5 pt-1">
