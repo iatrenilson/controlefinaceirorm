@@ -109,6 +109,15 @@ const DelayAddClient = () => {
 
   const apiUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/delay-add-client`;
 
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const lucroTotal = useMemo(() => clientes.reduce((a, c) => a + (c.lucro ?? 0), 0), [clientes]);
+  const depositosAtivos = useMemo(() =>
+    filteredClientes.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0)
+      .reduce((a, c) => a + c.depositos, 0),
+    [filteredClientes]);
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado!", description: "Texto copiado para a área de transferência" });
@@ -327,6 +336,24 @@ const DelayAddClient = () => {
           </div>
         )}
 
+        {/* Stats bar */}
+        {clientes.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Lucro Total</p>
+              <p className={`text-sm font-bold font-mono ${lucroTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroTotal)}</p>
+            </div>
+            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Total</p>
+              <p className="text-sm font-bold">{filteredClientes.length}</p>
+            </div>
+            <div className="rounded-lg border bg-background/60 px-3 py-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Depósitos</p>
+              <p className="text-sm font-bold font-mono text-primary">{fmt(depositosAtivos)}</p>
+            </div>
+          </div>
+        )}
+
         {loadingClientes ? (
           <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
         ) : clientes.length === 0 && !showForm ? (
@@ -407,20 +434,40 @@ const DelayAddClient = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 pt-2 border-t border-border/30 flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                  <div className="mt-2 pt-2 border-t border-border/30 text-[11px] text-muted-foreground">
                     <span>Banco: <span className="text-foreground font-medium">{getBancoLabel(c.banco_deposito)}</span></span>
-                    {c.depositos > 0 && (
-                      <span>Depósito: <span className="text-foreground font-medium">R$ {c.depositos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
-                    )}
-                    {c.custos > 0 && (
-                      <span>Lucro: <span className="text-primary font-medium">R$ {c.custos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
-                    )}
-                    {c.deposito_pendente > 0 && (
-                      <Badge className="text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 animate-pulse">
-                        Aguardando aprovação: R$ {c.deposito_pendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    {c.deposito_pendente > 0 && c.depositos === 0 && (
+                      <Badge className="ml-2 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 animate-pulse">
+                        Aguardando: R$ {c.deposito_pendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </Badge>
                     )}
                   </div>
+                  {(() => {
+                    const bruto = (c.deposito_pendente ?? 0) - (c.depositos ?? 0) - (c.custos ?? 0);
+                    const lucroDisplay = (c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0)
+                      ? (c.tipo === "50/50" ? bruto / 2 : bruto)
+                      : c.lucro;
+                    return (
+                      <div className="grid grid-cols-4 gap-1 text-center mt-2">
+                        <div className="bg-primary/10 rounded p-1.5">
+                          <p className="text-[9px] text-muted-foreground">Depósitos</p>
+                          <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
+                        </div>
+                        <div className="bg-muted/40 rounded p-1.5">
+                          <p className="text-[9px] text-muted-foreground">Saques</p>
+                          <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
+                        </div>
+                        <div className="bg-muted/40 rounded p-1.5">
+                          <p className="text-[9px] text-muted-foreground">Custos</p>
+                          <p className="text-[11px] font-bold font-mono">{fmt(c.custos)}</p>
+                        </div>
+                        <div className={`rounded p-1.5 ${lucroDisplay < 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
+                          <p className="text-[9px] text-muted-foreground">{lucroDisplay < 0 ? "Red" : "Lucro"}</p>
+                          <p className={`text-[11px] font-bold font-mono ${lucroDisplay < 0 ? "text-destructive" : "text-green-500"}`}>{fmt(lucroDisplay)}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             ))}
