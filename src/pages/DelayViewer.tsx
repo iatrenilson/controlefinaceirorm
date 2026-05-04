@@ -691,8 +691,9 @@ const DelayViewer = () => {
                     )}
 
                     {(() => {
+                      const bruto = (c.deposito_pendente ?? 0) - (c.depositos ?? 0) - (c.custos ?? 0);
                       const pendingLucro = (c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0)
-                        ? ((c.deposito_pendente ?? 0) - (c.depositos ?? 0) - (c.custos ?? 0))
+                        ? (c.tipo === "50/50" ? bruto / 2 : bruto)
                         : c.lucro;
                       return (
                         <div className="grid grid-cols-4 gap-1 text-center">
