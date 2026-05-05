@@ -259,7 +259,7 @@ function gerarPDF(data: FormData) {
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais - ${primeiroNome}</title>
+  <title>3 Declaração de não estar respondendo a inquérito policial ou a processo criminal</title>
   <style>
     @page{size:A4 portrait;margin:1cm 2cm 2cm 2cm;}
     html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
