@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
       const { data: clientes, error: clientesError } = await supabase
         .from("delay_clientes")
-        .select("id, nome, casa, login, senha, fornecedor, tipo, banco_deposito, status, operacao, depositos, saques, custos, lucro, deposito_pendente, informacoes_adicionais, created_at")
+        .select("id, nome, casa, login, senha, fornecedor, tipo, banco_deposito, status, operacao, depositos, saques, custos, lucro, deposito_pendente, informacoes_adicionais, created_at, updated_at")
         .eq("created_by_token", linkData.id)
         .order("created_at", { ascending: false });
 

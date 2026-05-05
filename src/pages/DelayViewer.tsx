@@ -728,10 +728,12 @@ const DelayViewer = () => {
                           <div className="bg-primary/10 rounded p-1.5">
                             <p className="text-[9px] text-muted-foreground">Depósitos</p>
                             <p className="text-[11px] font-bold font-mono text-primary">{fmt(c.depositos)}</p>
+                            {c.depositos > 0 && <p className="text-[8px] text-muted-foreground/70 mt-0.5">{format(new Date(c.created_at), "dd/MM/yy", { locale: ptBR })}</p>}
                           </div>
                           <div className="bg-muted/40 rounded p-1.5">
                             <p className="text-[9px] text-muted-foreground">Saques</p>
                             <p className="text-[11px] font-bold font-mono">{fmt(c.saques)}</p>
+                            {c.saques > 0 && <p className="text-[8px] text-muted-foreground/70 mt-0.5">{format(new Date(c.updated_at), "dd/MM/yy", { locale: ptBR })}</p>}
                           </div>
                           <div className="bg-muted/40 rounded p-1.5">
                             <p className="text-[9px] text-muted-foreground">Custos</p>
