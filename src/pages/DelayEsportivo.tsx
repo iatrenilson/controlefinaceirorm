@@ -2523,7 +2523,7 @@ const DelayEsportivo = () => {
                       </div>
                     </div>
                     <div className="flex gap-0 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" title="Duplicar cliente" onClick={() => handleDuplicate(c)}><Copy className="h-3 w-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-yellow-400 hover:text-yellow-300" title="Duplicar cliente" onClick={() => handleDuplicate(c)}><Users className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(c)}><Pencil className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteCliente(c)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
@@ -2725,8 +2725,8 @@ const DelayEsportivo = () => {
                         <RotateCcw className="h-2.5 w-2.5 mr-0.5" /> Ativos
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="text-muted-foreground h-6 w-6 hover:text-cyan-400" onClick={() => handleDuplicate(c)} title="Duplicar cliente">
-                      <Copy className="h-3 w-3" />
+                    <Button variant="ghost" size="icon" className="text-yellow-400 hover:text-yellow-300 h-6 w-6" onClick={() => handleDuplicate(c)} title="Duplicar cliente">
+                      <Users className="h-3 w-3" />
                     </Button>
                     <Button variant="ghost" size="icon" className="text-muted-foreground h-6 w-6" onClick={() => openHistorico(c)} title="Detalhes">
                       <Info className="h-3 w-3" />
