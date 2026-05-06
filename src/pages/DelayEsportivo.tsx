@@ -2523,7 +2523,6 @@ const DelayEsportivo = () => {
                       </div>
                     </div>
                     <div className="flex gap-0 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-yellow-400 hover:text-yellow-300" title="Duplicar cliente" onClick={() => handleDuplicate(c)}><Users className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(c)}><Pencil className="h-3 w-3" /></Button>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteCliente(c)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
