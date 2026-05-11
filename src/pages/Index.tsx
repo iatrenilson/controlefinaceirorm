@@ -298,7 +298,8 @@ const Index = () => {
         return;
       }
       fetchTransacoes();
-      toast.success(`Parcela paga! Restam ${t.parcelaAtual - 1} parcela(s). Próximo vencimento: ${format(novaData, "dd/MM/yyyy")}`);
+      const pago = (t.parcelas || 0) - (t.parcelaAtual - 1);
+      toast.success(`Parcela ${pago - 1}/${t.parcelas} paga! Próximo vencimento: ${format(novaData, "dd/MM/yyyy")}`);
     } else {
       const { error } = await supabase.from("financeiro").update({ status: "paga" }).eq("id", id);
       if (error) {
@@ -383,7 +384,8 @@ const Index = () => {
 
   const getParcelasRestantes = (t: Transacao) => {
     if (!t.parcelas || !t.parcelaAtual) return null;
-    return t.parcelaAtual;
+    // Returns the current installment number being paid (counts UP: 1/3, 2/3, 3/3)
+    return t.parcelas - t.parcelaAtual + 1;
   };
 
 
@@ -787,7 +789,7 @@ const Index = () => {
                     const isParcela = t.parcelas && t.parcelas > 1 && t.status !== "paga";
                     const pagoEm = t.ultimoPagamento ? format(parseISO(t.ultimoPagamento), "dd/MM/yyyy", { locale: ptBR }) : "—";
                     const parcelaLabel = isParcela
-                      ? `Parcela ${(t.parcelaAtual ?? 0) + 1}/${t.parcelas} paga`
+                      ? `Parcela ${(t.parcelas ?? 0) - (t.parcelaAtual ?? 0)}/${t.parcelas} paga`
                       : t.parcelas && t.parcelas > 1
                       ? `${t.parcelas}/${t.parcelas} parcelas — Quitado`
                       : "Paga";
