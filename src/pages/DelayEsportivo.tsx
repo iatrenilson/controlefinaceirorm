@@ -1679,18 +1679,40 @@ const DelayEsportivo = () => {
   };
 
   const handleVoltarDepositoPendente = async (cliente: DelayCliente) => {
+    if (!user) return;
+    const valorDeposito = cliente.depositos;
+    const banco = cliente.banco_deposito || "santander";
+
+    // 1. Revert client: move depositos back to deposito_pendente
     const { error } = await supabase.from("delay_clientes").update({
-      deposito_pendente: cliente.depositos,
+      deposito_pendente: valorDeposito,
       depositos: 0,
       data_deposito: null,
       updated_at: new Date().toISOString(),
     }).eq("id", cliente.id);
+
     if (error) {
       toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
-    } else {
-      toast({ title: "Depósito pendente!", description: `${cliente.nome} voltou para depósito pendente.` });
-      await fetchClientes();
+      return;
     }
+
+    // 2. Return the deposit value back to the bank balance
+    const { data: existingBank } = await supabase
+      .from("bank_balances")
+      .select("id, saldo")
+      .eq("user_id", user.id)
+      .eq("banco", banco)
+      .maybeSingle();
+
+    if (existingBank) {
+      const newBalance = (existingBank.saldo || 0) + valorDeposito;
+      await supabase.from("bank_balances").update({ saldo: newBalance, updated_at: new Date().toISOString() }).eq("id", existingBank.id);
+      setBankBalances(prev => ({ ...prev, [banco]: newBalance }));
+    }
+
+    toast({ title: "Depósito pendente!", description: `R$ ${valorDeposito.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} devolvido ao ${banco === "santander" ? "Santander" : "Carteira Pessoal"}.` });
+    await fetchClientes();
+    await fetchBankBalances();
   };
 
   const handleConfirmarSaqueFornecedor = async (cliente: DelayCliente) => {
