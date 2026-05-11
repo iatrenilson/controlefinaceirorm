@@ -1678,6 +1678,21 @@ const DelayEsportivo = () => {
     await fetchClientes();
   };
 
+  const handleVoltarDepositoPendente = async (cliente: DelayCliente) => {
+    const { error } = await supabase.from("delay_clientes").update({
+      deposito_pendente: cliente.depositos,
+      depositos: 0,
+      data_deposito: null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", cliente.id);
+    if (error) {
+      toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
+    } else {
+      toast({ title: "Depósito pendente!", description: `${cliente.nome} voltou para depósito pendente.` });
+      await fetchClientes();
+    }
+  };
+
   const handleConfirmarSaqueFornecedor = async (cliente: DelayCliente) => {
     if (!user) return;
     const valor = cliente.deposito_pendente ?? 0;
@@ -2691,6 +2706,19 @@ const DelayEsportivo = () => {
                       onClick={() => { setTransDialog({ type: "saque", cliente: c }); setTransValor(""); setTransCusto(""); setTransDividirLucro(c.tipo === "50/50"); setTransData(new Date()); setTransCasa(c.casa); setTransDestino("santander"); }}>
                       <ArrowUpCircle className="h-3 w-3 mr-0.5" /> Saque
                     </Button>
+                    {c.status === "ativo" && c.depositos > 0 && c.saques === 0 && (
+                      <Button size="sm" className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border-0 text-[10px] h-6 w-6 p-0"
+                        onClick={async () => {
+                          await handleVoltarDepositoPendente(c);
+                          setTransDialog({ type: "deposito", cliente: { ...c, deposito_pendente: c.depositos, depositos: 0 } });
+                          setTransValor(String(c.depositos));
+                          setTransCasa(c.casa);
+                          setTransData(new Date());
+                          setTransDestino(c.banco_deposito || "santander");
+                        }} title="Voltar para depósito pendente">
+                        <RotateCcw className="h-3 w-3" />
+                      </Button>
+                    )}
                     {c.status === "ativo" && (
                       <>
                         <Button size="sm" className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-0 text-[10px] h-6 w-6 p-0"
