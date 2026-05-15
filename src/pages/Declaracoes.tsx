@@ -1234,9 +1234,9 @@ export default function Declaracoes() {
                         )}
                         {c.senhaGov && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
+                            <div className="flex items-baseline gap-1.5 min-w-0 overflow-hidden">
                               <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">SENHA</span>
-                              <span className="text-xs font-mono font-semibold truncate">
+                              <span className="text-xs font-mono font-semibold truncate max-w-[90px]">
                                 {dadosVisiveis ? c.senhaGov : "••••••••"}
                               </span>
                               {c.dataEntradaProcesso && (
@@ -1310,9 +1310,9 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.senhaGov && (
-                          <div className="flex items-center gap-1 flex-wrap">
+                          <div className="flex items-center gap-1 overflow-hidden">
                             <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">SENHA</span>
-                            <span className="text-[10px] font-mono font-semibold truncate">
+                            <span className="text-[10px] font-mono font-semibold truncate max-w-[70px]">
                               {dadosVisiveis ? c.senhaGov : "••••••••"}
                             </span>
                             {c.dataEntradaProcesso && (
