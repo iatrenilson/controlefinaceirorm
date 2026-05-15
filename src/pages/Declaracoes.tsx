@@ -1169,20 +1169,20 @@ export default function Declaracoes() {
 
                       {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
                       <div className="pl-0 pr-2 pt-2 pb-2">
-                        {/* Linha 1: logo + botões */}
+                        {/* Linha 1: logo + status (esquerda) | editar/excluir (direita) */}
                         <div className="flex items-center justify-between">
-                          <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                            <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <circle cx="18" cy="18" r="3.5" fill="#e5e7eb"/>
-                            <line x1="18" y1="1"  x2="18" y2="7"   stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="18" y1="29" x2="18" y2="35"  stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="1"  y1="18" x2="7"   y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <line x1="29" y1="18" x2="35"  y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
-                            <text x="40" y="17" fontSize="11" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">SINARM</text>
-                            <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
-                          </svg>
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                              <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <circle cx="18" cy="18" r="3.5" fill="#e5e7eb"/>
+                              <line x1="18" y1="1"  x2="18" y2="7"   stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <line x1="18" y1="29" x2="18" y2="35"  stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <line x1="1"  y1="18" x2="7"   y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <line x1="29" y1="18" x2="35"  y2="18" stroke="#e5e7eb" strokeWidth="1.5"/>
+                              <text x="40" y="17" fontSize="11" fill="white" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">SINARM</text>
+                              <text x="40" y="29" fontSize="9"  fill="#9ca3af" fontWeight="600" fontFamily="Arial" letterSpacing="1">CAC</text>
+                            </svg>
                             <Select value={c.status ?? "doc"} onValueChange={(v) => alterarStatus(c.id, v as ClienteStatus)}>
                               <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status ?? "doc"]}`}>
                                 <>
@@ -1196,6 +1196,8 @@ export default function Declaracoes() {
                                 ))}
                               </SelectContent>
                             </Select>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
