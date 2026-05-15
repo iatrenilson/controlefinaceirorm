@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
@@ -1271,7 +1271,13 @@ export default function Declaracoes() {
                               </div>
                             )}
                             {c.dataEntradaProcesso && c.dataDeferimento && (
-                              <span className="text-muted-foreground/30 text-xs select-none">|</span>
+                              <>
+                                <span className="text-muted-foreground/30 text-xs select-none">|</span>
+                                <span className="text-xs font-bold text-red-400">
+                                  {differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))}d
+                                </span>
+                                <span className="text-muted-foreground/30 text-xs select-none">|</span>
+                              </>
                             )}
                             {c.dataDeferimento && (
                               <div className="flex items-center gap-1">
@@ -1339,7 +1345,13 @@ export default function Declaracoes() {
                               </div>
                             )}
                             {c.dataEntradaProcesso && c.dataDeferimento && (
-                              <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
+                              <>
+                                <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
+                                <span className="text-[10px] font-bold text-red-400">
+                                  {differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))}d
+                                </span>
+                                <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
+                              </>
                             )}
                             {c.dataDeferimento && (
                               <div className="flex items-center gap-1">
