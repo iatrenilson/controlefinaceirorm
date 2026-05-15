@@ -3,14 +3,17 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
@@ -1553,12 +1556,25 @@ export default function Declaracoes() {
             {/* Data de Entrada do Processo */}
             <div className="space-y-1">
               <Label className="text-xs">Data de Entrada do Processo</Label>
-              <div className="flex gap-1.5">
-                <Input className="h-9 text-sm" type="date"
-                  value={formCliente.dataEntradaProcesso}
-                  onChange={e => setC("dataEntradaProcesso", e.target.value)} />
-                <CopyButton value={formCliente.dataEntradaProcesso} />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-sm", !formCliente.dataEntradaProcesso && "text-muted-foreground")}>
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {formCliente.dataEntradaProcesso
+                      ? format(parseISO(formCliente.dataEntradaProcesso), "dd/MM/yyyy", { locale: ptBR })
+                      : "Selecione a data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formCliente.dataEntradaProcesso ? parseISO(formCliente.dataEntradaProcesso) : undefined}
+                    onSelect={(d) => setC("dataEntradaProcesso", d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter className="gap-2">
