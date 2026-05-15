@@ -1243,11 +1243,16 @@ export default function Declaracoes() {
                         )}
                         {c.dataNascimento && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1.5 min-w-0">
+                            <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
                               <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">NASC.</span>
                               <span className="text-xs font-mono font-semibold text-yellow-400">
                                 {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                               </span>
+                              {c.dataEntradaProcesso && (
+                                <span className="text-xs font-mono font-semibold text-blue-400">
+                                  {formatDate(c.dataEntradaProcesso)}
+                                </span>
+                              )}
                             </div>
                             <CopyButton value={formatDate(c.dataNascimento)} />
                           </div>
@@ -1293,11 +1298,16 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.dataNascimento && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 flex-wrap">
                             <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">NASC.</span>
                             <span className="text-[10px] font-mono font-semibold text-yellow-400">
                               {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                             </span>
+                            {c.dataEntradaProcesso && (
+                              <span className="text-[10px] font-mono font-semibold text-blue-400">
+                                {formatDate(c.dataEntradaProcesso)}
+                              </span>
+                            )}
                             <CopyButton value={formatDate(c.dataNascimento)} />
                           </div>
                         )}
