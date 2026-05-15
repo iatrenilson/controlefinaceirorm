@@ -1270,13 +1270,15 @@ export default function Declaracoes() {
                                 <span className="text-xs font-mono font-semibold text-blue-400">{formatDate(c.dataEntradaProcesso)}</span>
                               </div>
                             )}
-                            {c.dataEntradaProcesso && c.dataDeferimento && (
+                            {c.dataEntradaProcesso && (
                               <>
                                 <span className="text-muted-foreground/30 text-xs select-none">|</span>
                                 <span className="text-xs font-bold text-red-400">
-                                  {differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))}d
+                                  {c.dataDeferimento
+                                    ? differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))
+                                    : differenceInDays(new Date(), parseISO(c.dataEntradaProcesso))}d
                                 </span>
-                                <span className="text-muted-foreground/30 text-xs select-none">|</span>
+                                {c.dataDeferimento && <span className="text-muted-foreground/30 text-xs select-none">|</span>}
                               </>
                             )}
                             {c.dataDeferimento && (
@@ -1344,13 +1346,15 @@ export default function Declaracoes() {
                                 <span className="text-[10px] font-mono font-semibold text-blue-400">{formatDate(c.dataEntradaProcesso)}</span>
                               </div>
                             )}
-                            {c.dataEntradaProcesso && c.dataDeferimento && (
+                            {c.dataEntradaProcesso && (
                               <>
                                 <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
                                 <span className="text-[10px] font-bold text-red-400">
-                                  {differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))}d
+                                  {c.dataDeferimento
+                                    ? differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso))
+                                    : differenceInDays(new Date(), parseISO(c.dataEntradaProcesso))}d
                                 </span>
-                                <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
+                                {c.dataDeferimento && <span className="text-muted-foreground/30 text-[10px] select-none">|</span>}
                               </>
                             )}
                             {c.dataDeferimento && (
