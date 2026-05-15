@@ -1251,9 +1251,12 @@ export default function Declaracoes() {
                                 {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                               </span>
                               {c.dataEntradaProcesso && (
-                                <span className="text-xs font-mono font-semibold text-blue-400">
-                                  {formatDate(c.dataEntradaProcesso)}
-                                </span>
+                                <>
+                                  <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">ENT.</span>
+                                  <span className="text-xs font-mono font-semibold text-blue-400">
+                                    {formatDate(c.dataEntradaProcesso)}
+                                  </span>
+                                </>
                               )}
                             </div>
                             <CopyButton value={formatDate(c.dataNascimento)} />
@@ -1306,9 +1309,12 @@ export default function Declaracoes() {
                               {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                             </span>
                             {c.dataEntradaProcesso && (
-                              <span className="text-[10px] font-mono font-semibold text-blue-400">
-                                {formatDate(c.dataEntradaProcesso)}
-                              </span>
+                              <>
+                                <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">ENT.</span>
+                                <span className="text-[10px] font-mono font-semibold text-blue-400">
+                                  {formatDate(c.dataEntradaProcesso)}
+                                </span>
+                              </>
                             )}
                             <CopyButton value={formatDate(c.dataNascimento)} />
                           </div>
