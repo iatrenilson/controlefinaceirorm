@@ -57,6 +57,7 @@ interface Cliente {
   estado: string;
   senhaGov: string;
   dataEntradaProcesso: string;
+  dataDeferimento: string;
   status?: ClienteStatus;
   status2?: ClienteStatus;
 }
@@ -67,7 +68,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", dataEntradaProcesso: "", status: "doc", status2: "doc",
+  senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", status: "doc", status2: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -456,6 +457,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     estado: (row.estado as string) ?? "AM",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
+    dataDeferimento: (row.data_deferimento as string) ?? "",
   };
 }
 
@@ -863,6 +865,7 @@ export default function Declaracoes() {
           estado: c.estado,
           senha_gov: c.senhaGov,
           data_entrada_processo: c.dataEntradaProcesso || null,
+          data_deferimento: c.dataDeferimento || null,
           status: c.status ?? "doc",
           status2: c.status2 ?? "doc",
         }));
@@ -921,6 +924,7 @@ export default function Declaracoes() {
           estado: r.estado,
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
+          dataDeferimento: r.data_deferimento ?? "",
           status: (r.status ?? "doc") as ClienteStatus,
           status2: (r.status2 ?? "doc") as ClienteStatus,
         }));
@@ -1002,6 +1006,7 @@ export default function Declaracoes() {
       estado: formCliente.estado,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
+      data_deferimento: formCliente.dataDeferimento || null,
       status: formCliente.status ?? "doc",
       status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
@@ -1261,6 +1266,14 @@ export default function Declaracoes() {
                                   </span>
                                 </>
                               )}
+                              {c.dataDeferimento && (
+                                <>
+                                  <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">DEF.</span>
+                                  <span className="text-xs font-mono font-semibold text-green-400">
+                                    {formatDate(c.dataDeferimento)}
+                                  </span>
+                                </>
+                              )}
                             </div>
                             <CopyButton value={formatDate(c.dataNascimento)} />
                           </div>
@@ -1316,6 +1329,14 @@ export default function Declaracoes() {
                                 <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">ENT.</span>
                                 <span className="text-[10px] font-mono font-semibold text-blue-400">
                                   {formatDate(c.dataEntradaProcesso)}
+                                </span>
+                              </>
+                            )}
+                            {c.dataDeferimento && (
+                              <>
+                                <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">DEF.</span>
+                                <span className="text-[10px] font-mono font-semibold text-green-400">
+                                  {formatDate(c.dataDeferimento)}
                                 </span>
                               </>
                             )}
@@ -1570,6 +1591,30 @@ export default function Declaracoes() {
                     mode="single"
                     selected={formCliente.dataEntradaProcesso ? parseISO(formCliente.dataEntradaProcesso) : undefined}
                     onSelect={(d) => setC("dataEntradaProcesso", d ? format(d, "yyyy-MM-dd") : "")}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Data de Deferimento */}
+            <div className="space-y-1">
+              <Label className="text-xs">Data de Deferimento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-sm", !formCliente.dataDeferimento && "text-muted-foreground")}>
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {formCliente.dataDeferimento
+                      ? format(parseISO(formCliente.dataDeferimento), "dd/MM/yyyy", { locale: ptBR })
+                      : "Selecione a data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-50" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formCliente.dataDeferimento ? parseISO(formCliente.dataDeferimento) : undefined}
+                    onSelect={(d) => setC("dataDeferimento", d ? format(d, "yyyy-MM-dd") : "")}
                     initialFocus
                     locale={ptBR}
                   />
