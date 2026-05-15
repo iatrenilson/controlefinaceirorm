@@ -1169,9 +1169,9 @@ export default function Declaracoes() {
 
                       {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
                       <div className="pl-0 pr-2 pt-2 pb-2">
-                        {/* Linha 1: logo + status (esquerda) | editar/excluir (direita) */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {/* Linha 1: logo+status (esquerda, empilhados) | editar/excluir (direita) */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex flex-col items-start gap-1">
                             <svg viewBox="0 0 80 36" width="75" height="24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                               <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
                               <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
