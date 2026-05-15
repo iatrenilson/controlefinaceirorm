@@ -1196,19 +1196,6 @@ export default function Declaracoes() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={c.status2 ?? "doc"} onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}>
-                              <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status2 ?? "doc"]}`}>
-                                <>
-                                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status2 ?? "doc"]}`} />
-                                  <span>{STATUS_LABELS[c.status2 ?? "doc"]}</span>
-                                </>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
-                                  <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -1383,19 +1370,6 @@ export default function Declaracoes() {
                             <>
                               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status ?? "doc"]}`} />
                               <span>{STATUS_LABELS[c.status ?? "doc"]}</span>
-                            </>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => (
-                              <SelectItem key={val} value={val} className="text-xs">{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={c.status2 ?? "doc"} onValueChange={(v) => alterarStatus2(c.id, v as ClienteStatus)}>
-                          <SelectTrigger className={`h-5 px-1.5 border rounded-full shadow-none focus:ring-0 flex items-center gap-1 w-auto text-[10px] font-semibold ${STATUS_COLORS[c.status2 ?? "doc"]}`}>
-                            <>
-                              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[c.status2 ?? "doc"]}`} />
-                              <span>{STATUS_LABELS[c.status2 ?? "doc"]}</span>
                             </>
                           </SelectTrigger>
                           <SelectContent>
