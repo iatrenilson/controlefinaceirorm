@@ -859,6 +859,7 @@ export default function Declaracoes() {
           cidade: c.cidade,
           estado: c.estado,
           senha_gov: c.senhaGov,
+          data_entrada_processo: c.dataEntradaProcesso || null,
           status: c.status ?? "doc",
           status2: c.status2 ?? "doc",
         }));
@@ -916,6 +917,7 @@ export default function Declaracoes() {
           cidade: r.cidade,
           estado: r.estado,
           senhaGov: r.senha_gov,
+          dataEntradaProcesso: r.data_entrada_processo ?? "",
           status: (r.status ?? "doc") as ClienteStatus,
           status2: (r.status2 ?? "doc") as ClienteStatus,
         }));
