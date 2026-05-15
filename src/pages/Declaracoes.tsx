@@ -1234,19 +1234,11 @@ export default function Declaracoes() {
                         )}
                         {c.senhaGov && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1.5 min-w-0 overflow-hidden">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
                               <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">SENHA</span>
-                              <span className="text-xs font-mono font-semibold truncate max-w-[90px]">
+                              <span className="text-xs font-mono font-semibold truncate">
                                 {dadosVisiveis ? c.senhaGov : "••••••••"}
                               </span>
-                              {c.dataEntradaProcesso && (
-                                <>
-                                  <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">ENT.</span>
-                                  <span className="text-xs font-mono font-semibold text-blue-400">
-                                    {formatDate(c.dataEntradaProcesso)}
-                                  </span>
-                                </>
-                              )}
                             </div>
                             <CopyButton value={c.senhaGov} />
                           </div>
@@ -1261,21 +1253,32 @@ export default function Declaracoes() {
                         )}
                         {c.dataNascimento && (
                           <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1.5 min-w-0 flex-wrap">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
                               <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">NASC.</span>
                               <span className="text-xs font-mono font-semibold text-yellow-400">
                                 {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                               </span>
-                              {c.dataDeferimento && (
-                                <>
-                                  <span className="text-[9px] text-muted-foreground uppercase tracking-wider flex-shrink-0">DEF.</span>
-                                  <span className="text-xs font-mono font-semibold text-green-400">
-                                    {formatDate(c.dataDeferimento)}
-                                  </span>
-                                </>
-                              )}
                             </div>
                             <CopyButton value={formatDate(c.dataNascimento)} />
+                          </div>
+                        )}
+                        {(c.dataEntradaProcesso || c.dataDeferimento) && (
+                          <div className="flex items-center gap-3 border-t border-white/5 pt-1 mt-0.5">
+                            {c.dataEntradaProcesso && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-wider">ENT.</span>
+                                <span className="text-xs font-mono font-semibold text-blue-400">{formatDate(c.dataEntradaProcesso)}</span>
+                              </div>
+                            )}
+                            {c.dataEntradaProcesso && c.dataDeferimento && (
+                              <span className="text-muted-foreground/30 text-xs select-none">|</span>
+                            )}
+                            {c.dataDeferimento && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-muted-foreground uppercase tracking-wider">DEF.</span>
+                                <span className="text-xs font-mono font-semibold text-green-400">{formatDate(c.dataDeferimento)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1310,37 +1313,40 @@ export default function Declaracoes() {
                           </div>
                         )}
                         {c.senhaGov && (
-                          <div className="flex items-center gap-1 overflow-hidden">
+                          <div className="flex items-center gap-1">
                             <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">SENHA</span>
-                            <span className="text-[10px] font-mono font-semibold truncate max-w-[70px]">
+                            <span className="text-[10px] font-mono font-semibold truncate">
                               {dadosVisiveis ? c.senhaGov : "••••••••"}
                             </span>
-                            {c.dataEntradaProcesso && (
-                              <>
-                                <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">ENT.</span>
-                                <span className="text-[10px] font-mono font-semibold text-blue-400">
-                                  {formatDate(c.dataEntradaProcesso)}
-                                </span>
-                              </>
-                            )}
                             <CopyButton value={c.senhaGov} />
                           </div>
                         )}
                         {c.dataNascimento && (
-                          <div className="flex items-center gap-1 flex-wrap">
+                          <div className="flex items-center gap-1">
                             <span className="text-[9px] text-muted-foreground uppercase w-9 flex-shrink-0">NASC.</span>
                             <span className="text-[10px] font-mono font-semibold text-yellow-400">
                               {dadosVisiveis ? formatDate(c.dataNascimento) : "••/••/••••"}
                             </span>
-                            {c.dataDeferimento && (
-                              <>
-                                <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">DEF.</span>
-                                <span className="text-[10px] font-mono font-semibold text-green-400">
-                                  {formatDate(c.dataDeferimento)}
-                                </span>
-                              </>
-                            )}
                             <CopyButton value={formatDate(c.dataNascimento)} />
+                          </div>
+                        )}
+                        {(c.dataEntradaProcesso || c.dataDeferimento) && (
+                          <div className="flex items-center gap-2 border-t border-white/5 pt-0.5 mt-0.5">
+                            {c.dataEntradaProcesso && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-muted-foreground uppercase">ENT.</span>
+                                <span className="text-[10px] font-mono font-semibold text-blue-400">{formatDate(c.dataEntradaProcesso)}</span>
+                              </div>
+                            )}
+                            {c.dataEntradaProcesso && c.dataDeferimento && (
+                              <span className="text-muted-foreground/30 text-[10px] select-none">|</span>
+                            )}
+                            {c.dataDeferimento && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] text-muted-foreground uppercase">DEF.</span>
+                                <span className="text-[10px] font-mono font-semibold text-green-400">{formatDate(c.dataDeferimento)}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
