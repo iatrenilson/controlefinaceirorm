@@ -53,6 +53,7 @@ interface Cliente {
   cidade: string;
   estado: string;
   senhaGov: string;
+  dataEntradaProcesso: string;
   status?: ClienteStatus;
   status2?: ClienteStatus;
 }
@@ -63,7 +64,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", status: "doc", status2: "doc",
+  senhaGov: "", dataEntradaProcesso: "", status: "doc", status2: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -451,6 +452,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     cidade: (row.cidade as string) ?? "Manaus",
     estado: (row.estado as string) ?? "AM",
     senhaGov: (row.senha_gov as string) ?? "",
+    dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
   };
 }
 
@@ -994,6 +996,7 @@ export default function Declaracoes() {
       cidade: formCliente.cidade,
       estado: formCliente.estado,
       senha_gov: formCliente.senhaGov,
+      data_entrada_processo: formCliente.dataEntradaProcesso || null,
       status: formCliente.status ?? "doc",
       status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
@@ -1526,6 +1529,17 @@ export default function Declaracoes() {
                   type="text"
                   value={formCliente.senhaGov} onChange={e => setC("senhaGov", e.target.value)} />
                 <CopyButton value={formCliente.senhaGov} />
+              </div>
+            </div>
+
+            {/* Data de Entrada do Processo */}
+            <div className="space-y-1">
+              <Label className="text-xs">Data de Entrada do Processo</Label>
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm" type="date"
+                  value={formCliente.dataEntradaProcesso}
+                  onChange={e => setC("dataEntradaProcesso", e.target.value)} />
+                <CopyButton value={formCliente.dataEntradaProcesso} />
               </div>
             </div>
           </div>
