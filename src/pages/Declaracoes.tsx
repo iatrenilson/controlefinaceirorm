@@ -1575,49 +1575,65 @@ export default function Declaracoes() {
             {/* Data de Entrada do Processo */}
             <div className="space-y-1">
               <Label className="text-xs">Data de Entrada do Processo</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-sm", !formCliente.dataEntradaProcesso && "text-muted-foreground")}>
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {formCliente.dataEntradaProcesso
-                      ? format(parseISO(formCliente.dataEntradaProcesso), "dd/MM/yyyy", { locale: ptBR })
-                      : "Selecione a data"}
+              <div className="flex gap-1.5">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal h-9 text-sm", !formCliente.dataEntradaProcesso && "text-muted-foreground")}>
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {formCliente.dataEntradaProcesso
+                        ? format(parseISO(formCliente.dataEntradaProcesso), "dd/MM/yyyy", { locale: ptBR })
+                        : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formCliente.dataEntradaProcesso ? parseISO(formCliente.dataEntradaProcesso) : undefined}
+                      onSelect={(d) => setC("dataEntradaProcesso", d ? format(d, "yyyy-MM-dd") : "")}
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {formCliente.dataEntradaProcesso && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive flex-shrink-0"
+                    onClick={() => setC("dataEntradaProcesso", "")}>
+                    <X className="h-4 w-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formCliente.dataEntradaProcesso ? parseISO(formCliente.dataEntradaProcesso) : undefined}
-                    onSelect={(d) => setC("dataEntradaProcesso", d ? format(d, "yyyy-MM-dd") : "")}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+                )}
+              </div>
             </div>
 
             {/* Data de Deferimento */}
             <div className="space-y-1">
               <Label className="text-xs">Data de Deferimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-9 text-sm", !formCliente.dataDeferimento && "text-muted-foreground")}>
-                    <CalendarDays className="mr-2 h-4 w-4" />
-                    {formCliente.dataDeferimento
-                      ? format(parseISO(formCliente.dataDeferimento), "dd/MM/yyyy", { locale: ptBR })
-                      : "Selecione a data"}
+              <div className="flex gap-1.5">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal h-9 text-sm", !formCliente.dataDeferimento && "text-muted-foreground")}>
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {formCliente.dataDeferimento
+                        ? format(parseISO(formCliente.dataDeferimento), "dd/MM/yyyy", { locale: ptBR })
+                        : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formCliente.dataDeferimento ? parseISO(formCliente.dataDeferimento) : undefined}
+                      onSelect={(d) => setC("dataDeferimento", d ? format(d, "yyyy-MM-dd") : "")}
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {formCliente.dataDeferimento && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive flex-shrink-0"
+                    onClick={() => setC("dataDeferimento", "")}>
+                    <X className="h-4 w-4" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-50" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formCliente.dataDeferimento ? parseISO(formCliente.dataDeferimento) : undefined}
-                    onSelect={(d) => setC("dataDeferimento", d ? format(d, "yyyy-MM-dd") : "")}
-                    initialFocus
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
