@@ -2181,7 +2181,7 @@ const DelayEsportivo = () => {
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
           const devolvidosCount = allVisible.filter(isDevolvidoFn).length;
-          const operandoCount = allVisible.filter(c => c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente").length;
+          const operandoCount = allVisible.filter(c => (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente") || c.status === "operando").length;
           const redCount = allVisible.filter(c => c.lucro < 0).length;
           const activeLinks = shareLinks.filter(l => l.ativo && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka");
           return (
@@ -2203,6 +2203,7 @@ const DelayEsportivo = () => {
               >
                 <TrendingUp className="h-3.5 w-3.5" />
                 Operando
+                <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">{operandoCount}</Badge>
               </Button>
               <Button
                 size="sm"
