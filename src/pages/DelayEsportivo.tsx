@@ -2203,7 +2203,6 @@ const DelayEsportivo = () => {
               >
                 <TrendingUp className="h-3.5 w-3.5" />
                 Operando
-                <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 border-blue-500/30">{operandoCount}</Badge>
               </Button>
               <Button
                 size="sm"
