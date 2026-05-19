@@ -846,7 +846,7 @@ const DelayEsportivo = () => {
       const matchNick = filtroNick === "todos" ||
         (filtroNick === "direto" && !c.created_by_token) ||
         (isOperatorLink ? c.operator_link_id === filtroNick : c.created_by_token === filtroNick);
-      const isOperando = (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente") || c.status === "operando";
+      const isOperando = (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && c.status !== "concluido" && c.status !== "devolvido") || c.status === "operando";
       const matchQuick = quickFilter.includes("all") ||
         (quickFilter.includes("operando") && isOperando) ||
         (quickFilter.includes("pendentes") && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0) ||
@@ -2181,7 +2181,7 @@ const DelayEsportivo = () => {
           const isDevolvidoFn = (c: DelayCliente) => c.status === "devolvido" || (c.saques > 0 && Math.abs(c.saques - c.depositos) < 0.01 && Math.abs(c.lucro ?? 0) < 0.01);
           const concluidasCount = allVisible.filter(c => c.status === "concluido" && !isDevolvidoFn(c)).length;
           const devolvidosCount = allVisible.filter(isDevolvidoFn).length;
-          const operandoCount = allVisible.filter(c => (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente") || c.status === "operando").length;
+          const operandoCount = allVisible.filter(c => (c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && c.status !== "concluido" && c.status !== "devolvido") || c.status === "operando").length;
           const redCount = allVisible.filter(c => c.lucro < 0).length;
           const activeLinks = shareLinks.filter(l => l.ativo && l.tipo !== "visualizador" && l.tipo !== "visualizador_vodka");
           return (
