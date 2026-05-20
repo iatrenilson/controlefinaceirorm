@@ -350,7 +350,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>Declaração de Residência - ${primeiroNome}</title>
+  <title>6 Comprovante de Residência Fixa - ${primeiroNome}</title>
   ${pdfJsHead}
   <style>
     @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
