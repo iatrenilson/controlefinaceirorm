@@ -196,30 +196,32 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
 }
 
 // ─── Attachment builder ───────────────────────────────────────────────────
-function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
+function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPages?: number }>): {
   html: string; pdfJsHead: string; initScript: string;
 } {
   let html = "";
   const pdfRenderCalls: string[] = [];
   let hasPdf = false;
   let counter = 0;
-  for (const { dataUrl, label } of attachments) {
+  for (const { dataUrl, label, maxPages } of attachments) {
     const isPdf = dataUrl.startsWith("data:application/pdf");
     if (isPdf) {
       hasPdf = true;
       const id = `pdf-attach-${++counter}`;
+      const mp = maxPages ?? 999;
       html += `
-  <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" style="display:none;"></div>
-  <div style="page-break-before:always;">
+  <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" data-max-pages="${mp}" style="display:none;"></div>
+  <div style="page-break-before:always;page-break-inside:avoid;">
     <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;">${label}</p>
     <div id="${id}"></div>
   </div>`;
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
+      /* imagem — mantém qualidade original e força caber numa página */
       html += `
   <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
     <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 6px 0;text-align:left;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;max-height:22cm;object-fit:contain;display:block;margin:0 auto;" />
+    <img src="${dataUrl}" style="max-width:100%;max-height:24cm;height:auto;object-fit:contain;display:block;margin:0 auto;" />
   </div>`;
     }
   }
@@ -230,23 +232,28 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
   async function renderPdf(dataId,containerId){
     const el=document.getElementById(dataId);
     const url=decodeURIComponent(el.getAttribute('data-url'));
+    const maxPages=parseInt(el.getAttribute('data-max-pages')||'999');
     const pdf=await pdfjsLib.getDocument(url).promise;
     const container=document.getElementById(containerId);
-    for(let i=1;i<=pdf.numPages;i++){
+    const total=Math.min(pdf.numPages,maxPages);
+    for(let i=1;i<=total;i++){
       const page=await pdf.getPage(i);
       const vp=page.getViewport({scale:3.0});
       const canvas=document.createElement('canvas');
       canvas.width=vp.width;canvas.height=vp.height;
-      canvas.style.cssText='max-width:100%;height:auto;display:block;margin:0 auto 8px auto;';
-      container.appendChild(canvas);
       const ctx=canvas.getContext('2d');
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
       await page.render({canvasContext:ctx,viewport:vp}).promise;
+      /* converte para img para permitir max-height via CSS */
+      const img=document.createElement('img');
+      img.src=canvas.toDataURL('image/jpeg',0.97);
+      img.style.cssText='max-width:100%;max-height:24cm;height:auto;display:block;margin:0 auto 8px auto;';
+      container.appendChild(img);
     }
   }
   window.onload=async function(){
     try{await Promise.all([${pdfRenderCalls.join(",")}]);}catch(e){console.error(e);}
-    setTimeout(function(){window.print();},1200);
+    setTimeout(function(){window.print();},1500);
   };`
     : `window.onload=function(){setTimeout(function(){window.print();},400);};`;
   return { html, pdfJsHead, initScript };
@@ -349,7 +356,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     const merged = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
     attachmentList.push({ dataUrl: merged, label: "Anexo: Documento de Identidade (RG)" });
   }
-  if (compDataUrl) attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl), label: "Anexo: Comprovante de Residência" });
+  if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência", maxPages: 1 });
   const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
   <title>6 Comprovante de Residência Fixa - ${primeiroNome}</title>
