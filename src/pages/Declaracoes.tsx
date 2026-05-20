@@ -136,22 +136,23 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// ─── Redimensiona imagem para caber em uma página A4 antes de imprimir ───
-async function fitImageToPage(dataUrl: string): Promise<{data: string; w: number; h: number}> {
+// ─── Redimensiona imagem ─────────────────────────────────────────────────────
+async function fitImageToPage(
+  dataUrl: string,
+  maxW = 700, maxH = 950, quality = 0.70
+): Promise<{data: string; w: number; h: number}> {
   if (!dataUrl.startsWith("data:image")) return {data: dataUrl, w: 0, h: 0};
   return new Promise<{data: string; w: number; h: number}>((resolve) => {
     const img = new Image();
     img.onload = () => {
-      // 700×950px ≈ 96 DPI em 170mm — legível e compacto (q0.70 ≈ 80-120KB)
-      const MAX_W = 700, MAX_H = 950;
-      const scale = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1);
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
       const c = document.createElement("canvas");
       c.width = Math.round(img.naturalWidth * scale);
       c.height = Math.round(img.naturalHeight * scale);
       const ctx = c.getContext("2d")!;
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, c.width, c.height);
-      resolve({data: c.toDataURL("image/jpeg", 0.70), w: c.width, h: c.height});
+      resolve({data: c.toDataURL("image/jpeg", quality), w: c.width, h: c.height});
     };
     img.onerror = () => resolve({data: dataUrl, w: 0, h: 0});
     img.src = dataUrl;
@@ -160,17 +161,15 @@ async function fitImageToPage(dataUrl: string): Promise<{data: string; w: number
 
 // ─── Mescla frente e verso do RG em uma única imagem (mesma folha) ────────
 async function mergeImagesVertical(url1: string, url2: string): Promise<{data: string; w: number; h: number}> {
-  // Carrega as duas imagens em paralelo
   const loadImg = (src: string) => new Promise<HTMLImageElement>((res, rej) => {
     const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src;
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 700;
-  const SLOT_H = 440;
-  const GAP = 20;      // espaço entre frente e verso
+  const PAGE_W = 800;
+  const SLOT_H = 500;
+  const GAP = 20;
 
-  // Escala cada imagem para caber no slot (largura total × metade da altura)
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
 
@@ -187,11 +186,10 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<{data: s
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // Centraliza cada imagem horizontalmente
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return {data: c.toDataURL("image/jpeg", 0.70), w: c.width, h: c.height};
+  return {data: c.toDataURL("image/jpeg", 0.74), w: c.width, h: c.height};
 }
 
 // ─── Attachment builder ───────────────────────────────────────────────────
@@ -355,7 +353,7 @@ async function loadScript(src: string): Promise<void> {
 }
 
 // ─── Renderiza 1ª página de PDF para JPEG usando PDF.js ──────────────────
-async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 1.4): Promise<{data: string; w: number; h: number}> {
+async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 1.4, quality = 0.72): Promise<{data: string; w: number; h: number}> {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
   const lib = (window as any).pdfjsLib;
   lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -367,7 +365,7 @@ async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 1.4): Promise<{da
   const ctx = c.getContext("2d")!;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   await page.render({ canvasContext: ctx, viewport: vp }).promise;
-  return {data: c.toDataURL("image/jpeg", 0.72), w: c.width, h: c.height};
+  return {data: c.toDataURL("image/jpeg", quality), w: c.width, h: c.height};
 }
 
 async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
@@ -378,20 +376,22 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
   // ── Prepara imagens como JPEG ─────────────────────────────────────────
+  // Pág 2 – RG/CNH: resolução maior para melhor legibilidade
   let rgImg: {data: string; w: number; h: number} | null = null;
   if (rgDataUrl && rgDataUrl2) {
     rgImg = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
   } else if (rgDataUrl?.startsWith("data:image")) {
-    rgImg = await fitImageToPage(rgDataUrl);
+    rgImg = await fitImageToPage(rgDataUrl, 900, 1200, 0.75);
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    rgImg = await renderPdfPageToJpeg(rgDataUrl, 1.4);
+    rgImg = await renderPdfPageToJpeg(rgDataUrl, 1.8, 0.68);
   }
 
+  // Pág 3 – Comprovante: encaixa proporcionalmente em 17cm×23.5cm (sem esticar)
   let compImg: {data: string; w: number; h: number} | null = null;
   if (compDataUrl?.startsWith("data:image")) {
-    compImg = await fitImageToPage(compDataUrl);
+    compImg = await fitImageToPage(compDataUrl, 680, 940, 0.80);
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    compImg = await renderPdfPageToJpeg(compDataUrl, 1.4);
+    compImg = await renderPdfPageToJpeg(compDataUrl, 1.14, 0.78);
   }
 
   // ── Carrega jsPDF ────────────────────────────────────────────────────
@@ -441,14 +441,14 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   doc.setFont("helvetica", "normal");
   doc.text(data.cpfDeclarante, W / 2, y, { align: "center" });
 
-  // ── Página 2: RG ─────────────────────────────────────────────────────
+  // ── Página 2: RG/CNH ─────────────────────────────────────────────────
   if (rgImg && rgImg.w > 0) {
     doc.addPage();
     doc.setFontSize(9); doc.setTextColor(120);
     doc.text("Anexo: Documento de Identidade (RG)", M, 13);
     doc.setTextColor(0);
-    // Altura proporcional real — sem distorção
-    const rgH = Math.min((rgImg.h / rgImg.w) * CW, 270);
+    // Preenche largura total (170mm), altura proporcional, sem esticar
+    const rgH = Math.min((rgImg.h / rgImg.w) * CW, 273);
     doc.addImage(rgImg.data, "JPEG", M, 17, CW, rgH);
   }
 
@@ -458,9 +458,19 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     doc.setFontSize(9); doc.setTextColor(120);
     doc.text("Anexo: Comprovante de Residência", M, 13);
     doc.setTextColor(0);
-    // Altura proporcional real — sem distorção
-    const compH = Math.min((compImg.h / compImg.w) * CW, 270);
-    doc.addImage(compImg.data, "JPEG", M, 17, CW, compH);
+    // Container 170mm×235mm (igual ao antigo HTML 17cm×23.5cm)
+    // Escala proporcional: ocupa largura total se couber em altura; se não, limita altura e centraliza
+    const COMP_MAX_W = CW;   // 170mm
+    const COMP_MAX_H = 235;  // 23.5cm em mm
+    let dispW = COMP_MAX_W;
+    let dispH = (compImg.h / compImg.w) * dispW;
+    if (dispH > COMP_MAX_H) {
+      // Imagem muito alta: limita altura e reduz largura proporcionalmente (sem esticar)
+      dispH = COMP_MAX_H;
+      dispW = (compImg.w / compImg.h) * dispH;
+    }
+    const imgX = M + (CW - dispW) / 2; // centraliza horizontalmente
+    doc.addImage(compImg.data, "JPEG", imgX, 17, dispW, dispH);
   }
 
   doc.save(`6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
