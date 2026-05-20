@@ -234,12 +234,14 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string }>): {
     const container=document.getElementById(containerId);
     for(let i=1;i<=pdf.numPages;i++){
       const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale:1.5});
+      const vp=page.getViewport({scale:3.0});
       const canvas=document.createElement('canvas');
       canvas.width=vp.width;canvas.height=vp.height;
-      canvas.style.cssText='max-width:100%;max-height:22cm;width:auto;display:block;margin:0 auto 8px auto;';
+      canvas.style.cssText='max-width:100%;height:auto;display:block;margin:0 auto 8px auto;';
       container.appendChild(canvas);
-      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      const ctx=canvas.getContext('2d');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
     }
   }
   window.onload=async function(){
