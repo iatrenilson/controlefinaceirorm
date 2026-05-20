@@ -344,60 +344,122 @@ function gerarPDFAcervo(data: FormDataAcervo) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
+// ─── Carrega script CDN dinamicamente ────────────────────────────────────
+async function loadScript(src: string): Promise<void> {
+  if (document.querySelector(`script[src="${src}"]`)) return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = () => resolve(); s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// ─── Renderiza 1ª página de PDF para JPEG usando PDF.js ──────────────────
+async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 1.8): Promise<string> {
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+  const lib = (window as any).pdfjsLib;
+  lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const pdf = await lib.getDocument(pdfDataUrl).promise;
+  const page = await pdf.getPage(1);
+  const vp = page.getViewport({ scale });
+  const c = document.createElement("canvas");
+  c.width = vp.width; c.height = vp.height;
+  const ctx = c.getContext("2d")!;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  return c.toDataURL("image/jpeg", 0.88);
+}
+
 async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const attachmentList: Array<{ dataUrl: string; label: string }> = [];
-  if (rgDataUrl && !rgDataUrl2) {
-    // Só frente — comportamento original, uma página
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl), label: "Anexo: Documento de Identidade (RG)" });
-  } else if (rgDataUrl && rgDataUrl2) {
-    // Frente e verso — mescla as duas imagens numa única página
-    const merged = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
-    attachmentList.push({ dataUrl: merged, label: "Anexo: Documento de Identidade (RG)" });
+
+  // ── Prepara imagens como JPEG ─────────────────────────────────────────
+  let rgJpeg: string | null = null;
+  if (rgDataUrl && rgDataUrl2) {
+    rgJpeg = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
+  } else if (rgDataUrl?.startsWith("data:image")) {
+    rgJpeg = await fitImageToPage(rgDataUrl);
+  } else if (rgDataUrl?.startsWith("data:application/pdf")) {
+    rgJpeg = await renderPdfPageToJpeg(rgDataUrl, 1.8);
   }
-  if (compDataUrl) attachmentList.push({ dataUrl: compDataUrl, label: "Anexo: Comprovante de Residência", maxPages: 1 });
-  const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>6 Comprovante de Residência Fixa - ${primeiroNome}</title>
-  ${pdfJsHead}
-  <style>
-    @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
-    h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
-    .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:0.3em;font-size:12pt;}
-    .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:2em;font-size:12pt;}
-    .art-block{margin-bottom:0.8em;}
-    .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;text-indent:2cm;}
-    .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;text-indent:0;}
-    .city-date{text-align:left;margin-top:3cm;margin-bottom:4cm;font-size:12pt;}
-    .sig-wrap{text-align:center;}
-    .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-    .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
-    .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
-    @media print{html,body{margin:0;padding:0;}}
-  </style></head><body>
-  <h1>Declaração de Residência</h1>
-  <p class="body-text"><strong>${data.nomeDeclarante.toUpperCase()}</strong>, RG nº <strong>${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}</strong>,
-    CPF nº <strong>${data.cpfDeclarante}</strong>, <strong>DECLARO</strong> para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83)
-    que o Sr.(a) <strong>${data.nomeDeclarado.toUpperCase()}</strong>, portador da cédula de identidade (RG)
-    nº <strong>${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}</strong>, CPF nº <strong>${data.cpfDeclarado}</strong>,
-    filho de <strong>${data.nomePai.toUpperCase()}</strong> e <strong>${data.nomeMae.toUpperCase()}</strong>,
-    é residente e domiciliada na <strong>${endFormatado}</strong></p>
-  <p class="declaro-ainda">Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, <em>in verbis</em>:</p>
-  <div class="art-block">
-    <p class="art-text">Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
-  </div>
-  <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
-  <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span><span class="sig-cpf">${data.cpfDeclarante}</span></div>
-  ${anexos}
-  <script>${initScript}<\/script></body></html>`;
-  const win = window.open("", "_blank");
-  if (win) { win.document.write(html); win.document.close(); }
+
+  let compJpeg: string | null = null;
+  if (compDataUrl?.startsWith("data:image")) {
+    compJpeg = await fitImageToPage(compDataUrl);
+  } else if (compDataUrl?.startsWith("data:application/pdf")) {
+    compJpeg = await renderPdfPageToJpeg(compDataUrl, 1.5);
+  }
+
+  // ── Carrega jsPDF ────────────────────────────────────────────────────
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+  const W = 210, M = 20, CW = 170; // largura, margem, conteúdo
+  let y = 25;
+
+  // ── Página 1: texto da declaração ────────────────────────────────────
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("DECLARAÇÃO DE RESIDÊNCIA", W / 2, y, { align: "center" });
+  y += 14;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  const body = `${data.nomeDeclarante.toUpperCase()}, RG nº ${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}, CPF nº ${data.cpfDeclarante}, DECLARO para fins de comprovação de residência, sob as penas da lei (art. 2° da lei 7.115/83) que o Sr.(a) ${data.nomeDeclarado.toUpperCase()}, portador da cédula de identidade (RG) nº ${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}, CPF nº ${data.cpfDeclarado}, filho de ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, é residente e domiciliado(a) na ${endFormatado}`;
+  doc.text(doc.splitTextToSize(body, CW), M, y, { align: "justify", maxWidth: CW });
+  y += doc.splitTextToSize(body, CW).length * 7 + 8;
+
+  const declaro = `Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, in verbis:`;
+  doc.text(doc.splitTextToSize(declaro, CW), M, y);
+  y += doc.splitTextToSize(declaro, CW).length * 7 + 5;
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(11);
+  const art = `   Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.`;
+  doc.text(doc.splitTextToSize(art, CW), M, y, { align: "justify", maxWidth: CW });
+  y += doc.splitTextToSize(art, CW).length * 6.5 + 5;
+
+  const pena = `Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.`;
+  doc.text(doc.splitTextToSize(pena, CW), M, y, { align: "justify", maxWidth: CW });
+  y += doc.splitTextToSize(pena, CW).length * 6.5 + 28;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text(`${data.cidade}, ${dataEscrita}.`, M, y);
+  y += 32;
+
+  doc.line(W / 2 - 42, y, W / 2 + 42, y);
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.text(data.nomeDeclarante.toUpperCase(), W / 2, y, { align: "center" });
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.cpfDeclarante, W / 2, y, { align: "center" });
+
+  // ── Página 2: RG ─────────────────────────────────────────────────────
+  if (rgJpeg) {
+    doc.addPage();
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text("Anexo: Documento de Identidade (RG)", M, 13);
+    doc.setTextColor(0);
+    doc.addImage(rgJpeg, "JPEG", M, 17, CW, 265);
+  }
+
+  // ── Página 3: Comprovante ─────────────────────────────────────────────
+  if (compJpeg) {
+    doc.addPage();
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text("Anexo: Comprovante de Residência", M, 13);
+    doc.setTextColor(0);
+    doc.addImage(compJpeg, "JPEG", M, 17, CW, 265);
+  }
+
+  doc.save(`6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
