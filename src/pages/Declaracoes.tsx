@@ -136,19 +136,14 @@ function maskCep(raw: string): string {
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
 
-// ─── Comprime canvas usando WebP (menor tamanho) com fallback para JPEG ──
-function canvasToUrl(c: HTMLCanvasElement, quality = 0.85): string {
-  const webp = c.toDataURL("image/webp", quality);
-  return webp.startsWith("data:image/webp") ? webp : c.toDataURL("image/jpeg", quality);
-}
-
 // ─── Redimensiona imagem para caber em uma página A4 antes de imprimir ───
 async function fitImageToPage(dataUrl: string): Promise<string> {
   if (!dataUrl.startsWith("data:image")) return dataUrl;
   return new Promise<string>((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_W = 950, MAX_H = 1250;
+      // 900×1200px ≈ 108 DPI em A4 — legível e compacto
+      const MAX_W = 900, MAX_H = 1200;
       const scale = Math.min(MAX_W / img.naturalWidth, MAX_H / img.naturalHeight, 1);
       const c = document.createElement("canvas");
       c.width = Math.round(img.naturalWidth * scale);
@@ -156,7 +151,7 @@ async function fitImageToPage(dataUrl: string): Promise<string> {
       const ctx = c.getContext("2d")!;
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, c.width, c.height);
-      resolve(canvasToUrl(c, 0.85));
+      resolve(c.toDataURL("image/jpeg", 0.82));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -171,9 +166,8 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  // Área útil de uma página A4 impressa (largura × altura em px ~120dpi)
-  const PAGE_W = 950;
-  const SLOT_H = 580;  // cada imagem ocupa metade da folha (com margem)
+  const PAGE_W = 900;
+  const SLOT_H = 560;
   const GAP = 30;      // espaço entre frente e verso
 
   // Escala cada imagem para caber no slot (largura total × metade da altura)
@@ -197,7 +191,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return canvasToUrl(c, 0.85);
+  return c.toDataURL("image/jpeg", 0.82);
 }
 
 // ─── Attachment builder ───────────────────────────────────────────────────
@@ -245,16 +239,14 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPag
     const total=Math.min(pdf.numPages,maxPages);
     for(let i=1;i<=total;i++){
       const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale:2.0});
+      const vp=page.getViewport({scale:1.5});
       const canvas=document.createElement('canvas');
       canvas.width=vp.width;canvas.height=vp.height;
       const ctx=canvas.getContext('2d');
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
       await page.render({canvasContext:ctx,viewport:vp}).promise;
-      /* WebP: mesma qualidade visual, ~35% menor que JPEG */
-      const webp=canvas.toDataURL('image/webp',0.85);
       const img=document.createElement('img');
-      img.src=webp.startsWith('data:image/webp')?webp:canvas.toDataURL('image/jpeg',0.82);
+      img.src=canvas.toDataURL('image/jpeg',0.82);
       const wrap=document.createElement('div');
       wrap.style.cssText='width:17cm;height:23.5cm;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;margin:0 auto;';
       img.style.cssText='max-width:17cm;max-height:23.5cm;width:auto;height:auto;object-fit:contain;object-position:top center;display:block;';
