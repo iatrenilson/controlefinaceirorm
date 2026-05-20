@@ -309,7 +309,7 @@ function gerarPDFAcervo(data: FormDataAcervo) {
     ? `<strong>${paiAcervo}</strong> e <strong>${maeAcervo}</strong>`
     : `<strong>${paiAcervo || maeAcervo}</strong>`;
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}</title>
+  <title>8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}</title>
   <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
   h1{text-align:center;font-size:12pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
   .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
