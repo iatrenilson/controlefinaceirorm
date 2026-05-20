@@ -166,8 +166,8 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<{data: s
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 800;
-  const SLOT_H = 500;
+  const PAGE_W = 1000;
+  const SLOT_H = 620;
   const GAP = 20;
 
   const scaleImg = (img: HTMLImageElement) =>
@@ -189,7 +189,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<{data: s
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return {data: c.toDataURL("image/jpeg", 0.74), w: c.width, h: c.height};
+  return {data: c.toDataURL("image/jpeg", 0.82), w: c.width, h: c.height};
 }
 
 // ─── Attachment builder ───────────────────────────────────────────────────
@@ -376,22 +376,23 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
   // ── Prepara imagens como JPEG ─────────────────────────────────────────
-  // Pág 2 – RG/CNH: resolução maior para melhor legibilidade
+  // Pág 2 – RG/CNH: alta resolução + alta qualidade para texto legível
   let rgImg: {data: string; w: number; h: number} | null = null;
   if (rgDataUrl && rgDataUrl2) {
     rgImg = await mergeImagesVertical(rgDataUrl, rgDataUrl2);
   } else if (rgDataUrl?.startsWith("data:image")) {
-    rgImg = await fitImageToPage(rgDataUrl, 900, 1200, 0.75);
+    rgImg = await fitImageToPage(rgDataUrl, 1000, 1300, 0.88);
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    rgImg = await renderPdfPageToJpeg(rgDataUrl, 1.8, 0.68);
+    // scale=2.2 → ~1300×1840px; q=0.82 → nitidez real da CNH
+    rgImg = await renderPdfPageToJpeg(rgDataUrl, 2.2, 0.82);
   }
 
-  // Pág 3 – Comprovante: encaixa proporcionalmente em 17cm×23.5cm (sem esticar)
+  // Pág 3 – Comprovante: qualidade suficiente, menor tamanho
   let compImg: {data: string; w: number; h: number} | null = null;
   if (compDataUrl?.startsWith("data:image")) {
-    compImg = await fitImageToPage(compDataUrl, 680, 940, 0.80);
+    compImg = await fitImageToPage(compDataUrl, 680, 940, 0.76);
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    compImg = await renderPdfPageToJpeg(compDataUrl, 1.14, 0.78);
+    compImg = await renderPdfPageToJpeg(compDataUrl, 1.14, 0.74);
   }
 
   // ── Carrega jsPDF ────────────────────────────────────────────────────
