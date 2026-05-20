@@ -217,11 +217,13 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPag
   </div>`;
       pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
     } else {
-      /* imagem — mantém qualidade original e força caber numa página */
+      /* imagem — dimensões físicas fixas: impossível transbordar para outra página */
       html += `
   <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 6px 0;text-align:left;">${label}</p>
-    <img src="${dataUrl}" style="max-width:100%;max-height:24cm;height:auto;object-fit:contain;display:block;margin:0 auto;" />
+    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 4px 0;text-align:left;">${label}</p>
+    <div style="width:17cm;height:23.5cm;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;">
+      <img src="${dataUrl}" style="max-width:17cm;max-height:23.5cm;width:auto;height:auto;object-fit:contain;object-position:top center;display:block;" />
+    </div>
   </div>`;
     }
   }
@@ -247,8 +249,11 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPag
       /* converte para img para permitir max-height via CSS */
       const img=document.createElement('img');
       img.src=canvas.toDataURL('image/jpeg',0.97);
-      img.style.cssText='max-width:100%;max-height:24cm;height:auto;display:block;margin:0 auto 8px auto;';
-      container.appendChild(img);
+      const wrap=document.createElement('div');
+      wrap.style.cssText='width:17cm;height:23.5cm;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;margin:0 auto;';
+      img.style.cssText='max-width:17cm;max-height:23.5cm;width:auto;height:auto;object-fit:contain;object-position:top center;display:block;';
+      wrap.appendChild(img);
+      container.appendChild(wrap);
     }
   }
   window.onload=async function(){
