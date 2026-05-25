@@ -475,7 +475,8 @@ const DelayEsportivo = () => {
   };
 
   const fetchEmprestados = async () => {
-    const { data } = await supabase.from("emprestimos").select("valor");
+    if (!user) return;
+    const { data } = await supabase.from("clientes").select("valor").eq("user_id", user.id);
     if (data) setTotalEmprestado(data.reduce((a: number, e: any) => a + Number(e.valor), 0));
   };
 
