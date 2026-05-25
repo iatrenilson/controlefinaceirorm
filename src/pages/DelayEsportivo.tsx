@@ -406,6 +406,7 @@ const DelayEsportivo = () => {
 
   // Bank balances
   const [bankBalances, setBankBalances] = useState<{ santander: number; c6: number }>({ santander: 0, c6: 0 });
+  const [totalEmprestado, setTotalEmprestado] = useState(0);
   const [bankDialog, setBankDialog] = useState<{ banco: string; tipo: "depositar" | "retirar" } | null>(null);
   const [bankValor, setBankValor] = useState("");
 
@@ -462,7 +463,7 @@ const DelayEsportivo = () => {
       .from("bank_balances")
       .select("banco, saldo")
       .eq("user_id", user.id);
-    
+
     const balances = { santander: 0, c6: 0 };
     if (data) {
       data.forEach((b: any) => {
@@ -471,6 +472,11 @@ const DelayEsportivo = () => {
       });
     }
     setBankBalances(balances);
+  };
+
+  const fetchEmprestados = async () => {
+    const { data } = await supabase.from("emprestimos").select("valor");
+    if (data) setTotalEmprestado(data.reduce((a: number, e: any) => a + Number(e.valor), 0));
   };
 
   // Currency input helpers
@@ -602,7 +608,7 @@ const DelayEsportivo = () => {
   }, [user, refreshDelayEsportivoData]);
 
   useEffect(() => {
-    if (user) fetchBankBalances();
+    if (user) { fetchBankBalances(); fetchEmprestados(); }
   }, [user]);
 
   const handleApproveDeposit = async (cliente: DelayCliente, linkId?: string) => {
@@ -1963,9 +1969,19 @@ const DelayEsportivo = () => {
                 </div>
                 <p className="text-xs font-semibold">Carteira Pessoal</p>
               </div>
-              <p className={`text-xl font-bold font-mono ${bankBalances.c6 >= 0 ? "text-primary" : "text-destructive"}`}>
-                {fmt(bankBalances.c6)}
+              <p className="text-xl font-bold font-mono text-primary">
+                {fmt(stats.depositosAtivos + bankBalances.santander + bankBalances.c6 + stats.saquePendenteTotal + totalEmprestado)}
               </p>
+              <div className="mt-2 pt-2 border-t border-border/50 space-y-0.5">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">Delay + Bancos</span>
+                  <span className="font-mono font-medium">{fmt(stats.depositosAtivos + bankBalances.santander + bankBalances.c6 + stats.saquePendenteTotal)}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-muted-foreground">Total Emprestado</span>
+                  <span className="font-mono font-medium text-emerald-400">{fmt(totalEmprestado)}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
