@@ -485,7 +485,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   doc.text(titleRes, W / 2, y, { align: "center" });
   const titleResW = doc.getTextWidth(titleRes);
   doc.line(W / 2 - titleResW / 2, y + 1, W / 2 + titleResW / 2, y + 1);
-  y += 7 + 21;
+  y += 7 + 14;
 
   // Corpo principal — trechos em negrito conforme original
   doc.setFontSize(12);
@@ -511,7 +511,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     { text: endFormatado, bold: true },
   ];
   y = writeInlinePara(doc, segsRes, ML, y, CW, 6.7);
-  y += 6;
+  y += 0;
 
   // "Declaro ainda..." — "in verbis" em itálico (line-height 1.5 ≈ 6.35mm)
   y = writeInlinePara(doc, [
