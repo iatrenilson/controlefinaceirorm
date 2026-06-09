@@ -196,6 +196,30 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 
+// Escreve parágrafo com trechos em negrito intercalados, com quebra de linha automática
+function writeInlinePara(
+  doc: any,
+  segments: Array<{ text: string; bold?: boolean }>,
+  x: number, startY: number, maxW: number, lineH: number
+): number {
+  let cx = x, cy = startY, firstOnLine = true;
+  for (const seg of segments) {
+    doc.setFont("helvetica", seg.bold ? "bold" : "normal");
+    const words = seg.text.split(" ").filter(w => w.length > 0);
+    for (const word of words) {
+      const spaceW = firstOnLine ? 0 : doc.getTextWidth(" ");
+      const wordW = doc.getTextWidth(word);
+      if (!firstOnLine && cx + spaceW + wordW > x + maxW) {
+        cy += lineH; cx = x; firstOnLine = true;
+      }
+      doc.text((firstOnLine ? "" : " ") + word, cx, cy);
+      cx += spaceW + wordW;
+      firstOnLine = false;
+    }
+  }
+  return cy + lineH;
+}
+
 async function salvarPDF(doc: any, filename: string) {
   const blob = doc.output("blob");
   if (typeof (window as any).showSaveFilePicker === "function") {
@@ -313,13 +337,25 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   });
   y += titleAcLines.length * 6 + 21;
 
-  // Corpo
-  doc.setFont("helvetica", "normal");
+  // Corpo com nomes em negrito
   doc.setFontSize(12);
-  const corpoAc = `Eu, ${data.nome.toUpperCase()}, portador da cédula de identidade RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf}${filhoDeAcervo ? `, filho de ${filhoDeAcervo}` : ""}, DECLARO que não possuo segundo endereço de guarda de acervo.`;
-  const corpoAcLines = doc.splitTextToSize(corpoAc, CW);
-  doc.text(corpoAcLines, ML, y, { align: "justify", maxWidth: CW });
-  y += corpoAcLines.length * 7.5 + 10;
+  const segsAc: Array<{ text: string; bold?: boolean }> = [
+    { text: "Eu, " },
+    { text: data.nome.toUpperCase(), bold: true },
+    { text: `, portador da cédula de identidade RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf}` },
+  ];
+  if (paiAcervo && maeAcervo) {
+    segsAc.push({ text: ", filho de " });
+    segsAc.push({ text: paiAcervo, bold: true });
+    segsAc.push({ text: " e " });
+    segsAc.push({ text: maeAcervo, bold: true });
+  } else if (filhoDeAcervo) {
+    segsAc.push({ text: ", filho de " });
+    segsAc.push({ text: filhoDeAcervo, bold: true });
+  }
+  segsAc.push({ text: ", DECLARO que não possuo segundo endereço de guarda de acervo." });
+  y = writeInlinePara(doc, segsAc, ML, y, CW, 7.5);
+  y += 10;
 
   // "Por ser verdade, firmo o presente."
   doc.text("Por ser verdade, firmo o presente.", W / 2, y, { align: "center" });
