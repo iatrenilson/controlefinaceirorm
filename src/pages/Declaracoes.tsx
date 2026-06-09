@@ -520,7 +520,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     { text: endFormatado, bold: true },
   ];
   y = writeInlinePara(doc, segsRes, ML, y, CW, 6.7);
-  y += 6.7;
+  y += 3;
 
   // "Declaro ainda..." — "in verbis" em itálico (line-height 1.5 ≈ 6.35mm)
   y = writeInlinePara(doc, [
