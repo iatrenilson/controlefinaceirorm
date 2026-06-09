@@ -263,13 +263,15 @@ async function gerarPDF(data: FormData) {
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
   y += 13;
 
-  // Corpo da declaração
-  doc.setFont("helvetica", "normal");
+  // Corpo da declaração — nome em negrito
   doc.setFontSize(12);
-  const corpo = `Eu, ${data.nome.toUpperCase()}, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}${filhoDe ? `, filho de ${filhoDe}` : ""}, residência no(a), ${enderecoCompleto}, RG nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.`;
-  const corpoLines = doc.splitTextToSize(corpo, CW);
-  doc.text(corpoLines, M, y, { align: "justify", maxWidth: CW });
-  y += corpoLines.length * 6.5 + 6;
+  const segsInq: Array<{ text: string; bold?: boolean }> = [
+    { text: "Eu, " },
+    { text: data.nome.toUpperCase(), bold: true },
+    { text: `, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}${filhoDe ? `, filho de ${filhoDe}` : ""}, residência no(a), ${enderecoCompleto}, RG nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.` },
+  ];
+  y = writeInlinePara(doc, segsInq, M, y, CW, 6.5);
+  y += 6;
 
   // Art. 299
   const art = `Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.`;
@@ -446,13 +448,31 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   doc.line(W / 2 - titleResW / 2, y + 1, W / 2 + titleResW / 2, y + 1);
   y += 7 + 21;
 
-  // Corpo principal
-  doc.setFont("helvetica", "normal");
+  // Corpo principal — trechos em negrito conforme original
   doc.setFontSize(12);
-  const corpoRes = `${data.nomeDeclarante.toUpperCase()}, RG nº ${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}, CPF nº ${data.cpfDeclarante}, DECLARO para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83) que o Sr.(a) ${data.nomeDeclarado.toUpperCase()}, portador da cédula de identidade (RG) nº ${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}, CPF nº ${data.cpfDeclarado}, filho(a) de ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, é residente e domiciliada na ${endFormatado}`;
-  const corpoResLines = doc.splitTextToSize(corpoRes, CW);
-  doc.text(corpoResLines, ML, y, { align: "justify", maxWidth: CW });
-  y += corpoResLines.length * 6.7 + 9;
+  const segsRes: Array<{ text: string; bold?: boolean }> = [
+    { text: data.nomeDeclarante.toUpperCase(), bold: true },
+    { text: ", RG nº " },
+    { text: `${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}`, bold: true },
+    { text: ", CPF nº " },
+    { text: data.cpfDeclarante, bold: true },
+    { text: ", " },
+    { text: "DECLARO", bold: true },
+    { text: " para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83) que o Sr.(a) " },
+    { text: data.nomeDeclarado.toUpperCase(), bold: true },
+    { text: ", portador da cédula de identidade (RG) nº " },
+    { text: `${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}`, bold: true },
+    { text: ", CPF nº " },
+    { text: data.cpfDeclarado, bold: true },
+    { text: ", filho(a) de " },
+    { text: data.nomePai.toUpperCase(), bold: true },
+    { text: " e " },
+    { text: data.nomeMae.toUpperCase(), bold: true },
+    { text: ", é residente e domiciliada na " },
+    { text: endFormatado, bold: true },
+  ];
+  y = writeInlinePara(doc, segsRes, ML, y, CW, 6.7);
+  y += 9;
 
   // "Declaro ainda..."
   const declaroAinda = "Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, in verbis:";
