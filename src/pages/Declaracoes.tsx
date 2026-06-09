@@ -1983,9 +1983,10 @@ export default function Declaracoes() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!form.nome || !form.dataNascimento || !form.rg) { alert("Preencha Nome, Data de Nascimento e RG."); return; }
-              gerarPDF(form);
+              await gerarPDF(form);
+              setDialogOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -2049,9 +2050,10 @@ export default function Declaracoes() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogAcervoOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) { alert("Preencha Nome, RG e CPF."); return; }
-              gerarPDFAcervo(formAcervo);
+              await gerarPDFAcervo(formAcervo);
+              setDialogAcervoOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -2242,11 +2244,12 @@ export default function Declaracoes() {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogResOpen(false)}>Cancelar</Button>
-            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
+              await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
+              setDialogResOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
