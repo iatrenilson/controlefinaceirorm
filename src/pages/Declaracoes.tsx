@@ -308,8 +308,8 @@ async function gerarPDF(data: FormData) {
     { text: data.nome.toUpperCase(), bold: true },
     { text: `, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}${filhoDe ? `, filho de ${filhoDe}` : ""}, residência no(a), ${enderecoCompleto}, RG nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.` },
   ];
-  y = writeInlinePara(doc, segsInq, M, y, CW, 6.5);
-  y += 6;
+  y = writeInlinePara(doc, segsInq, M, y, CW, 5.0);
+  y += 5;
 
   // Art. 299
   const art = `Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.`;
