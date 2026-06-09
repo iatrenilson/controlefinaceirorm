@@ -521,21 +521,67 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   ], ML, y, CW, 6.4);
   y += 8;
 
-  // Art. 299 (italic, indent 2cm, line-height 1.5 — renderizado linha a linha)
+  // Art. 299 (italic, text-indent 2cm apenas na 1ª linha, justificado manualmente)
   doc.setFont("helvetica", "italic");
   const artRes = "Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.";
-  const artResLines = doc.splitTextToSize(artRes, CW - 20);
-  for (let i = 0; i < artResLines.length; i++) {
-    doc.text(artResLines[i], ML + 20, y, { align: i < artResLines.length - 1 ? "justify" : "left", maxWidth: CW - 20 });
+
+  type ArtLine299 = { text: string; x: number; maxW: number };
+  const artLines299: ArtLine299[] = [];
+  const words299 = artRes.split(" ");
+  let curLine299 = "";
+  let isFirst299 = true;
+  for (const word of words299) {
+    const lineMaxW = isFirst299 ? CW - 20 : CW;
+    const test = curLine299 ? curLine299 + " " + word : word;
+    if (curLine299 && doc.getTextWidth(test) > lineMaxW) {
+      artLines299.push({ text: curLine299, x: isFirst299 ? ML + 20 : ML, maxW: lineMaxW });
+      isFirst299 = false;
+      curLine299 = word;
+    } else {
+      curLine299 = test;
+    }
+  }
+  if (curLine299) artLines299.push({ text: curLine299, x: isFirst299 ? ML + 20 : ML, maxW: isFirst299 ? CW - 20 : CW });
+
+  for (let i = 0; i < artLines299.length; i++) {
+    const { text, x, maxW } = artLines299[i];
+    const isLast = i === artLines299.length - 1;
+    if (isLast) {
+      doc.text(text, x, y);
+    } else {
+      const ws = text.split(" ");
+      const totalW = ws.reduce((s: number, w: string) => s + doc.getTextWidth(w), 0);
+      const gaps = ws.length - 1;
+      const gapW = gaps > 0 ? (maxW - totalW) / gaps : 0;
+      let cx = x;
+      for (let wi = 0; wi < ws.length; wi++) {
+        doc.text(ws[wi], cx, y);
+        if (wi < ws.length - 1) cx += doc.getTextWidth(ws[wi]) + gapW;
+      }
+    }
     y += 6.4;
   }
   y += 2;
 
-  // Pena (italic, line-height 1.5 — renderizado linha a linha)
+  // Pena (italic, sem indent, justificado manualmente)
   const penaRes = "Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.";
-  const penaResLines = doc.splitTextToSize(penaRes, CW);
-  for (let i = 0; i < penaResLines.length; i++) {
-    doc.text(penaResLines[i], ML, y, { align: i < penaResLines.length - 1 ? "justify" : "left", maxWidth: CW });
+  const penaLines299 = doc.splitTextToSize(penaRes, CW);
+  for (let i = 0; i < penaLines299.length; i++) {
+    const text = penaLines299[i];
+    const isLast = i === penaLines299.length - 1;
+    if (isLast) {
+      doc.text(text, ML, y);
+    } else {
+      const ws = text.split(" ");
+      const totalW = ws.reduce((s: number, w: string) => s + doc.getTextWidth(w), 0);
+      const gaps = ws.length - 1;
+      const gapW = gaps > 0 ? (CW - totalW) / gaps : 0;
+      let cx = ML;
+      for (let wi = 0; wi < ws.length; wi++) {
+        doc.text(ws[wi], cx, y);
+        if (wi < ws.length - 1) cx += doc.getTextWidth(ws[wi]) + gapW;
+      }
+    }
     y += 6.4;
   }
   doc.setFont("helvetica", "normal");
