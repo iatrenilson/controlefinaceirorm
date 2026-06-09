@@ -305,11 +305,11 @@ async function gerarPDF(data: FormData) {
 
   // Título (2 linhas centradas, negrito)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
+  doc.setFontSize(13.5);
   doc.text("DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU", W / 2, y, { align: "center" });
-  y += 8;
+  y += 7.5;
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
-  y += 8;
+  y += 7.5;
 
   // Corpo da declaração — nome em negrito
   doc.setFontSize(12);
