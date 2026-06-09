@@ -196,28 +196,66 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 
-// Escreve parágrafo com trechos em negrito intercalados, com quebra de linha automática
+// Escreve parágrafo justificado com trechos bold/normal intercalados
 function writeInlinePara(
   doc: any,
   segments: Array<{ text: string; bold?: boolean }>,
   x: number, startY: number, maxW: number, lineH: number
 ): number {
-  let cx = x, cy = startY, firstOnLine = true;
+  type Word = { text: string; bold: boolean; w: number; noSpaceBefore: boolean };
+  const allWords: Word[] = [];
+
   for (const seg of segments) {
     doc.setFont("helvetica", seg.bold ? "bold" : "normal");
-    const words = seg.text.split(" ").filter(w => w.length > 0);
-    for (const word of words) {
-      const spaceW = firstOnLine ? 0 : doc.getTextWidth(" ");
-      const wordW = doc.getTextWidth(word);
-      if (!firstOnLine && cx + spaceW + wordW > x + maxW) {
-        cy += lineH; cx = x; firstOnLine = true;
-      }
-      doc.text((firstOnLine ? "" : " ") + word, cx, cy);
-      cx += spaceW + wordW;
-      firstOnLine = false;
+    const tokens = seg.text.split(/\s+/).filter(t => t.length > 0);
+    for (const token of tokens) {
+      allWords.push({
+        text: token, bold: !!seg.bold,
+        w: doc.getTextWidth(token),
+        noSpaceBefore: /^[,.:;!?)»\]\-–—\/]/.test(token),
+      });
     }
   }
-  return cy + lineH;
+
+  doc.setFont("helvetica", "normal");
+  const spW = doc.getTextWidth(" ");
+
+  // Greedy line wrapping
+  type Line = { words: Word[]; totalW: number };
+  const lines: Line[] = [];
+  let cur: Line = { words: [], totalW: 0 };
+  for (const word of allWords) {
+    const addSp = cur.words.length > 0 && !word.noSpaceBefore;
+    const needed = cur.totalW + (addSp ? spW : 0) + word.w;
+    if (cur.words.length > 0 && needed > maxW) {
+      lines.push(cur);
+      cur = { words: [word], totalW: word.w };
+    } else {
+      cur.totalW = needed;
+      cur.words.push(word);
+    }
+  }
+  if (cur.words.length > 0) lines.push(cur);
+
+  // Render cada linha justificada (última linha: alinhada à esquerda)
+  let cy = startY;
+  for (let li = 0; li < lines.length; li++) {
+    const { words, totalW } = lines[li];
+    const isLast = li === lines.length - 1;
+    let gapCount = 0;
+    for (let wi = 1; wi < words.length; wi++) { if (!words[wi].noSpaceBefore) gapCount++; }
+    const extra = isLast || gapCount === 0 ? 0 : maxW - totalW;
+    const gapW = spW + (gapCount > 0 ? extra / gapCount : 0);
+    let cx = x;
+    for (let wi = 0; wi < words.length; wi++) {
+      const w = words[wi];
+      doc.setFont("helvetica", w.bold ? "bold" : "normal");
+      doc.text(w.text, cx, cy);
+      if (wi < words.length - 1) cx += w.w + (words[wi + 1].noSpaceBefore ? 0 : gapW);
+    }
+    cy += lineH;
+  }
+  return cy;
 }
 
 async function salvarPDF(doc: any, filename: string) {
