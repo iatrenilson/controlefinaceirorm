@@ -192,73 +192,6 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   return c.toDataURL("image/jpeg", 0.88);
 }
 
-// ─── Attachment builder ───────────────────────────────────────────────────
-function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPages?: number }>): {
-  html: string; pdfJsHead: string; initScript: string;
-} {
-  let html = "";
-  const pdfRenderCalls: string[] = [];
-  let hasPdf = false;
-  let counter = 0;
-  for (const { dataUrl, label, maxPages } of attachments) {
-    const isPdf = dataUrl.startsWith("data:application/pdf");
-    if (isPdf) {
-      hasPdf = true;
-      const id = `pdf-attach-${++counter}`;
-      const mp = maxPages ?? 999;
-      html += `
-  <div id="${id}-data" data-url="${encodeURIComponent(dataUrl)}" data-max-pages="${mp}" style="display:none;"></div>
-  <div style="page-break-before:always;page-break-inside:avoid;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 8px 0;">${label}</p>
-    <div id="${id}"></div>
-  </div>`;
-      pdfRenderCalls.push(`renderPdf('${id}-data','${id}')`);
-    } else {
-      /* imagem — dimensões físicas fixas: impossível transbordar para outra página */
-      html += `
-  <div style="page-break-before:always;page-break-inside:avoid;text-align:center;">
-    <p style="font-family:Arial,sans-serif;font-size:10pt;color:#555;margin:0 0 4px 0;text-align:left;">${label}</p>
-    <div style="width:17cm;height:23.5cm;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;">
-      <img src="${dataUrl}" style="max-width:17cm;max-height:23.5cm;width:auto;height:auto;object-fit:contain;object-position:top center;display:block;" />
-    </div>
-  </div>`;
-    }
-  }
-  const pdfJsHead = hasPdf
-    ? `<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>` : "";
-  const initScript = hasPdf
-    ? `pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  async function renderPdf(dataId,containerId){
-    const el=document.getElementById(dataId);
-    const url=decodeURIComponent(el.getAttribute('data-url'));
-    const maxPages=parseInt(el.getAttribute('data-max-pages')||'999');
-    const pdf=await pdfjsLib.getDocument(url).promise;
-    const container=document.getElementById(containerId);
-    const total=Math.min(pdf.numPages,maxPages);
-    for(let i=1;i<=total;i++){
-      const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale:1.5});
-      const canvas=document.createElement('canvas');
-      canvas.width=vp.width;canvas.height=vp.height;
-      const ctx=canvas.getContext('2d');
-      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-      await page.render({canvasContext:ctx,viewport:vp}).promise;
-      const img=document.createElement('img');
-      img.src=canvas.toDataURL('image/jpeg',0.82);
-      const wrap=document.createElement('div');
-      wrap.style.cssText='width:17cm;height:23.5cm;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;margin:0 auto;';
-      img.style.cssText='max-width:17cm;max-height:23.5cm;width:auto;height:auto;object-fit:contain;object-position:top center;display:block;';
-      wrap.appendChild(img);
-      container.appendChild(wrap);
-    }
-  }
-  window.onload=async function(){
-    try{await Promise.all([${pdfRenderCalls.join(",")}]);}catch(e){console.error(e);}
-    setTimeout(function(){window.print();},1500);
-  };`
-    : `window.onload=function(){setTimeout(function(){window.print();},400);};`;
-  return { html, pdfJsHead, initScript };
-}
 
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
@@ -332,40 +265,63 @@ async function gerarPDF(data: FormData) {
   doc.save(`3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
-function gerarPDFAcervo(data: FormDataAcervo) {
+async function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const dia = parseInt(format(new Date(), "d"));
+  const dia = format(new Date(), "d");
   const mes = format(new Date(), "MMMM", { locale: ptBR }).toUpperCase();
   const ano = format(new Date(), "yyyy");
   const dataFormatada = `${cidadeEstado}, ${dia} de ${mes} de ${ano}`;
   const paiAcervo = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const maeAcervo = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
-  const filhoDeAcervoHtml = paiAcervo && maeAcervo
-    ? `<strong>${paiAcervo}</strong> e <strong>${maeAcervo}</strong>`
-    : `<strong>${paiAcervo || maeAcervo}</strong>`;
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}</title>
-  <style>@page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
-  h1{text-align:center;font-size:12pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
-  .body-text{text-align:justify;line-height:1.5;margin-bottom:2em;font-size:12pt;}
-  .verdade{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:5cm;}
-  .city-date{text-align:center;font-size:12pt;line-height:1.5;margin-top:0;margin-bottom:4.5cm;}
-  .sig-wrap{text-align:center;}.sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-  .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
-  .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
-  @media print{html,body{margin:0;padding:0;}}</style></head><body>
-  <h1>Comprovante de Segundo Endereço de Guarda do Acervo</h1>
-  <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, portador da cédula de identidade
-    RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf},
-    filho de ${filhoDeAcervoHtml},
-    DECLARO que não possuo segundo endereço de guarda de acervo.</p>
-  <p class="verdade">Por ser verdade, firmo o presente.</p>
-  <p class="city-date">${dataFormatada}</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nome.toUpperCase()}</span><span class="sig-cpf">${data.cpf}</span></div>
-  <script>window.onload=function(){setTimeout(function(){window.print();window.close();},400);};<\/script></body></html>`;
-  const win = window.open("", "_blank");
-  if (win) { win.document.write(html); win.document.close(); }
+  const filhoDeAcervo = paiAcervo && maeAcervo ? `${paiAcervo} e ${maeAcervo}` : paiAcervo || maeAcervo;
+
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+  const W = 210, ML = 20, MT = 25, CW = 170;
+  let y = MT;
+
+  // Título: bold, underline, uppercase, centered, 12pt
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  const titleAc = "COMPROVANTE DE SEGUNDO ENDEREÇO DE GUARDA DO ACERVO";
+  const titleAcLines = doc.splitTextToSize(titleAc, CW);
+  titleAcLines.forEach((line: string, i: number) => {
+    const ty = y + i * 6;
+    doc.text(line, W / 2, ty, { align: "center" });
+    const tw = doc.getTextWidth(line);
+    doc.line(W / 2 - tw / 2, ty + 1, W / 2 + tw / 2, ty + 1);
+  });
+  y += titleAcLines.length * 6 + 21;
+
+  // Corpo
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  const corpoAc = `Eu, ${data.nome.toUpperCase()}, portador da cédula de identidade RG nº ${data.rg} / ${data.orgaoEmissor.toUpperCase()}, CPF nº ${data.cpf}${filhoDeAcervo ? `, filho de ${filhoDeAcervo}` : ""}, DECLARO que não possuo segundo endereço de guarda de acervo.`;
+  const corpoAcLines = doc.splitTextToSize(corpoAc, CW);
+  doc.text(corpoAcLines, ML, y, { align: "justify", maxWidth: CW });
+  y += corpoAcLines.length * 7.5 + 10;
+
+  // "Por ser verdade, firmo o presente."
+  doc.text("Por ser verdade, firmo o presente.", W / 2, y, { align: "center" });
+  y += 50;
+
+  // Data (centered)
+  doc.text(dataFormatada, W / 2, y, { align: "center" });
+  y += 45;
+
+  // Assinatura
+  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.cpf, W / 2, y, { align: "center" });
+
+  doc.save(`8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
 }
 
 // ─── Carrega script CDN dinamicamente ────────────────────────────────────
@@ -421,47 +377,79 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.14, 0.76), label: "Anexo: Comprovante de Residência" });
   }
 
-  const { html: anexos, pdfJsHead, initScript } = buildAnexos(attachmentList);
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  // ── Página 1: HTML original (fontes, espaçamento e layout intactos) ───────
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>6 Comprovante de Residência Fixa - ${primeiroNome}</title>
-  ${pdfJsHead}
-  <style>
-    @page{size:A4 portrait;margin:2.5cm 2cm 2cm 2cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.5;}
-    h1{text-align:center;font-size:14pt;font-weight:bold;text-decoration:underline;text-transform:uppercase;margin-top:0;margin-bottom:3.5em;line-height:1.4;}
-    .body-text{text-align:justify;line-height:1.6;margin-top:0;margin-bottom:0.3em;font-size:12pt;}
-    .declaro-ainda{text-align:left;line-height:1.5;margin-top:0;margin-bottom:2em;font-size:12pt;}
-    .art-block{margin-bottom:0.8em;}
-    .art-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0;text-indent:2cm;}
-    .pena-text{font-style:italic;text-align:justify;line-height:1.5;font-size:12pt;margin:0.5em 0 0 0;text-indent:0;}
-    .city-date{text-align:left;margin-top:3cm;margin-bottom:4cm;font-size:12pt;}
-    .sig-wrap{text-align:center;}
-    .sig-line{display:block;width:10cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-    .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
-    .sig-cpf{font-size:12pt;font-weight:normal;display:block;text-align:center;}
-    @media print{html,body{margin:0;padding:0;}}
-  </style></head><body>
-  <h1>Declaração de Residência</h1>
-  <p class="body-text"><strong>${data.nomeDeclarante.toUpperCase()}</strong>, RG nº <strong>${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}</strong>,
-    CPF nº <strong>${data.cpfDeclarante}</strong>, <strong>DECLARO</strong> para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83)
-    que o Sr.(a) <strong>${data.nomeDeclarado.toUpperCase()}</strong>, portador da cédula de identidade (RG)
-    nº <strong>${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}</strong>, CPF nº <strong>${data.cpfDeclarado}</strong>,
-    filho(a) de <strong>${data.nomePai.toUpperCase()}</strong> e <strong>${data.nomeMae.toUpperCase()}</strong>,
-    é residente e domiciliada na <strong>${endFormatado}</strong></p>
-  <p class="declaro-ainda">Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, <em>in verbis</em>:</p>
-  <div class="art-block">
-    <p class="art-text">Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.</p>
-  </div>
-  <p class="pena-text">Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
-  <p class="city-date">${data.cidade}, ${dataEscrita}.</p>
-  <div class="sig-wrap"><span class="sig-line"></span><span class="sig-name">${data.nomeDeclarante.toUpperCase()}</span><span class="sig-cpf">${data.cpfDeclarante}</span></div>
-  ${anexos}
-  <script>${initScript}<\/script></body></html>`;
+  const W = 210, ML = 20, MT = 25, CW = 170;
+  let y = MT;
 
-  const win = window.open("", "_blank");
-  if (win) { win.document.write(html); win.document.close(); }
+  // Título: bold, underline, 14pt, centered
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  const titleRes = "DECLARAÇÃO DE RESIDÊNCIA";
+  doc.text(titleRes, W / 2, y, { align: "center" });
+  const titleResW = doc.getTextWidth(titleRes);
+  doc.line(W / 2 - titleResW / 2, y + 1, W / 2 + titleResW / 2, y + 1);
+  y += 7 + 21;
+
+  // Corpo principal
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  const corpoRes = `${data.nomeDeclarante.toUpperCase()}, RG nº ${data.rgDeclarante}/${data.orgaoDeclarante.toUpperCase()}, CPF nº ${data.cpfDeclarante}, DECLARO para fins de comprovação de residência, sob as penas da lei (art. 2°da lei 7.115/83) que o Sr.(a) ${data.nomeDeclarado.toUpperCase()}, portador da cédula de identidade (RG) nº ${data.rgDeclarado} - ${data.orgaoDeclarado.toUpperCase()}, CPF nº ${data.cpfDeclarado}, filho(a) de ${data.nomePai.toUpperCase()} e ${data.nomeMae.toUpperCase()}, é residente e domiciliada na ${endFormatado}`;
+  const corpoResLines = doc.splitTextToSize(corpoRes, CW);
+  doc.text(corpoResLines, ML, y, { align: "justify", maxWidth: CW });
+  y += corpoResLines.length * 6.7 + 9;
+
+  // "Declaro ainda..."
+  const declaroAinda = "Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, in verbis:";
+  const declaroLines = doc.splitTextToSize(declaroAinda, CW);
+  doc.text(declaroLines, ML, y, { align: "justify", maxWidth: CW });
+  y += declaroLines.length * 6.5 + 4;
+
+  // Art. 299 (italic, indent 2cm)
+  doc.setFont("helvetica", "italic");
+  const artRes = "Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.";
+  const artResLines = doc.splitTextToSize(artRes, CW - 20);
+  doc.text(artResLines, ML + 20, y, { align: "justify", maxWidth: CW - 20 });
+  y += artResLines.length * 6.5 + 5;
+
+  // Pena (italic)
+  const penaRes = "Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.";
+  const penaResLines = doc.splitTextToSize(penaRes, CW);
+  doc.text(penaResLines, ML, y, { align: "justify", maxWidth: CW });
+  y += penaResLines.length * 6.5;
+  doc.setFont("helvetica", "normal");
+
+  // Cidade e data (margin-top 3cm)
+  y += 30;
+  doc.text(`${data.cidade}, ${dataEscrita}.`, ML, y);
+  y += 40;
+
+  // Assinatura
+  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.text(data.nomeDeclarante.toUpperCase(), W / 2, y, { align: "center" });
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.cpfDeclarante, W / 2, y, { align: "center" });
+
+  // Páginas 2+ — imagens pré-comprimidas (RG e comprovante)
+  for (const att of attachmentList) {
+    doc.addPage();
+    const imgEl = document.createElement("img");
+    imgEl.src = att.dataUrl;
+    await new Promise<void>(r => { imgEl.onload = () => r(); });
+    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
+    const maxImgW = 170, maxImgH = 257;
+    let dw = maxImgW, dh = maxImgW / ratio;
+    if (dh > maxImgH) { dh = maxImgH; dw = maxImgH * ratio; }
+    const dx = (W - dw) / 2, dy = (297 - dh) / 2;
+    doc.addImage(att.dataUrl, "JPEG", dx, dy, dw, dh);
+  }
+
+  doc.save(`6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
