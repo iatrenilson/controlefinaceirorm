@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -270,10 +271,18 @@ async function salvarPDF(doc: any, filename: string) {
       const writable = await handle.createWritable();
       await writable.write(blob);
       await writable.close();
+      sonnerToast.success("PDF salvo com sucesso!", {
+        description: "Verifique a pasta que você selecionou.",
+        duration: 4000,
+      });
       return;
     } catch (_) {}
   }
   doc.save(filename);
+  sonnerToast.success("PDF baixado!", {
+    description: "Verifique a pasta de Downloads.",
+    duration: 4000,
+  });
 }
 
 async function gerarPDF(data: FormData) {
