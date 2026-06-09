@@ -196,21 +196,22 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 
-// Escreve parágrafo justificado com trechos bold/normal intercalados
+// Escreve parágrafo justificado com trechos bold/italic/normal intercalados
 function writeInlinePara(
   doc: any,
-  segments: Array<{ text: string; bold?: boolean }>,
+  segments: Array<{ text: string; bold?: boolean; italic?: boolean }>,
   x: number, startY: number, maxW: number, lineH: number
 ): number {
-  type Word = { text: string; bold: boolean; w: number; noSpaceBefore: boolean };
+  type Word = { text: string; style: string; w: number; noSpaceBefore: boolean };
   const allWords: Word[] = [];
 
   for (const seg of segments) {
-    doc.setFont("helvetica", seg.bold ? "bold" : "normal");
+    const style = seg.bold ? "bold" : seg.italic ? "italic" : "normal";
+    doc.setFont("helvetica", style);
     const tokens = seg.text.split(/\s+/).filter(t => t.length > 0);
     for (const token of tokens) {
       allWords.push({
-        text: token, bold: !!seg.bold,
+        text: token, style,
         w: doc.getTextWidth(token),
         noSpaceBefore: /^[,.:;!?)»\]\-–—]/.test(token),
       });
@@ -249,7 +250,7 @@ function writeInlinePara(
     let cx = x;
     for (let wi = 0; wi < words.length; wi++) {
       const w = words[wi];
-      doc.setFont("helvetica", w.bold ? "bold" : "normal");
+      doc.setFont("helvetica", w.style);
       doc.text(w.text, cx, cy);
       if (wi < words.length - 1) cx += w.w + (words[wi + 1].noSpaceBefore ? 0 : gapW);
     }
@@ -510,26 +511,33 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     { text: endFormatado, bold: true },
   ];
   y = writeInlinePara(doc, segsRes, ML, y, CW, 6.7);
-  y += 9;
+  y += 6;
 
-  // "Declaro ainda..."
-  const declaroAinda = "Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, in verbis:";
-  const declaroLines = doc.splitTextToSize(declaroAinda, CW);
-  doc.text(declaroLines, ML, y, { align: "justify", maxWidth: CW });
-  y += declaroLines.length * 6.5 + 4;
+  // "Declaro ainda..." — "in verbis" em itálico (line-height 1.5 ≈ 6.35mm)
+  y = writeInlinePara(doc, [
+    { text: "Declaro ainda, está ciente de que a declaração falsa pode implicar na sanção penal prevista no art. 299 do código penal, " },
+    { text: "in verbis", italic: true },
+    { text: ":" },
+  ], ML, y, CW, 6.4);
+  y += 8;
 
-  // Art. 299 (italic, indent 2cm)
+  // Art. 299 (italic, indent 2cm, line-height 1.5 — renderizado linha a linha)
   doc.setFont("helvetica", "italic");
   const artRes = "Art. 299 – Omitir, em documento público ou particular, declaração que nela deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.";
   const artResLines = doc.splitTextToSize(artRes, CW - 20);
-  doc.text(artResLines, ML + 20, y, { align: "justify", maxWidth: CW - 20 });
-  y += artResLines.length * 6.5 + 5;
+  for (let i = 0; i < artResLines.length; i++) {
+    doc.text(artResLines[i], ML + 20, y, { align: i < artResLines.length - 1 ? "justify" : "left", maxWidth: CW - 20 });
+    y += 6.4;
+  }
+  y += 2;
 
-  // Pena (italic)
+  // Pena (italic, line-height 1.5 — renderizado linha a linha)
   const penaRes = "Pena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.";
   const penaResLines = doc.splitTextToSize(penaRes, CW);
-  doc.text(penaResLines, ML, y, { align: "justify", maxWidth: CW });
-  y += penaResLines.length * 6.5;
+  for (let i = 0; i < penaResLines.length; i++) {
+    doc.text(penaResLines[i], ML, y, { align: i < penaResLines.length - 1 ? "justify" : "left", maxWidth: CW });
+    y += 6.4;
+  }
   doc.setFont("helvetica", "normal");
 
   // Cidade e data (margin-top 3cm)
