@@ -301,7 +301,7 @@ async function gerarPDF(data: FormData) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
   const W = 210, M = 20, CW = 170;
-  let y = 22;
+  let y = 14;
 
   // Título (2 linhas centradas, negrito)
   doc.setFont("helvetica", "bold");
@@ -309,7 +309,7 @@ async function gerarPDF(data: FormData) {
   doc.text("DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU", W / 2, y, { align: "center" });
   y += 7;
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
-  y += 13;
+  y += 7;
 
   // Corpo da declaração — nome em negrito
   doc.setFontSize(12);
