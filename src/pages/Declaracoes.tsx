@@ -196,6 +196,23 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 
+async function salvarPDF(doc: any, filename: string) {
+  const blob = doc.output("blob");
+  if (typeof (window as any).showSaveFilePicker === "function") {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (_) {}
+  }
+  doc.save(filename);
+}
+
 async function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
@@ -262,7 +279,7 @@ async function gerarPDF(data: FormData) {
   doc.setFont("helvetica", "normal");
   doc.text(data.cpf, W / 2, y, { align: "center" });
 
-  doc.save(`3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
+  await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
 async function gerarPDFAcervo(data: FormDataAcervo) {
@@ -321,7 +338,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   doc.setFont("helvetica", "normal");
   doc.text(data.cpf, W / 2, y, { align: "center" });
 
-  doc.save(`8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
+  await salvarPDF(doc, `8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
 }
 
 // ─── Carrega script CDN dinamicamente ────────────────────────────────────
@@ -449,7 +466,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     doc.addImage(att.dataUrl, "JPEG", dx, dy, dw, dh);
   }
 
-  doc.save(`6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
+  await salvarPDF(doc, `6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
