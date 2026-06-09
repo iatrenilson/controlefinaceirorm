@@ -306,11 +306,14 @@ async function gerarPDF(data: FormData) {
   // Validade com "90" em negrito
   const antes = "Esta declaração tem validade de ";
   const depois = " dias.";
+  doc.setFont("helvetica", "normal");
+  const antesW = doc.getTextWidth(antes);
   doc.text(antes, M, y);
   doc.setFont("helvetica", "bold");
-  doc.text("90", M + doc.getTextWidth(antes), y);
+  const boldW = doc.getTextWidth("90");
+  doc.text("90", M + antesW, y);
   doc.setFont("helvetica", "normal");
-  doc.text(depois, M + doc.getTextWidth(antes) + doc.getTextWidth("90"), y);
+  doc.text(depois, M + antesW + boldW, y);
   y += 18;
 
   // Cidade e data
