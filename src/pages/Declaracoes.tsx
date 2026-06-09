@@ -376,7 +376,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
     const tw = doc.getTextWidth(line);
     doc.line(W / 2 - tw / 2, ty + 1, W / 2 + tw / 2, ty + 1);
   });
-  y += titleAcLines.length * 6 + 21;
+  y += titleAcLines.length * 6 + 14;
 
   // Corpo com nomes em negrito
   doc.setFontSize(12);
