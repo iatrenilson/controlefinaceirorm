@@ -212,7 +212,7 @@ function writeInlinePara(
       allWords.push({
         text: token, bold: !!seg.bold,
         w: doc.getTextWidth(token),
-        noSpaceBefore: /^[,.:;!?)»\]\-–—\/]/.test(token),
+        noSpaceBefore: /^[,.:;!?)»\]\-–—]/.test(token),
       });
     }
   }
@@ -394,7 +394,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
     segsAc.push({ text: filhoDeAcervo, bold: true });
   }
   segsAc.push({ text: ", DECLARO que não possuo segundo endereço de guarda de acervo." });
-  y = writeInlinePara(doc, segsAc, ML, y, CW, 7.5);
+  y = writeInlinePara(doc, segsAc, ML, y, CW, 6.5);
   y += 10;
 
   // "Por ser verdade, firmo o presente."
