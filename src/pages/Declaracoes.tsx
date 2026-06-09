@@ -263,7 +263,7 @@ function buildAnexos(attachments: Array<{ dataUrl: string; label: string; maxPag
 // ─── PDF generators ───────────────────────────────────────────────────────
 function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 
-function gerarPDF(data: FormData) {
+async function gerarPDF(data: FormData) {
   const hoje = format(new Date(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
@@ -273,37 +273,60 @@ function gerarPDF(data: FormData) {
   const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
-  <title>3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}</title>
-  <style>
-    @page{size:A4 portrait;margin:1cm 2cm 2cm 2cm;}
-    html,body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#000;background:#fff;line-height:1.15;}
-    h1{text-align:center;font-size:14pt;font-weight:bold;margin-top:0;margin-bottom:0.6em;line-height:1.15;}
-    .body-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:12pt;}
-    .art-text{text-align:justify;line-height:1.15;margin-top:0;margin-bottom:0.6em;font-size:12pt;}
-    .validade{text-align:left;line-height:1.15;margin-top:0;margin-bottom:0;font-size:12pt;}
-    .city-date{text-align:center;margin-top:1.5em;margin-bottom:4cm;font-size:12pt;}
-    .sig-wrap{text-align:center;}
-    .sig-line{display:block;width:8cm;margin:0 auto 0.4em auto;border-top:1px solid #000;}
-    .sig-name{font-weight:bold;font-size:12pt;text-transform:uppercase;display:block;text-align:center;}
-    .sig-cpf{font-size:12pt;display:block;text-align:center;}
-    @media print{html,body{margin:0;padding:0;}}
-  </style></head><body>
-  <h1>DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU<br>PROCESSOS CRIMINAIS</h1>
-  <p class="body-text">Eu, <strong>${data.nome.toUpperCase()}</strong>, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}, filho de
-    ${filhoDe}, residência no(a), ${enderecoCompleto}, RG
-    nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.</p>
-  <p class="art-text">Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.</p>
-  <p class="validade">Esta declaração tem validade de <strong>90</strong> dias.</p>
-  <p class="city-date">${cidadeEstado}, ${hoje}</p>
-  <div class="sig-wrap">
-    <span class="sig-line"></span>
-    <span class="sig-name">${data.nome.toUpperCase()}</span>
-    <span class="sig-cpf">${data.cpf}</span>
-  </div>
-  <script>window.onload=function(){setTimeout(function(){window.print();window.close();},400);};<\/script></body></html>`;
-  const win = window.open("", "_blank");
-  if (win) { win.document.write(html); win.document.close(); }
+
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+  const W = 210, M = 20, CW = 170;
+  let y = 22;
+
+  // Título (2 linhas centradas, negrito)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU", W / 2, y, { align: "center" });
+  y += 7;
+  doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
+  y += 13;
+
+  // Corpo da declaração
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  const corpo = `Eu, ${data.nome.toUpperCase()}, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}${filhoDe ? `, filho de ${filhoDe}` : ""}, residência no(a), ${enderecoCompleto}, RG nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.`;
+  const corpoLines = doc.splitTextToSize(corpo, CW);
+  doc.text(corpoLines, M, y, { align: "justify", maxWidth: CW });
+  y += corpoLines.length * 6.5 + 6;
+
+  // Art. 299
+  const art = `Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.`;
+  const artLines = doc.splitTextToSize(art, CW);
+  doc.text(artLines, M, y, { align: "justify", maxWidth: CW });
+  y += artLines.length * 6.5 + 6;
+
+  // Validade com "90" em negrito
+  const antes = "Esta declaração tem validade de ";
+  const depois = " dias.";
+  doc.text(antes, M, y);
+  doc.setFont("helvetica", "bold");
+  doc.text("90", M + doc.getTextWidth(antes), y);
+  doc.setFont("helvetica", "normal");
+  doc.text(depois, M + doc.getTextWidth(antes) + doc.getTextWidth("90"), y);
+  y += 18;
+
+  // Cidade e data
+  doc.text(`${cidadeEstado}, ${hoje}`, W / 2, y, { align: "center" });
+  y += 42;
+
+  // Assinatura
+  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.text(data.cpf, W / 2, y, { align: "center" });
+
+  doc.save(`3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
 function gerarPDFAcervo(data: FormDataAcervo) {
