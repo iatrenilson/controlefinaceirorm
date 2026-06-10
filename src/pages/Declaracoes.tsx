@@ -452,14 +452,6 @@ async function gerarPDFDSA(data: FormDataDSA) {
   const W = 210, ML = 20, CW = 170;
   let y = 18;
 
-  // Cabeçalho
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("CENTRO DE TREINAMENTO TEXAS GUN", W / 2, y, { align: "center" });
-  y += 6;
-  doc.text("CR. nº 277298", W / 2, y, { align: "center" });
-  y += 12;
-
   // Título: ANEXO A
   doc.setFontSize(18);
   doc.text("ANEXO A", W / 2, y, { align: "center" });
@@ -494,13 +486,6 @@ async function gerarPDFDSA(data: FormDataDSA) {
   y += 5;
   doc.text(data.cpf, W / 2, y, { align: "center" });
   y += 25;
-
-  // Rodapé
-  doc.setFont("helvetica", "bold");
-  doc.text("CENTRO DE TREINAMENTO TEXAS GUN", W / 2, y, { align: "center" });
-  y += 5;
-  doc.setFont("helvetica", "normal");
-  doc.text("24.775.754/0001-81", W / 2, y, { align: "center" });
 
   await salvarPDF(doc, `DSA - ${primeiroNome}.pdf`);
 }
