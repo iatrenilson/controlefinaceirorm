@@ -450,7 +450,7 @@ async function gerarPDFDSA(data: FormDataDSA) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
   const W = 210, ML = 20, CW = 170;
-  let y = 18;
+  let y = 14;
 
   // Título: ANEXO A
   doc.setFontSize(18);
