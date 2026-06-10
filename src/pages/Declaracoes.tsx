@@ -485,7 +485,12 @@ async function gerarPDFDSA(data: FormDataDSA) {
   doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
   y += 5;
   doc.text(data.cpf, W / 2, y, { align: "center" });
-  y += 25;
+  y += 15;
+
+  // Segunda linha — Presidente da Entidade
+  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  y += 5;
+  doc.text("PRESIDENTE DA ENTIDADE DE TIRO", W / 2, y, { align: "center" });
 
   await salvarPDF(doc, `DSA - ${primeiroNome}.pdf`);
 }
