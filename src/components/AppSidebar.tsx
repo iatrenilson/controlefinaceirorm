@@ -242,6 +242,11 @@ export function AppSidebar() {
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=dsa")} className="cursor-pointer text-xs">
+                              DSA
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
                             <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=residencia")} className="cursor-pointer text-xs">
                               Declaração de Residência
                             </SidebarMenuSubButton>

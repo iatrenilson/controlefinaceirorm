@@ -95,6 +95,18 @@ const EMPTY_FORM_ACERVO: FormDataAcervo = {
   nomePai: "", nomeMae: "", cidade: "Manaus", estado: "AM",
 };
 
+// ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
+interface FormDataDSA {
+  nome: string; naturalidade: string; dataNascimento: string;
+  profissao: string; endereco: string; numero: string; complemento: string;
+  bairro: string; cep: string; cidade: string; estado: string; cpf: string;
+}
+const EMPTY_FORM_DSA: FormDataDSA = {
+  nome: "", naturalidade: "MANAUS/AM", dataNascimento: "", profissao: "",
+  endereco: "", numero: "", complemento: "s/c", bairro: "", cep: "",
+  cidade: "Manaus", estado: "AM", cpf: "",
+};
+
 // ─── Declaração de Residência ──────────────────────────────────────────────
 interface FormDataResidencia {
   nomeDeclarante: string; rgDeclarante: string; orgaoDeclarante: string; cpfDeclarante: string;
@@ -425,6 +437,72 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   doc.text(data.cpf, W / 2, y, { align: "center" });
 
   await salvarPDF(doc, `8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
+}
+
+// ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
+async function gerarPDFDSA(data: FormDataDSA) {
+  const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "DSA");
+  const cidadeEstado = `${data.cidade.toUpperCase()}/${data.estado.toUpperCase()}`;
+  const hoje = format(new Date(), "dd/MM/yyyy");
+
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+  const W = 210, ML = 20, CW = 170;
+  let y = 18;
+
+  // Cabeçalho
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("CENTRO DE TREINAMENTO TEXAS GUN", W / 2, y, { align: "center" });
+  y += 6;
+  doc.text("CR. nº 277298", W / 2, y, { align: "center" });
+  y += 12;
+
+  // Título: ANEXO A
+  doc.setFontSize(18);
+  doc.text("ANEXO A", W / 2, y, { align: "center" });
+  y += 14;
+
+  // Corpo
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+
+  const comp = data.complemento.trim() ? ` ${data.complemento.toUpperCase()},` : "";
+  const enderecoStr = `${data.endereco.toUpperCase()} ${data.numero.toUpperCase()},${comp} ${data.bairro.toUpperCase()}, ${cidadeEstado} - CEP: ${data.cep}`;
+
+  const segs: Array<{ text: string; bold?: boolean }> = [
+    { text: "EU, " },
+    { text: data.nome.toUpperCase(), bold: true },
+    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}, ${data.profissao.toUpperCase()}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de Concessão de registro, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
+  ];
+
+  y = writeInlinePara(doc, segs, ML, y, CW, 6.0);
+  y += 12;
+
+  // Data
+  doc.setFont("helvetica", "bold");
+  doc.text(`${cidadeEstado}, ${hoje}`, ML, y);
+  y += 35;
+
+  // Assinatura
+  doc.setFont("helvetica", "normal");
+  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  y += 5;
+  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
+  y += 5;
+  doc.text(data.cpf, W / 2, y, { align: "center" });
+  y += 25;
+
+  // Rodapé
+  doc.setFont("helvetica", "bold");
+  doc.text("CENTRO DE TREINAMENTO TEXAS GUN", W / 2, y, { align: "center" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.text("24.775.754/0001-81", W / 2, y, { align: "center" });
+
+  await salvarPDF(doc, `DSA - ${primeiroNome}.pdf`);
 }
 
 // ─── Carrega script CDN dinamicamente ────────────────────────────────────
@@ -1297,6 +1375,11 @@ export default function Declaracoes() {
 
   // Diálogo 2 — Acervo
   const [dialogAcervoOpen, setDialogAcervoOpen] = useState(false);
+
+  // Diálogo 4 — DSA
+  const [dialogDSAOpen, setDialogDSAOpen] = useState(false);
+  const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
+  const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [searchParams, setSearchParams] = useSearchParams();
   const [formAcervo, setFormAcervo] = useState<FormDataAcervo>(EMPTY_FORM_ACERVO);
   const setA = (field: keyof FormDataAcervo, value: string) => setFormAcervo(prev => ({ ...prev, [field]: value }));
@@ -1322,6 +1405,7 @@ export default function Declaracoes() {
     if (open === "inquerito") { setForm(EMPTY_FORM); setDialogOpen(true); }
     else if (open === "acervo") { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }
     else if (open === "residencia") { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }
+    else if (open === "dsa") { setFormDSA(EMPTY_FORM_DSA); setDialogDSAOpen(true); }
     setSearchParams({}, { replace: true });
   }, [searchParams]);
 
@@ -2054,6 +2138,96 @@ export default function Declaracoes() {
               if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) { alert("Preencha Nome, RG e CPF."); return; }
               await gerarPDFAcervo(formAcervo);
               setDialogAcervoOpen(false);
+            }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog 4: DSA ── */}
+      <Dialog open={dialogDSAOpen} onOpenChange={setDialogDSAOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Declaração de Segurança do Acervo (DSA)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
+              setFormDSA(prev => ({
+                ...prev,
+                nome: c.nome, dataNascimento: c.dataNascimento,
+                endereco: c.endereco, numero: c.numero, bairro: c.bairro,
+                cep: c.cep, cidade: c.cidade, estado: c.estado, cpf: c.cpf,
+              }));
+            }} />
+            {clientes.length > 0 && <div className="border-t border-dashed border-border/60" />}
+            <div className="space-y-1">
+              <Label className="text-xs">Nome Completo</Label>
+              <Input className="h-9 text-sm uppercase" value={formDSA.nome} onChange={e => setDSA("nome", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Naturalidade</Label>
+                <Input className="h-9 text-sm uppercase" placeholder="MANAUS/AM" value={formDSA.naturalidade} onChange={e => setDSA("naturalidade", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data de Nascimento</Label>
+                <Input className="h-9 text-sm" type="date" value={formDSA.dataNascimento} onChange={e => setDSA("dataNascimento", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Profissão</Label>
+              <Input className="h-9 text-sm uppercase" value={formDSA.profissao} onChange={e => setDSA("profissao", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs">Endereço (Rua/Beco)</Label>
+                <Input className="h-9 text-sm uppercase" value={formDSA.endereco} onChange={e => setDSA("endereco", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nº</Label>
+                <Input className="h-9 text-sm" value={formDSA.numero} onChange={e => setDSA("numero", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <Input className="h-9 text-sm" placeholder="s/c" value={formDSA.complemento} onChange={e => setDSA("complemento", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bairro</Label>
+                <Input className="h-9 text-sm uppercase" value={formDSA.bairro} onChange={e => setDSA("bairro", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">CEP</Label>
+                <Input className="h-9 text-sm font-mono" value={formDSA.cep} onChange={e => setDSA("cep", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Cidade</Label>
+                <Input className="h-9 text-sm" value={formDSA.cidade} onChange={e => setDSA("cidade", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Estado</Label>
+                <Input className="h-9 text-sm uppercase" value={formDSA.estado} onChange={e => setDSA("estado", e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">CPF</Label>
+              <Input className="h-9 text-sm font-mono" value={formDSA.cpf} onChange={e => setDSA("cpf", maskCpf(e.target.value))} />
+            </div>
+            <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
+              Data preenchida automaticamente: {format(new Date(), "dd/MM/yyyy")}.
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogDSAOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
+              if (!formDSA.nome || !formDSA.dataNascimento || !formDSA.cpf) { alert("Preencha Nome, Data de Nascimento e CPF."); return; }
+              await gerarPDFDSA(formDSA);
+              setDialogDSAOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
