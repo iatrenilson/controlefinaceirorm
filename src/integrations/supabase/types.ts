@@ -141,6 +141,7 @@ export type Database = {
           fornecedor: string | null
           id: string
           informacoes_adicionais: string | null
+          link_visualizacao: string | null
           login: string | null
           lucro: number
           nome: string
@@ -165,6 +166,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           informacoes_adicionais?: string | null
+          link_visualizacao?: string | null
           login?: string | null
           lucro?: number
           nome: string
@@ -189,6 +191,7 @@ export type Database = {
           fornecedor?: string | null
           id?: string
           informacoes_adicionais?: string | null
+          link_visualizacao?: string | null
           login?: string | null
           lucro?: number
           nome?: string
@@ -209,7 +212,38 @@ export type Database = {
             referencedRelation: "delay_share_links"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delay_clientes_link_visualizacao_fkey"
+            columns: ["link_visualizacao"]
+            isOneToOne: false
+            referencedRelation: "delay_share_links"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      delay_notas: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       delay_share_links: {
         Row: {
@@ -726,7 +760,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "restrito"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -854,7 +888,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "restrito"],
     },
   },
 } as const

@@ -6,6 +6,7 @@ export const useUserRole = () => {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModerator, setIsModerator] = useState(false);
+  const [isRestricted, setIsRestricted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export const useUserRole = () => {
     if (!user) {
       setIsAdmin(false);
       setIsModerator(false);
+      setIsRestricted(false);
       setLoading(false);
       return;
     }
@@ -30,9 +32,11 @@ export const useUserRole = () => {
       if (!error && data) {
         setIsAdmin(data.some((r) => r.role === "admin"));
         setIsModerator(data.some((r) => r.role === "moderator"));
+        setIsRestricted(data.some((r) => r.role === "restrito" as any));
       } else {
         setIsAdmin(false);
         setIsModerator(false);
+        setIsRestricted(false);
       }
       setLoading(false);
     };
@@ -40,5 +44,5 @@ export const useUserRole = () => {
     fetchRole();
   }, [user, authLoading]);
 
-  return { isAdmin, isModerator, loading };
+  return { isAdmin, isModerator, isRestricted, loading };
 };

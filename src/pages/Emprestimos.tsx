@@ -106,7 +106,7 @@ const Emprestimos = () => {
       .from("clientes")
       .select("*")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .order("data_pagamento", { ascending: true });
 
     if (error) {
       if (attempt < 3) {

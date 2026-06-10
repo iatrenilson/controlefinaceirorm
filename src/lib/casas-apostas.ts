@@ -6,6 +6,7 @@ export interface CasaAposta {
 export const CASAS_APOSTAS: CasaAposta[] = [
   { nome: "Bet365", logo: "https://www.google.com/s2/favicons?domain=bet365.com&sz=32" },
   { nome: "Betano", logo: "https://www.google.com/s2/favicons?domain=betano.com&sz=32" },
+
   { nome: "Sportingbet", logo: "https://www.google.com/s2/favicons?domain=sportingbet.com&sz=32" },
   { nome: "Betfair", logo: "https://www.google.com/s2/favicons?domain=betfair.com&sz=32" },
   { nome: "KTO", logo: "https://www.google.com/s2/favicons?domain=kto.com&sz=32" },

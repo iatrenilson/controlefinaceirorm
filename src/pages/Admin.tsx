@@ -166,7 +166,7 @@ const Admin = () => {
     if (!error) { toast({ title: "Assinatura revogada" }); fetchSubscriptions(); }
   };
 
-  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user") => {
+  const handleChangeRole = async (userId: string, newRole: "admin" | "moderator" | "user" | "restrito") => {
     // Remove all existing roles for this user
     const { error: deleteError } = await supabase
       .from("user_roles")
