@@ -478,7 +478,7 @@ async function gerarPDFDSA(data: FormDataDSA) {
   const segs: Array<{ text: string; bold?: boolean }> = [
     { text: "EU, " },
     { text: data.nome.toUpperCase() },
-    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}, ${data.profissao.toUpperCase()}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de Concessão de registro, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
+    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}${data.profissao.trim() ? `, ${data.profissao.toUpperCase()}` : ``}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de Concessão de registro, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
   ];
 
   y = writeInlinePara(doc, segs, ML, y, CW, 5.0);
