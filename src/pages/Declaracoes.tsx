@@ -343,7 +343,6 @@ async function gerarPDF(data: FormData) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const wmImg = await loadWatermarkImg(); if (wmImg) addWatermark(doc, wmImg);
 
   const W = 210, M = 20, CW = 170;
   let y = 14;
@@ -415,7 +414,6 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const wmImgAc = await loadWatermarkImg(); if (wmImgAc) addWatermark(doc, wmImgAc);
 
   const W = 210, ML = 20, MT = 25, CW = 170;
   let y = MT;
@@ -482,7 +480,6 @@ async function gerarPDFDSA(data: FormDataDSA) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const wmImgDSA = await loadWatermarkImg(); if (wmImgDSA) addWatermark(doc, wmImgDSA);
 
   const W = 210, ML = 10, CW = 190;
   let y = 14;
@@ -587,7 +584,6 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const wmImgRes = await loadWatermarkImg(); if (wmImgRes) addWatermark(doc, wmImgRes);
 
   const W = 210, ML = 20, MT = 25, CW = 170;
   let y = MT;
