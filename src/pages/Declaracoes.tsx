@@ -125,8 +125,18 @@ function formatDate(value: string) {
   const [y, m, d] = value.split("-");
   return `${d}/${m}/${y}`;
 }
+function getSiteDate(): Date {
+  try {
+    const raw = localStorage.getItem("clock_override");
+    if (raw) {
+      const { date, time } = JSON.parse(raw);
+      return new Date(`${date}T${time}:00`);
+    }
+  } catch {}
+  return new Date();
+}
 function dataExtenso(): string {
-  const raw = format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+  const raw = format(getSiteDate(), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
   return raw.replace(/\bde ([a-z])/, (_, l) => `de ${l.toUpperCase()}`);
 }
 function maskCpf(raw: string): string {
@@ -298,7 +308,7 @@ async function salvarPDF(doc: any, filename: string) {
 }
 
 async function gerarPDF(data: FormData) {
-  const hoje = format(new Date(), "dd/MM/yyyy");
+  const hoje = format(getSiteDate(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const numStr = data.numero ? `, Nº ${data.numero}` : "";
@@ -371,9 +381,9 @@ async function gerarPDF(data: FormData) {
 async function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const dia = format(new Date(), "d");
-  const mes = format(new Date(), "MMMM", { locale: ptBR }).toUpperCase();
-  const ano = format(new Date(), "yyyy");
+  const dia = format(getSiteDate(), "d");
+  const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toUpperCase();
+  const ano = format(getSiteDate(), "yyyy");
   const dataFormatada = `${cidadeEstado}, ${dia} de ${mes} de ${ano}`;
   const paiAcervo = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const maeAcervo = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
@@ -443,7 +453,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 async function gerarPDFDSA(data: FormDataDSA) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "DSA");
   const cidadeEstado = `${data.cidade.toUpperCase()}/${data.estado.toUpperCase()}`;
-  const hoje = format(new Date(), "dd/MM/yyyy");
+  const hoje = format(getSiteDate(), "dd/MM/yyyy");
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
@@ -2053,7 +2063,7 @@ export default function Declaracoes() {
               <Input className="h-9 text-sm font-mono" value={form.cpf} onChange={e => set("cpf", maskCpf(e.target.value))} />
             </div>
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
-              Data preenchida automaticamente: {format(new Date(), "dd/MM/yyyy")}.
+              Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
           </div>
           <DialogFooter className="gap-2">
@@ -2210,7 +2220,7 @@ export default function Declaracoes() {
               <Input className="h-9 text-sm font-mono" value={formDSA.cpf} onChange={e => setDSA("cpf", maskCpf(e.target.value))} />
             </div>
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
-              Data preenchida automaticamente: {format(new Date(), "dd/MM/yyyy")}.
+              Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
           </div>
           <DialogFooter className="gap-2">
