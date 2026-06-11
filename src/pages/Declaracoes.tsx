@@ -485,7 +485,7 @@ async function gerarPDFDSA(data: FormDataDSA) {
   doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
   y += 5;
   doc.text(data.cpf, W / 2, y, { align: "center" });
-  y += 15;
+  y += 30;
 
   // Segunda linha — Presidente da Entidade
   doc.line(W / 2 - 40, y, W / 2 + 40, y);
