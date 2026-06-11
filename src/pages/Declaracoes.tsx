@@ -459,7 +459,7 @@ async function gerarPDFDSA(data: FormDataDSA) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, ML = 13, CW = 184;
+  const W = 210, ML = 10, CW = 190;
   let y = 14;
 
   // Título: ANEXO A
