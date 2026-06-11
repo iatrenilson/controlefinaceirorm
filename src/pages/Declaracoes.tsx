@@ -466,7 +466,7 @@ async function gerarPDFDSA(data: FormDataDSA) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.text("ANEXO A", W / 2, y, { align: "center" });
-  y += 14;
+  y += 8;
 
   // Corpo
   doc.setFont("helvetica", "normal");
@@ -482,12 +482,12 @@ async function gerarPDFDSA(data: FormDataDSA) {
   ];
 
   y = writeInlinePara(doc, segs, ML, y, CW, 5.0);
-  y += 12;
+  y += 6;
 
   // Data
   doc.setFont("helvetica", "bold");
   doc.text(`${cidadeEstado}, ${hoje}`, ML, y);
-  y += 35;
+  y += 25;
 
   // Assinatura
   doc.setFont("helvetica", "normal");
