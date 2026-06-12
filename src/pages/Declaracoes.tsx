@@ -334,14 +334,12 @@ async function gerarPDF(data: FormData) {
   const hoje = format(getSiteDate(), "dd/MM/yyyy");
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
+  const normAddr = (s: string) =>
+    s.replace(/(\d)\s*[-]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2").replace(/\s{2,}/g, " ").trim();
   const numStr = data.numero ? `, Nº ${data.numero}` : "";
-  const compStr = data.complemento?.trim() ? `, ${data.complemento.toUpperCase()}` : "";
-  const bairroNorm = data.bairro
-    ? data.bairro
-        .replace(/(\d)\s*[-,]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2")
-        .replace(/\s{2,}/g, " ")
-        .trim()
-    : "";
+  const compNorm = normAddr((data.complemento ?? "").replace(/[-\s]+$/, "").trim());
+  const compStr = compNorm ? `, ${compNorm.toUpperCase()}` : "";
+  const bairroNorm = normAddr(data.bairro ?? "");
   const bairroStr = bairroNorm ? ` - ${bairroNorm.toUpperCase()},` : ",";
   const enderecoCompleto = `${data.endereco}${numStr}${compStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
@@ -565,9 +563,12 @@ async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 2.0, quality = 0.
 async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
+  const normAddrR = (s: string) =>
+    s.replace(/(\d)\s*[-]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2").replace(/\s{2,}/g, " ").trim();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
-  const compResStr = data.complemento?.trim() ? `, ${data.complemento.toUpperCase()}` : "";
-  const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
+  const compResNorm = normAddrR((data.complemento ?? "").replace(/[-\s]+$/, "").trim());
+  const compResStr = compResNorm ? `, ${compResNorm.toUpperCase()}` : "";
+  const bairroResStr = data.bairro ? ` - ${normAddrR(data.bairro).toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${compResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
