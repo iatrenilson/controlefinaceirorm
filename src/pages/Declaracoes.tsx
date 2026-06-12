@@ -334,7 +334,8 @@ async function gerarPDF(data: FormData) {
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const numStr = data.numero ? `, Nº ${data.numero}` : "";
-  const bairroStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
+  const bairroNorm = data.bairro ? data.bairro.replace(/(\d)\s*-\s*([A-Za-zÀ-ÿ])/g, "$1, $2").replace(/\s{2,}/g, " ").trim() : "";
+  const bairroStr = bairroNorm ? `, ${bairroNorm.toUpperCase()},` : ",";
   const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
