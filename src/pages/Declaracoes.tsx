@@ -1363,24 +1363,39 @@ export default function Declaracoes() {
       status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
     };
-    try {
+    const doSave = async (p: typeof payload) => {
       if (editandoId) {
-        const { error } = await supabase
-          .from("declaracao_clientes")
-          .update(payload)
-          .eq("id", editandoId);
+        const { error } = await supabase.from("declaracao_clientes").update(p).eq("id", editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("declaracao_clientes")
-          .insert(payload);
+        const { error } = await supabase.from("declaracao_clientes").insert(p);
         if (error) throw error;
       }
+    };
+    try {
+      await doSave(payload);
       setDialogClienteOpen(false);
       toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
       await fetchClientes();
     } catch (e: unknown) {
-      toast({ title: "Erro ao salvar", description: e instanceof Error ? e.message : "Erro desconhecido", variant: "destructive" });
+      const errMsg: string = (e as any)?.message ?? "";
+      // Column complemento missing in DB — apply migration automatically then retry
+      if (errMsg.includes("complemento") || (e as any)?.code === "42703") {
+        try {
+          await supabase.functions.invoke("run-migration", {
+            body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''" },
+          });
+          await doSave(payload);
+          setDialogClienteOpen(false);
+          toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
+          await fetchClientes();
+          return;
+        } catch (e2: unknown) {
+          toast({ title: "Erro ao salvar", description: (e2 as any)?.message ?? errMsg, variant: "destructive" });
+          return;
+        }
+      }
+      toast({ title: "Erro ao salvar", description: errMsg || "Erro desconhecido", variant: "destructive" });
     } finally {
       setSavingCliente(false);
     }
