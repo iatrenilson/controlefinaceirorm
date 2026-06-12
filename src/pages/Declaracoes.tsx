@@ -1379,12 +1379,14 @@ export default function Declaracoes() {
       await fetchClientes();
     } catch (e: unknown) {
       const errMsg: string = (e as any)?.message ?? "";
-      // Column complemento missing in DB — apply migration automatically then retry
+      // Column complemento missing in DB — apply migration + reload schema cache then retry
       if (errMsg.includes("complemento") || (e as any)?.code === "42703") {
         try {
           await supabase.functions.invoke("run-migration", {
-            body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''" },
+            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
           });
+          // Wait for PostgREST schema cache to reload
+          await new Promise(r => setTimeout(r, 2500));
           await doSave(payload);
           setDialogClienteOpen(false);
           toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
