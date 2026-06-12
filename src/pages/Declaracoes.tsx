@@ -341,7 +341,8 @@ async function gerarPDF(data: FormData) {
   const compStr = compNorm ? `, ${compNorm.toUpperCase()}` : "";
   const bairroNorm = normAddr(data.bairro ?? "");
   const bairroStr = bairroNorm ? ` - ${bairroNorm.toUpperCase()},` : ",";
-  const enderecoCompleto = `${data.endereco}${numStr}${compStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
+  const enderecoCompleto = `${data.endereco}${numStr}${compStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`
+    .replace(/(\d)-(\s*[A-Za-zÀ-ÿ])/g, (_, d, after) => `${d} - ${after.trimStart()}`);
   const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
@@ -569,7 +570,8 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const compResNorm = normAddrR((data.complemento ?? "").replace(/[-\s]+$/, "").trim());
   const compResStr = compResNorm ? `, ${compResNorm.toUpperCase()}` : "";
   const bairroResStr = data.bairro ? ` - ${normAddrR(data.bairro).toUpperCase()},` : ",";
-  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${compResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${compResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`
+    .replace(/(\d)-(\s*[A-Za-zÀ-ÿ])/g, (_, d, after) => `${d} - ${after.trimStart()}`);
 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
