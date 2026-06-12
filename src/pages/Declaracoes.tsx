@@ -479,7 +479,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 }
 
 // ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
-async function gerarPDFDSA(data: FormDataDSA) {
+async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "registro") {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "DSA");
   const cidadeEstado = `${data.cidade.toUpperCase()}/${data.estado.toUpperCase()}`;
   const hoje = format(getSiteDate(), "dd/MM/yyyy");
@@ -504,10 +504,13 @@ async function gerarPDFDSA(data: FormDataDSA) {
   const comp = data.complemento.trim() ? ` ${data.complemento.toUpperCase()},` : "";
   const enderecoStr = `${data.endereco.toUpperCase()} ${data.numero.toUpperCase()},${comp} ${data.bairro.toUpperCase()}, ${cidadeEstado} - CEP: ${data.cep}`;
 
+  const finalidade = tipo === "aquisicao"
+    ? "Autorização para Aquisição de Arma de Fogo"
+    : "Concessão de registro";
   const segs: Array<{ text: string; bold?: boolean }> = [
     { text: "EU, " },
     { text: data.nome.toUpperCase() },
-    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}${data.profissao.trim() ? `, ${data.profissao.toUpperCase()}` : ``}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de Concessão de registro, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
+    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}${data.profissao.trim() ? `, ${data.profissao.toUpperCase()}` : ``}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de ${finalidade}, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
   ];
 
   y = writeInlinePara(doc, segs, ML, y, CW, 5.0);
@@ -532,7 +535,8 @@ async function gerarPDFDSA(data: FormDataDSA) {
   y += 5;
   doc.text("PRESIDENTE DA ENTIDADE DE TIRO", W / 2, y, { align: "center" });
 
-  await salvarPDF(doc, `DSA - ${primeiroNome}.pdf`);
+  const sufixo = tipo === "aquisicao" ? "DSA Aquisicao" : "DSA";
+  await salvarPDF(doc, `${sufixo} - ${primeiroNome}.pdf`);
 }
 
 // ─── Carrega script CDN dinamicamente ────────────────────────────────────
@@ -1436,6 +1440,7 @@ export default function Declaracoes() {
   const [dialogDSAOpen, setDialogDSAOpen] = useState(false);
   const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
+  const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
   const [searchParams, setSearchParams] = useSearchParams();
   const [formAcervo, setFormAcervo] = useState<FormDataAcervo>(EMPTY_FORM_ACERVO);
   const setA = (field: keyof FormDataAcervo, value: string) => setFormAcervo(prev => ({ ...prev, [field]: value }));
@@ -2229,6 +2234,23 @@ export default function Declaracoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Tipo de DSA */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDsaTipo("registro")}
+                className={`h-9 rounded-md border text-xs font-medium transition-colors ${dsaTipo === "registro" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/60"}`}
+              >
+                Concessão de Registro
+              </button>
+              <button
+                type="button"
+                onClick={() => setDsaTipo("aquisicao")}
+                className={`h-9 rounded-md border text-xs font-medium transition-colors ${dsaTipo === "aquisicao" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/60"}`}
+              >
+                Autorização de Aquisição
+              </button>
+            </div>
             <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
               setFormDSA(prev => ({
                 ...prev,
@@ -2302,7 +2324,7 @@ export default function Declaracoes() {
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogDSAOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formDSA.nome || !formDSA.dataNascimento || !formDSA.cpf) { alert("Preencha Nome, Data de Nascimento e CPF."); return; }
-              await gerarPDFDSA(formDSA);
+              await gerarPDFDSA(formDSA, dsaTipo);
               setDialogDSAOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
