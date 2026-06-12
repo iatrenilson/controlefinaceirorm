@@ -52,6 +52,7 @@ interface Cliente {
   dataNascimento: string;
   endereco: string;
   numero: string;
+  complemento: string;
   bairro: string;
   cep: string;
   cidade: string;
@@ -68,20 +69,20 @@ type ClienteForm = Omit<Cliente, "id">;
 const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
-  dataNascimento: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  dataNascimento: "", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", status: "doc", status2: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
 interface FormData {
   nome: string; estadoCivil: string; dataNascimento: string;
-  nomePai: string; nomeMae: string; endereco: string; numero: string; bairro: string;
+  nomePai: string; nomeMae: string; endereco: string; numero: string; complemento: string; bairro: string;
   cep: string; cidade: string; estado: string; rg: string;
   orgaoEmissor: string; dataExpedicao: string; cpf: string;
 }
 const EMPTY_FORM: FormData = {
   nome: "", estadoCivil: "Solteiro(a)", dataNascimento: "", nomePai: "", nomeMae: "",
-  endereco: "", numero: "", bairro: "", cep: "", cidade: "MANAUS", estado: "AM",
+  endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "MANAUS", estado: "AM",
   rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "", cpf: "",
 };
 
@@ -111,12 +112,12 @@ const EMPTY_FORM_DSA: FormDataDSA = {
 interface FormDataResidencia {
   nomeDeclarante: string; rgDeclarante: string; orgaoDeclarante: string; cpfDeclarante: string;
   nomeDeclarado: string; rgDeclarado: string; orgaoDeclarado: string; cpfDeclarado: string;
-  nomePai: string; nomeMae: string; endereco: string; numero: string; bairro: string; cep: string; cidade: string; estado: string;
+  nomePai: string; nomeMae: string; endereco: string; numero: string; complemento: string; bairro: string; cep: string; cidade: string; estado: string;
 }
 const EMPTY_FORM_RES: FormDataResidencia = {
   nomeDeclarante: "", rgDeclarante: "", orgaoDeclarante: "SSP-AM", cpfDeclarante: "",
   nomeDeclarado: "", rgDeclarado: "", orgaoDeclarado: "SSP-AM", cpfDeclarado: "",
-  nomePai: "", nomeMae: "", endereco: "", numero: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  nomePai: "", nomeMae: "", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -334,6 +335,7 @@ async function gerarPDF(data: FormData) {
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const numStr = data.numero ? `, Nº ${data.numero}` : "";
+  const compStr = data.complemento?.trim() ? ` - ${data.complemento.toUpperCase()}` : "";
   const bairroNorm = data.bairro
     ? data.bairro
         .replace(/(\d)\s*[-,]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2")
@@ -341,7 +343,7 @@ async function gerarPDF(data: FormData) {
         .trim()
     : "";
   const bairroStr = bairroNorm ? ` - ${bairroNorm.toUpperCase()},` : ",";
-  const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
+  const enderecoCompleto = `${data.endereco}${numStr}${compStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
@@ -564,8 +566,9 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
+  const compResStr = data.complemento?.trim() ? ` - ${data.complemento.toUpperCase()}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
-  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
+  const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${compResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
@@ -796,6 +799,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     dataNascimento: (row.data_nascimento as string) ?? "",
     endereco: (row.endereco as string) ?? "",
     numero: (row.numero as string) ?? "",
+    complemento: (row.complemento as string) ?? "",
     bairro: (row.bairro as string) ?? "",
     cep: (row.cep as string) ?? "",
     cidade: (row.cidade as string) ?? "Manaus",
@@ -1204,6 +1208,7 @@ export default function Declaracoes() {
           data_nascimento: c.dataNascimento,
           endereco: c.endereco,
           numero: c.numero,
+          complemento: c.complemento,
           bairro: c.bairro,
           cep: c.cep,
           cidade: c.cidade,
@@ -1263,6 +1268,7 @@ export default function Declaracoes() {
           dataNascimento: r.data_nascimento,
           endereco: r.endereco,
           numero: r.numero,
+          complemento: r.complemento ?? "",
           bairro: r.bairro,
           cep: r.cep,
           cidade: r.cidade,
@@ -1345,6 +1351,7 @@ export default function Declaracoes() {
       data_nascimento: formCliente.dataNascimento,
       endereco: formCliente.endereco,
       numero: formCliente.numero,
+      complemento: formCliente.complemento,
       bairro: formCliente.bairro,
       cep: formCliente.cep,
       cidade: formCliente.cidade,
@@ -1874,7 +1881,15 @@ export default function Declaracoes() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="BL-10, Apt 201, s/c"
+                    value={formCliente.complemento} onChange={e => setC("complemento", e.target.value.toUpperCase())} />
+                  <CopyButton value={formCliente.complemento} />
+                </div>
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
                 <div className="flex gap-1.5">
@@ -1883,6 +1898,8 @@ export default function Declaracoes() {
                   <CopyButton value={formCliente.bairro} />
                 </div>
               </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
                 <div className="flex gap-1.5">
@@ -1899,13 +1916,13 @@ export default function Declaracoes() {
                   <CopyButton value={formCliente.cidade} />
                 </div>
               </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Estado (sigla)</Label>
-              <div className="flex gap-1.5">
-                <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
-                  value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
-                <CopyButton value={formCliente.estado} />
+              <div className="space-y-1">
+                <Label className="text-xs">Estado (sigla)</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
+                    value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
+                  <CopyButton value={formCliente.estado} />
+                </div>
               </div>
             </div>
 
@@ -2009,7 +2026,7 @@ export default function Declaracoes() {
             <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => {
               setForm({
                 nome: c.nome, estadoCivil: c.estadoCivil, dataNascimento: c.dataNascimento,
-                nomePai: c.nomePai, nomeMae: c.nomeMae, endereco: c.endereco, numero: c.numero, bairro: c.bairro,
+                nomePai: c.nomePai, nomeMae: c.nomeMae, endereco: c.endereco, numero: c.numero, complemento: c.complemento, bairro: c.bairro,
                 cep: c.cep, cidade: c.cidade.toUpperCase(), estado: c.estado,
                 rg: c.rg, orgaoEmissor: c.orgaoEmissor, dataExpedicao: c.dataExpedicao, cpf: c.cpf,
               });
@@ -2058,11 +2075,17 @@ export default function Declaracoes() {
                 <Input className="h-9 text-sm" placeholder="58" value={form.numero} onChange={e => set("numero", e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <Input className="h-9 text-sm" placeholder="BL-10, Apt 201, s/c" value={form.complemento} onChange={e => set("complemento", e.target.value.toUpperCase())} />
+              </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
                 <Input className="h-9 text-sm" value={form.bairro} onChange={e => set("bairro", titleCase(e.target.value))} />
               </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
                 <Input className="h-9 text-sm font-mono" value={form.cep} onChange={e => set("cep", maskCep(e.target.value))} />
@@ -2070,6 +2093,10 @@ export default function Declaracoes() {
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
                 <Input className="h-9 text-sm" value={form.cidade} onChange={e => set("cidade", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Estado</Label>
+                <Input className="h-9 text-sm uppercase w-24" placeholder="AM" value={form.estado} onChange={e => set("estado", e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
@@ -2186,7 +2213,7 @@ export default function Declaracoes() {
               setFormDSA(prev => ({
                 ...prev,
                 nome: c.nome, dataNascimento: c.dataNascimento,
-                endereco: c.endereco, numero: c.numero, bairro: c.bairro,
+                endereco: c.endereco, numero: c.numero, complemento: c.complemento, bairro: c.bairro,
                 cep: c.cep, cidade: c.cidade, estado: c.estado, cpf: c.cpf,
               }));
             }} />
@@ -2308,7 +2335,7 @@ export default function Declaracoes() {
                   setR("nomeDeclarado", c.nome); setR("rgDeclarado", c.rg);
                   setR("orgaoDeclarado", c.orgaoEmissor); setR("cpfDeclarado", c.cpf);
                   setR("nomePai", c.nomePai); setR("nomeMae", c.nomeMae);
-                  setR("endereco", c.endereco); setR("numero", c.numero); setR("bairro", c.bairro);
+                  setR("endereco", c.endereco); setR("numero", c.numero); setR("complemento", c.complemento); setR("bairro", c.bairro);
                   setR("cep", c.cep); setR("cidade", c.cidade); setR("estado", c.estado);
                 }} />
                 <div className="space-y-1">
@@ -2358,15 +2385,19 @@ export default function Declaracoes() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
+                    <Label className="text-xs">Complemento</Label>
+                    <Input className="h-9 text-sm" placeholder="BL-10, Apt 201, s/c" value={formRes.complemento} onChange={e => setR("complemento", e.target.value.toUpperCase())} />
+                  </div>
+                  <div className="space-y-1">
                     <Label className="text-xs">Bairro</Label>
                     <Input className="h-9 text-sm" placeholder="Ex: Cidade Nova" value={formRes.bairro} onChange={e => setR("bairro", titleCase(e.target.value))} />
                   </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">CEP</Label>
                     <Input className="h-9 text-sm font-mono" value={formRes.cep} onChange={e => setR("cep", maskCep(e.target.value))} />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Cidade</Label>
                     <Input className="h-9 text-sm" value={formRes.cidade} onChange={e => setR("cidade", e.target.value)} />
