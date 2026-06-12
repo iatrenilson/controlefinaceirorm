@@ -337,7 +337,7 @@ async function gerarPDF(data: FormData) {
   const cleanNum = numParts[0] || "";
   const numExtraPrefix = numParts.slice(1).join(" ").trim();
   const numStr = cleanNum ? `, Nº ${cleanNum}` : "";
-  const bairroRaw = [numExtraPrefix, data.bairro].filter(s => s.trim()).join("- ");
+  const bairroRaw = [numExtraPrefix, data.bairro].filter(s => s.trim()).join(" - ");
   const bairroNorm = bairroRaw ? bairroRaw.replace(/(\d)\s*[-,]\s*([A-Za-zÀ-ÿ])/g, "$1 - $2").replace(/\s{2,}/g, " ").trim() : "";
   const bairroStr = bairroNorm ? `, ${bairroNorm.toUpperCase()},` : ",";
   const enderecoCompleto = `${data.endereco}${numStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
