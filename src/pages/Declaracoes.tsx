@@ -335,7 +335,7 @@ async function gerarPDF(data: FormData) {
   const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const numStr = data.numero ? `, Nº ${data.numero}` : "";
-  const compStr = data.complemento?.trim() ? ` - ${data.complemento.toUpperCase()}` : "";
+  const compStr = data.complemento?.trim() ? `, ${data.complemento.toUpperCase()}` : "";
   const bairroNorm = data.bairro
     ? data.bairro
         .replace(/(\d)\s*[-,]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2")
@@ -566,7 +566,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const numResStr = data.numero ? `, Nº ${data.numero}` : "";
-  const compResStr = data.complemento?.trim() ? ` - ${data.complemento.toUpperCase()}` : "";
+  const compResStr = data.complemento?.trim() ? `, ${data.complemento.toUpperCase()}` : "";
   const bairroResStr = data.bairro ? ` - ${data.bairro.toUpperCase()},` : ",";
   const endFormatado = `${data.endereco.toUpperCase()}${numResStr}${compResStr}${bairroResStr} Cep: ${data.cep} – ${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
 
