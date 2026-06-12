@@ -535,7 +535,9 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   y += 5;
   doc.text("PRESIDENTE DA ENTIDADE DE TIRO", W / 2, y, { align: "center" });
 
-  const sufixo = tipo === "aquisicao" ? "DSA Aquisicao" : "DSA";
+  const sufixo = tipo === "aquisicao"
+    ? "10 Declaração de Segurança do Acervo - Aquisição"
+    : "10 Declaração de Segurança do Acervo - Concessão";
   await salvarPDF(doc, `${sufixo} - ${primeiroNome}.pdf`);
 }
 
