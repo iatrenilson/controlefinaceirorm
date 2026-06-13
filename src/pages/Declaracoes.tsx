@@ -853,10 +853,10 @@ export default function Declaracoes() {
     CREATE POLICY "Owners or admins delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
   END IF;
   PERFORM pg_notify('pgrst', 'reload schema');
-  -- Atribui TODOS os clientes ao parabellum (dono real de todos os registros)
+  -- Atribui legados sem dono ao parabellum
   UPDATE public.declaracao_clientes
     SET owner_id = (SELECT id FROM auth.users WHERE email = 'parabellum.assessoria7@gmail.com' LIMIT 1)
-    WHERE (SELECT id FROM auth.users WHERE email = 'parabellum.assessoria7@gmail.com' LIMIT 1) IS NOT NULL;
+    WHERE owner_id IS NULL;
 END $$;`
       }
     }).catch(() => {});
