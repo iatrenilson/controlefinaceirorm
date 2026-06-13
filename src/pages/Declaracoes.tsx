@@ -825,6 +825,7 @@ export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
   const [userId, setUserId] = useState<string | null>(null);
+  const [restoreKey, setRestoreKey] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
@@ -861,6 +862,24 @@ END $$;`
       }
     }).catch(() => {});
   }, []);
+
+  // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
+  useEffect(() => {
+    if (!isAdmin || !userId) return;
+    const FLAG = "owner_restore_v2";
+    if (localStorage.getItem(FLAG)) return;
+    supabase.functions.invoke("run-migration", {
+      body: {
+        sql: `UPDATE public.declaracao_clientes
+  SET owner_id = (SELECT id FROM auth.users WHERE email = 'iat.renilson.martins@gmail.com' LIMIT 1)
+  WHERE owner_id = (SELECT id FROM auth.users WHERE email = 'parabellum.assessoria7@gmail.com' LIMIT 1)
+    AND nome NOT ILIKE '%PATRIK%FERNANDES%GOMES%';`
+      }
+    }).then(() => {
+      localStorage.setItem(FLAG, "1");
+      setRestoreKey(k => k + 1);
+    }).catch(() => {});
+  }, [isAdmin, userId]);
 
   // Auto-provisiona papel de moderador para glendaleite88@gmail.com
   useEffect(() => {
@@ -1371,7 +1390,7 @@ END $$;`
     setLoadingClientes(false);
   }, [saveClientesToCloud, isAdmin]);
 
-  useEffect(() => { fetchClientes(); }, [fetchClientes]);
+  useEffect(() => { fetchClientes(); }, [fetchClientes, restoreKey]);
 
   const setC = (field: keyof ClienteForm, value: string) =>
     setFormCliente(prev => ({ ...prev, [field]: value }));
