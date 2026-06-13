@@ -24,7 +24,7 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc",
   docaut:   "Doc Aut.",
   deferido: "Defer.",
-  analise:  "CR Anál.",
+  analise:  "Análise",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   doc:      "text-white border-white/40 bg-white/10",
