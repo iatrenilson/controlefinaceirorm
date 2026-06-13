@@ -853,6 +853,10 @@ export default function Declaracoes() {
     CREATE POLICY "Owners or admins delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
   END IF;
   PERFORM pg_notify('pgrst', 'reload schema');
+  -- Atribui clientes sem dono ao usuario parabellum
+  UPDATE public.declaracao_clientes
+    SET owner_id = (SELECT id FROM auth.users WHERE email = 'parabellum.assessoria7@gmail.com' LIMIT 1)
+    WHERE owner_id IS NULL;
 END $$;`
       }
     }).catch(() => {});
@@ -1456,16 +1460,6 @@ END $$;`
     setClientes(novaLista);
   };
 
-  const reivindicarCliente = async (id: string) => {
-    if (!userId) return;
-    await supabase.from("declaracao_clientes").update({ owner_id: userId }).eq("id", id);
-    await fetchClientes();
-  };
-  const devolverCliente = async (id: string) => {
-    await supabase.from("declaracao_clientes").update({ owner_id: null }).eq("id", id);
-    await fetchClientes();
-  };
-
   const alterarStatus = async (id: string, status: ClienteStatus) => {
     const novaLista = clientes.map(c => c.id === id ? { ...c, status } : c);
     await saveClientesToCloud(novaLista);
@@ -1644,11 +1638,6 @@ END $$;`
                             </Select>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {!c.owner_id ? (
-                              <button type="button" onClick={() => reivindicarCliente(c.id)} className="h-5 px-1.5 rounded-full text-[9px] font-semibold bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30 transition-colors">Reivindicar</button>
-                            ) : c.owner_id === userId ? (
-                              <button type="button" onClick={() => devolverCliente(c.id)} title="Não é meu cliente" className="h-5 px-1.5 rounded-full text-[9px] font-semibold bg-muted/40 text-muted-foreground border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors">Não é meu</button>
-                            ) : null}
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -1847,12 +1836,7 @@ END $$;`
                       </div>
 
                       {/* Ações */}
-                      <div className="w-14 flex items-center gap-0.5 justify-center flex-wrap">
-                        {!c.owner_id ? (
-                          <button type="button" onClick={() => reivindicarCliente(c.id)} className="h-4 px-1 rounded text-[8px] font-semibold bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30">Reivindicar</button>
-                        ) : c.owner_id === userId ? (
-                          <button type="button" onClick={() => devolverCliente(c.id)} title="Não é meu" className="h-4 px-1 rounded text-[8px] font-semibold bg-muted/40 text-muted-foreground border border-border hover:text-destructive">Não é meu</button>
-                        ) : null}
+                      <div className="w-14 flex items-center gap-0.5 justify-center">
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
