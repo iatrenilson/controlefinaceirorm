@@ -25,11 +25,14 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+];
+
+const financeiroItems = [
   { title: "Controle Financeiro", url: "/financeiro", icon: Receipt },
   { title: "Clientes Empréstimos", url: "/emprestimos", icon: Landmark },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
 function PlanCard() {
@@ -144,7 +147,26 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink to={item.url} end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                      <item.icon className="h-[18px] w-[18px]" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Financeiro Nav */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Financeiro</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {financeiroItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <NavLink to={item.url} end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
