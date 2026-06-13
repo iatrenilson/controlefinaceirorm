@@ -1603,7 +1603,7 @@ END $$;`
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
                     const calcDays = (c: typeof a) => {
-                      if (!c.dataEntradaProcesso) return 9999;
+                      if (!c.dataEntradaProcesso) return -1;
                       if (c.status === "deferido" && c.dataDeferimento) return differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso));
                       return differenceInDays(new Date(), parseISO(c.dataEntradaProcesso));
                     };
@@ -1750,7 +1750,7 @@ END $$;`
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
                     const calcDays = (c: typeof a) => {
-                      if (!c.dataEntradaProcesso) return 9999;
+                      if (!c.dataEntradaProcesso) return -1;
                       if (c.status === "deferido" && c.dataDeferimento) return differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso));
                       return differenceInDays(new Date(), parseISO(c.dataEntradaProcesso));
                     };
