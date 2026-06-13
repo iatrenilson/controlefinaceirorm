@@ -831,8 +831,9 @@ export default function Declaracoes() {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
   }, []);
 
-  // Migração: adiciona owner_id e atualiza RLS para isolar clientes por moderador
+  // Migração: adiciona owner_id e atualiza RLS — roda só uma vez por browser
   useEffect(() => {
+    if (localStorage.getItem("schema_migration_v3")) return;
     supabase.functions.invoke("run-migration", {
       body: {
         sql: `DO $$ BEGIN
@@ -860,7 +861,7 @@ export default function Declaracoes() {
     WHERE owner_id IS NULL;
 END $$;`
       }
-    }).catch(() => {});
+    }).then(() => localStorage.setItem("schema_migration_v3", "1")).catch(() => {});
   }, []);
 
   // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum

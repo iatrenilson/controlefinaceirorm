@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import DigitalClock from "@/components/DigitalClock";
 import { Toaster } from "@/components/ui/toaster";
@@ -8,37 +8,42 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { useAuth } from "@/hooks/useAuth";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useSubscription } from "@/hooks/useSubscription";
+import { AppProvider, useAppContext } from "@/hooks/useAppContext";
 import { PaywallScreen } from "@/components/PaywallScreen";
 import { TrialBanner } from "@/components/TrialBanner";
 import { supabase } from "@/integrations/supabase/client";
-import Dashboard from "./pages/Dashboard";
-import Index from "./pages/Index";
-import Emprestimos from "./pages/Emprestimos";
-import Relatorios from "./pages/Relatorios";
-import Admin from "./pages/Admin";
-import DelayEsportivo from "./pages/DelayEsportivo";
-import DelayDashboard from "./pages/DelayDashboard";
-import Configuracoes from "./pages/Configuracoes";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import Perfil from "./pages/Perfil";
-import NotFound from "./pages/NotFound";
-import DelayAddClient from "./pages/DelayAddClient";
-import DelayViewer from "./pages/DelayViewer";
-import Declaracoes from "./pages/Declaracoes";
+
+const Dashboard    = lazy(() => import("./pages/Dashboard"));
+const Index        = lazy(() => import("./pages/Index"));
+const Emprestimos  = lazy(() => import("./pages/Emprestimos"));
+const Relatorios   = lazy(() => import("./pages/Relatorios"));
+const Admin        = lazy(() => import("./pages/Admin"));
+const DelayEsportivo = lazy(() => import("./pages/DelayEsportivo"));
+const DelayDashboard = lazy(() => import("./pages/DelayDashboard"));
+const Configuracoes  = lazy(() => import("./pages/Configuracoes"));
+const Auth           = lazy(() => import("./pages/Auth"));
+const ResetPassword  = lazy(() => import("./pages/ResetPassword"));
+const Perfil         = lazy(() => import("./pages/Perfil"));
+const NotFound       = lazy(() => import("./pages/NotFound"));
+const DelayAddClient = lazy(() => import("./pages/DelayAddClient"));
+const DelayViewer    = lazy(() => import("./pages/DelayViewer"));
+const Declaracoes    = lazy(() => import("./pages/Declaracoes"));
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <p className="text-muted-foreground">Carregando...</p>
+  </div>
+);
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
-  const { isAdmin, loading } = useUserRole();
+  const { isAdmin, loading } = useAppContext();
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>;
   if (!isAdmin) return <Navigate to="/" replace />;
   return children ? <>{children}</> : <Admin />;
 };
 
 const DelayRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAdmin, isModerator, loading } = useUserRole();
+  const { isAdmin, isModerator, loading } = useAppContext();
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>;
   if (!isAdmin && !isModerator) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -47,9 +52,7 @@ const DelayRoute = ({ children }: { children: React.ReactNode }) => {
 const queryClient = new QueryClient();
 
 const ProtectedLayout = () => {
-  const { user, loading } = useAuth();
-  const { hasAccess, isTrialActive, isTrialExpired, hoursLeft, trialStartedAt, loading: subLoading } = useSubscription();
-  const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
+  const { user, loading, isAdmin, isModerator, hasAccess, isTrialActive, isTrialExpired, hoursLeft, trialStartedAt } = useAppContext();
 
   // Track online presence
   useEffect(() => {
@@ -63,7 +66,7 @@ const ProtectedLayout = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  if (loading || subLoading || roleLoading) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>;
   }
 
@@ -95,19 +98,21 @@ const ProtectedLayout = () => {
             <DigitalClock />
             <NotificationBell />
           </div>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/financeiro" element={<Index />} />
-            <Route path="/emprestimos" element={<Emprestimos />} />
-            <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route path="/admin" element={<AdminRoute />} />
-            <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
-            <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
-            <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/financeiro" element={<Index />} />
+              <Route path="/emprestimos" element={<Emprestimos />} />
+              <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/perfil" element={<Perfil />} />
+              <Route path="/admin" element={<AdminRoute />} />
+              <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
+              <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
+              <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </div>
         </div>
       </div>
@@ -116,20 +121,22 @@ const ProtectedLayout = () => {
 };
 
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAppContext();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>;
   }
 
   return (
-    <Routes>
-      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/adicionar-cliente" element={<DelayAddClient />} />
-      <Route path="/visualizar-delay" element={<DelayViewer />} />
-      <Route path="/*" element={<ProtectedLayout />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/adicionar-cliente" element={<DelayAddClient />} />
+        <Route path="/visualizar-delay" element={<DelayViewer />} />
+        <Route path="/*" element={<ProtectedLayout />} />
+      </Routes>
+    </Suspense>
   );
 };
 
@@ -139,7 +146,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <AppRoutes />
+        <AppProvider>
+          <AppRoutes />
+        </AppProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
