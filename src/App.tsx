@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import DigitalClock from "@/components/DigitalClock";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,28 +12,21 @@ import { AppProvider, useAppContext } from "@/hooks/useAppContext";
 import { PaywallScreen } from "@/components/PaywallScreen";
 import { TrialBanner } from "@/components/TrialBanner";
 import { supabase } from "@/integrations/supabase/client";
-
-const Dashboard    = lazy(() => import("./pages/Dashboard"));
-const Index        = lazy(() => import("./pages/Index"));
-const Emprestimos  = lazy(() => import("./pages/Emprestimos"));
-const Relatorios   = lazy(() => import("./pages/Relatorios"));
-const Admin        = lazy(() => import("./pages/Admin"));
-const DelayEsportivo = lazy(() => import("./pages/DelayEsportivo"));
-const DelayDashboard = lazy(() => import("./pages/DelayDashboard"));
-const Configuracoes  = lazy(() => import("./pages/Configuracoes"));
-const Auth           = lazy(() => import("./pages/Auth"));
-const ResetPassword  = lazy(() => import("./pages/ResetPassword"));
-const Perfil         = lazy(() => import("./pages/Perfil"));
-const NotFound       = lazy(() => import("./pages/NotFound"));
-const DelayAddClient = lazy(() => import("./pages/DelayAddClient"));
-const DelayViewer    = lazy(() => import("./pages/DelayViewer"));
-const Declaracoes    = lazy(() => import("./pages/Declaracoes"));
-
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <p className="text-muted-foreground">Carregando...</p>
-  </div>
-);
+import Dashboard from "./pages/Dashboard";
+import Index from "./pages/Index";
+import Emprestimos from "./pages/Emprestimos";
+import Relatorios from "./pages/Relatorios";
+import Admin from "./pages/Admin";
+import DelayEsportivo from "./pages/DelayEsportivo";
+import DelayDashboard from "./pages/DelayDashboard";
+import Configuracoes from "./pages/Configuracoes";
+import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
+import Perfil from "./pages/Perfil";
+import NotFound from "./pages/NotFound";
+import DelayAddClient from "./pages/DelayAddClient";
+import DelayViewer from "./pages/DelayViewer";
+import Declaracoes from "./pages/Declaracoes";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -98,21 +91,19 @@ const ProtectedLayout = () => {
             <DigitalClock />
             <NotificationBell />
           </div>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/financeiro" element={<Index />} />
-              <Route path="/emprestimos" element={<Emprestimos />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/configuracoes" element={<Configuracoes />} />
-              <Route path="/perfil" element={<Perfil />} />
-              <Route path="/admin" element={<AdminRoute />} />
-              <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
-              <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
-              <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/financeiro" element={<Index />} />
+            <Route path="/emprestimos" element={<Emprestimos />} />
+            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/admin" element={<AdminRoute />} />
+            <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
+            <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
+            <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </div>
         </div>
       </div>
@@ -128,15 +119,13 @@ const AppRoutes = () => {
   }
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/adicionar-cliente" element={<DelayAddClient />} />
-        <Route path="/visualizar-delay" element={<DelayViewer />} />
-        <Route path="/*" element={<ProtectedLayout />} />
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/adicionar-cliente" element={<DelayAddClient />} />
+      <Route path="/visualizar-delay" element={<DelayViewer />} />
+      <Route path="/*" element={<ProtectedLayout />} />
+    </Routes>
   );
 };
 
