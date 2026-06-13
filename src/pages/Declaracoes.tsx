@@ -1611,7 +1611,7 @@ END $$;`
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].sort((a, b) => {
-                    const order: Record<string, number> = { doc: 0, deferido: 1, analise: 2, docaut: 3 };
+                    const order: Record<string, number> = { doc: 0, analise: 1, deferido: 2, docaut: 3 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
@@ -1753,7 +1753,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
                   {[...clientes].sort((a, b) => {
-                    const order: Record<string, number> = { doc: 0, deferido: 1, analise: 2, docaut: 3 };
+                    const order: Record<string, number> = { doc: 0, analise: 1, deferido: 2, docaut: 3 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
