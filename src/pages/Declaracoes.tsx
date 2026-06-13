@@ -1292,10 +1292,12 @@ END $$;`
   const fetchClientes = useCallback(async () => {
     try {
       const { data: { user: me } } = await supabase.auth.getUser();
-      let query = supabase.from("declaracao_clientes").select("*");
-      // Admin vê todos; moderador vê somente os seus
-      if (!isAdmin && me?.id) query = query.eq("owner_id", me.id);
-      const { data: rows, error } = await query.order("nome", { ascending: true });
+      // Cada usuário vê apenas os seus próprios clientes
+      const { data: rows, error } = await supabase
+        .from("declaracao_clientes")
+        .select("*")
+        .eq("owner_id", me?.id ?? "")
+        .order("nome", { ascending: true });
 
       if (!error && rows && rows.length > 0) {
         const clientes: Cliente[] = rows.map((r: any) => ({
