@@ -1554,11 +1554,13 @@ export default function Declaracoes() {
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
-                    if ((a.status ?? "doc") === "deferido") {
-                      const da = a.dataEntradaProcesso ? (a.dataDeferimento ? differenceInDays(parseISO(a.dataDeferimento), parseISO(a.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(a.dataEntradaProcesso))) : 9999;
-                      const db = b.dataEntradaProcesso ? (b.dataDeferimento ? differenceInDays(parseISO(b.dataDeferimento), parseISO(b.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(b.dataEntradaProcesso))) : 9999;
-                      return da - db;
-                    }
+                    const calcDays = (c: typeof a) => {
+                      if (!c.dataEntradaProcesso) return 9999;
+                      if (c.status === "deferido" && c.dataDeferimento) return differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso));
+                      return differenceInDays(new Date(), parseISO(c.dataEntradaProcesso));
+                    };
+                    const da = calcDays(a); const db = calcDays(b);
+                    if (da !== db) return da - db;
                     return a.nome.localeCompare(b.nome, "pt-BR");
                   }).map(c => (
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
@@ -1694,11 +1696,13 @@ export default function Declaracoes() {
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
-                    if ((a.status ?? "doc") === "deferido") {
-                      const da = a.dataEntradaProcesso ? (a.dataDeferimento ? differenceInDays(parseISO(a.dataDeferimento), parseISO(a.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(a.dataEntradaProcesso))) : 9999;
-                      const db = b.dataEntradaProcesso ? (b.dataDeferimento ? differenceInDays(parseISO(b.dataDeferimento), parseISO(b.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(b.dataEntradaProcesso))) : 9999;
-                      return da - db;
-                    }
+                    const calcDays = (c: typeof a) => {
+                      if (!c.dataEntradaProcesso) return 9999;
+                      if (c.status === "deferido" && c.dataDeferimento) return differenceInDays(parseISO(c.dataDeferimento), parseISO(c.dataEntradaProcesso));
+                      return differenceInDays(new Date(), parseISO(c.dataEntradaProcesso));
+                    };
+                    const da = calcDays(a); const db = calcDays(b);
+                    if (da !== db) return da - db;
                     return a.nome.localeCompare(b.nome, "pt-BR");
                   }).map(c => (
                     <div key={c.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center px-3 py-2 hover:bg-muted/20 transition-colors">
