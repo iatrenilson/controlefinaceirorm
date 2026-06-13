@@ -1549,7 +1549,18 @@ export default function Declaracoes() {
                 </p>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
+                  {[...clientes].sort((a, b) => {
+                    const order: Record<string, number> = { doc: 0, deferido: 1, analise: 2, docaut: 3 };
+                    const sa = order[a.status ?? "doc"] ?? 0;
+                    const sb = order[b.status ?? "doc"] ?? 0;
+                    if (sa !== sb) return sa - sb;
+                    if ((a.status ?? "doc") === "deferido") {
+                      const da = a.dataEntradaProcesso ? (a.dataDeferimento ? differenceInDays(parseISO(a.dataDeferimento), parseISO(a.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(a.dataEntradaProcesso))) : 9999;
+                      const db = b.dataEntradaProcesso ? (b.dataDeferimento ? differenceInDays(parseISO(b.dataDeferimento), parseISO(b.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(b.dataEntradaProcesso))) : 9999;
+                      return da - db;
+                    }
+                    return a.nome.localeCompare(b.nome, "pt-BR");
+                  }).map(c => (
                     <div key={c.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg">
 
                       {/* Cabeçalho: logo (linha 1) + nome (linha 2) */}
@@ -1678,7 +1689,18 @@ export default function Declaracoes() {
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
-                  {[...clientes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => (
+                  {[...clientes].sort((a, b) => {
+                    const order: Record<string, number> = { doc: 0, deferido: 1, analise: 2, docaut: 3 };
+                    const sa = order[a.status ?? "doc"] ?? 0;
+                    const sb = order[b.status ?? "doc"] ?? 0;
+                    if (sa !== sb) return sa - sb;
+                    if ((a.status ?? "doc") === "deferido") {
+                      const da = a.dataEntradaProcesso ? (a.dataDeferimento ? differenceInDays(parseISO(a.dataDeferimento), parseISO(a.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(a.dataEntradaProcesso))) : 9999;
+                      const db = b.dataEntradaProcesso ? (b.dataDeferimento ? differenceInDays(parseISO(b.dataDeferimento), parseISO(b.dataEntradaProcesso)) : differenceInDays(new Date(), parseISO(b.dataEntradaProcesso))) : 9999;
+                      return da - db;
+                    }
+                    return a.nome.localeCompare(b.nome, "pt-BR");
+                  }).map(c => (
                     <div key={c.id} className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center px-3 py-2 hover:bg-muted/20 transition-colors">
                       {/* Nome */}
                       <p className="text-xs font-bold uppercase truncate">{c.nome}</p>

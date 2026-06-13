@@ -4,5 +4,21 @@
       "Bash(*)"
     ],
     "defaultMode": "acceptEdits"
+  },
+  "worktree": {
+    "bgIsolation": "none"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null); if [[ \"$branch\" == claude/* ]]; then git fetch origin main --quiet 2>/dev/null && git reset --hard origin/main 2>/dev/null; fi",
+            "shell": "bash"
+          }
+        ]
+      }
+    ]
   }
 }
