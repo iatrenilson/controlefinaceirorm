@@ -1292,12 +1292,19 @@ END $$;`
   const fetchClientes = useCallback(async () => {
     try {
       const { data: { user: me } } = await supabase.auth.getUser();
-      // Cada usuário vê apenas os seus próprios clientes
+      const myId = me?.id ?? "";
+      // Busca clientes próprios + legados sem dono (owner_id NULL)
       const { data: rows, error } = await supabase
         .from("declaracao_clientes")
         .select("*")
-        .eq("owner_id", me?.id ?? "")
+        .or(`owner_id.eq.${myId},owner_id.is.null`)
         .order("nome", { ascending: true });
+      // Atribui automaticamente os legados (sem owner_id) ao usuário atual
+      if (!error && rows && myId) {
+        const unclaimed = rows.filter((r: any) => !r.owner_id).map((r: any) => r.id);
+        if (unclaimed.length > 0)
+          await supabase.from("declaracao_clientes").update({ owner_id: myId }).in("id", unclaimed);
+      }
 
       if (!error && rows && rows.length > 0) {
         const clientes: Cliente[] = rows.map((r: any) => ({
