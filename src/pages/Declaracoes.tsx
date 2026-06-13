@@ -62,6 +62,7 @@ interface Cliente {
   dataDeferimento: string;
   status?: ClienteStatus;
   status2?: ClienteStatus;
+  owner_id?: string;
 }
 
 type ClienteForm = Omit<Cliente, "id">;
@@ -823,6 +824,39 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
 export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+  }, []);
+
+  // Migração: adiciona owner_id e atualiza RLS para isolar clientes por moderador
+  useEffect(() => {
+    supabase.functions.invoke("run-migration", {
+      body: {
+        sql: `DO $$ BEGIN
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id);
+  DROP POLICY IF EXISTS "Admins and moderators can select declaracao_clientes" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Admins and moderators can insert declaracao_clientes" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Admins and moderators can update declaracao_clientes" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Admins and moderators can delete declaracao_clientes" ON public.declaracao_clientes;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins select') THEN
+    CREATE POLICY "Owners or admins select" ON public.declaracao_clientes FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins insert') THEN
+    CREATE POLICY "Owners or admins insert" ON public.declaracao_clientes FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins update') THEN
+    CREATE POLICY "Owners or admins update" ON public.declaracao_clientes FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins delete') THEN
+    CREATE POLICY "Owners or admins delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  END IF;
+  PERFORM pg_notify('pgrst', 'reload schema');
+END $$;`
+      }
+    }).catch(() => {});
+  }, []);
 
   // Auto-provisiona papel de moderador para glendaleite88@gmail.com
   useEffect(() => {
@@ -1257,11 +1291,11 @@ export default function Declaracoes() {
 
   const fetchClientes = useCallback(async () => {
     try {
-      // Lê da tabela compartilhada (admin e moderador têm acesso)
-      const { data: rows, error } = await supabase
-        .from("declaracao_clientes")
-        .select("*")
-        .order("nome", { ascending: true });
+      const { data: { user: me } } = await supabase.auth.getUser();
+      let query = supabase.from("declaracao_clientes").select("*");
+      // Admin vê todos; moderador vê somente os seus
+      if (!isAdmin && me?.id) query = query.eq("owner_id", me.id);
+      const { data: rows, error } = await query.order("nome", { ascending: true });
 
       if (!error && rows && rows.length > 0) {
         const clientes: Cliente[] = rows.map((r: any) => ({
@@ -1287,6 +1321,7 @@ export default function Declaracoes() {
           dataDeferimento: r.data_deferimento ?? "",
           status: (r.status ?? "doc") as ClienteStatus,
           status2: (r.status2 ?? "doc") as ClienteStatus,
+          owner_id: r.owner_id ?? undefined,
         }));
         setClientes(clientes);
 
@@ -1327,7 +1362,7 @@ export default function Declaracoes() {
       setClientes([]);
     }
     setLoadingClientes(false);
-  }, [saveClientesToCloud]);
+  }, [saveClientesToCloud, isAdmin]);
 
   useEffect(() => { fetchClientes(); }, [fetchClientes]);
 
@@ -1377,7 +1412,7 @@ export default function Declaracoes() {
         const { error } = await supabase.from("declaracao_clientes").update(p).eq("id", editandoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("declaracao_clientes").insert(p);
+        const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: userId });
         if (error) throw error;
       }
     };
