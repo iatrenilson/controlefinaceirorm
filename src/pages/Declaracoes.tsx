@@ -912,9 +912,13 @@ END $$;`
     })();
   }, [isAdmin]);
 
-  // Clientes cadastrados
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loadingClientes, setLoadingClientes] = useState(true);
+  // Clientes cadastrados — inicia do cache para não piscar "Carregando" ao voltar
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("decl_clientes_cache") ?? "[]"); } catch { return []; }
+  });
+  const [loadingClientes, setLoadingClientes] = useState(
+    () => sessionStorage.getItem("decl_clientes_cache") === null
+  );
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [mostrarClientes, setMostrarClientes] = useState(true);
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
@@ -1351,6 +1355,7 @@ END $$;`
           owner_id: r.owner_id ?? undefined,
         }));
         setClientes(clientes);
+        try { sessionStorage.setItem("decl_clientes_cache", JSON.stringify(clientes)); } catch {}
 
         // Migra dados antigos do user_metadata se existirem
         const { data: { user } } = await supabase.auth.getUser();
@@ -1383,10 +1388,11 @@ END $$;`
           }
         } else {
           setClientes([]);
+          try { sessionStorage.setItem("decl_clientes_cache", "[]"); } catch {}
         }
       }
     } catch {
-      setClientes([]);
+      // mantém dados cacheados em caso de erro de rede
     }
     setLoadingClientes(false);
   }, [saveClientesToCloud, isAdmin]);
