@@ -15,3 +15,5 @@ export const FinanceiroChart: React.FC<FinanceiroChartProps> = ({ data }) => {
     </div>
   );
 };
+
+export default FinanceiroChart;
