@@ -2424,7 +2424,7 @@ const DelayEsportivo = () => {
 
 
         {/* Client Cards / Table */}
-        {loading ? (
+        {loading && clientes.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Carregando...</p>
         ) : deferredFiltered.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">Nenhum cliente encontrado.</p>

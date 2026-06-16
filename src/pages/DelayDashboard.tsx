@@ -79,7 +79,6 @@ const DelayDashboard = () => {
 
   useEffect(() => {
     const fetchData = async (attempt = 1) => {
-      setLoading(true);
       const [{ data: clientesData, error: e1 }, { data: transData, error: e2 }] = await Promise.all([
         supabase.from("delay_clientes").select("*").neq("status", "system"),
         supabase.from("delay_transacoes").select("*").order("data_transacao", { ascending: true }),
@@ -268,7 +267,7 @@ const DelayDashboard = () => {
       });
   }, [transacoesFiltradas]);
 
-  if (loading) {
+  if (loading && clientes.length === 0 && transacoes.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Carregando dashboard...</p>

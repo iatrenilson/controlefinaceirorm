@@ -1609,7 +1609,7 @@ END $$;`
           </CardHeader>
           {mostrarClientes && (
             <CardContent>
-              {loadingClientes ? (
+              {loadingClientes && clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
               ) : clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">

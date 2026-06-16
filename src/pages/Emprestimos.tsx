@@ -1122,7 +1122,7 @@ const Emprestimos = () => {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            {loading ? (
+            {loading && clientes.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>
             ) : (
               <>
