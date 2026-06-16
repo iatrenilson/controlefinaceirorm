@@ -741,10 +741,10 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     imgEl.src = att.dataUrl;
     await new Promise<void>(r => { imgEl.onload = () => r(); });
     const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
-    const maxImgW = 170, maxImgH = 245;
+    const maxImgW = 170, maxImgH = 268;
     let dw = maxImgW, dh = maxImgW / ratio;
     if (dh > maxImgH) { dh = maxImgH; dw = maxImgH * ratio; }
-    const dx = (W - dw) / 2, dy = 25 + (245 - dh) / 2;
+    const dx = (W - dw) / 2, dy = 22;
     doc.addImage(att.dataUrl, "JPEG", dx, dy, dw, dh);
   }
 
