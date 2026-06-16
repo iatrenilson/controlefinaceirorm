@@ -355,13 +355,21 @@ const DelayEsportivo = () => {
     () => sessionStorage.getItem("delay_clientes_cache") === null
   );
   const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
-  const [filtroCasa, setFiltroCasa] = useState("todas");
-  const [periodo, setPeriodo] = useState<Periodo>("diario");
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>(
+    () => (sessionStorage.getItem("delay_filtro_status") as FiltroStatus) || "ativos"
+  );
+  const [filtroCasa, setFiltroCasa] = useState(
+    () => sessionStorage.getItem("delay_filtro_casa") || "todas"
+  );
+  const [periodo, setPeriodo] = useState<Periodo>(
+    () => (sessionStorage.getItem("delay_periodo") as Periodo) || "diario"
+  );
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showSenha, setShowSenha] = useState<Record<string, boolean>>({});
   const [hideAllCredentials, setHideAllCredentials] = useState(false);
-  const [sortMode, setSortMode] = useState<"recentes" | "az">("recentes");
+  const [sortMode, setSortMode] = useState<"recentes" | "az">(
+    () => (sessionStorage.getItem("delay_sort_mode") as "recentes" | "az") || "recentes"
+  );
   const [showSearch, setShowSearch] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [notasOpen, setNotasOpen] = useState(false);
@@ -369,12 +377,18 @@ const DelayEsportivo = () => {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [layoutCols, setLayoutCols] = useState<3 | 4>(3);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-  
+  const [viewMode, setViewMode] = useState<"cards" | "table">(
+    () => (sessionStorage.getItem("delay_view_mode") as "cards" | "table") || "cards"
+  );
+
   const [filtroDataSaque, setFiltroDataSaque] = useState<Date | undefined>(undefined);
   const [filtroDataSaqueOpen, setFiltroDataSaqueOpen] = useState(false);
-  const [filtroNick, setFiltroNick] = useState<string>("todos");
-  const [quickFilter, setQuickFilter] = useState<string[]>(["operando"]);
+  const [filtroNick, setFiltroNick] = useState<string>(
+    () => sessionStorage.getItem("delay_filtro_nick") || "todos"
+  );
+  const [quickFilter, setQuickFilter] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("delay_quick_filter") ?? '["operando"]'); } catch { return ["operando"]; }
+  });
   const qf = (f: string) => quickFilter.includes(f);
   const toggleFilter = (f: string, ctrl: boolean) => {
     if (f === "all") { setQuickFilter(["all"]); return; }
@@ -555,6 +569,17 @@ const DelayEsportivo = () => {
       setLoading(false);
     }
   }, [toast]);
+
+  // Persiste filtros/aba ativos para restaurar ao voltar para a aba do browser
+  useEffect(() => {
+    sessionStorage.setItem("delay_filtro_status", filtroStatus);
+    sessionStorage.setItem("delay_filtro_casa", filtroCasa);
+    sessionStorage.setItem("delay_periodo", periodo);
+    sessionStorage.setItem("delay_sort_mode", sortMode);
+    sessionStorage.setItem("delay_view_mode", viewMode);
+    sessionStorage.setItem("delay_filtro_nick", filtroNick);
+    try { sessionStorage.setItem("delay_quick_filter", JSON.stringify(quickFilter)); } catch {}
+  }, [filtroStatus, filtroCasa, periodo, sortMode, viewMode, filtroNick, quickFilter]);
 
   const fetchAllTransacoes = useCallback(async () => {
     const { data } = await supabase
