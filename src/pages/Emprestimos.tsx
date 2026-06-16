@@ -35,8 +35,12 @@ interface Cliente {
 const Emprestimos = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("emprestimos_cache") ?? "[]"); } catch { return []; }
+  });
+  const [loading, setLoading] = useState(
+    () => sessionStorage.getItem("emprestimos_cache") === null
+  );
   const [paidJurosIds, setPaidJurosIds] = useState<Set<string>>(new Set());
   const [originalDates, setOriginalDates] = useState<Map<string, string>>(new Map());
 
@@ -117,8 +121,7 @@ const Emprestimos = () => {
       return;
     }
 
-    setClientes(
-      (data || []).map((d: any) => ({
+    const mapped = (data || []).map((d: any) => ({
         id: d.id,
         nome: d.nome,
         valor: Number(d.valor),
@@ -128,8 +131,9 @@ const Emprestimos = () => {
         dataPagamento: d.data_pagamento,
         parcelas: Number(d.parcelas) || 1,
         parcelaAtual: Number(d.parcela_atual) || 1,
-      }))
-    );
+      }));
+    setClientes(mapped);
+    try { sessionStorage.setItem("emprestimos_cache", JSON.stringify(mapped)); } catch {}
     setLoading(false);
   };
 

@@ -348,8 +348,12 @@ const DelayEsportivo = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
-  const [clientes, setClientes] = useState<DelayCliente[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [clientes, setClientes] = useState<DelayCliente[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("delay_clientes_cache") ?? "[]"); } catch { return []; }
+  });
+  const [loading, setLoading] = useState(
+    () => sessionStorage.getItem("delay_clientes_cache") === null
+  );
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("ativos");
   const [filtroCasa, setFiltroCasa] = useState("todas");
@@ -544,7 +548,9 @@ const DelayEsportivo = () => {
         return;
       }
 
-      setClientes((data as unknown as DelayCliente[]) || []);
+      const result = (data as unknown as DelayCliente[]) || [];
+      setClientes(result);
+      try { sessionStorage.setItem("delay_clientes_cache", JSON.stringify(result)); } catch {}
     } finally {
       setLoading(false);
     }

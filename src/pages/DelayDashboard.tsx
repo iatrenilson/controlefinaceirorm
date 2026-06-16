@@ -64,9 +64,15 @@ const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const DelayDashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [clientes, setClientes] = useState<DelayCliente[]>([]);
-  const [transacoes, setTransacoes] = useState<DelayTransacao[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [clientes, setClientes] = useState<DelayCliente[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("delay_dash_clientes") ?? "[]"); } catch { return []; }
+  });
+  const [transacoes, setTransacoes] = useState<DelayTransacao[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem("delay_dash_transacoes") ?? "[]"); } catch { return []; }
+  });
+  const [loading, setLoading] = useState(
+    () => sessionStorage.getItem("delay_dash_clientes") === null
+  );
   const [periodoFiltro, setPeriodoFiltro] = useState("todos");
   const [lucroDiaDate, setLucroDiaDate] = useState<Date>(new Date());
   const [bankBalances, setBankBalances] = useState<{ santander: number; c6: number }>({ santander: 0, c6: 0 });
@@ -86,8 +92,14 @@ const DelayDashboard = () => {
       if (e1 && attempt >= 3) toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(e1), variant: "destructive" });
       if (e2 && attempt >= 3) toast({ title: "Erro ao carregar transações", description: getSafeErrorMessage(e2), variant: "destructive" });
 
-      setClientes((clientesData as unknown as DelayCliente[]) || []);
-      setTransacoes((transData as unknown as DelayTransacao[]) || []);
+      const c = (clientesData as unknown as DelayCliente[]) || [];
+      const t = (transData as unknown as DelayTransacao[]) || [];
+      setClientes(c);
+      setTransacoes(t);
+      try {
+        sessionStorage.setItem("delay_dash_clientes", JSON.stringify(c));
+        sessionStorage.setItem("delay_dash_transacoes", JSON.stringify(t));
+      } catch {}
 
       // Fetch bank balances
       if (user) {
