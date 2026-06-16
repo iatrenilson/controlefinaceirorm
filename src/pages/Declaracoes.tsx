@@ -732,11 +732,10 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   // Páginas 2+ — imagens pré-comprimidas (RG e comprovante)
   for (const att of attachmentList) {
     doc.addPage();
-    // Título do anexo no topo
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(att.label, W / 2, 15, { align: "center" });
+    // Título do anexo no topo — esquerda, sem negrito
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.text(att.label, ML, 15);
     // Imagem centralizada no espaço restante (abaixo do título)
     const imgEl = document.createElement("img");
     imgEl.src = att.dataUrl;
