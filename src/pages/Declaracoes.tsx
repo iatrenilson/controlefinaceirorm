@@ -503,7 +503,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   doc.setFontSize(12);
 
   const comp = data.complemento.trim() ? ` ${data.complemento.toUpperCase()},` : "";
-  const enderecoStr = `${data.endereco.toUpperCase()} ${data.numero.toUpperCase()},${comp} ${data.bairro.toUpperCase()}, ${cidadeEstado} - CEP: ${data.cep}`;
+  const enderecoStr = `${data.endereco.toUpperCase()}, ${data.numero.toUpperCase()} -${comp} ${data.bairro.toUpperCase()}, ${cidadeEstado} - CEP: ${data.cep}`;
 
   const finalidade = tipo === "aquisicao"
     ? "Autorização para Aquisição de Arma de Fogo"
