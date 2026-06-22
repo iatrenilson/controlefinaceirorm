@@ -731,9 +731,26 @@ const DelayEsportivo = () => {
 
   const mesesDisponiveisLucro = useMemo(() => {
     const set = new Set<string>();
+    set.add(format(new Date(), "yyyy-MM")); // sempre inclui mês atual mesmo sem transações
     allTransacoes.forEach(t => { if (t.data_transacao) set.add(t.data_transacao.slice(0, 7)); });
     return Array.from(set).sort().reverse();
   }, [allTransacoes]);
+
+  const monthlyOperando = useMemo(() => {
+    const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
+    const ids = new Set(allTransacoes
+      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && t.tipo === "deposito")
+      .map(t => t.cliente_id));
+    return ids.size;
+  }, [allTransacoes, clientes, mesSelecionado]);
+
+  const monthlySaquePendente = useMemo(() => {
+    const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
+    const ids = new Set(allTransacoes
+      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && (t.tipo === "saque" || t.tipo === "devolucao"))
+      .map(t => t.cliente_id));
+    return ids.size;
+  }, [allTransacoes, clientes, mesSelecionado]);
 
   const monthlyLucro = useMemo(() => {
     const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
@@ -2078,27 +2095,72 @@ const DelayEsportivo = () => {
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Operando</p>
-                  <p className="text-lg font-bold font-mono">{stats.ativas}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente</p>
-                  <p className="text-lg font-bold font-mono text-orange-400">{stats.saquePendente}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos</p>
-                  <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
-                </div>
-              </div>
+              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
+                    <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Operando <span className="text-primary">▾</span></p>
+                      <p className="text-lg font-bold font-mono">{monthlyOperando}</p>
+                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="start">
+                  <div className="max-h-52 overflow-y-auto space-y-0.5">
+                    {mesesDisponiveisLucro.map(m => (
+                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
+                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
+                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
+                    <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente <span className="text-primary">▾</span></p>
+                      <p className="text-lg font-bold font-mono text-orange-400">{monthlySaquePendente}</p>
+                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="center">
+                  <div className="max-h-52 overflow-y-auto space-y-0.5">
+                    {mesesDisponiveisLucro.map(m => (
+                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
+                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
+                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
+                    <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos <span className="text-primary">▾</span></p>
+                      <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
+                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="center">
+                  <div className="max-h-52 overflow-y-auto space-y-0.5">
+                    {mesesDisponiveisLucro.map(m => (
+                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
+                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
+                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
                 <PopoverTrigger asChild>
                   <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity" title="Clique para selecionar o mês">
