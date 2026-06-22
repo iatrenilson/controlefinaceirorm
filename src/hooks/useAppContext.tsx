@@ -37,7 +37,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Auth listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      // Preserve object reference when same user — prevents re-fetch of roles/subscriptions on TOKEN_REFRESHED
+      setUser(prev => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev;
+        return next;
+      });
       setAuthLoading(false);
     });
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -45,7 +50,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         supabase.auth.signOut();
         setUser(null);
       } else {
-        setUser(session?.user ?? null);
+        setUser(prev => {
+          const next = session?.user ?? null;
+          if (prev?.id === next?.id) return prev;
+          return next;
+        });
       }
       setAuthLoading(false);
     });
@@ -103,7 +112,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       setDataLoading(false);
     });
-  }, [user, authLoading]);
+  }, [user?.id, authLoading]);
 
   const loading = authLoading || dataLoading;
 
