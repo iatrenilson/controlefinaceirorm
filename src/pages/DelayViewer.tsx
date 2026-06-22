@@ -305,30 +305,17 @@ const DelayViewer = () => {
     if (!editDialog) return;
     setEditLoading(true);
     try {
-      // Escapa literais SQL (PostgreSQL: dobra aspas simples)
-      const esc = (v: string | null) => v === null ? "NULL" : `'${v.replace(/'/g, "''")}'`;
-
-      const nome = esc(editFields.nome.trim() || editDialog.nome);
-      const login = esc(editFields.login.trim() || null);
-      const senha = esc(editFields.senha.trim() || null);
-      const bancoDep = esc(editFields.banco_deposito.trim() || null);
-      const infoAdic = esc(editFields.informacoes_adicionais.trim() || null);
-      const clienteId = esc(editDialog.id);
-      const tokenEsc = esc(token);
-
-      const sql = `UPDATE delay_clientes SET nome=${nome}, login=${login}, senha=${senha}, banco_deposito=${bancoDep}, informacoes_adicionais=${infoAdic}, updated_at=now() WHERE id=${clienteId}::uuid AND user_id=(SELECT user_id FROM delay_share_links WHERE token=${tokenEsc} AND ativo=true)`;
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/run-migration`, {
-        method: "POST",
-        headers: {
-          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ sql }),
+      const { data, error } = await supabase.rpc("update_cliente_via_token", {
+        p_token: token,
+        p_cliente_id: editDialog.id,
+        p_nome: editFields.nome.trim() || editDialog.nome,
+        p_login: editFields.login.trim(),
+        p_senha: editFields.senha.trim(),
+        p_banco_deposito: editFields.banco_deposito.trim(),
+        p_informacoes_adicionais: editFields.informacoes_adicionais.trim(),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Erro ao salvar");
+      if (error) throw error;
+      if (data === false) throw new Error("Token inválido ou cliente não encontrado");
       toast({ title: "Cliente atualizado!" });
       setEditDialog(null);
       fetchClientesSilent();
