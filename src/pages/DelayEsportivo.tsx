@@ -373,6 +373,7 @@ const DelayEsportivo = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [lucroMesOpen, setLucroMesOpen] = useState(false);
+  const [lucroDetalheOpen, setLucroDetalheOpen] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState(() => format(new Date(), "yyyy-MM"));
   const [operandoDialogOpen, setOperandoDialogOpen] = useState(false);
   const [saquePendenteDialogOpen, setSaquePendenteDialogOpen] = useState(false);
@@ -2157,6 +2158,40 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Dialog: Lucro do Mês — detalhe por conta */}
+        <Dialog open={lucroDetalheOpen} onOpenChange={setLucroDetalheOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-yellow-500" />
+                Lucro — {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {(() => {
+                const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
+                const porCliente = new Map<string, { nome: string; lucro: number }>();
+                allTransacoes
+                  .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && (t.tipo === "saque" || t.tipo === "devolucao") && t.lucro > 0)
+                  .forEach(t => {
+                    const c = clientes.find(cl => cl.id === t.cliente_id);
+                    if (!c) return;
+                    const prev = porCliente.get(t.cliente_id) ?? { nome: c.nome, lucro: 0 };
+                    porCliente.set(t.cliente_id, { nome: c.nome, lucro: prev.lucro + t.lucro });
+                  });
+                const lista = Array.from(porCliente.values()).sort((a, b) => b.lucro - a.lucro);
+                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum lucro registrado neste mês.</p>;
+                return lista.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+                    <span className="font-medium">{item.nome}</span>
+                    <span className="font-mono text-primary">+R$ {item.lucro.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
@@ -2185,40 +2220,38 @@ const DelayEsportivo = () => {
                   <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMM/yyyy", { locale: ptBR })}</p>
                 </div>
               </div>
-              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
-                <PopoverTrigger asChild>
-                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity" title="Clique para selecionar o mês">
-                    <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+              <div className="flex items-center justify-center gap-2.5">
+                <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
+                <div>
+                  {/* ▾ abre seletor de mês */}
+                  <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
+                    <PopoverTrigger asChild>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-primary transition-colors select-none">
                         Lucro do Mês <span className="text-primary">▾</span>
                       </p>
-                      <p className={`text-lg font-bold font-mono ${monthlyLucro >= 0 ? "text-primary" : "text-destructive"}`}>
-                        {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
-                      </p>
-                      <p className="text-[8px] text-muted-foreground mt-0.5">
-                        {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMM/yyyy", { locale: ptBR })}
-                      </p>
-                    </div>
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-44 p-1" align="end">
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {mesesDisponiveisLucro.length === 0 && (
-                      <p className="text-xs text-muted-foreground px-2 py-1">Sem dados</p>
-                    )}
-                    {mesesDisponiveisLucro.map(m => (
-                      <button
-                        key={m}
-                        className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
-                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}
-                      >
-                        {format(new Date(+m.slice(0,4), +m.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-44 p-1" align="end">
+                      <div className="max-h-52 overflow-y-auto space-y-0.5">
+                        {mesesDisponiveisLucro.map(m => (
+                          <button key={m}
+                            className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
+                            onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
+                            {format(new Date(+m.slice(0,4), +m.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {/* valor — clique para ver as contas */}
+                  <p className={`text-lg font-bold font-mono cursor-pointer hover:opacity-75 transition-opacity ${monthlyLucro >= 0 ? "text-primary" : "text-destructive"}`}
+                    onClick={() => setLucroDetalheOpen(true)}>
+                    {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
+                  </p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5">
+                    {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMM/yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
