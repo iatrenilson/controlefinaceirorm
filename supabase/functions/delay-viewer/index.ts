@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
 
       const body = await req.json().catch(() => ({}));
 
-      // Se tem cliente_id: ação de marcar como queimada
+      // Se tem cliente_id: ação de update
       if (body.cliente_id) {
         const { data: ld, error: le } = await supabase
           .from("delay_share_links").select("id, user_id, ativo").eq("token", token).single();
@@ -156,6 +156,28 @@ Deno.serve(async (req) => {
             status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
+        // Edição de campos do cliente (nome, login, senha, banco_deposito, informacoes_adicionais)
+        if (body.edit_fields) {
+          const allowed = ["nome", "login", "senha", "banco_deposito", "informacoes_adicionais"];
+          const editPayload: Record<string, any> = { updated_at: new Date().toISOString() };
+          for (const key of allowed) {
+            if (key in body.edit_fields) {
+              editPayload[key] = body.edit_fields[key] ?? null;
+            }
+          }
+          const { error: ue } = await supabase
+            .from("delay_clientes")
+            .update(editPayload)
+            .eq("id", body.cliente_id)
+            .eq("user_id", ld.user_id);
+          if (ue) throw ue;
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Marcar como queimada (comportamento original)
         const updatePayload: Record<string, any> = {
           status: "saque_pendente",
           operacao: "saque_pendente",

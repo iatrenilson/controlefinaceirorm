@@ -42,3 +42,17 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           force_orphan: true
+
+      - name: Deploy Edge Functions (Supabase)
+        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        continue-on-error: true
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy delay-viewer function
+        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        continue-on-error: true
+        run: supabase functions deploy delay-viewer --project-ref ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

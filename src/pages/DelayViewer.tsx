@@ -305,18 +305,27 @@ const DelayViewer = () => {
     if (!editDialog) return;
     setEditLoading(true);
     try {
-      const { error } = await supabase
-        .from("delay_clientes")
-        .update({
-          nome: editFields.nome.trim() || editDialog.nome,
-          login: editFields.login.trim() || null,
-          senha: editFields.senha.trim() || null,
-          banco_deposito: editFields.banco_deposito.trim() || null,
-          informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editDialog.id);
-      if (error) throw error;
+      // Usa Edge Function com service_role para contornar RLS no contexto de link externo
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delay-viewer?token=${token}&_t=${Date.now()}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cliente_id: editDialog.id,
+          edit_fields: {
+            nome: editFields.nome.trim() || editDialog.nome,
+            login: editFields.login.trim() || null,
+            senha: editFields.senha.trim() || null,
+            banco_deposito: editFields.banco_deposito.trim() || null,
+            informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao salvar");
       toast({ title: "Cliente atualizado!" });
       setEditDialog(null);
       fetchClientesSilent();
