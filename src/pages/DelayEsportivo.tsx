@@ -2136,24 +2136,36 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Contas com Custos */}
+        {/* Dialog: Contas com Custos (filtrado pelo mês selecionado) */}
         <Dialog open={custosDialogOpen} onOpenChange={setCustosDialogOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-red-400" /> Contas com Custos</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-red-400" />
+                Custos — {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {clientes.filter(c => c.status !== "system" && (c.custos ?? 0) > 0).length === 0
-                ? <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta com custo.</p>
-                : clientes.filter(c => c.status !== "system" && (c.custos ?? 0) > 0)
-                    .sort((a, b) => (b.custos ?? 0) - (a.custos ?? 0))
-                    .map(c => (
-                      <div key={c.id} className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm">
-                        <span className="font-medium">{c.nome}</span>
-                        <span className="font-mono text-red-400">R$ {(c.custos ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    ))
-              }
+              {(() => {
+                const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
+                const porCliente = new Map<string, { nome: string; custo: number }>();
+                allTransacoes
+                  .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && (t.tipo === "saque" || t.tipo === "devolucao") && (t.custo ?? 0) > 0)
+                  .forEach(t => {
+                    const c = clientes.find(cl => cl.id === t.cliente_id);
+                    if (!c) return;
+                    const prev = porCliente.get(t.cliente_id) ?? { nome: c.nome, custo: 0 };
+                    porCliente.set(t.cliente_id, { nome: c.nome, custo: prev.custo + (t.custo ?? 0) });
+                  });
+                const lista = Array.from(porCliente.values()).sort((a, b) => b.custo - a.custo);
+                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum custo neste mês.</p>;
+                return lista.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm">
+                    <span className="font-medium">{item.nome}</span>
+                    <span className="font-mono text-red-400">R$ {item.custo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ));
+              })()}
             </div>
           </DialogContent>
         </Dialog>
