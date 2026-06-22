@@ -276,21 +276,17 @@ const DelayAddClient = () => {
     if (!editDialog) return;
     setEditLoading(true);
     try {
-      const res = await fetch(apiUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          client_id: editDialog.id,
-          nome: editFields.nome.trim() || editDialog.nome,
-          login: editFields.login.trim() || null,
-          senha: editFields.senha.trim() || null,
-          informacoes_adicionais: editFields.informacoes_adicionais.trim() || null,
-          banco_deposito: editFields.banco_deposito.trim() || null,
-        }),
+      const { data, error } = await supabase.rpc("update_cliente_via_token", {
+        p_token: token,
+        p_cliente_id: editDialog.id,
+        p_nome: editFields.nome.trim() || editDialog.nome,
+        p_login: editFields.login.trim(),
+        p_senha: editFields.senha.trim(),
+        p_banco_deposito: editFields.banco_deposito.trim(),
+        p_informacoes_adicionais: editFields.informacoes_adicionais.trim(),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erro ao salvar");
+      if (error) throw error;
+      if (data === false) throw new Error("Token inválido");
       toast({ title: "Cliente atualizado!" });
       setEditDialog(null);
       fetchClientes(true);
