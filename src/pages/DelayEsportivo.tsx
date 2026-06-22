@@ -2196,7 +2196,7 @@ const DelayEsportivo = () => {
                         {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
                       </p>
                       <p className="text-[8px] text-muted-foreground mt-0.5">
-                        {format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}
+                        {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMM/yyyy", { locale: ptBR })}
                       </p>
                     </div>
                   </div>
@@ -2212,7 +2212,7 @@ const DelayEsportivo = () => {
                         className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
                         onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}
                       >
-                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
+                        {format(new Date(+m.slice(0,4), +m.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
                       </button>
                     ))}
                   </div>
