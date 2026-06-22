@@ -374,6 +374,9 @@ const DelayEsportivo = () => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [lucroMesOpen, setLucroMesOpen] = useState(false);
   const [mesSelecionado, setMesSelecionado] = useState(() => format(new Date(), "yyyy-MM"));
+  const [operandoDialogOpen, setOperandoDialogOpen] = useState(false);
+  const [saquePendenteDialogOpen, setSaquePendenteDialogOpen] = useState(false);
+  const [custosDialogOpen, setCustosDialogOpen] = useState(false);
   const [notasOpen, setNotasOpen] = useState(false);
   const [notasTexto, setNotasTexto] = useState(() => localStorage.getItem("delay_notas") || "");
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
@@ -2092,75 +2095,95 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Dialog: Quem está Operando */}
+        <Dialog open={operandoDialogOpen} onOpenChange={setOperandoDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Operando ({stats.ativas})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {clientes.filter(c => c.status !== "system" && c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0).length === 0
+                ? <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente operando.</p>
+                : clientes.filter(c => c.status !== "system" && c.depositos > 0 && c.saques === 0 && c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) <= 0).map(c => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
+                    <span className="font-medium">{c.nome}</span>
+                    <span className="font-mono text-primary">R$ {c.depositos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Saque Pendente */}
+        <Dialog open={saquePendenteDialogOpen} onOpenChange={setSaquePendenteDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /> Saque Pendente ({stats.saquePendente})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {clientes.filter(c => c.status === "saque_pendente").length === 0
+                ? <p className="text-sm text-muted-foreground text-center py-4">Nenhum saque pendente.</p>
+                : clientes.filter(c => c.status === "saque_pendente").map(c => (
+                  <div key={c.id} className="flex items-center justify-between rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-sm">
+                    <span className="font-medium">{c.nome}</span>
+                    <span className="font-mono text-orange-400">R$ {c.depositos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog: Contas com Custos */}
+        <Dialog open={custosDialogOpen} onOpenChange={setCustosDialogOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-red-400" /> Contas com Custos</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {clientes.filter(c => c.status !== "system" && (c.custos ?? 0) > 0).length === 0
+                ? <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta com custo.</p>
+                : clientes.filter(c => c.status !== "system" && (c.custos ?? 0) > 0)
+                    .sort((a, b) => (b.custos ?? 0) - (a.custos ?? 0))
+                    .map(c => (
+                      <div key={c.id} className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm">
+                        <span className="font-medium">{c.nome}</span>
+                        <span className="font-mono text-red-400">R$ {(c.custos ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    ))
+              }
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
-                <PopoverTrigger asChild>
-                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
-                    <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Operando <span className="text-primary">▾</span></p>
-                      <p className="text-lg font-bold font-mono">{monthlyOperando}</p>
-                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
-                    </div>
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-44 p-1" align="start">
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {mesesDisponiveisLucro.map(m => (
-                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
-                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
-                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
-                <PopoverTrigger asChild>
-                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
-                    <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente <span className="text-primary">▾</span></p>
-                      <p className="text-lg font-bold font-mono text-orange-400">{monthlySaquePendente}</p>
-                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
-                    </div>
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-44 p-1" align="center">
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {mesesDisponiveisLucro.map(m => (
-                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
-                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
-                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
-                <PopoverTrigger asChild>
-                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
-                    <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos <span className="text-primary">▾</span></p>
-                      <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
-                      <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}</p>
-                    </div>
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-44 p-1" align="center">
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {mesesDisponiveisLucro.map(m => (
-                      <button key={m} className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
-                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}>
-                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              {/* Operando — clique para ver quem está operando */}
+              <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setOperandoDialogOpen(true)}>
+                <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Operando</p>
+                  <p className="text-lg font-bold font-mono">{stats.ativas}</p>
+                </div>
+              </div>
+              {/* Saque Pendente — clique para ver quem está pendente */}
+              <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setSaquePendenteDialogOpen(true)}>
+                <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Saque Pendente</p>
+                  <p className="text-lg font-bold font-mono text-orange-400">{stats.saquePendente}</p>
+                </div>
+              </div>
+              {/* Custos — clique para ver contas com custo */}
+              <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setCustosDialogOpen(true)}>
+                <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos</p>
+                  <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
+                </div>
+              </div>
               <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
                 <PopoverTrigger asChild>
                   <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity" title="Clique para selecionar o mês">
