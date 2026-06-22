@@ -1274,6 +1274,7 @@ const Emprestimos = () => {
                         <TableHead>Valor a Receber</TableHead>
                         <TableHead>Data Empréstimo</TableHead>
                         <TableHead>Data Pagamento</TableHead>
+                        <TableHead>Telefone</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -1315,6 +1316,7 @@ const Emprestimos = () => {
                               <TableCell className="font-mono font-semibold text-success">R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataEmprestimo), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
+                              <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
                               <TableCell>
                                 <Badge variant={atrasado ? "destructive" : "default"} className={`whitespace-nowrap ${paidJurosIds.has(c.id) ? "bg-blue-600 hover:bg-blue-700 text-white" : !atrasado ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}>
                                   {paidJurosIds.has(c.id) ? "Pago" : atrasado ? "Em atraso" : "Em dia"}
