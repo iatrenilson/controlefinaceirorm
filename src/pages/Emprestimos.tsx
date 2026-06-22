@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Landmark, Calendar as CalendarIcon, CalendarDays, Banknote, Plus, UserPlus, AlertTriangle, Pencil, Trash2, Search, Percent, Wallet, ArrowUpCircle, ArrowDownCircle, CheckCircle, BarChart3, Copy, MessageCircle, Clock, TrendingUp } from "lucide-react";
+import { Landmark, Calendar as CalendarIcon, CalendarDays, Banknote, Plus, UserPlus, AlertTriangle, Pencil, Trash2, Search, Percent, Wallet, ArrowUpCircle, ArrowDownCircle, CheckCircle, BarChart3, Copy, MessageCircle, Clock, TrendingUp, Phone } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +53,7 @@ const Emprestimos = () => {
   const [dataEmprestimo, setDataEmprestimo] = useState<Date>();
   const [dataPagamento, setDataPagamento] = useState<Date>();
   const [numeroParcelas, setNumeroParcelas] = useState("1");
+  const [telefone, setTelefone] = useState("");
 
   // Summary popup state
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -64,6 +65,7 @@ const Emprestimos = () => {
   const [editNome, setEditNome] = useState("");
   const [editValor, setEditValor] = useState("");
   const [editJuros, setEditJuros] = useState("");
+  const [editTelefone, setEditTelefone] = useState("");
   const [editDataEmprestimo, setEditDataEmprestimo] = useState<Date>();
   const [editDataPagamento, setEditDataPagamento] = useState<Date>();
 
@@ -375,6 +377,7 @@ const Emprestimos = () => {
     setNome("");
     setValor("");
     setJuros("");
+    setTelefone("");
     setDataEmprestimo(undefined);
     setDataPagamento(undefined);
     setNumeroParcelas("1");
@@ -394,7 +397,7 @@ const Emprestimos = () => {
       const { error } = await supabase.from("clientes").insert({
         user_id: user.id,
         nome,
-        telefone: "",
+        telefone: telefone.trim(),
         valor: empValor,
         juros: parseFloat(juros),
         data_emprestimo: format(dataEmprestimo, "yyyy-MM-dd"),
@@ -451,6 +454,7 @@ const Emprestimos = () => {
     setEditNome(c.nome);
     setEditValor(String(c.valor));
     setEditJuros(String(c.juros));
+    setEditTelefone(c.telefone || "");
     setEditDataEmprestimo(parseISO(c.dataEmprestimo));
     setEditDataPagamento(parseISO(c.dataPagamento));
     setEditOpen(true);
@@ -464,7 +468,7 @@ const Emprestimos = () => {
       .from("clientes")
       .update({
         nome: editNome,
-        telefone: "",
+        telefone: editTelefone.trim(),
         valor: parseFloat(editValor),
         juros: parseFloat(editJuros),
         data_emprestimo: format(editDataEmprestimo, "yyyy-MM-dd"),
@@ -708,6 +712,10 @@ const Emprestimos = () => {
                   <Input placeholder="Ex: João Silva" value={nome} onChange={(e) => setNome(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Telefone <span className="text-muted-foreground text-xs font-normal">(opcional)</span></Label>
+                  <Input placeholder="Ex: (92) 99999-9999" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                </div>
+                <div className="space-y-2">
                   <Label>Valor do Empréstimo (R$)</Label>
                   <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={valor} onChange={(e) => setValor(e.target.value)} required />
                 </div>
@@ -826,6 +834,10 @@ const Emprestimos = () => {
             <div className="space-y-2">
               <Label>Nome do Cliente</Label>
               <Input placeholder="Ex: João Silva" value={editNome} onChange={(e) => setEditNome(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Telefone <span className="text-muted-foreground text-xs font-normal">(opcional)</span></Label>
+              <Input placeholder="Ex: (92) 99999-9999" value={editTelefone} onChange={(e) => setEditTelefone(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Valor do Empréstimo (R$)</Label>
