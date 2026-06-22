@@ -372,6 +372,8 @@ const DelayEsportivo = () => {
   );
   const [showSearch, setShowSearch] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [lucroMesOpen, setLucroMesOpen] = useState(false);
+  const [mesSelecionado, setMesSelecionado] = useState(() => format(new Date(), "yyyy-MM"));
   const [notasOpen, setNotasOpen] = useState(false);
   const [notasTexto, setNotasTexto] = useState(() => localStorage.getItem("delay_notas") || "");
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
@@ -727,25 +729,28 @@ const DelayEsportivo = () => {
     return { depositos, saques, custos, lucro, totalTrans };
   }, [allTransacoes, periodo, clientes, selectedDate]);
 
+  const mesesDisponiveisLucro = useMemo(() => {
+    const set = new Set<string>();
+    allTransacoes.forEach(t => { if (t.data_transacao) set.add(t.data_transacao.slice(0, 7)); });
+    return Array.from(set).sort().reverse();
+  }, [allTransacoes]);
+
   const monthlyLucro = useMemo(() => {
-    const startStr = format(startOfMonth(new Date()), "yyyy-MM-dd");
     const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
     return allTransacoes
-      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao >= startStr && (t.tipo === "saque" || t.tipo === "devolucao") && t.lucro > 0)
+      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && (t.tipo === "saque" || t.tipo === "devolucao") && t.lucro > 0)
       .reduce((a, t) => a + t.lucro, 0);
-  }, [allTransacoes, clientes]);
+  }, [allTransacoes, clientes, mesSelecionado]);
 
   const monthlyCustos = useMemo(() => {
-    const now = new Date();
-    const startStr = format(startOfMonth(now), "yyyy-MM-dd");
     const clienteIds = new Set(clientes.filter(c => c.status !== "system").map(c => c.id));
     const total = allTransacoes
-      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao >= startStr && (t.tipo === "saque" || t.tipo === "devolucao"))
+      .filter(t => clienteIds.has(t.cliente_id) && t.data_transacao?.slice(0, 7) === mesSelecionado && (t.tipo === "saque" || t.tipo === "devolucao"))
       .reduce((a, t) => a + (t.custo ?? 0), 0);
     // Ajuste pontual abril/2026
-    const isAbril2026 = now.getFullYear() === 2026 && now.getMonth() === 3;
+    const isAbril2026 = mesSelecionado === "2026-04";
     return isAbril2026 ? Math.max(0, total - 778) : total;
-  }, [allTransacoes, clientes]);
+  }, [allTransacoes, clientes, mesSelecionado]);
 
   const fetchTransacoes = async (clienteId: string) => {
     setLoadingTransacoes(true);
@@ -2094,15 +2099,40 @@ const DelayEsportivo = () => {
                   <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
-                <div>
-                  <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Lucro do Mês</p>
-                  <p className={`text-lg font-bold font-mono ${monthlyLucro >= 0 ? "text-primary" : "text-destructive"}`}>
-                    {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
-                  </p>
-                </div>
-              </div>
+              <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity" title="Clique para selecionar o mês">
+                    <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                        Lucro do Mês <span className="text-primary">▾</span>
+                      </p>
+                      <p className={`text-lg font-bold font-mono ${monthlyLucro >= 0 ? "text-primary" : "text-destructive"}`}>
+                        {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
+                      </p>
+                      <p className="text-[8px] text-muted-foreground mt-0.5">
+                        {format(new Date(mesSelecionado + "-01"), "MMM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="end">
+                  <div className="max-h-52 overflow-y-auto space-y-0.5">
+                    {mesesDisponiveisLucro.length === 0 && (
+                      <p className="text-xs text-muted-foreground px-2 py-1">Sem dados</p>
+                    )}
+                    {mesesDisponiveisLucro.map(m => (
+                      <button
+                        key={m}
+                        className={`w-full text-left px-3 py-1.5 text-xs rounded hover:bg-muted transition-colors ${mesSelecionado === m ? "bg-primary/20 text-primary font-semibold" : ""}`}
+                        onClick={() => { setMesSelecionado(m); setLucroMesOpen(false); }}
+                      >
+                        {format(new Date(m + "-01"), "MMMM yyyy", { locale: ptBR })}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </CardContent>
         </Card>
