@@ -2182,6 +2182,7 @@ const DelayEsportivo = () => {
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Custos</p>
                   <p className="text-lg font-bold font-mono text-red-400">{fmt(monthlyCustos)}</p>
+                  <p className="text-[8px] text-muted-foreground mt-0.5">{format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMM/yyyy", { locale: ptBR })}</p>
                 </div>
               </div>
               <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
