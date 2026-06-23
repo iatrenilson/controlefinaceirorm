@@ -711,7 +711,17 @@ const Admin = () => {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-base font-semibold">Clientes Cadastrados</CardTitle>
+                  <div>
+                    <CardTitle className="text-base font-semibold">Clientes Cadastrados</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs font-mono">
+                        Total: {clientDetails.length}
+                      </Badge>
+                      <Badge className="text-xs font-mono bg-destructive/15 text-destructive border-destructive/30">
+                        Em atraso: {clientDetails.filter(c => isPast(parseISO(c.data_pagamento))).length}
+                      </Badge>
+                    </div>
+                  </div>
                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
