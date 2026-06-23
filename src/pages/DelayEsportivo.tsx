@@ -1214,7 +1214,7 @@ const DelayEsportivo = () => {
     const path = (tipo === "visualizador" || tipo === "visualizador_vodka" || tipo === "visualizador_individual") ? "visualizar-delay" : "adicionar-cliente";
     const url = `https://rwinvestimentos.com.br/${path}?token=${token}`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", duration: 1500 });
+    toast({ title: "Link copiado!", duration: 1000 });
   };
 
   const handleRevokeShareLink = async (linkId: string) => {
@@ -1523,7 +1523,7 @@ const DelayEsportivo = () => {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copiado!", duration: 1500 });
+    toast({ title: "Copiado!", duration: 1000 });
   };
 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
