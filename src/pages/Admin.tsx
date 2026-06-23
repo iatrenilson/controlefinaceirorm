@@ -471,7 +471,21 @@ const Admin = () => {
       }
       groups[key].clients.push(c);
     });
-    return Object.values(groups).sort((a, b) => a.email.localeCompare(b.email));
+    return Object.values(groups)
+      .map(g => ({
+        ...g,
+        clients: [...g.clients].sort((a, b) => {
+          const aAtr = isPast(parseISO(a.data_pagamento)) ? 0 : 1;
+          const bAtr = isPast(parseISO(b.data_pagamento)) ? 0 : 1;
+          return aAtr - bAtr;
+        }),
+      }))
+      .sort((a, b) => {
+        const aHasAtr = a.clients.some(c => isPast(parseISO(c.data_pagamento))) ? 0 : 1;
+        const bHasAtr = b.clients.some(c => isPast(parseISO(c.data_pagamento))) ? 0 : 1;
+        if (aHasAtr !== bHasAtr) return aHasAtr - bHasAtr;
+        return a.email.localeCompare(b.email);
+      });
   }, [clientDetails]);
 
   return (
@@ -744,10 +758,19 @@ const Admin = () => {
                   <>
                     {groupedClients.map((group) => (
                       <div key={group.userId} className="space-y-3">
-                        <div className="flex items-center gap-2 pt-3 first:pt-0">
+                        <div className="flex items-center gap-2 pt-3 first:pt-0 flex-wrap">
                           <span className={`inline-block h-2.5 w-2.5 rounded-full ${onlineUsers.has(group.userId) ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" : "bg-muted-foreground/30"}`} />
                           <h3 className="text-sm font-semibold text-foreground">{group.email}</h3>
                           <Badge variant="outline" className="text-xs">{group.clients.length} cliente(s)</Badge>
+                          {(() => {
+                            const totalReceber = group.clients.reduce((sum, c) => sum + c.valor + c.valor * (c.juros / 100), 0);
+                            const temVencido = group.clients.some(c => isPast(parseISO(c.data_pagamento)));
+                            return (
+                              <Badge className={`text-xs font-mono ${temVencido ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-green-500/20 text-green-400 border-green-500/30"}`}>
+                                A receber: R$ {totalReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </Badge>
+                            );
+                          })()}
                         </div>
                         {/* Mobile cards */}
                         <div className="space-y-2 md:hidden">
