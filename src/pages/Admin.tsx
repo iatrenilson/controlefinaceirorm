@@ -776,8 +776,8 @@ const Admin = () => {
                                 <Badge className="text-xs font-mono bg-warning/15 text-warning border-warning/30">
                                   Juros: R$ {fmt(totalJuros)}
                                 </Badge>
-                                <Badge className={`text-xs font-mono ${temVencido ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-green-500/20 text-green-400 border-green-500/30"}`}>
-                                  A receber: R$ {fmt(totalReceber)}
+                                <Badge className="text-xs font-mono bg-green-500/20 text-green-400 border-green-500/30">
+                                  Total com juros: R$ {fmt(totalReceber)}
                                 </Badge>
                               </>
                             );
