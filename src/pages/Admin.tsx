@@ -763,12 +763,23 @@ const Admin = () => {
                           <h3 className="text-sm font-semibold text-foreground">{group.email}</h3>
                           <Badge variant="outline" className="text-xs">{group.clients.length} cliente(s)</Badge>
                           {(() => {
-                            const totalReceber = group.clients.reduce((sum, c) => sum + c.valor + c.valor * (c.juros / 100), 0);
+                            const totalEmprestado = group.clients.reduce((sum, c) => sum + c.valor, 0);
+                            const totalJuros = group.clients.reduce((sum, c) => sum + c.valor * (c.juros / 100), 0);
+                            const totalReceber = totalEmprestado + totalJuros;
                             const temVencido = group.clients.some(c => isPast(parseISO(c.data_pagamento)));
+                            const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
                             return (
-                              <Badge className={`text-xs font-mono ${temVencido ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-green-500/20 text-green-400 border-green-500/30"}`}>
-                                A receber: R$ {totalReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </Badge>
+                              <>
+                                <Badge variant="outline" className="text-xs font-mono text-muted-foreground">
+                                  Emprestado: R$ {fmt(totalEmprestado)}
+                                </Badge>
+                                <Badge className="text-xs font-mono bg-warning/15 text-warning border-warning/30">
+                                  Juros: R$ {fmt(totalJuros)}
+                                </Badge>
+                                <Badge className={`text-xs font-mono ${temVencido ? "bg-destructive/20 text-destructive border-destructive/30" : "bg-green-500/20 text-green-400 border-green-500/30"}`}>
+                                  A receber: R$ {fmt(totalReceber)}
+                                </Badge>
+                              </>
                             );
                           })()}
                         </div>
