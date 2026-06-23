@@ -474,17 +474,14 @@ const Admin = () => {
     return Object.values(groups)
       .map(g => ({
         ...g,
-        clients: [...g.clients].sort((a, b) => {
-          const aAtr = isPast(parseISO(a.data_pagamento)) ? 0 : 1;
-          const bAtr = isPast(parseISO(b.data_pagamento)) ? 0 : 1;
-          return aAtr - bAtr;
-        }),
+        clients: [...g.clients].sort((a, b) =>
+          parseISO(a.data_pagamento).getTime() - parseISO(b.data_pagamento).getTime()
+        ),
       }))
       .sort((a, b) => {
-        const aHasAtr = a.clients.some(c => isPast(parseISO(c.data_pagamento))) ? 0 : 1;
-        const bHasAtr = b.clients.some(c => isPast(parseISO(c.data_pagamento))) ? 0 : 1;
-        if (aHasAtr !== bHasAtr) return aHasAtr - bHasAtr;
-        return a.email.localeCompare(b.email);
+        const aNext = Math.min(...a.clients.map(c => parseISO(c.data_pagamento).getTime()));
+        const bNext = Math.min(...b.clients.map(c => parseISO(c.data_pagamento).getTime()));
+        return aNext - bNext;
       });
   }, [clientDetails]);
 
