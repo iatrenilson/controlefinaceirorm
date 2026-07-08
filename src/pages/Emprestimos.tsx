@@ -520,10 +520,10 @@ const Emprestimos = () => {
     fetchTransactions();
   };
 
-  const gerarMensagemConfirmacaoJuros = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }, _novaDataPagamento: string) => {
+  const gerarMensagemConfirmacaoJuros = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }, novaDataPagamento: string) => {
     const valorJuros = cliente.valor * (cliente.juros / 100);
-    const dataFmt = format(parseISO(cliente.dataPagamento), "dd/MM/yyyy");
-    return `Olá, ${cliente.nome}! Tudo bem?\n\nPassando para lembrar que o pagamento dos juros no valor de R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}, com vencimento em ${dataFmt}, ainda está em aberto.\n\nSe já realizou o pagamento, por favor desconsidere esta mensagem. Caso precise de algum ajuste ou tenha alguma dúvida, estou à disposição.\n\nAgradeço sua atenção! 😊`;
+    const novaDataFmt = novaDataPagamento.split("-").reverse().join("/");
+    return `Olá, ${cliente.nome}! Tudo bem?\n\nPassando para confirmar que o pagamento dos juros no valor de R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} foi recebido com sucesso. ✅\n\nPróximo vencimento: ${novaDataFmt}.\n\nCaso tenha alguma dúvida, estou à disposição.\n\nAgradeço sua atenção! 😊`;
   };
 
   const gerarMensagemCobranca = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }) => {
