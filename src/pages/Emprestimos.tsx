@@ -520,6 +520,14 @@ const Emprestimos = () => {
     fetchTransactions();
   };
 
+  const gerarMensagemConfirmacaoPagamento = (nome: string, valorPago: number, proxVencimento?: string) => {
+    const valorFmt = valorPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+    if (proxVencimento) {
+      return `Olá, ${nome}! Tudo bem?\n\nAgradecemos pelo pagamento da parcela no valor de R$ ${valorFmt}. ✅\nPróximo vencimento: ${proxVencimento}.\nEstamos sempre à disposição caso precise de algo!\nAgradeço sua atenção! 😊`;
+    }
+    return `Olá, ${nome}! Tudo bem?\n\nAgradecemos pelo pagamento total no valor de R$ ${valorFmt}. ✅\nFoi um prazer fazer negócios com você!\nEstamos sempre à disposição caso precise de algo no futuro.\nAgradeço sua atenção! 😊`;
+  };
+
   const gerarMensagemConfirmacaoJuros = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }, novaDataPagamento: string) => {
     const valorJuros = cliente.valor * (cliente.juros / 100);
     const novaDataFmt = novaDataPagamento.split("-").reverse().join("/");
@@ -665,9 +673,11 @@ const Emprestimos = () => {
       setSaldo(newSaldo);
       fetchClientes();
       fetchTransactions();
+      const proxFmt = format(novaData, "dd/MM/yyyy");
+      navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela, proxFmt)).catch(() => {});
       toast({
-        title: `Parcela recebida! (${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas})`,
-        description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Próximo vencimento: ${format(novaData, "dd/MM/yyyy")}`,
+        title: `Parcela recebida! 📋 Mensagem copiada (${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas})`,
+        description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Próximo vencimento: ${proxFmt}`,
       });
       return;
     }
@@ -687,7 +697,8 @@ const Emprestimos = () => {
     setSaldo(newSaldo);
     fetchClientes();
     fetchTransactions();
-    toast({ title: "Empréstimo quitado! 🎉", description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebidos. Todas as parcelas pagas.` });
+    navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela)).catch(() => {});
+    toast({ title: "Empréstimo quitado! 📋 Mensagem copiada 🎉", description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebidos. Mensagem de agradecimento copiada para o cliente.` });
   };
 
   const stats = useMemo(() => {
