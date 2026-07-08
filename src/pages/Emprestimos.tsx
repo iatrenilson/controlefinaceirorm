@@ -523,7 +523,7 @@ const Emprestimos = () => {
   const gerarMensagemConfirmacaoJuros = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }, novaDataPagamento: string) => {
     const valorJuros = cliente.valor * (cliente.juros / 100);
     const novaDataFmt = novaDataPagamento.split("-").reverse().join("/");
-    return `Olá, ${cliente.nome}! Tudo bem?\n\nPassando para confirmar que o pagamento dos juros no valor de R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} foi recebido com sucesso. ✅\n\nPróximo vencimento: ${novaDataFmt}.\n\nCaso tenha alguma dúvida, estou à disposição.\n\nAgradeço sua atenção! 😊`;
+    return `Olá, ${cliente.nome}! Tudo bem?\n\nPassando para confirmar que o pagamento dos juros no valor de R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} foi recebido com sucesso. ✅\nPróximo vencimento: ${novaDataFmt}.\nCaso tenha alguma dúvida, estou à disposição.\nAgradeço sua atenção! 😊`;
   };
 
   const gerarMensagemCobranca = (cliente: { nome: string; valor: number; juros: number; dataPagamento: string }) => {
