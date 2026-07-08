@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -927,6 +927,7 @@ END $$;`
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [mostrarClientes, setMostrarClientes] = useState(true);
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
+  const [buscaCliente, setBuscaCliente] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
     (localStorage.getItem("decl_view_mode") as "grid" | "list") || "list"
   );
@@ -1614,6 +1615,17 @@ END $$;`
           </CardHeader>
           {mostrarClientes && (
             <CardContent>
+              {clientes.length > 0 && (
+                <div className="relative mb-4">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar cliente..."
+                    value={buscaCliente}
+                    onChange={(e) => setBuscaCliente(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+              )}
               {loadingClientes && clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
               ) : clientes.length === 0 ? (
@@ -1622,7 +1634,7 @@ END $$;`
                 </p>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[...clientes].sort((a, b) => {
+                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, analise: 1, deferido: 2, docaut: 3 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
@@ -1764,7 +1776,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
-                  {[...clientes].sort((a, b) => {
+                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, analise: 1, deferido: 2, docaut: 3 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
