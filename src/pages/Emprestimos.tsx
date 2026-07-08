@@ -569,9 +569,13 @@ const Emprestimos = () => {
 
     const valorJuros = cliente.valor * (cliente.juros / 100);
 
+    // Busca saldo atual do banco para evitar estado desatualizado
+    const { data: walletData } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
+    const saldoAtual = walletData ? Math.max(0, Number(walletData.saldo) || 0) : 0;
+
     // If already paid, revert: remove juros from wallet, revert date -1 month, set status back to "Em dia"
     if (paidJurosIds.has(id)) {
-      const newSaldo = saldo - valorJuros;
+      const newSaldo = Math.max(0, saldoAtual - valorJuros);
       const { error: walletError } = await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
       if (walletError) {
         toast({ title: "Erro ao reverter saldo", description: getSafeErrorMessage(walletError), variant: "destructive" });
@@ -584,7 +588,7 @@ const Emprestimos = () => {
         await supabase.from("clientes").update({ data_pagamento: dataOriginal }).eq("id", id);
       }
 
-      await logTransaction("estorno_juros", valorJuros, saldo, newSaldo, `Estorno de juros de ${cliente.nome}`);
+      await logTransaction("estorno_juros", valorJuros, saldoAtual, newSaldo, `Estorno de juros de ${cliente.nome}`);
       setSaldo(newSaldo);
       setPaidJurosIds(prev => { const next = new Set(prev); next.delete(id); return next; });
       setOriginalDates(prev => { const next = new Map(prev); next.delete(id); return next; });
@@ -614,14 +618,14 @@ const Emprestimos = () => {
       return;
     }
 
-    const newSaldo = saldo + valorJuros;
+    const newSaldo = saldoAtual + valorJuros;
     const { error } = await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
     if (error) {
       toast({ title: "Erro ao registrar pagamento de juros", description: getSafeErrorMessage(error), variant: "destructive" });
       return;
     }
 
-    await logTransaction("pagamento_juros", valorJuros, saldo, newSaldo, `Juros recebidos de ${cliente.nome}`);
+    await logTransaction("pagamento_juros", valorJuros, saldoAtual, newSaldo, `Juros recebidos de ${cliente.nome}`);
     setSaldo(newSaldo);
     setPaidJurosIds(prev => new Set(prev).add(id));
     fetchClientes();
