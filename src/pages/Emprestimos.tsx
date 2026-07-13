@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { format, isPast, parseISO, addDays, isBefore, addMonths } from "date-fns";
+import { format, isPast, parseISO, addDays, isBefore, addMonths, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -606,15 +606,13 @@ const Emprestimos = () => {
       return;
     }
 
-    // First time paying juros: save original date, add to wallet, advance date +1 month
+    // First time paying juros: save original date, advance by same interval as original loan
     setOriginalDates(prev => new Map(prev).set(id, cliente.dataPagamento));
     const pagDate = parseISO(cliente.dataPagamento);
-    const year = pagDate.getFullYear();
-    const month = pagDate.getMonth();
-    const day = pagDate.getDate();
-    const nextMonth = (month + 1) % 12;
-    const nextYear = month + 1 >= 12 ? year + 1 : year;
-    const novaDataPagamento = `${nextYear}-${String(nextMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const empDate = parseISO(cliente.dataEmprestimo);
+    const prazoEmDias = differenceInDays(pagDate, empDate);
+    const novaData = addDays(pagDate, prazoEmDias > 0 ? prazoEmDias : 30);
+    const novaDataPagamento = format(novaData, "yyyy-MM-dd");
 
     const { error: updateError } = await supabase
       .from("clientes")
