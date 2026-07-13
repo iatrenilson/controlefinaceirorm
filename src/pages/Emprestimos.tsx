@@ -764,6 +764,17 @@ const Emprestimos = () => {
                     ))}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Prazo rápido</Label>
+                  <div className="flex gap-2">
+                    {[7, 15, 20, 30].map((dias) => (
+                      <Button key={dias} type="button" size="sm" variant="outline" className="flex-1 text-xs px-1"
+                        onClick={() => setDataPagamento(addDays(new Date(), dias))}>
+                        {dias}d
+                      </Button>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label>Data do Empréstimo</Label>
