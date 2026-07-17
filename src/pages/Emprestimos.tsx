@@ -636,12 +636,10 @@ const Emprestimos = () => {
       return;
     }
 
-    // First time paying juros: save original date, advance by same interval as original loan
+    // First time paying juros: save original date, advance by periodicidade
     setOriginalDates(prev => new Map(prev).set(id, cliente.dataPagamento));
     const pagDate = parseISO(cliente.dataPagamento);
-    const empDate = parseISO(cliente.dataEmprestimo);
-    const prazoEmDias = differenceInDays(pagDate, empDate);
-    const novaData = addDays(pagDate, prazoEmDias > 0 ? prazoEmDias : 30);
+    const novaData = addDays(pagDate, getDiasPeriodo(cliente.periodicidade));
     const novaDataPagamento = format(novaData, "yyyy-MM-dd");
 
     const { error: updateError } = await supabase
