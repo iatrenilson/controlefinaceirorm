@@ -51,11 +51,21 @@ const Emprestimos = () => {
   const [nome, setNome] = useState("");
   const [valor, setValor] = useState("");
   const [juros, setJuros] = useState("30");
-  const [dataEmprestimo, setDataEmprestimo] = useState<Date>();
-  const [dataPagamento, setDataPagamento] = useState<Date>();
+  const [dataEmprestimo, setDataEmprestimo] = useState<Date>(new Date());
+  const [dataPagamento, setDataPagamento] = useState<Date>(addDays(new Date(), 30));
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [telefone, setTelefone] = useState("");
   const [periodicidade, setPeriodicidade] = useState<"mensal" | "quinzenal">("mensal");
+
+  const handleSetPeriodicidade = (p: "mensal" | "quinzenal") => {
+    setPeriodicidade(p);
+    setDataPagamento(addDays(dataEmprestimo ?? new Date(), p === "quinzenal" ? 15 : 30));
+  };
+
+  const handleSetDataEmprestimo = (d: Date | undefined) => {
+    setDataEmprestimo(d ?? new Date());
+    setDataPagamento(addDays(d ?? new Date(), periodicidade === "quinzenal" ? 15 : 30));
+  };
 
   // Summary popup state
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -382,8 +392,9 @@ const Emprestimos = () => {
     setValor("");
     setJuros("");
     setTelefone("");
-    setDataEmprestimo(undefined);
-    setDataPagamento(undefined);
+    setDataEmprestimo(new Date());
+    setDataPagamento(addDays(new Date(), 30));
+    setPeriodicidade("mensal");
     setNumeroParcelas("1");
   };
 
@@ -772,11 +783,11 @@ const Emprestimos = () => {
                 <div className="space-y-2">
                   <Label>Periodicidade</Label>
                   <div className="flex gap-2">
-                    <Button type="button" size="sm" onClick={() => setPeriodicidade("mensal")}
+                    <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("mensal")}
                       className={`flex-1 h-9 border transition-all ${periodicidade === "mensal" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
                       Mensal
                     </Button>
-                    <Button type="button" size="sm" onClick={() => setPeriodicidade("quinzenal")}
+                    <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("quinzenal")}
                       className={`flex-1 h-9 border transition-all ${periodicidade === "quinzenal" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
                       Quinzenal
                     </Button>
@@ -787,7 +798,7 @@ const Emprestimos = () => {
                   <div className="flex gap-2">
                     {[7, 15, 20, 30].map((dias) => (
                       <Button key={dias} type="button" size="sm" variant="outline" className="flex-1 text-xs px-1"
-                        onClick={() => setDataPagamento(addDays(new Date(), dias))}>
+                        onClick={() => setDataPagamento(addDays(dataEmprestimo ?? new Date(), dias))}>
                         {dias}d
                       </Button>
                     ))}
@@ -804,7 +815,7 @@ const Emprestimos = () => {
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={dataEmprestimo} onSelect={setDataEmprestimo} initialFocus className="p-3 pointer-events-auto" />
+                        <Calendar mode="single" selected={dataEmprestimo} onSelect={handleSetDataEmprestimo} initialFocus className="p-3 pointer-events-auto" />
                       </PopoverContent>
                     </Popover>
                   </div>
