@@ -153,6 +153,8 @@ const Index = () => {
   const [cartaoDataVencimento, setCartaoDataVencimento] = useState<Date | undefined>(undefined);
   const [cartaoQuantidade, setCartaoQuantidade] = useState("1");
   const [cartaoSectionOpen, setCartaoSectionOpen] = useState(true);
+  const [cartaoExpandidos, setCartaoExpandidos] = useState<Set<string>>(new Set());
+  const toggleCartao = (nome: string) => setCartaoExpandidos(prev => { const s = new Set(prev); s.has(nome) ? s.delete(nome) : s.add(nome); return s; });
 
   const fetchCartaoItens = async () => {
     if (!user) return;
@@ -703,42 +705,56 @@ const Index = () => {
                   ) : (
                     Object.entries(grupos).map(([nomeCartao, itens]) => {
                       const totalCartao = itens.reduce((s, i) => s + i.valor, 0);
+                      const expandido = cartaoExpandidos.has(nomeCartao);
+                      const isMp = nomeCartao === "MERCADO PAGO";
+                      const isNu = nomeCartao === "NUBANK";
                       return (
-                        <div key={nomeCartao} className="space-y-2">
-                          <div className="flex items-center justify-between py-1 border-b border-blue-500/20">
-                            <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
-                              <CreditCard className="h-3 w-3" /> {nomeCartao}
-                            </span>
-                            <span className="text-xs font-mono font-semibold text-blue-300">
-                              Total: R$ {totalCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            {itens.map(item => (
-                              <div key={item.id} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg border border-blue-500/10 hover:bg-blue-500/5">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-foreground font-medium">{item.descricao}</span>
-                                    {item.quantidade > 1 && (
-                                      <span className="text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded px-1">{item.quantidade}x</span>
-                                    )}
+                        <div key={nomeCartao} className="rounded-lg border border-blue-500/15 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => toggleCartao(nomeCartao)}
+                            className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-blue-500/5 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <CreditCard className={`h-3.5 w-3.5 ${isNu ? "text-purple-400" : "text-blue-400"}`} />
+                              <span className={`text-sm font-bold ${isNu ? "text-purple-300" : "text-blue-300"}`}>{nomeCartao}</span>
+                              <span className="text-[10px] text-muted-foreground">{itens.length} item{itens.length !== 1 ? "s" : ""}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-sm font-mono font-semibold ${isNu ? "text-purple-300" : "text-blue-300"}`}>
+                                -R$ {totalCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </span>
+                              {expandido ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                            </div>
+                          </button>
+                          {expandido && (
+                            <div className="border-t border-blue-500/15 px-3 pb-2 pt-1 space-y-1 bg-blue-500/3">
+                              {itens.map(item => (
+                                <div key={item.id} className="flex items-center justify-between text-sm py-1.5">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-foreground font-medium">{item.descricao}</span>
+                                      {item.quantidade > 1 && (
+                                        <span className="text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded px-1">{item.quantidade}x</span>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-3 mt-0.5">
+                                      <span className="text-xs text-muted-foreground">Compra: {format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
+                                      {item.data_vencimento && (
+                                        <span className="text-xs text-orange-400 font-medium">Vence: {format(parseISO(item.data_vencimento), "dd/MM/yyyy")}</span>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex gap-3 mt-0.5">
-                                    <span className="text-xs text-muted-foreground">Compra: {format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
-                                    {item.data_vencimento && (
-                                      <span className="text-xs text-orange-400 font-medium">Vence: {format(parseISO(item.data_vencimento), "dd/MM/yyyy")}</span>
-                                    )}
+                                  <div className="flex items-center gap-2 ml-2 shrink-0">
+                                    <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 ml-2 shrink-0">
-                                  <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })
