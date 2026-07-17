@@ -1384,7 +1384,7 @@ const Emprestimos = () => {
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className={c.periodicidade === "quinzenal" ? "border-purple-500/50 text-purple-400 text-[10px]" : "border-blue-500/50 text-blue-400 text-[10px]"}>
+                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
                                   {c.periodicidade === "quinzenal" ? "Quinzenal" : "Mensal"}
                                 </Badge>
                               </TableCell>
