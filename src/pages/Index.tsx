@@ -485,8 +485,21 @@ const Index = () => {
 
   const getParcelasRestantes = (t: Transacao) => {
     if (!t.parcelas || !t.parcelaAtual) return null;
-    // Returns the current installment number being paid (counts UP: 1/3, 2/3, 3/3)
     return t.parcelas - t.parcelaAtual + 1;
+  };
+
+  const getParcelaExibida = (t: Transacao): string | null => {
+    if (!t.parcelas) return null;
+    const base = getParcelasRestantes(t) ?? 1;
+    let avanco = 0;
+    if (filtroMes !== "todos") {
+      const [ano, mes] = filtroMes.split("-").map(Number);
+      const dv = parseISO(t.dataVencimento);
+      avanco = (ano - dv.getFullYear()) * 12 + (mes - (dv.getMonth() + 1));
+      if (avanco < 0) avanco = 0;
+    }
+    const parcelaAtual = Math.min(base + avanco, t.parcelas);
+    return `${parcelaAtual}/${t.parcelas}`;
   };
 
 
@@ -952,7 +965,7 @@ const Index = () => {
                         <p className="text-sm font-medium text-foreground">{t.descricao}</p>
                         <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                           <span>Valor: <span className="font-mono font-semibold text-foreground">{t.tipo === "receita" ? "+" : "-"}R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
-                          <span>Parcelas: <span className="font-mono text-foreground">{t.parcelas ? `${getParcelasRestantes(t)}/${t.parcelas}` : "-"}</span></span>
+                          <span>Parcelas: <span className="font-mono text-foreground">{getParcelaExibida(t) ?? "-"}</span></span>
                           <span>Vencimento: <span className="text-foreground">{format(parseISO(getVencimentoExibido(t)), "dd/MM/yy")}</span></span>
                         </div>
                       </div>
@@ -1008,7 +1021,7 @@ const Index = () => {
                             {t.tipo === "receita" ? "+" : "-"}R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-foreground text-center">
-                            {t.parcelas ? `${getParcelasRestantes(t)}/${t.parcelas}` : "-"}
+                            {getParcelaExibida(t) ?? "-"}
                           </TableCell>
                           <TableCell className="text-foreground">{format(parseISO(getVencimentoExibido(t)), "dd/MM/yyyy")}</TableCell>
                           <TableCell>
