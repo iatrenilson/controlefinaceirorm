@@ -1552,7 +1552,29 @@ const Emprestimos = () => {
             })}
           </tbody>
         </table>
-        <p style={{ marginTop: "12px", fontSize: "11px", color: "#64748b" }}>Total de clientes: {clientes.length}</p>
+        {(() => {
+          const totalEmprestado = clientes.reduce((s, c) => s + c.valor, 0);
+          const totalJuros = clientes.reduce((s, c) => s + c.valor * (c.juros / 100), 0);
+          const totalGeral = totalEmprestado + totalJuros;
+          const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+          return (
+            <div style={{ marginTop: "16px", borderTop: "1px solid #334155", paddingTop: "12px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total Emprestado</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#60a5fa" }}>{fmt(totalEmprestado)}</p>
+              </div>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total de Juros</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#fb923c" }}>{fmt(totalJuros)}</p>
+              </div>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total a Receber</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#34d399" }}>{fmt(totalGeral)}</p>
+              </div>
+              <p style={{ margin: "auto 0 0 auto", fontSize: "11px", color: "#64748b", alignSelf: "flex-end" }}>Total de clientes: {clientes.length}</p>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
