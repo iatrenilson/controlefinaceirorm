@@ -385,15 +385,16 @@ const Index = () => {
   }, [transacoes]);
 
   const despesasMensal = useMemo(() => {
-    const [ano, mes] = mesDespesas.split("-").map(Number);
     return transacoes
       .filter((t) => {
         if (t.tipo !== "despesa") return false;
+        if (filtroMes === "todos") return true;
+        const [ano, mes] = filtroMes.split("-").map(Number);
         const d = parseISO(t.dataVencimento);
         return d.getFullYear() === ano && d.getMonth() + 1 === mes;
       })
       .reduce((a, t) => a + t.valor, 0);
-  }, [transacoes, mesDespesas]);
+  }, [transacoes, filtroMes]);
 
   const getDisplayStatus = (t: Transacao) => {
     if (t.status === "paga") return "paga";
@@ -565,36 +566,18 @@ const Index = () => {
         {/* Despesas Mensais Card */}
         <Card className="group hover:shadow-lg transition-all">
           <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
-                  <CalendarIcon className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Despesas do Mês</p>
-                  <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
-                    R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
+                <CalendarIcon className="h-5 w-5 text-orange-500" />
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-orange-500 hover:text-orange-400" title="Filtrar mês">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-3" align="end">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Selecionar Mês</p>
-                    <Input
-                      type="month"
-                      value={mesDespesas}
-                      onChange={(e) => setMesDespesas(e.target.value)}
-                      className="w-44 h-9"
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Despesas {filtroMes === "todos" ? "— Todos os Meses" : `— ${format(parseISO(filtroMes + "-01"), "MMM yyyy", { locale: ptBR })}`}
+                </p>
+                <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
+                  R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
