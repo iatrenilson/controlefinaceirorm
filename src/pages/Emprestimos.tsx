@@ -1419,7 +1419,7 @@ const Emprestimos = () => {
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
                               <TableCell>
-                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : c.periodicidade === "vinte_dias" ? "bg-orange-600 hover:bg-orange-700 text-white text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
+                                <Badge className={`inline-flex items-center justify-center whitespace-nowrap w-20 text-[10px] ${c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white" : c.periodicidade === "vinte_dias" ? "bg-orange-600 hover:bg-orange-700 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}>
                                   {c.periodicidade === "quinzenal" ? "Quinzenal" : c.periodicidade === "vinte_dias" ? "20 Dias" : "Mensal"}
                                 </Badge>
                               </TableCell>
