@@ -481,14 +481,16 @@ const Index = () => {
   }, [filtered, gruposCartaoFiltrados]);
 
   const emAbertoFiltrado = useMemo(() => {
-    return transacoes.filter(t => {
+    const transCount = transacoes.filter(t => {
       if (t.status !== "em_aberto" || isPast(parseISO(t.dataVencimento))) return false;
       if (filtroMes === "todos") return true;
       const [ano, mes] = filtroMes.split("-").map(Number);
       const d = parseISO(t.dataVencimento);
       return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
     }).length;
-  }, [transacoes, filtroMes]);
+    const cartaoCount = Object.keys(gruposCartaoFiltrados).length;
+    return transCount + cartaoCount;
+  }, [transacoes, filtroMes, gruposCartaoFiltrados]);
 
   const getVencimentoExibido = (t: Transacao): string => {
     if (filtroMes === "todos") return t.dataVencimento;
