@@ -678,12 +678,8 @@ const Index = () => {
 
         {/* Cartão de Crédito */}
         {(() => {
-          const cartaoTotalGeral = cartaoItens.reduce((s, i) => s + i.valor, 0);
-          const grupos = cartaoItens.reduce<Record<string, CartaoItem[]>>((acc, i) => {
-            if (!acc[i.cartao]) acc[i.cartao] = [];
-            acc[i.cartao].push(i);
-            return acc;
-          }, {});
+          const grupos = gruposCartaoFiltrados;
+          const cartaoTotalGeral = Object.values(grupos).flat().reduce((s, i) => s + i.valor, 0);
           return (
             <Card className="border border-blue-500/30 bg-blue-500/5">
               <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setCartaoSectionOpen(o => !o)}>
