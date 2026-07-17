@@ -793,9 +793,8 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
-      </main>
 
-      {/* Cartão de Crédito */}
+        {/* Cartão de Crédito */}
       {(() => {
         const cartaoTotalGeral = cartaoItens.reduce((s, i) => s + i.valor, 0);
         const grupos = cartaoItens.reduce<Record<string, CartaoItem[]>>((acc, i) => {
@@ -959,6 +958,7 @@ const Index = () => {
           </Card>
         );
       })()}
+      </main>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
