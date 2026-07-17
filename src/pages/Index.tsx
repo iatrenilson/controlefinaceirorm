@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -142,6 +142,41 @@ const Index = () => {
   const [pagasOpen, setPagasOpen] = useState(true);
   const [mesDespesas, setMesDespesas] = useState(() => format(new Date(), "yyyy-MM"));
 
+  // Cartão de Crédito
+  interface CartaoItem { id: string; cartao: string; descricao: string; valor: number; data_compra: string; }
+  const [cartaoItens, setCartaoItens] = useState<CartaoItem[]>([]);
+  const [cartaoOpen, setCartaoOpen] = useState(false);
+  const [cartaoNome, setCartaoNome] = useState("");
+  const [cartaoDesc, setCartaoDesc] = useState("");
+  const [cartaoValor, setCartaoValor] = useState("");
+  const [cartaoDataCompra, setCartaoDataCompra] = useState<Date>(new Date());
+  const [cartaoSectionOpen, setCartaoSectionOpen] = useState(true);
+
+  const fetchCartaoItens = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("cartao_itens").select("*").eq("user_id", user.id).order("data_compra", { ascending: false });
+    setCartaoItens((data || []).map((d: any) => ({ id: d.id, cartao: d.cartao, descricao: d.descricao, valor: Number(d.valor), data_compra: d.data_compra })));
+  };
+
+  const handleAddCartaoItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !cartaoNome.trim() || !cartaoDesc.trim() || !cartaoValor) return;
+    const { error } = await supabase.from("cartao_itens").insert({
+      user_id: user.id, cartao: cartaoNome.trim().toUpperCase(),
+      descricao: cartaoDesc.trim().toUpperCase(), valor: parseFloat(cartaoValor),
+      data_compra: format(cartaoDataCompra, "yyyy-MM-dd"),
+    });
+    if (error) { toast.error("Erro ao adicionar item"); return; }
+    toast.success("Item adicionado!");
+    setCartaoDesc(""); setCartaoValor(""); setCartaoOpen(false);
+    fetchCartaoItens();
+  };
+
+  const handleDeleteCartaoItem = async (id: string) => {
+    await supabase.from("cartao_itens").delete().eq("id", id);
+    setCartaoItens(prev => prev.filter(i => i.id !== id));
+  };
+
   const fetchTransacoes = async () => {
     if (!user) return;
     const { data, error } = await supabase
@@ -174,7 +209,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    if (user) fetchTransacoes();
+    if (user) { fetchTransacoes(); fetchCartaoItens(); }
   }, [user]);
 
   const resetForm = () => {
@@ -759,6 +794,114 @@ const Index = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Cartão de Crédito */}
+      {(() => {
+        const cartaoTotalGeral = cartaoItens.reduce((s, i) => s + i.valor, 0);
+        const grupos = cartaoItens.reduce<Record<string, CartaoItem[]>>((acc, i) => {
+          if (!acc[i.cartao]) acc[i.cartao] = [];
+          acc[i.cartao].push(i);
+          return acc;
+        }, {});
+        return (
+          <Card className="border border-blue-500/30 bg-blue-500/5">
+            <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setCartaoSectionOpen(o => !o)}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-blue-400" />
+                  <CardTitle className="text-sm font-semibold text-blue-400">Cartão de Crédito</CardTitle>
+                  <span className="text-xs font-mono text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1.5 py-0.5">
+                    Dívida total: R$ {cartaoTotalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <Dialog open={cartaoOpen} onOpenChange={setCartaoOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
+                        <Plus className="h-3 w-3" /> Adicionar item
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-400" /> Adicionar Item ao Cartão</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleAddCartaoItem} className="space-y-3 mt-2">
+                        <div className="space-y-1.5">
+                          <Label>Cartão</Label>
+                          <Input placeholder="Ex: NUBANK, MERCADO PAGO..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Descrição do Item</Label>
+                          <Input placeholder="Ex: SUPERMERCADO, NETFLIX..." value={cartaoDesc} onChange={e => setCartaoDesc(e.target.value)} required />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Valor (R$)</Label>
+                          <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={cartaoValor} onChange={e => setCartaoValor(e.target.value)} required />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Data da Compra</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-start text-left font-normal">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {format(cartaoDataCompra, "dd/MM/yyyy")}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={cartaoDataCompra} onSelect={d => d && setCartaoDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Adicionar</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  {cartaoSectionOpen ? <ChevronUp className="h-4 w-4 text-blue-400" /> : <ChevronDown className="h-4 w-4 text-blue-400" />}
+                </div>
+              </div>
+            </CardHeader>
+            {cartaoSectionOpen && (
+              <CardContent className="px-4 pb-4 space-y-4">
+                {cartaoItens.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum item de cartão cadastrado.</p>
+                ) : (
+                  Object.entries(grupos).map(([nomeCartao, itens]) => {
+                    const totalCartao = itens.reduce((s, i) => s + i.valor, 0);
+                    return (
+                      <div key={nomeCartao} className="space-y-2">
+                        <div className="flex items-center justify-between py-1 border-b border-blue-500/20">
+                          <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                            <CreditCard className="h-3 w-3" /> {nomeCartao}
+                          </span>
+                          <span className="text-xs font-mono font-semibold text-blue-300">
+                            Total: R$ {totalCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {itens.map(item => (
+                            <div key={item.id} className="flex items-center justify-between text-sm px-1 py-1 rounded hover:bg-blue-500/5">
+                              <div className="flex-1 min-w-0">
+                                <span className="text-foreground">{item.descricao}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
+                              </div>
+                              <div className="flex items-center gap-2 ml-2">
+                                <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Contas Pagas */}
       {(() => {
