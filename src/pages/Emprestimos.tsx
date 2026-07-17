@@ -30,6 +30,7 @@ interface Cliente {
   dataPagamento: string;
   parcelas: number;
   parcelaAtual: number;
+  periodicidade: "mensal" | "quinzenal";
 }
 
 const Emprestimos = () => {
@@ -54,6 +55,7 @@ const Emprestimos = () => {
   const [dataPagamento, setDataPagamento] = useState<Date>();
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [telefone, setTelefone] = useState("");
+  const [periodicidade, setPeriodicidade] = useState<"mensal" | "quinzenal">("mensal");
 
   // Summary popup state
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -68,6 +70,7 @@ const Emprestimos = () => {
   const [editTelefone, setEditTelefone] = useState("");
   const [editDataEmprestimo, setEditDataEmprestimo] = useState<Date>();
   const [editDataPagamento, setEditDataPagamento] = useState<Date>();
+  const [editPeriodicidade, setEditPeriodicidade] = useState<"mensal" | "quinzenal">("mensal");
 
   // Search & filter state
   const [busca, setBusca] = useState("");
@@ -133,6 +136,7 @@ const Emprestimos = () => {
         dataPagamento: d.data_pagamento,
         parcelas: Number(d.parcelas) || 1,
         parcelaAtual: Number(d.parcela_atual) || 1,
+        periodicidade: (d.periodicidade as "mensal" | "quinzenal") || "mensal",
       }));
     setClientes(mapped);
     try { sessionStorage.setItem("emprestimos_cache", JSON.stringify(mapped)); } catch {}
@@ -404,6 +408,7 @@ const Emprestimos = () => {
         data_pagamento: format(dataPagamento, "yyyy-MM-dd"),
         parcelas: totalParcelas,
         parcela_atual: totalParcelas,
+        periodicidade,
       });
 
       if (error) {
@@ -457,6 +462,7 @@ const Emprestimos = () => {
     setEditTelefone(c.telefone || "");
     setEditDataEmprestimo(parseISO(c.dataEmprestimo));
     setEditDataPagamento(parseISO(c.dataPagamento));
+    setEditPeriodicidade(c.periodicidade || "mensal");
     setEditOpen(true);
   };
 
@@ -473,6 +479,7 @@ const Emprestimos = () => {
         juros: parseFloat(editJuros),
         data_emprestimo: format(editDataEmprestimo, "yyyy-MM-dd"),
         data_pagamento: format(editDataPagamento, "yyyy-MM-dd"),
+        periodicidade: editPeriodicidade,
       })
       .eq("id", editId);
 
@@ -763,6 +770,19 @@ const Emprestimos = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label>Periodicidade</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={() => setPeriodicidade("mensal")}
+                      className={`flex-1 h-9 border transition-all ${periodicidade === "mensal" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
+                      Mensal
+                    </Button>
+                    <Button type="button" size="sm" onClick={() => setPeriodicidade("quinzenal")}
+                      className={`flex-1 h-9 border transition-all ${periodicidade === "quinzenal" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
+                      Quinzenal
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label>Prazo rápido</Label>
                   <div className="flex gap-2">
                     {[7, 15, 20, 30].map((dias) => (
@@ -878,6 +898,19 @@ const Emprestimos = () => {
             <div className="space-y-2">
               <Label>Juros (%)</Label>
               <Input type="number" step="0.1" min="0" placeholder="Ex: 5" value={editJuros} onChange={(e) => setEditJuros(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Periodicidade</Label>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" onClick={() => setEditPeriodicidade("mensal")}
+                  className={`flex-1 h-9 border transition-all ${editPeriodicidade === "mensal" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
+                  Mensal
+                </Button>
+                <Button type="button" size="sm" onClick={() => setEditPeriodicidade("quinzenal")}
+                  className={`flex-1 h-9 border transition-all ${editPeriodicidade === "quinzenal" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
+                  Quinzenal
+                </Button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -1307,6 +1340,7 @@ const Emprestimos = () => {
                         <TableHead>Data Empréstimo</TableHead>
                         <TableHead>Data Pagamento</TableHead>
                         <TableHead>Telefone</TableHead>
+                        <TableHead>Período</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -1349,6 +1383,11 @@ const Emprestimos = () => {
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataEmprestimo), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={c.periodicidade === "quinzenal" ? "border-purple-500/50 text-purple-400 text-[10px]" : "border-blue-500/50 text-blue-400 text-[10px]"}>
+                                  {c.periodicidade === "quinzenal" ? "Quinzenal" : "Mensal"}
+                                </Badge>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant={atrasado ? "destructive" : "default"} className={`whitespace-nowrap ${paidJurosIds.has(c.id) ? "bg-blue-600 hover:bg-blue-700 text-white" : !atrasado ? "bg-green-600 hover:bg-green-700 text-white" : ""}`}>
                                   {paidJurosIds.has(c.id) ? "Pago" : atrasado ? "Em atraso" : "Em dia"}
