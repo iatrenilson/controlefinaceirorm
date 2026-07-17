@@ -383,7 +383,18 @@ const Index = () => {
       if (filtroMes !== "todos") {
         const [ano, mes] = filtroMes.split("-").map(Number);
         const d = parseISO(t.dataVencimento);
-        if (d.getFullYear() !== ano || d.getMonth() + 1 !== mes) return false;
+        const dvAno = d.getFullYear();
+        const dvMes = d.getMonth() + 1;
+        const temParcelasRestantes = t.parcelas && t.parcelas > 1 && t.status !== "paga" && (t.parcelaAtual ?? 0) > 0;
+        if (temParcelasRestantes) {
+          // aparece no mês do vencimento e nos meses seguintes
+          const selData = new Date(ano, mes - 1, 1);
+          const dvData = new Date(dvAno, dvMes - 1, 1);
+          if (selData < dvData) return false;
+        } else {
+          // sem parcelas: só aparece no mês exato
+          if (dvAno !== ano || dvMes !== mes) return false;
+        }
       }
       return true;
     });
