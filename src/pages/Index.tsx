@@ -831,7 +831,14 @@ const Index = () => {
                       <form onSubmit={handleAddCartaoItem} className="space-y-3 mt-2">
                         <div className="space-y-1.5">
                           <Label>Cartão</Label>
-                          <Input placeholder="Ex: NUBANK, MERCADO PAGO..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
+                          <div className="flex gap-2 mb-1.5">
+                            {["MERCADO PAGO", "NUBANK"].map(c => (
+                              <Button key={c} type="button" size="sm" variant={cartaoNome === c ? "default" : "outline"} className="flex-1 text-xs h-8" onClick={() => setCartaoNome(c)}>
+                                {c}
+                              </Button>
+                            ))}
+                          </div>
+                          <Input placeholder="Ou digite outro cartão..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
                         </div>
                         <div className="space-y-1.5">
                           <Label>Descrição do Item</Label>
