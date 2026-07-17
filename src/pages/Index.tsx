@@ -563,42 +563,181 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Despesas Mensais + Cartão de Crédito */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
-          <Card className="group hover:shadow-lg transition-all">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
-                  <CalendarIcon className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                    Despesas {filtroMes === "todos" ? "— Todos" : `— ${format(parseISO(filtroMes + "-01"), "MMM yyyy", { locale: ptBR })}`}
-                  </p>
-                  <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
-                    R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
+        {/* Despesas Mensais Card */}
+        <Card className="group hover:shadow-lg transition-all">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
+                <CalendarIcon className="h-5 w-5 text-orange-500" />
               </div>
-            </CardContent>
-          </Card>
-          <Card className="group hover:shadow-lg transition-all border-blue-500/30 bg-blue-500/5">
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-blue-500/15 p-2.5 shrink-0">
-                  <CreditCard className="h-5 w-5 text-blue-400" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Cartão de Crédito</p>
-                  <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-blue-400 mt-0.5">
-                    R$ {cartaoItens.reduce((s, i) => s + i.valor, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{cartaoItens.length} item{cartaoItens.length !== 1 ? "s" : ""}</p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Despesas {filtroMes === "todos" ? "— Todos os Meses" : `— ${format(parseISO(filtroMes + "-01"), "MMM yyyy", { locale: ptBR })}`}
+                </p>
+                <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
+                  R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Cartão de Crédito */}
+        {(() => {
+          const cartaoTotalGeral = cartaoItens.reduce((s, i) => s + i.valor, 0);
+          const grupos = cartaoItens.reduce<Record<string, CartaoItem[]>>((acc, i) => {
+            if (!acc[i.cartao]) acc[i.cartao] = [];
+            acc[i.cartao].push(i);
+            return acc;
+          }, {});
+          return (
+            <Card className="border border-blue-500/30 bg-blue-500/5">
+              <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setCartaoSectionOpen(o => !o)}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-blue-400" />
+                    <CardTitle className="text-sm font-semibold text-blue-400">Cartão de Crédito</CardTitle>
+                    <span className="text-xs font-mono text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1.5 py-0.5">
+                      Dívida total: R$ {cartaoTotalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                    <Dialog open={cartaoOpen} onOpenChange={setCartaoOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
+                          <Plus className="h-3 w-3" /> Adicionar item
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-400" /> Adicionar Item ao Cartão</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleAddCartaoItem} className="space-y-3 mt-2">
+                          <div className="space-y-1.5">
+                            <Label>Cartão</Label>
+                            <div className="flex gap-2 mb-1.5">
+                              <Button type="button" size="sm" onClick={() => setCartaoNome("MERCADO PAGO")}
+                                className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "MERCADO PAGO" ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
+                                MERCADO PAGO
+                              </Button>
+                              <Button type="button" size="sm" onClick={() => setCartaoNome("NUBANK")}
+                                className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "NUBANK" ? "bg-purple-600 text-white border-purple-600 hover:bg-purple-700" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
+                                NUBANK
+                              </Button>
+                            </div>
+                            <Input placeholder="Ou digite outro cartão..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Descrição do Item</Label>
+                            <Input placeholder="Ex: SUPERMERCADO, NETFLIX..." value={cartaoDesc} onChange={e => setCartaoDesc(e.target.value)} required />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Valor (R$)</Label>
+                            <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={cartaoValor} onChange={e => setCartaoValor(e.target.value)} required />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label>Data da Compra</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                                    <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                                    {format(cartaoDataCompra, "dd/MM/yyyy")}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar mode="single" selected={cartaoDataCompra} onSelect={d => d && setCartaoDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label>Data de Vencimento</Label>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                                    <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                                    {cartaoDataVencimento ? format(cartaoDataVencimento, "dd/MM/yyyy") : "Selecionar"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar mode="single" selected={cartaoDataVencimento} onSelect={d => setCartaoDataVencimento(d)} initialFocus className="p-3 pointer-events-auto" />
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Quantidade de Parcelas</Label>
+                            <div className="flex gap-2 items-center">
+                              <Input type="number" min="1" max="48" placeholder="1" value={cartaoQuantidade} onChange={e => setCartaoQuantidade(e.target.value)} className="w-24" />
+                              <div className="flex gap-1 flex-wrap">
+                                {[1,2,3,6,12].map(n => (
+                                  <Button key={n} type="button" size="sm" variant={cartaoQuantidade === String(n) ? "default" : "outline"} className="h-7 px-2 text-xs" onClick={() => setCartaoQuantidade(String(n))}>
+                                    {n}x
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Adicionar</Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                    {cartaoSectionOpen ? <ChevronUp className="h-4 w-4 text-blue-400" /> : <ChevronDown className="h-4 w-4 text-blue-400" />}
+                  </div>
+                </div>
+              </CardHeader>
+              {cartaoSectionOpen && (
+                <CardContent className="px-4 pb-4 space-y-4">
+                  {cartaoItens.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum item de cartão cadastrado.</p>
+                  ) : (
+                    Object.entries(grupos).map(([nomeCartao, itens]) => {
+                      const totalCartao = itens.reduce((s, i) => s + i.valor, 0);
+                      return (
+                        <div key={nomeCartao} className="space-y-2">
+                          <div className="flex items-center justify-between py-1 border-b border-blue-500/20">
+                            <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                              <CreditCard className="h-3 w-3" /> {nomeCartao}
+                            </span>
+                            <span className="text-xs font-mono font-semibold text-blue-300">
+                              Total: R$ {totalCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            {itens.map(item => (
+                              <div key={item.id} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg border border-blue-500/10 hover:bg-blue-500/5">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-foreground font-medium">{item.descricao}</span>
+                                    {item.quantidade > 1 && (
+                                      <span className="text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded px-1">{item.quantidade}x</span>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-3 mt-0.5">
+                                    <span className="text-xs text-muted-foreground">Compra: {format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
+                                    {item.data_vencimento && (
+                                      <span className="text-xs text-orange-400 font-medium">Vence: {format(parseISO(item.data_vencimento), "dd/MM/yyyy")}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2 shrink-0">
+                                  <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </CardContent>
+              )}
+            </Card>
+          );
+        })()}
 
         {/* Table */}
         <Card>
@@ -799,163 +938,6 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Cartão de Crédito */}
-      {(() => {
-        const cartaoTotalGeral = cartaoItens.reduce((s, i) => s + i.valor, 0);
-        const grupos = cartaoItens.reduce<Record<string, CartaoItem[]>>((acc, i) => {
-          if (!acc[i.cartao]) acc[i.cartao] = [];
-          acc[i.cartao].push(i);
-          return acc;
-        }, {});
-        return (
-          <Card className="border border-blue-500/30 bg-blue-500/5">
-            <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setCartaoSectionOpen(o => !o)}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-blue-400" />
-                  <CardTitle className="text-sm font-semibold text-blue-400">Cartão de Crédito</CardTitle>
-                  <span className="text-xs font-mono text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1.5 py-0.5">
-                    Dívida total: R$ {cartaoTotalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                  <Dialog open={cartaoOpen} onOpenChange={setCartaoOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-blue-500/40 text-blue-400 hover:bg-blue-500/10">
-                        <Plus className="h-3 w-3" /> Adicionar item
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-sm">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2"><CreditCard className="h-4 w-4 text-blue-400" /> Adicionar Item ao Cartão</DialogTitle>
-                      </DialogHeader>
-                      <form onSubmit={handleAddCartaoItem} className="space-y-3 mt-2">
-                        <div className="space-y-1.5">
-                          <Label>Cartão</Label>
-                          <div className="flex gap-2 mb-1.5">
-                            <Button type="button" size="sm" onClick={() => setCartaoNome("MERCADO PAGO")}
-                              className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "MERCADO PAGO" ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
-                              MERCADO PAGO
-                            </Button>
-                            <Button type="button" size="sm" onClick={() => setCartaoNome("NUBANK")}
-                              className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "NUBANK" ? "bg-purple-600 text-white border-purple-600 hover:bg-purple-700" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
-                              NUBANK
-                            </Button>
-                          </div>
-                          <Input placeholder="Ou digite outro cartão..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Descrição do Item</Label>
-                          <Input placeholder="Ex: SUPERMERCADO, NETFLIX..." value={cartaoDesc} onChange={e => setCartaoDesc(e.target.value)} required />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Valor (R$)</Label>
-                          <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={cartaoValor} onChange={e => setCartaoValor(e.target.value)} required />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label>Data da Compra</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
-                                  <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                                  {format(cartaoDataCompra, "dd/MM/yyyy")}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={cartaoDataCompra} onSelect={d => d && setCartaoDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label>Data de Vencimento</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
-                                  <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                                  {cartaoDataVencimento ? format(cartaoDataVencimento, "dd/MM/yyyy") : "Selecionar"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={cartaoDataVencimento} onSelect={d => setCartaoDataVencimento(d)} initialFocus className="p-3 pointer-events-auto" />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label>Quantidade de Parcelas</Label>
-                          <div className="flex gap-2 items-center">
-                            <Input type="number" min="1" max="48" placeholder="1" value={cartaoQuantidade} onChange={e => setCartaoQuantidade(e.target.value)} className="w-24" />
-                            <div className="flex gap-1 flex-wrap">
-                              {[1,2,3,6,12].map(n => (
-                                <Button key={n} type="button" size="sm" variant={cartaoQuantidade === String(n) ? "default" : "outline"} className="h-7 px-2 text-xs" onClick={() => setCartaoQuantidade(String(n))}>
-                                  {n}x
-                                </Button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Adicionar</Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                  {cartaoSectionOpen ? <ChevronUp className="h-4 w-4 text-blue-400" /> : <ChevronDown className="h-4 w-4 text-blue-400" />}
-                </div>
-              </div>
-            </CardHeader>
-            {cartaoSectionOpen && (
-              <CardContent className="px-4 pb-4 space-y-4">
-                {cartaoItens.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum item de cartão cadastrado.</p>
-                ) : (
-                  Object.entries(grupos).map(([nomeCartao, itens]) => {
-                    const totalCartao = itens.reduce((s, i) => s + i.valor, 0);
-                    return (
-                      <div key={nomeCartao} className="space-y-2">
-                        <div className="flex items-center justify-between py-1 border-b border-blue-500/20">
-                          <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
-                            <CreditCard className="h-3 w-3" /> {nomeCartao}
-                          </span>
-                          <span className="text-xs font-mono font-semibold text-blue-300">
-                            Total: R$ {totalCartao.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          {itens.map(item => (
-                            <div key={item.id} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg border border-blue-500/10 hover:bg-blue-500/5">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-foreground font-medium">{item.descricao}</span>
-                                  {item.quantidade > 1 && (
-                                    <span className="text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded px-1">{item.quantidade}x</span>
-                                  )}
-                                </div>
-                                <div className="flex gap-3 mt-0.5">
-                                  <span className="text-xs text-muted-foreground">Compra: {format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
-                                  {item.data_vencimento && (
-                                    <span className="text-xs text-orange-400 font-medium">Vence: {format(parseISO(item.data_vencimento), "dd/MM/yyyy")}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 ml-2 shrink-0">
-                                <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            )}
-          </Card>
-        );
-      })()}
 
       {/* Contas Pagas */}
       {(() => {
