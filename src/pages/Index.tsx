@@ -622,7 +622,7 @@ const Index = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Despesas</p>
                   <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
-                    R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R$ {stats.despesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
