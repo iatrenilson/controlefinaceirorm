@@ -352,6 +352,22 @@ const Index = () => {
     }
   };
 
+  const gruposCartaoFiltrados = useMemo(() => {
+    const itensFiltrados = cartaoItens.filter(item => {
+      if (filtroMes === "todos") return true;
+      const dataRef = item.data_vencimento ?? item.data_compra;
+      if (!dataRef) return true;
+      const [ano, mes] = filtroMes.split("-").map(Number);
+      const d = parseISO(dataRef);
+      return d.getFullYear() === ano && d.getMonth() + 1 === mes;
+    });
+    return itensFiltrados.reduce<Record<string, CartaoItem[]>>((acc, i) => {
+      if (!acc[i.cartao]) acc[i.cartao] = [];
+      acc[i.cartao].push(i);
+      return acc;
+    }, {});
+  }, [cartaoItens, filtroMes]);
+
   const filtered = useMemo(() => {
     return transacoes.filter((t) => {
       // Se mostrarPagas está ativo, mostra apenas as pagas
@@ -816,6 +832,27 @@ const Index = () => {
               <>
                 {/* Mobile cards */}
                 <div className="space-y-3 md:hidden">
+                  {Object.entries(gruposCartaoFiltrados).map(([nomeCartao, itens]) => {
+                    const total = itens.reduce((s, i) => s + i.valor, 0);
+                    const isNu = nomeCartao === "NUBANK";
+                    const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
+                    return (
+                      <div key={`cartao-m-${nomeCartao}`} className={`border rounded-lg p-3 space-y-1 ${isNu ? "border-purple-500/30 bg-purple-500/5" : "border-blue-500/30 bg-blue-500/5"}`}>
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className={isNu ? "border-purple-500/40 text-purple-400" : "border-blue-500/40 text-blue-400"}>
+                            <CreditCard className="h-3 w-3 mr-1" />Cartão
+                          </Badge>
+                          <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Em Aberto</Badge>
+                        </div>
+                        <p className={`text-sm font-bold ${isNu ? "text-purple-300" : "text-blue-300"}`}>{nomeCartao}</p>
+                        <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                          <span>Valor: <span className={`font-mono font-semibold ${isNu ? "text-purple-300" : "text-blue-300"}`}>-R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
+                          <span>Itens: <span className="text-foreground">{itens.length}</span></span>
+                          <span>Vencimento: <span className="text-foreground">{vencMin ? format(parseISO(vencMin), "dd/MM/yy") : "—"}</span></span>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {filtered.map((t) => {
                     const displayStatus = getDisplayStatus(t);
                     return (
@@ -894,6 +931,28 @@ const Index = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
+                      {Object.entries(gruposCartaoFiltrados).map(([nomeCartao, itens]) => {
+                        const total = itens.reduce((s, i) => s + i.valor, 0);
+                        const isNu = nomeCartao === "NUBANK";
+                        const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
+                        return (
+                          <TableRow key={`cartao-${nomeCartao}`} className={isNu ? "bg-purple-500/5 hover:bg-purple-500/10" : "bg-blue-500/5 hover:bg-blue-500/10"}>
+                            <TableCell>
+                              <Badge variant="outline" className={isNu ? "border-purple-500/40 text-purple-400" : "border-blue-500/40 text-blue-400"}>
+                                <CreditCard className="h-3 w-3 mr-1" />Cartão
+                              </Badge>
+                            </TableCell>
+                            <TableCell className={`font-bold ${isNu ? "text-purple-300" : "text-blue-300"}`}>{nomeCartao}</TableCell>
+                            <TableCell className={`font-mono font-semibold ${isNu ? "text-purple-300" : "text-blue-300"}`}>
+                              -R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">{itens.length}x</TableCell>
+                            <TableCell className="text-foreground">{vencMin ? format(parseISO(vencMin), "dd/MM/yyyy") : "—"}</TableCell>
+                            <TableCell><Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Em Aberto</Badge></TableCell>
+                            <TableCell />
+                          </TableRow>
+                        );
+                      })}
                       {filtered.map((t) => (
                         <TableRow key={t.id}>
                           <TableCell>
