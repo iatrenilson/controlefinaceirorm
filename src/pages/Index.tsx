@@ -359,7 +359,17 @@ const Index = () => {
       if (!dataRef) return true;
       const [ano, mes] = filtroMes.split("-").map(Number);
       const d = parseISO(dataRef);
-      return d.getFullYear() === ano && d.getMonth() + 1 === mes;
+      const dvAno = d.getFullYear();
+      const dvMes = d.getMonth() + 1;
+      if (item.quantidade > 1) {
+        // parcelado: aparece no mês do vencimento e nos próximos meses restantes
+        const selData = new Date(ano, mes - 1, 1);
+        const dvData = new Date(dvAno, dvMes - 1, 1);
+        return selData >= dvData;
+      } else {
+        // item único: só no mês exato
+        return dvAno === ano && dvMes === mes;
+      }
     });
     return itensFiltrados.reduce<Record<string, CartaoItem[]>>((acc, i) => {
       if (!acc[i.cartao]) acc[i.cartao] = [];
