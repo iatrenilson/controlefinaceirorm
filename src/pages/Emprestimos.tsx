@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import html2canvas from "html2canvas";
 import { format, isPast, parseISO, addDays, isBefore, addMonths, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Landmark, Calendar as CalendarIcon, CalendarDays, Banknote, Plus, UserPlus, AlertTriangle, Pencil, Trash2, Search, Percent, Wallet, ArrowUpCircle, ArrowDownCircle, CheckCircle, BarChart3, Copy, MessageCircle, Clock, TrendingUp, Phone } from "lucide-react";
+import { Landmark, Calendar as CalendarIcon, CalendarDays, Banknote, Plus, UserPlus, AlertTriangle, Pencil, Trash2, Search, Percent, Wallet, ArrowUpCircle, ArrowDownCircle, CheckCircle, BarChart3, Copy, MessageCircle, Clock, TrendingUp, Phone, Printer } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -101,7 +102,16 @@ const Emprestimos = () => {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [zerarConfirmOpen, setZerarConfirmOpen] = useState(false);
   const [filtroMes, setFiltroMes] = useState<string>("todos");
+  const printRef = useRef<HTMLDivElement>(null);
 
+  const handlePrint = useCallback(async () => {
+    if (!printRef.current) return;
+    const canvas = await html2canvas(printRef.current, { backgroundColor: "#0f172a", scale: 2 });
+    const link = document.createElement("a");
+    link.download = `clientes-${format(new Date(), "dd-MM-yyyy")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }, []);
 
   const transacoesFiltradas = useMemo(() => {
     if (filtroMes === "todos") return transactions;
@@ -1197,6 +1207,10 @@ const Emprestimos = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle className="text-base font-semibold">Clientes</CardTitle>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5" onClick={handlePrint}>
+                  <Printer className="h-4 w-4" />
+                  <span className="text-xs">Print</span>
+                </Button>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -1502,6 +1516,44 @@ const Emprestimos = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Div oculta para print */}
+      <div ref={printRef} style={{ position: "fixed", left: "-9999px", top: 0, width: "900px", padding: "24px", background: "#0f172a", color: "#f1f5f9", fontFamily: "sans-serif" }}>
+        <div style={{ marginBottom: "16px", borderBottom: "1px solid #334155", paddingBottom: "12px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#34d399", margin: 0 }}>Lista de Clientes</h2>
+          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "4px 0 0" }}>{format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+          <thead>
+            <tr style={{ background: "#1e293b" }}>
+              {["Nome", "Valor", "Juros", "Valor a Receber", "Data Empréstimo", "Data Pagamento", "Período"].map(h => (
+                <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#94a3b8", fontWeight: 600, borderBottom: "1px solid #334155" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {clientes.map((c, i) => {
+              const valorJuros = c.valor * (c.juros / 100);
+              const valorReceber = c.valor + valorJuros;
+              const periodo = c.periodicidade === "quinzenal" ? "Quinzenal" : c.periodicidade === "vinte_dias" ? "20 Dias" : "Mensal";
+              return (
+                <tr key={c.id} style={{ background: i % 2 === 0 ? "#0f172a" : "#1e293b" }}>
+                  <td style={{ padding: "8px 10px", fontWeight: 600 }}>{c.nome}</td>
+                  <td style={{ padding: "8px 10px" }}>R$ {c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: "8px 10px", color: "#fb923c" }}>{c.juros}%</td>
+                  <td style={{ padding: "8px 10px", color: "#34d399" }}>R$ {valorReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: "8px 10px", color: "#94a3b8" }}>{format(parseISO(c.dataEmprestimo), "dd/MM/yyyy")}</td>
+                  <td style={{ padding: "8px 10px", color: "#94a3b8" }}>{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</td>
+                  <td style={{ padding: "8px 10px" }}>
+                    <span style={{ background: c.periodicidade === "quinzenal" ? "#7c3aed" : c.periodicidade === "vinte_dias" ? "#ea580c" : "#2563eb", color: "#fff", borderRadius: "4px", padding: "2px 8px", fontSize: "11px" }}>{periodo}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <p style={{ marginTop: "12px", fontSize: "11px", color: "#64748b" }}>Total de clientes: {clientes.length}</p>
+      </div>
     </div>
   );
 };
