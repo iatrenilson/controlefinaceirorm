@@ -143,19 +143,21 @@ const Index = () => {
   const [mesDespesas, setMesDespesas] = useState(() => format(new Date(), "yyyy-MM"));
 
   // Cartão de Crédito
-  interface CartaoItem { id: string; cartao: string; descricao: string; valor: number; data_compra: string; }
+  interface CartaoItem { id: string; cartao: string; descricao: string; valor: number; data_compra: string; data_vencimento: string | null; quantidade: number; }
   const [cartaoItens, setCartaoItens] = useState<CartaoItem[]>([]);
   const [cartaoOpen, setCartaoOpen] = useState(false);
   const [cartaoNome, setCartaoNome] = useState("");
   const [cartaoDesc, setCartaoDesc] = useState("");
   const [cartaoValor, setCartaoValor] = useState("");
   const [cartaoDataCompra, setCartaoDataCompra] = useState<Date>(new Date());
+  const [cartaoDataVencimento, setCartaoDataVencimento] = useState<Date | undefined>(undefined);
+  const [cartaoQuantidade, setCartaoQuantidade] = useState("1");
   const [cartaoSectionOpen, setCartaoSectionOpen] = useState(true);
 
   const fetchCartaoItens = async () => {
     if (!user) return;
-    const { data } = await supabase.from("cartao_itens").select("*").eq("user_id", user.id).order("data_compra", { ascending: false });
-    setCartaoItens((data || []).map((d: any) => ({ id: d.id, cartao: d.cartao, descricao: d.descricao, valor: Number(d.valor), data_compra: d.data_compra })));
+    const { data } = await supabase.from("cartao_itens").select("*").eq("user_id", user.id).order("data_vencimento", { ascending: true });
+    setCartaoItens((data || []).map((d: any) => ({ id: d.id, cartao: d.cartao, descricao: d.descricao, valor: Number(d.valor), data_compra: d.data_compra, data_vencimento: d.data_vencimento ?? null, quantidade: d.quantidade ?? 1 })));
   };
 
   const handleAddCartaoItem = async (e: React.FormEvent) => {
@@ -165,10 +167,12 @@ const Index = () => {
       user_id: user.id, cartao: cartaoNome.trim().toUpperCase(),
       descricao: cartaoDesc.trim().toUpperCase(), valor: parseFloat(cartaoValor),
       data_compra: format(cartaoDataCompra, "yyyy-MM-dd"),
+      data_vencimento: cartaoDataVencimento ? format(cartaoDataVencimento, "yyyy-MM-dd") : null,
+      quantidade: parseInt(cartaoQuantidade) || 1,
     });
     if (error) { toast.error("Erro ao adicionar item"); return; }
     toast.success("Item adicionado!");
-    setCartaoDesc(""); setCartaoValor(""); setCartaoOpen(false);
+    setCartaoDesc(""); setCartaoValor(""); setCartaoQuantidade("1"); setCartaoDataVencimento(undefined); setCartaoOpen(false);
     fetchCartaoItens();
   };
 
@@ -837,19 +841,48 @@ const Index = () => {
                           <Label>Valor (R$)</Label>
                           <Input type="number" step="0.01" min="0.01" placeholder="0,00" value={cartaoValor} onChange={e => setCartaoValor(e.target.value)} required />
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label>Data da Compra</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                                  <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                                  {format(cartaoDataCompra, "dd/MM/yyyy")}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={cartaoDataCompra} onSelect={d => d && setCartaoDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label>Data de Vencimento</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                                  <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                                  {cartaoDataVencimento ? format(cartaoDataVencimento, "dd/MM/yyyy") : "Selecionar"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar mode="single" selected={cartaoDataVencimento} onSelect={d => setCartaoDataVencimento(d)} initialFocus className="p-3 pointer-events-auto" />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
                         <div className="space-y-1.5">
-                          <Label>Data da Compra</Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start text-left font-normal">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {format(cartaoDataCompra, "dd/MM/yyyy")}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar mode="single" selected={cartaoDataCompra} onSelect={d => d && setCartaoDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
-                            </PopoverContent>
-                          </Popover>
+                          <Label>Quantidade de Parcelas</Label>
+                          <div className="flex gap-2 items-center">
+                            <Input type="number" min="1" max="48" placeholder="1" value={cartaoQuantidade} onChange={e => setCartaoQuantidade(e.target.value)} className="w-24" />
+                            <div className="flex gap-1 flex-wrap">
+                              {[1,2,3,6,12].map(n => (
+                                <Button key={n} type="button" size="sm" variant={cartaoQuantidade === String(n) ? "default" : "outline"} className="h-7 px-2 text-xs" onClick={() => setCartaoQuantidade(String(n))}>
+                                  {n}x
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                         <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">Adicionar</Button>
                       </form>
@@ -878,12 +911,22 @@ const Index = () => {
                         </div>
                         <div className="space-y-1">
                           {itens.map(item => (
-                            <div key={item.id} className="flex items-center justify-between text-sm px-1 py-1 rounded hover:bg-blue-500/5">
+                            <div key={item.id} className="flex items-center justify-between text-sm px-2 py-2 rounded-lg border border-blue-500/10 hover:bg-blue-500/5">
                               <div className="flex-1 min-w-0">
-                                <span className="text-foreground">{item.descricao}</span>
-                                <span className="text-xs text-muted-foreground ml-2">{format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-foreground font-medium">{item.descricao}</span>
+                                  {item.quantidade > 1 && (
+                                    <span className="text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/20 rounded px-1">{item.quantidade}x</span>
+                                  )}
+                                </div>
+                                <div className="flex gap-3 mt-0.5">
+                                  <span className="text-xs text-muted-foreground">Compra: {format(parseISO(item.data_compra), "dd/MM/yyyy")}</span>
+                                  {item.data_vencimento && (
+                                    <span className="text-xs text-orange-400 font-medium">Vence: {format(parseISO(item.data_vencimento), "dd/MM/yyyy")}</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 ml-2">
+                              <div className="flex items-center gap-2 ml-2 shrink-0">
                                 <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
                                   <Trash2 className="h-3 w-3" />
