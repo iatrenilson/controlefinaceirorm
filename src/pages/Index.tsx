@@ -137,7 +137,7 @@ const Index = () => {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "receita" | "despesa">("todos");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "paga" | "vencida" | "em_aberto">("todos");
-  const [filtroMes, setFiltroMes] = useState<string>("todos");
+  const [filtroMes, setFiltroMes] = useState<string>(() => format(new Date(), "yyyy-MM"));
   const [mostrarPagas, setMostrarPagas] = useState(false);
   const [pagasOpen, setPagasOpen] = useState(true);
   const [mesDespesas, setMesDespesas] = useState(() => format(new Date(), "yyyy-MM"));
@@ -630,12 +630,13 @@ const Index = () => {
                   <SelectTrigger className="h-9 w-full sm:w-36"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os Meses</SelectItem>
-                    {Array.from({ length: 12 }, (_, i) => {
+                    {Array.from({ length: 18 }, (_, i) => {
                       const now = new Date();
-                      const d = new Date(now.getFullYear(), now.getMonth() - 6 + i, 1);
+                      const d = new Date(now.getFullYear(), now.getMonth() - 3 + i, 1);
                       const val = format(d, "yyyy-MM");
                       const label = format(d, "MMM yyyy", { locale: ptBR });
-                      return <SelectItem key={val} value={val}>{label}</SelectItem>;
+                      const isCurrentMonth = val === format(now, "yyyy-MM");
+                      return <SelectItem key={val} value={val}>{label}{isCurrentMonth ? " ★" : ""}</SelectItem>;
                     })}
                   </SelectContent>
                 </Select>
