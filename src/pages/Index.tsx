@@ -1014,7 +1014,7 @@ const Index = () => {
                         </div>
                         <p className="text-sm font-medium text-foreground">{t.descricao}</p>
                         <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                          <span>Valor: <span className="font-mono font-semibold text-foreground">{t.tipo === "receita" ? "+" : "-"}R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
+                          <span>Valor: <span className="font-mono font-semibold text-foreground">R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
                           <span>Parcelas: <span className="font-mono text-foreground">{getParcelaExibida(t) ?? "-"}</span></span>
                           <span>Vencimento: <span className="text-foreground">{format(parseISO(getVencimentoExibido(t)), "dd/MM/yy")}</span></span>
                         </div>
@@ -1068,7 +1068,7 @@ const Index = () => {
                           </TableCell>
                           <TableCell className="font-medium text-foreground">{t.descricao}</TableCell>
                           <TableCell className="font-mono font-semibold text-foreground">
-                            {t.tipo === "receita" ? "+" : "-"}R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-foreground text-center">
                             {getParcelaExibida(t) ?? "-"}
