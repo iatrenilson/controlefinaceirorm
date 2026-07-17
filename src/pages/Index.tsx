@@ -563,24 +563,42 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Despesas Mensais Card */}
-        <Card className="group hover:shadow-lg transition-all">
-          <CardContent className="p-4 sm:p-5">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
-                <CalendarIcon className="h-5 w-5 text-orange-500" />
+        {/* Despesas Mensais + Cartão de Crédito */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Card className="group hover:shadow-lg transition-all">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-orange-500/15 p-2.5 shrink-0">
+                  <CalendarIcon className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Despesas {filtroMes === "todos" ? "— Todos" : `— ${format(parseISO(filtroMes + "-01"), "MMM yyyy", { locale: ptBR })}`}
+                  </p>
+                  <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
+                    R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                  Despesas {filtroMes === "todos" ? "— Todos os Meses" : `— ${format(parseISO(filtroMes + "-01"), "MMM yyyy", { locale: ptBR })}`}
-                </p>
-                <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
-                  R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </p>
+            </CardContent>
+          </Card>
+          <Card className="group hover:shadow-lg transition-all border-blue-500/30 bg-blue-500/5">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-blue-500/15 p-2.5 shrink-0">
+                  <CreditCard className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Cartão de Crédito</p>
+                  <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-blue-400 mt-0.5">
+                    R$ {cartaoItens.reduce((s, i) => s + i.valor, 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{cartaoItens.length} item{cartaoItens.length !== 1 ? "s" : ""}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Table */}
         <Card>
