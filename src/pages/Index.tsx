@@ -832,11 +832,14 @@ const Index = () => {
                         <div className="space-y-1.5">
                           <Label>Cartão</Label>
                           <div className="flex gap-2 mb-1.5">
-                            {["MERCADO PAGO", "NUBANK"].map(c => (
-                              <Button key={c} type="button" size="sm" variant={cartaoNome === c ? "default" : "outline"} className="flex-1 text-xs h-8" onClick={() => setCartaoNome(c)}>
-                                {c}
-                              </Button>
-                            ))}
+                            <Button type="button" size="sm" onClick={() => setCartaoNome("MERCADO PAGO")}
+                              className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "MERCADO PAGO" ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
+                              MERCADO PAGO
+                            </Button>
+                            <Button type="button" size="sm" onClick={() => setCartaoNome("NUBANK")}
+                              className={`flex-1 text-xs h-8 border transition-all ${cartaoNome === "NUBANK" ? "bg-purple-600 text-white border-purple-600 hover:bg-purple-700" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
+                              NUBANK
+                            </Button>
                           </div>
                           <Input placeholder="Ou digite outro cartão..." value={cartaoNome} onChange={e => setCartaoNome(e.target.value)} required />
                         </div>
