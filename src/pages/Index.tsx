@@ -140,6 +140,7 @@ const Index = () => {
   const [filtroMes, setFiltroMes] = useState<string>(() => format(new Date(), "yyyy-MM"));
   const [mostrarPagas, setMostrarPagas] = useState(false);
   const [pagasOpen, setPagasOpen] = useState(true);
+  const [filtroMesPagas, setFiltroMesPagas] = useState<string>(() => format(new Date(), "yyyy-MM"));
   const [mesDespesas, setMesDespesas] = useState(() => format(new Date(), "yyyy-MM"));
 
   // Cartão de Crédito
@@ -1101,29 +1102,59 @@ const Index = () => {
 
       {/* Contas Pagas */}
       {(() => {
-        const pagas = transacoes.filter(t => t.status === "paga");
-        const parcelasRecentes = transacoes.filter(t => t.status !== "paga" && t.ultimoPagamento);
+        const filtrarPorMesPagas = (dataRef: string) => {
+          if (filtroMesPagas === "todos") return true;
+          const [ano, mes] = filtroMesPagas.split("-").map(Number);
+          const d = parseISO(dataRef);
+          return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
+        };
+        const pagas = transacoes.filter(t => t.status === "paga" && filtrarPorMesPagas(t.ultimoPagamento || t.dataVencimento));
+        const parcelasRecentes = transacoes.filter(t => t.status !== "paga" && t.ultimoPagamento && filtrarPorMesPagas(t.ultimoPagamento));
         const itens = [...pagas, ...parcelasRecentes].sort((a, b) => {
           const da = a.ultimoPagamento || a.dataVencimento;
           const db = b.ultimoPagamento || b.dataVencimento;
           return db.localeCompare(da);
         });
-        if (itens.length === 0) return null;
+        const totalPagas = transacoes.filter(t => t.status === "paga" || (t.status !== "paga" && t.ultimoPagamento)).length;
+        if (totalPagas === 0) return null;
         return (
           <Card className="border border-green-500/30 bg-green-500/5">
-            <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setPagasOpen(o => !o)}>
+            <CardHeader className="pb-2 pt-4 px-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setPagasOpen(o => !o)}>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                   <CardTitle className="text-sm font-semibold text-green-400">Contas Pagas / Parcelas Pagas</CardTitle>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">{itens.length}</Badge>
                 </div>
-                {pagasOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                <div className="flex items-center gap-2">
+                  <Select value={filtroMesPagas} onValueChange={setFiltroMesPagas}>
+                    <SelectTrigger className="h-7 w-32 text-xs border-green-500/30 bg-green-500/10 text-green-400" onClick={e => e.stopPropagation()}>
+                      <SelectValue placeholder="Mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      {Array.from({ length: 18 }, (_, i) => {
+                        const now = new Date();
+                        const d = new Date(now.getFullYear(), now.getMonth() - 3 + i, 1);
+                        const val = format(d, "yyyy-MM");
+                        const label = format(d, "MMM yyyy", { locale: ptBR });
+                        const isCurrent = val === format(now, "yyyy-MM");
+                        return <SelectItem key={val} value={val}>{label}{isCurrent ? " ★" : ""}</SelectItem>;
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <div className="cursor-pointer" onClick={() => setPagasOpen(o => !o)}>
+                    {pagasOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </div>
               </div>
             </CardHeader>
             {pagasOpen && (
               <CardContent className="px-4 pb-4">
                 <div className="space-y-2">
+                  {itens.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta paga neste mês.</p>
+                  )}
                   {itens.map(t => {
                     const isParcela = t.parcelas && t.parcelas > 1 && t.status !== "paga";
                     const pagoEm = t.ultimoPagamento ? format(parseISO(t.ultimoPagamento), "dd/MM/yyyy", { locale: ptBR }) : "—";
