@@ -424,26 +424,12 @@ const Index = () => {
   }, [transacoes]);
 
   const despesasMensal = useMemo(() => {
-    const transTotal = transacoes
-      .filter((t) => {
-        if (t.tipo !== "despesa") return false;
-        if (filtroMes === "todos") return true;
-        const [ano, mes] = filtroMes.split("-").map(Number);
-        const d = parseISO(t.dataVencimento);
-        const dvAno = d.getFullYear();
-        const dvMes = d.getMonth() + 1;
-        const temParcelas = t.parcelas && t.parcelas > 1 && t.status !== "paga" && (t.parcelaAtual ?? 0) > 0;
-        if (temParcelas) {
-          return new Date(ano, mes - 1, 1) >= new Date(dvAno, dvMes - 1, 1);
-        }
-        return dvAno === ano && dvMes === mes;
-      })
+    const transTotal = filtered
+      .filter(t => t.tipo === "despesa")
       .reduce((a, t) => a + t.valor, 0);
-
     const cartaoTotal = Object.values(gruposCartaoFiltrados).flat().reduce((s, i) => s + i.valor, 0);
-
     return transTotal + cartaoTotal;
-  }, [transacoes, filtroMes, gruposCartaoFiltrados]);
+  }, [filtered, gruposCartaoFiltrados]);
 
   const getVencimentoExibido = (t: Transacao): string => {
     if (filtroMes === "todos") return t.dataVencimento;
