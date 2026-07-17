@@ -611,33 +611,7 @@ const Emprestimos = () => {
     const { data: walletData } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
     const saldoAtual = walletData ? Math.max(0, Number(walletData.saldo) || 0) : 0;
 
-    // If already paid, revert: remove juros from wallet, revert date -1 month, set status back to "Em dia"
-    if (paidJurosIds.has(id)) {
-      const newSaldo = Math.max(0, saldoAtual - valorJuros);
-      const { error: walletError } = await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
-      if (walletError) {
-        toast({ title: "Erro ao reverter saldo", description: getSafeErrorMessage(walletError), variant: "destructive" });
-        return;
-      }
-
-      // Restore the original date saved before paying
-      const dataOriginal = originalDates.get(id);
-      if (dataOriginal) {
-        await supabase.from("clientes").update({ data_pagamento: dataOriginal }).eq("id", id);
-      }
-
-      await logTransaction("estorno_juros", valorJuros, saldoAtual, newSaldo, `Estorno de juros de ${cliente.nome}`);
-      setSaldo(newSaldo);
-      setPaidJurosIds(prev => { const next = new Set(prev); next.delete(id); return next; });
-      setOriginalDates(prev => { const next = new Map(prev); next.delete(id); return next; });
-      fetchClientes();
-      fetchTransactions();
-      toast({ title: "Juros estornados", description: `R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} removido da carteira.` });
-      return;
-    }
-
-    // First time paying juros: save original date, advance by periodicidade
-    setOriginalDates(prev => new Map(prev).set(id, cliente.dataPagamento));
+    // Sempre avança: registra juros e avança data pelo período do cliente
     const pagDate = parseISO(cliente.dataPagamento);
     const novaData = addDays(pagDate, getDiasPeriodo(cliente.periodicidade));
     const novaDataPagamento = format(novaData, "yyyy-MM-dd");
@@ -661,7 +635,6 @@ const Emprestimos = () => {
 
     await logTransaction("pagamento_juros", valorJuros, saldoAtual, newSaldo, `Juros recebidos de ${cliente.nome}`);
     setSaldo(newSaldo);
-    setPaidJurosIds(prev => new Set(prev).add(id));
     fetchClientes();
     fetchTransactions();
     const msgConfirmacao = gerarMensagemConfirmacaoJuros(cliente, novaDataPagamento);
