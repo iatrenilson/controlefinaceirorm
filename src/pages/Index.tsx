@@ -594,11 +594,21 @@ const Index = () => {
             <Card className="border border-blue-500/30 bg-blue-500/5">
               <CardHeader className="pb-2 pt-4 px-4 cursor-pointer" onClick={() => setCartaoSectionOpen(o => !o)}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-blue-400" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-blue-400 shrink-0" />
                     <CardTitle className="text-sm font-semibold text-blue-400">Cartão de Crédito</CardTitle>
+                    {Object.entries(grupos).map(([nome, itens]) => {
+                      const total = itens.reduce((s, i) => s + i.valor, 0);
+                      const isMp = nome === "MERCADO PAGO";
+                      const isNu = nome === "NUBANK";
+                      return (
+                        <span key={nome} className={`text-xs font-mono rounded px-1.5 py-0.5 border ${isMp ? "text-blue-300 bg-blue-600/15 border-blue-500/30" : isNu ? "text-purple-300 bg-purple-600/15 border-purple-500/30" : "text-blue-300 bg-blue-500/10 border-blue-500/20"}`}>
+                          {nome}: R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      );
+                    })}
                     <span className="text-xs font-mono text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded px-1.5 py-0.5">
-                      Dívida total: R$ {cartaoTotalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      Total: R$ {cartaoTotalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
