@@ -30,7 +30,7 @@ interface Cliente {
   dataPagamento: string;
   parcelas: number;
   parcelaAtual: number;
-  periodicidade: "mensal" | "quinzenal";
+  periodicidade: "mensal" | "quinzenal" | "vinte_dias";
 }
 
 const Emprestimos = () => {
@@ -55,16 +55,18 @@ const Emprestimos = () => {
   const [dataPagamento, setDataPagamento] = useState<Date>(addDays(new Date(), 30));
   const [numeroParcelas, setNumeroParcelas] = useState("1");
   const [telefone, setTelefone] = useState("");
-  const [periodicidade, setPeriodicidade] = useState<"mensal" | "quinzenal">("mensal");
+  const [periodicidade, setPeriodicidade] = useState<"mensal" | "quinzenal" | "vinte_dias">("mensal");
 
-  const handleSetPeriodicidade = (p: "mensal" | "quinzenal") => {
+  const getDiasPeriodo = (p: string) => p === "quinzenal" ? 15 : p === "vinte_dias" ? 20 : 30;
+
+  const handleSetPeriodicidade = (p: "mensal" | "quinzenal" | "vinte_dias") => {
     setPeriodicidade(p);
-    setDataPagamento(addDays(dataEmprestimo ?? new Date(), p === "quinzenal" ? 15 : 30));
+    setDataPagamento(addDays(dataEmprestimo ?? new Date(), getDiasPeriodo(p)));
   };
 
   const handleSetDataEmprestimo = (d: Date | undefined) => {
     setDataEmprestimo(d ?? new Date());
-    setDataPagamento(addDays(d ?? new Date(), periodicidade === "quinzenal" ? 15 : 30));
+    setDataPagamento(addDays(d ?? new Date(), getDiasPeriodo(periodicidade)));
   };
 
   // Summary popup state
@@ -80,7 +82,7 @@ const Emprestimos = () => {
   const [editTelefone, setEditTelefone] = useState("");
   const [editDataEmprestimo, setEditDataEmprestimo] = useState<Date>();
   const [editDataPagamento, setEditDataPagamento] = useState<Date>();
-  const [editPeriodicidade, setEditPeriodicidade] = useState<"mensal" | "quinzenal">("mensal");
+  const [editPeriodicidade, setEditPeriodicidade] = useState<"mensal" | "quinzenal" | "vinte_dias">("mensal");
 
   // Search & filter state
   const [busca, setBusca] = useState("");
@@ -146,7 +148,7 @@ const Emprestimos = () => {
         dataPagamento: d.data_pagamento,
         parcelas: Number(d.parcelas) || 1,
         parcelaAtual: Number(d.parcela_atual) || 1,
-        periodicidade: (d.periodicidade as "mensal" | "quinzenal") || "mensal",
+        periodicidade: (d.periodicidade as "mensal" | "quinzenal" | "vinte_dias") || "mensal",
       }));
     setClientes(mapped);
     try { sessionStorage.setItem("emprestimos_cache", JSON.stringify(mapped)); } catch {}
@@ -787,6 +789,10 @@ const Emprestimos = () => {
                       className={`flex-1 h-9 border transition-all ${periodicidade === "mensal" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
                       Mensal
                     </Button>
+                    <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("vinte_dias")}
+                      className={`flex-1 h-9 border transition-all ${periodicidade === "vinte_dias" ? "bg-orange-600 text-white border-orange-600" : "bg-transparent text-orange-400 border-orange-500/50 hover:bg-orange-500/10"}`}>
+                      20 Dias
+                    </Button>
                     <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("quinzenal")}
                       className={`flex-1 h-9 border transition-all ${periodicidade === "quinzenal" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
                       Quinzenal
@@ -916,6 +922,10 @@ const Emprestimos = () => {
                 <Button type="button" size="sm" onClick={() => setEditPeriodicidade("mensal")}
                   className={`flex-1 h-9 border transition-all ${editPeriodicidade === "mensal" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
                   Mensal
+                </Button>
+                <Button type="button" size="sm" onClick={() => setEditPeriodicidade("vinte_dias")}
+                  className={`flex-1 h-9 border transition-all ${editPeriodicidade === "vinte_dias" ? "bg-orange-600 text-white border-orange-600" : "bg-transparent text-orange-400 border-orange-500/50 hover:bg-orange-500/10"}`}>
+                  20 Dias
                 </Button>
                 <Button type="button" size="sm" onClick={() => setEditPeriodicidade("quinzenal")}
                   className={`flex-1 h-9 border transition-all ${editPeriodicidade === "quinzenal" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
@@ -1395,8 +1405,8 @@ const Emprestimos = () => {
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
                               <TableCell>
-                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
-                                  {c.periodicidade === "quinzenal" ? "Quinzenal" : "Mensal"}
+                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : c.periodicidade === "vinte_dias" ? "bg-orange-600 hover:bg-orange-700 text-white text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
+                                  {c.periodicidade === "quinzenal" ? "Quinzenal" : c.periodicidade === "vinte_dias" ? "20 Dias" : "Mensal"}
                                 </Badge>
                               </TableCell>
                               <TableCell>
