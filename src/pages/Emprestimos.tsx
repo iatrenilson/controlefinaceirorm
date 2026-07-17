@@ -1519,10 +1519,35 @@ const Emprestimos = () => {
 
       {/* Div oculta para print */}
       <div ref={printRef} style={{ position: "fixed", left: "-9999px", top: 0, width: "900px", padding: "24px", background: "#0f172a", color: "#f1f5f9", fontFamily: "sans-serif" }}>
-        <div style={{ marginBottom: "16px", borderBottom: "1px solid #334155", paddingBottom: "12px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#34d399", margin: 0 }}>Lista de Clientes</h2>
-          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "4px 0 0" }}>{format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+        <div style={{ marginBottom: "16px", borderBottom: "1px solid #334155", paddingBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#34d399", margin: 0 }}>Lista de Clientes</h2>
+            <p style={{ fontSize: "12px", color: "#94a3b8", margin: "4px 0 0" }}>{format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+          </div>
+          <p style={{ fontSize: "11px", color: "#64748b", margin: 0 }}>Total: {clientes.length} clientes</p>
         </div>
+        {(() => {
+          const totalEmprestado = clientes.reduce((s, c) => s + c.valor, 0);
+          const totalJuros = clientes.reduce((s, c) => s + c.valor * (c.juros / 100), 0);
+          const totalGeral = totalEmprestado + totalJuros;
+          const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+          return (
+            <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", flex: 1 }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total Emprestado</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#60a5fa" }}>{fmt(totalEmprestado)}</p>
+              </div>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", flex: 1 }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total de Juros</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#fb923c" }}>{fmt(totalJuros)}</p>
+              </div>
+              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", flex: 1 }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total a Receber</p>
+                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#34d399" }}>{fmt(totalGeral)}</p>
+              </div>
+            </div>
+          );
+        })()}
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
           <thead>
             <tr style={{ background: "#1e293b" }}>
@@ -1552,29 +1577,6 @@ const Emprestimos = () => {
             })}
           </tbody>
         </table>
-        {(() => {
-          const totalEmprestado = clientes.reduce((s, c) => s + c.valor, 0);
-          const totalJuros = clientes.reduce((s, c) => s + c.valor * (c.juros / 100), 0);
-          const totalGeral = totalEmprestado + totalJuros;
-          const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-          return (
-            <div style={{ marginTop: "16px", borderTop: "1px solid #334155", paddingTop: "12px", display: "flex", gap: "24px", flexWrap: "wrap" }}>
-              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
-                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total Emprestado</p>
-                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#60a5fa" }}>{fmt(totalEmprestado)}</p>
-              </div>
-              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
-                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total de Juros</p>
-                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#fb923c" }}>{fmt(totalJuros)}</p>
-              </div>
-              <div style={{ background: "#1e293b", borderRadius: "8px", padding: "10px 16px", minWidth: "180px" }}>
-                <p style={{ margin: 0, fontSize: "11px", color: "#94a3b8" }}>Total a Receber</p>
-                <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: "bold", color: "#34d399" }}>{fmt(totalGeral)}</p>
-              </div>
-              <p style={{ margin: "auto 0 0 auto", fontSize: "11px", color: "#64748b", alignSelf: "flex-end" }}>Total de clientes: {clientes.length}</p>
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
