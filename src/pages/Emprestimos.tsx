@@ -1541,7 +1541,7 @@ const Emprestimos = () => {
                   <td style={{ padding: "8px 10px", color: "#94a3b8" }}>{format(parseISO(c.dataEmprestimo), "dd/MM/yyyy")}</td>
                   <td style={{ padding: "8px 10px", color: "#94a3b8" }}>{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</td>
                   <td style={{ padding: "8px 10px" }}>
-                    <span style={{ background: c.periodicidade === "quinzenal" ? "#7c3aed" : c.periodicidade === "vinte_dias" ? "#ea580c" : "#2563eb", color: "#fff", borderRadius: "4px", padding: "2px 8px", fontSize: "11px" }}>{periodo}</span>
+                    <span style={{ display: "inline-block", background: c.periodicidade === "quinzenal" ? "#7c3aed" : c.periodicidade === "vinte_dias" ? "#ea580c" : "#2563eb", color: "#fff", borderRadius: "4px", padding: "3px 10px", fontSize: "11px", fontWeight: 600, textAlign: "center", lineHeight: "1.4", whiteSpace: "nowrap" }}>{periodo}</span>
                   </td>
                 </tr>
               );
