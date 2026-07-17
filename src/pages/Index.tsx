@@ -255,6 +255,10 @@ const Index = () => {
     if (user) { fetchTransacoes(); fetchCartaoItens(); }
   }, [user]);
 
+  useEffect(() => {
+    setFiltroMesPagas(filtroMes);
+  }, [filtroMes]);
+
   const resetForm = () => {
     setDescricao("");
     setValor("");
