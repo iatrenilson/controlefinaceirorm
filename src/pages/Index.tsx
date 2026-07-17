@@ -480,6 +480,16 @@ const Index = () => {
     return transTotal + cartaoTotal;
   }, [filtered, gruposCartaoFiltrados]);
 
+  const emAbertoFiltrado = useMemo(() => {
+    return transacoes.filter(t => {
+      if (t.status !== "em_aberto" || isPast(parseISO(t.dataVencimento))) return false;
+      if (filtroMes === "todos") return true;
+      const [ano, mes] = filtroMes.split("-").map(Number);
+      const d = parseISO(t.dataVencimento);
+      return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
+    }).length;
+  }, [transacoes, filtroMes]);
+
   const getVencimentoExibido = (t: Transacao): string => {
     if (filtroMes === "todos") return t.dataVencimento;
     const [ano, mes] = filtroMes.split("-").map(Number);
@@ -612,7 +622,7 @@ const Index = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Despesas</p>
                   <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-orange-500 mt-0.5">
-                    R$ {stats.despesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R$ {despesasMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
@@ -664,7 +674,7 @@ const Index = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Em Aberto</p>
                   <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-blue-500 mt-0.5">
-                    {stats.emAberto}
+                    {emAbertoFiltrado}
                   </p>
                 </div>
               </div>
