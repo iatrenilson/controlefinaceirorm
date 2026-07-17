@@ -790,7 +790,7 @@ const Emprestimos = () => {
                       Mensal
                     </Button>
                     <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("vinte_dias")}
-                      className={`flex-1 h-9 border transition-all ${periodicidade === "vinte_dias" ? "bg-orange-600 text-white border-orange-600" : "bg-transparent text-orange-400 border-orange-500/50 hover:bg-orange-500/10"}`}>
+                      className={`flex-1 h-9 border transition-all ${periodicidade === "vinte_dias" ? "bg-yellow-500 text-black border-yellow-500" : "bg-transparent text-yellow-400 border-yellow-500/50 hover:bg-yellow-500/10"}`}>
                       20 Dias
                     </Button>
                     <Button type="button" size="sm" onClick={() => handleSetPeriodicidade("quinzenal")}
@@ -924,7 +924,7 @@ const Emprestimos = () => {
                   Mensal
                 </Button>
                 <Button type="button" size="sm" onClick={() => setEditPeriodicidade("vinte_dias")}
-                  className={`flex-1 h-9 border transition-all ${editPeriodicidade === "vinte_dias" ? "bg-orange-600 text-white border-orange-600" : "bg-transparent text-orange-400 border-orange-500/50 hover:bg-orange-500/10"}`}>
+                  className={`flex-1 h-9 border transition-all ${editPeriodicidade === "vinte_dias" ? "bg-yellow-500 text-black border-yellow-500" : "bg-transparent text-yellow-400 border-yellow-500/50 hover:bg-yellow-500/10"}`}>
                   20 Dias
                 </Button>
                 <Button type="button" size="sm" onClick={() => setEditPeriodicidade("quinzenal")}
@@ -1405,7 +1405,7 @@ const Emprestimos = () => {
                               <TableCell className="text-muted-foreground">{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">{c.telefone || "—"}</TableCell>
                               <TableCell>
-                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : c.periodicidade === "vinte_dias" ? "bg-orange-600 hover:bg-orange-700 text-white text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
+                                <Badge className={c.periodicidade === "quinzenal" ? "bg-purple-600 hover:bg-purple-700 text-white text-[10px]" : c.periodicidade === "vinte_dias" ? "bg-yellow-500 hover:bg-yellow-600 text-black text-[10px]" : "bg-blue-600 hover:bg-blue-700 text-white text-[10px]"}>
                                   {c.periodicidade === "quinzenal" ? "Quinzenal" : c.periodicidade === "vinte_dias" ? "20 Dias" : "Mensal"}
                                 </Badge>
                               </TableCell>
