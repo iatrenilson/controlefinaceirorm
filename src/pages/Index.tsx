@@ -445,6 +445,18 @@ const Index = () => {
     return transTotal + cartaoTotal;
   }, [transacoes, filtroMes, gruposCartaoFiltrados]);
 
+  const getVencimentoExibido = (t: Transacao): string => {
+    if (filtroMes === "todos") return t.dataVencimento;
+    const [ano, mes] = filtroMes.split("-").map(Number);
+    const dv = parseISO(t.dataVencimento);
+    const dvAno = dv.getFullYear();
+    const dvMes = dv.getMonth() + 1;
+    if (dvAno === ano && dvMes === mes) return t.dataVencimento;
+    const mesesDiff = (ano - dvAno) * 12 + (mes - dvMes);
+    if (mesesDiff > 0) return format(addMonths(dv, mesesDiff), "yyyy-MM-dd");
+    return t.dataVencimento;
+  };
+
   const getDisplayStatus = (t: Transacao) => {
     if (t.status === "paga") return "paga";
     if (t.status === "vencida" || (t.status === "em_aberto" && isPast(parseISO(t.dataVencimento)))) return "vencida";
@@ -941,7 +953,7 @@ const Index = () => {
                         <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                           <span>Valor: <span className="font-mono font-semibold text-foreground">{t.tipo === "receita" ? "+" : "-"}R$ {t.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
                           <span>Parcelas: <span className="font-mono text-foreground">{t.parcelas ? `${getParcelasRestantes(t)}/${t.parcelas}` : "-"}</span></span>
-                          <span>Vencimento: <span className="text-foreground">{format(parseISO(t.dataVencimento), "dd/MM/yy")}</span></span>
+                          <span>Vencimento: <span className="text-foreground">{format(parseISO(getVencimentoExibido(t)), "dd/MM/yy")}</span></span>
                         </div>
                       </div>
                     );
@@ -998,7 +1010,7 @@ const Index = () => {
                           <TableCell className="text-foreground text-center">
                             {t.parcelas ? `${getParcelasRestantes(t)}/${t.parcelas}` : "-"}
                           </TableCell>
-                          <TableCell className="text-foreground">{format(parseISO(t.dataVencimento), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="text-foreground">{format(parseISO(getVencimentoExibido(t)), "dd/MM/yyyy")}</TableCell>
                           <TableCell>
                             <Badge className={statusBadgeClass(getDisplayStatus(t))}>{statusLabel(getDisplayStatus(t))}</Badge>
                           </TableCell>
