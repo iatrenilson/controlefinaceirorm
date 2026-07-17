@@ -986,7 +986,7 @@ const Index = () => {
                             <TableCell className={`font-mono font-semibold ${isNu ? "text-purple-300" : "text-blue-300"}`}>
                               -R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </TableCell>
-                            <TableCell className="text-center text-muted-foreground">{itens.length}x</TableCell>
+                            <TableCell className="text-center text-muted-foreground">—</TableCell>
                             <TableCell className="text-foreground">{vencMin ? format(parseISO(vencMin), "dd/MM/yyyy") : "—"}</TableCell>
                             <TableCell><Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Em Aberto</Badge></TableCell>
                             <TableCell />
