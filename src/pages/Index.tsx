@@ -155,6 +155,42 @@ const Index = () => {
   const [cartaoSectionOpen, setCartaoSectionOpen] = useState(true);
   const [cartaoExpandidos, setCartaoExpandidos] = useState<Set<string>>(new Set());
   const toggleCartao = (nome: string) => setCartaoExpandidos(prev => { const s = new Set(prev); s.has(nome) ? s.delete(nome) : s.add(nome); return s; });
+  const [cartaoEditOpen, setCartaoEditOpen] = useState(false);
+  const [cartaoEditId, setCartaoEditId] = useState<string>("");
+  const [cartaoEditNome, setCartaoEditNome] = useState("");
+  const [cartaoEditDesc, setCartaoEditDesc] = useState("");
+  const [cartaoEditValor, setCartaoEditValor] = useState("");
+  const [cartaoEditDataCompra, setCartaoEditDataCompra] = useState<Date>(new Date());
+  const [cartaoEditDataVenc, setCartaoEditDataVenc] = useState<Date | undefined>(undefined);
+  const [cartaoEditQtd, setCartaoEditQtd] = useState("1");
+
+  const openCartaoEdit = (item: CartaoItem) => {
+    setCartaoEditId(item.id);
+    setCartaoEditNome(item.cartao);
+    setCartaoEditDesc(item.descricao);
+    setCartaoEditValor(String(item.valor));
+    setCartaoEditDataCompra(parseISO(item.data_compra));
+    setCartaoEditDataVenc(item.data_vencimento ? parseISO(item.data_vencimento) : undefined);
+    setCartaoEditQtd(String(item.quantidade));
+    setCartaoEditOpen(true);
+  };
+
+  const handleEditCartaoItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cartaoEditId || !cartaoEditNome.trim() || !cartaoEditDesc.trim() || !cartaoEditValor) return;
+    const { error } = await supabase.from("cartao_itens").update({
+      cartao: cartaoEditNome.trim().toUpperCase(),
+      descricao: cartaoEditDesc.trim().toUpperCase(),
+      valor: parseFloat(cartaoEditValor),
+      data_compra: format(cartaoEditDataCompra, "yyyy-MM-dd"),
+      data_vencimento: cartaoEditDataVenc ? format(cartaoEditDataVenc, "yyyy-MM-dd") : null,
+      quantidade: parseInt(cartaoEditQtd) || 1,
+    }).eq("id", cartaoEditId);
+    if (error) { toast.error("Erro ao editar item"); return; }
+    toast.success("Item atualizado!");
+    setCartaoEditOpen(false);
+    fetchCartaoItens();
+  };
 
   const fetchCartaoItens = async () => {
     if (!user) return;
@@ -803,6 +839,9 @@ const Index = () => {
                                   </div>
                                   <div className="flex items-center gap-2 ml-2 shrink-0">
                                     <span className="font-mono text-sm text-destructive">-R$ {item.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => openCartaoEdit(item)}>
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => handleDeleteCartaoItem(item.id)}>
                                       <Trash2 className="h-3 w-3" />
                                     </Button>
@@ -1121,6 +1160,81 @@ const Index = () => {
         );
       })()}
       </main>
+
+      {/* Cartão Edit Dialog */}
+      <Dialog open={cartaoEditOpen} onOpenChange={setCartaoEditOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Editar Item do Cartão</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditCartaoItem} className="space-y-3 mt-2">
+            <div className="space-y-1.5">
+              <Label>Cartão</Label>
+              <div className="flex gap-2 mb-1.5">
+                <Button type="button" size="sm" onClick={() => setCartaoEditNome("MERCADO PAGO")}
+                  className={`flex-1 text-xs h-8 border transition-all ${cartaoEditNome === "MERCADO PAGO" ? "bg-blue-600 text-white border-blue-600" : "bg-transparent text-blue-400 border-blue-500/50 hover:bg-blue-500/10"}`}>
+                  MERCADO PAGO
+                </Button>
+                <Button type="button" size="sm" onClick={() => setCartaoEditNome("NUBANK")}
+                  className={`flex-1 text-xs h-8 border transition-all ${cartaoEditNome === "NUBANK" ? "bg-purple-600 text-white border-purple-600" : "bg-transparent text-purple-400 border-purple-500/50 hover:bg-purple-500/10"}`}>
+                  NUBANK
+                </Button>
+              </div>
+              <Input placeholder="Ou digite outro cartão..." value={cartaoEditNome} onChange={e => setCartaoEditNome(e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Input value={cartaoEditDesc} onChange={e => setCartaoEditDesc(e.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Valor (R$)</Label>
+              <Input type="number" step="0.01" min="0.01" value={cartaoEditValor} onChange={e => setCartaoEditValor(e.target.value)} required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Data da Compra</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                      <CalendarIcon className="mr-1 h-3.5 w-3.5" />{format(cartaoEditDataCompra, "dd/MM/yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={cartaoEditDataCompra} onSelect={d => d && setCartaoEditDataCompra(d)} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Data de Vencimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal text-xs px-2">
+                      <CalendarIcon className="mr-1 h-3.5 w-3.5" />{cartaoEditDataVenc ? format(cartaoEditDataVenc, "dd/MM/yyyy") : "Selecionar"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={cartaoEditDataVenc} onSelect={d => setCartaoEditDataVenc(d)} initialFocus className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Parcelas</Label>
+              <div className="flex gap-2 items-center">
+                <Input type="number" min="1" max="48" value={cartaoEditQtd} onChange={e => setCartaoEditQtd(e.target.value)} className="w-24" />
+                <div className="flex gap-1 flex-wrap">
+                  {[1,2,3,6,12].map(n => (
+                    <Button key={n} type="button" size="sm" variant={cartaoEditQtd === String(n) ? "default" : "outline"} className="h-7 px-2 text-xs" onClick={() => setCartaoEditQtd(String(n))}>
+                      {n}x
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <Button type="submit" className="w-full">Salvar Alterações</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
