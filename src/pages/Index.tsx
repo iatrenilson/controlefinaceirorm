@@ -362,10 +362,9 @@ const Index = () => {
       const dvAno = d.getFullYear();
       const dvMes = d.getMonth() + 1;
       if (item.quantidade > 1) {
-        // parcelado: aparece no mês do vencimento e nos próximos meses restantes
-        const selData = new Date(ano, mes - 1, 1);
-        const dvData = new Date(dvAno, dvMes - 1, 1);
-        return selData >= dvData;
+        const monthDiff = (ano - dvAno) * 12 + (mes - dvMes);
+        // aparece do mês do vencimento até o último mês de pagamento
+        return monthDiff >= 0 && monthDiff < item.quantidade;
       } else {
         // item único: só no mês exato
         return dvAno === ano && dvMes === mes;
@@ -395,12 +394,11 @@ const Index = () => {
         const d = parseISO(t.dataVencimento);
         const dvAno = d.getFullYear();
         const dvMes = d.getMonth() + 1;
-        const temParcelasRestantes = t.parcelas && t.parcelas > 1 && t.status !== "paga" && (t.parcelaAtual ?? 0) > 0;
-        if (temParcelasRestantes) {
-          // aparece no mês do vencimento e nos meses seguintes
-          const selData = new Date(ano, mes - 1, 1);
-          const dvData = new Date(dvAno, dvMes - 1, 1);
-          if (selData < dvData) return false;
+        const parcelasRestantes = t.parcelas && t.parcelas > 1 && t.status !== "paga" ? (t.parcelaAtual ?? 0) : 0;
+        if (parcelasRestantes > 0) {
+          const monthDiff = (ano - dvAno) * 12 + (mes - dvMes);
+          // aparece do mês do vencimento até o último mês de pagamento
+          if (monthDiff < 0 || monthDiff >= parcelasRestantes) return false;
         } else {
           // sem parcelas: só aparece no mês exato
           if (dvAno !== ano || dvMes !== mes) return false;
