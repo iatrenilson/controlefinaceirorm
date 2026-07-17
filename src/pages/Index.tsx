@@ -486,11 +486,21 @@ const Index = () => {
 
   const emAbertoFiltrado = useMemo(() => {
     const transCount = transacoes.filter(t => {
-      if (t.status !== "em_aberto" || isPast(parseISO(t.dataVencimento))) return false;
-      if (filtroMes === "todos") return true;
-      const [ano, mes] = filtroMes.split("-").map(Number);
-      const d = parseISO(t.dataVencimento);
-      return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
+      if (t.status !== "em_aberto") return false;
+      if (filtroMes !== "todos") {
+        const [ano, mes] = filtroMes.split("-").map(Number);
+        const d = parseISO(t.dataVencimento);
+        const dvAno = d.getFullYear();
+        const dvMes = d.getMonth() + 1;
+        const parcelasRestantes = t.parcelas && t.parcelas > 1 ? (t.parcelaAtual ?? 0) : 0;
+        if (parcelasRestantes > 0) {
+          const monthDiff = (ano - dvAno) * 12 + (mes - dvMes);
+          if (monthDiff < 0 || monthDiff >= parcelasRestantes) return false;
+        } else {
+          if (dvAno !== ano || dvMes !== mes) return false;
+        }
+      }
+      return true;
     }).length;
     const cartaoCount = Object.keys(gruposCartaoFiltrados).length;
     return transCount + cartaoCount;
