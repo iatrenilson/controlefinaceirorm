@@ -458,6 +458,20 @@ const Index = () => {
     return { receitas, despesas, saldo, vencidas, vencidasAPagar, pagas, pagasTotal, emAberto };
   }, [transacoes]);
 
+  const statsPagasFiltradas = useMemo(() => {
+    const filtrar = (dataRef: string) => {
+      if (filtroMesPagas === "todos") return true;
+      const [ano, mes] = filtroMesPagas.split("-").map(Number);
+      const d = parseISO(dataRef);
+      return d.getFullYear() === ano && (d.getMonth() + 1) === mes;
+    };
+    const lista = transacoes.filter(t =>
+      (t.status === "paga" || (t.status !== "paga" && !!t.ultimoPagamento)) &&
+      filtrar(t.ultimoPagamento || t.dataVencimento)
+    );
+    return { count: lista.length, total: lista.reduce((s, t) => s + t.valor, 0) };
+  }, [transacoes, filtroMesPagas]);
+
   const despesasMensal = useMemo(() => {
     const transTotal = filtered
       .filter(t => t.tipo === "despesa")
@@ -634,9 +648,9 @@ const Index = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Pagas</p>
                   <p className="text-lg sm:text-xl font-bold font-mono tracking-tight text-emerald-500 mt-0.5">
-                    {stats.pagasTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {statsPagasFiltradas.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{stats.pagas} conta{stats.pagas !== 1 ? "s" : ""}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{statsPagasFiltradas.count} conta{statsPagasFiltradas.count !== 1 ? "s" : ""}</p>
                 </div>
               </div>
             </CardContent>
