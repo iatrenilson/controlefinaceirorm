@@ -1092,11 +1092,13 @@ const Index = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
-                              <button onClick={() => toggleCartaoPago(nomeCartao)}
-                                className={`rounded-full p-1 transition-colors ${pago ? "text-green-500 hover:text-green-400" : "text-muted-foreground hover:text-green-500"}`}
-                                title={pago ? "Desmarcar pagamento" : "Confirmar pagamento"}>
-                                <CheckCircle2 className="h-4 w-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="icon" className={`h-8 w-8 ${pago ? "text-green-500 hover:text-green-400" : "text-success hover:text-success/80"}`}
+                                  title={pago ? "Desmarcar pagamento" : "Confirmar pagamento"}
+                                  onClick={() => toggleCartaoPago(nomeCartao)}>
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
