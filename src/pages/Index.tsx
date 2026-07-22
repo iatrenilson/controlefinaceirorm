@@ -1098,6 +1098,27 @@ const Index = () => {
                                   onClick={() => toggleCartaoPago(nomeCartao)}>
                                   <CheckCircle className="h-3.5 w-3.5" />
                                 </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" title="Excluir todos os itens deste cartão">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir itens do {nomeCartao}?</AlertDialogTitle>
+                                      <AlertDialogDescription>Todos os itens deste cartão serão excluídos permanentemente.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={async () => {
+                                        await supabase.from("cartao_itens").delete().eq("user_id", user!.id).eq("cartao", nomeCartao);
+                                        fetchCartaoItens();
+                                        toast.success(`Itens do ${nomeCartao} excluídos`);
+                                      }}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>
