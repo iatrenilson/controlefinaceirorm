@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Calendar as CalendarIcon, Pencil, Trash2, Loader2, Search, DollarSign, CheckCircle, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -153,6 +153,7 @@ const Index = () => {
   const [cartaoDataCompra, setCartaoDataCompra] = useState<Date>(new Date());
   const [cartaoDataVencimento, setCartaoDataVencimento] = useState<Date | undefined>(undefined);
   const [cartaoQuantidade, setCartaoQuantidade] = useState("1");
+  const [cartaoPagos, setCartaoPagos] = useState<Set<string>>(new Set());
   const [cartaoSectionOpen, setCartaoSectionOpen] = useState(true);
   const [cartaoExpandidos, setCartaoExpandidos] = useState<Set<string>>(new Set());
   const toggleCartao = (nome: string) => setCartaoExpandidos(prev => { const s = new Set(prev); s.has(nome) ? s.delete(nome) : s.add(nome); return s; });
@@ -197,6 +198,25 @@ const Index = () => {
     if (!user) return;
     const { data } = await supabase.from("cartao_itens").select("*").eq("user_id", user.id).order("data_vencimento", { ascending: true });
     setCartaoItens((data || []).map((d: any) => ({ id: d.id, cartao: d.cartao, descricao: d.descricao, valor: Number(d.valor), data_compra: d.data_compra, data_vencimento: d.data_vencimento ?? null, quantidade: d.quantidade ?? 1 })));
+  };
+
+  const fetchCartaoPagamentos = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("cartao_pagamentos" as any).select("cartao,mes_referencia").eq("user_id", user.id);
+    const set = new Set<string>((data || []).map((d: any) => `${d.cartao}|${d.mes_referencia}`));
+    setCartaoPagos(set);
+  };
+
+  const toggleCartaoPago = async (nomeCartao: string) => {
+    if (!user) return;
+    const mes = filtroMes === "todos" ? format(new Date(), "yyyy-MM") : filtroMes;
+    const key = `${nomeCartao}|${mes}`;
+    if (cartaoPagos.has(key)) {
+      await supabase.from("cartao_pagamentos" as any).delete().eq("user_id", user.id).eq("cartao", nomeCartao).eq("mes_referencia", mes);
+    } else {
+      await supabase.from("cartao_pagamentos" as any).insert({ user_id: user.id, cartao: nomeCartao, mes_referencia: mes });
+    }
+    fetchCartaoPagamentos();
   };
 
   const handleAddCartaoItem = async (e: React.FormEvent) => {
@@ -252,7 +272,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    if (user) { fetchTransacoes(); fetchCartaoItens(); }
+    if (user) { fetchTransacoes(); fetchCartaoItens(); fetchCartaoPagamentos(); }
   }, [user]);
 
   useEffect(() => {
@@ -1051,6 +1071,8 @@ const Index = () => {
                         const total = itens.reduce((s, i) => s + i.valor, 0);
                         const isNu = nomeCartao === "NUBANK";
                         const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
+                        const mes = filtroMes === "todos" ? format(new Date(), "yyyy-MM") : filtroMes;
+                        const pago = cartaoPagos.has(`${nomeCartao}|${mes}`);
                         return (
                           <TableRow key={`cartao-${nomeCartao}`} className={isNu ? "bg-purple-500/5 hover:bg-purple-500/10" : "bg-blue-500/5 hover:bg-blue-500/10"}>
                             <TableCell>
@@ -1064,8 +1086,18 @@ const Index = () => {
                             </TableCell>
                             <TableCell className="text-center text-muted-foreground">—</TableCell>
                             <TableCell className="text-foreground">{vencMin ? format(parseISO(vencMin), "dd/MM/yyyy") : "—"}</TableCell>
-                            <TableCell><Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Em Aberto</Badge></TableCell>
-                            <TableCell />
+                            <TableCell>
+                              <Badge className={pago ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-blue-500/20 text-blue-300 border-blue-500/30"}>
+                                {pago ? "Pago" : "Em Aberto"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <button onClick={() => toggleCartaoPago(nomeCartao)}
+                                className={`rounded-full p-1 transition-colors ${pago ? "text-green-500 hover:text-green-400" : "text-muted-foreground hover:text-green-500"}`}
+                                title={pago ? "Desmarcar pagamento" : "Confirmar pagamento"}>
+                                <CheckCircle2 className="h-4 w-4" />
+                              </button>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
