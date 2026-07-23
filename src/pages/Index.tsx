@@ -438,6 +438,44 @@ const Index = () => {
     }, {});
   }, [cartaoItens, filtroMes]);
 
+  const gruposCartaoEmAberto = useMemo(() => {
+    const mes = filtroMes === "todos" ? format(new Date(), "yyyy-MM") : filtroMes;
+    return Object.fromEntries(
+      Object.entries(gruposCartaoFiltrados).filter(([nome]) => !cartaoPagos.has(`${nome}|${mes}`))
+    );
+  }, [gruposCartaoFiltrados, cartaoPagos, filtroMes]);
+
+  const gruposCartaoPagosParaMesPagas = useMemo(() => {
+    const itensFiltrados = cartaoItens.filter(item => {
+      const dataRef = item.data_vencimento ?? item.data_compra;
+      if (!dataRef) return true;
+      if (filtroMesPagas === "todos") return true;
+      const [ano, mes] = filtroMesPagas.split("-").map(Number);
+      const d = parseISO(dataRef);
+      const dvAno = d.getFullYear(); const dvMes = d.getMonth() + 1;
+      if (item.quantidade > 1) {
+        const monthDiff = (ano - dvAno) * 12 + (mes - dvMes);
+        return monthDiff >= 0 && monthDiff < item.quantidade;
+      }
+      return dvAno === ano && dvMes === mes;
+    });
+    const grupos = itensFiltrados.reduce<Record<string, CartaoItem[]>>((acc, i) => {
+      if (!acc[i.cartao]) acc[i.cartao] = [];
+      acc[i.cartao].push(i);
+      return acc;
+    }, {});
+    if (filtroMesPagas === "todos") {
+      return Object.fromEntries(
+        Object.entries(grupos).filter(([nome]) =>
+          Array.from(cartaoPagos).some(k => k.startsWith(`${nome}|`))
+        )
+      );
+    }
+    return Object.fromEntries(
+      Object.entries(grupos).filter(([nome]) => cartaoPagos.has(`${nome}|${filtroMesPagas}`))
+    );
+  }, [cartaoItens, filtroMesPagas, cartaoPagos]);
+
   const filtered = useMemo(() => {
     return transacoes.filter((t) => {
       // Se mostrarPagas está ativo, mostra apenas as pagas
@@ -493,8 +531,10 @@ const Index = () => {
       (t.status === "paga" || (t.status !== "paga" && !!t.ultimoPagamento)) &&
       filtrar(t.ultimoPagamento || t.dataVencimento)
     );
-    return { count: lista.length, total: lista.reduce((s, t) => s + t.valor, 0) };
-  }, [transacoes, filtroMesPagas]);
+    const cartaoCount = Object.keys(gruposCartaoPagosParaMesPagas).length;
+    const cartaoTotal = Object.values(gruposCartaoPagosParaMesPagas).flat().reduce((s, i) => s + i.valor, 0);
+    return { count: lista.length + cartaoCount, total: lista.reduce((s, t) => s + t.valor, 0) + cartaoTotal };
+  }, [transacoes, filtroMesPagas, gruposCartaoPagosParaMesPagas]);
 
   const despesasMensal = useMemo(() => {
     const transTotal = filtered
@@ -522,9 +562,9 @@ const Index = () => {
       }
       return true;
     }).length;
-    const cartaoCount = Object.keys(gruposCartaoFiltrados).length;
+    const cartaoCount = Object.keys(gruposCartaoEmAberto).length;
     return transCount + cartaoCount;
-  }, [transacoes, filtroMes, gruposCartaoFiltrados]);
+  }, [transacoes, filtroMes, gruposCartaoEmAberto]);
 
   const getVencimentoExibido = (t: Transacao): string => {
     if (filtroMes === "todos") return t.dataVencimento;
@@ -739,7 +779,7 @@ const Index = () => {
 
         {/* Cartão de Crédito */}
         {(() => {
-          const grupos = gruposCartaoFiltrados;
+          const grupos = gruposCartaoEmAberto;
           const cartaoTotalGeral = Object.values(grupos).flat().reduce((s, i) => s + i.valor, 0);
           return (
             <Card className="border border-blue-500/30 bg-blue-500/5">
@@ -968,7 +1008,7 @@ const Index = () => {
               <>
                 {/* Mobile cards */}
                 <div className="space-y-3 md:hidden">
-                  {Object.entries(gruposCartaoFiltrados).map(([nomeCartao, itens]) => {
+                  {Object.entries(gruposCartaoEmAberto).map(([nomeCartao, itens]) => {
                     const total = itens.reduce((s, i) => s + i.valor, 0);
                     const isNu = nomeCartao === "NUBANK";
                     const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
@@ -1067,7 +1107,7 @@ const Index = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(gruposCartaoFiltrados).map(([nomeCartao, itens]) => {
+                      {Object.entries(gruposCartaoEmAberto).map(([nomeCartao, itens]) => {
                         const total = itens.reduce((s, i) => s + i.valor, 0);
                         const isNu = nomeCartao === "NUBANK";
                         const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
@@ -1210,7 +1250,8 @@ const Index = () => {
           const db = b.ultimoPagamento || b.dataVencimento;
           return db.localeCompare(da);
         });
-        const totalPagas = transacoes.filter(t => t.status === "paga" || (t.status !== "paga" && t.ultimoPagamento)).length;
+        const cartoesPagosEntries = Object.entries(gruposCartaoPagosParaMesPagas);
+        const totalPagas = transacoes.filter(t => t.status === "paga" || (t.status !== "paga" && t.ultimoPagamento)).length + cartoesPagosEntries.length;
         if (totalPagas === 0) return null;
         return (
           <Card className="border border-green-500/30 bg-green-500/5">
@@ -1247,9 +1288,33 @@ const Index = () => {
             {pagasOpen && (
               <CardContent className="px-4 pb-4">
                 <div className="space-y-2">
-                  {itens.length === 0 && (
+                  {itens.length === 0 && cartoesPagosEntries.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">Nenhuma conta paga neste mês.</p>
                   )}
+                  {cartoesPagosEntries.map(([nomeCartao, cartItens]) => {
+                    const total = cartItens.reduce((s, i) => s + i.valor, 0);
+                    const isNu = nomeCartao === "NUBANK";
+                    return (
+                      <div key={`cartao-pago-${nomeCartao}`} className="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/5 px-3 py-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                          <div className="min-w-0">
+                            <p className={`font-semibold text-sm truncate ${isNu ? "text-purple-300" : "text-blue-300"}`}>{nomeCartao}</p>
+                            <p className="text-[11px] text-muted-foreground">Cartão pago</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-4 flex items-center gap-2">
+                          <p className="font-mono font-bold text-sm text-green-400">
+                            -{total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </p>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Desmarcar pagamento"
+                            onClick={() => toggleCartaoPago(nomeCartao)}>
+                            <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {itens.map(t => {
                     const isParcela = t.parcelas && t.parcelas > 1 && t.status !== "paga";
                     const pagoEm = t.ultimoPagamento ? format(parseISO(t.ultimoPagamento), "dd/MM/yyyy", { locale: ptBR }) : "—";
