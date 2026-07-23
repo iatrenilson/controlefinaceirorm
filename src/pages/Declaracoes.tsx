@@ -1352,6 +1352,8 @@ END $$;`
           nomeMae: r.nome_mae,
           estadoCivil: r.estado_civil,
           dataNascimento: r.data_nascimento,
+          localNascimento: r.local_nascimento ?? "",
+          ufNascimento: r.uf_nascimento ?? "AM",
           endereco: r.endereco,
           numero: r.numero,
           complemento: r.complemento ?? "",
