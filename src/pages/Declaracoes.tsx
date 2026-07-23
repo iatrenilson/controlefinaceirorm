@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,9 @@ interface Cliente {
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
+  nomeClube: string;
+  loginClube: string;
+  senhaClube: string;
   status?: ClienteStatus;
   status2?: ClienteStatus;
   owner_id?: string;
@@ -73,7 +76,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", status: "doc", status2: "doc",
+  senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
 // ─── Declaração de Inquérito ───────────────────────────────────────────────
@@ -826,6 +829,9 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
+    nomeClube: (row.nome_clube as string) ?? "",
+    loginClube: (row.login_clube as string) ?? "",
+    senhaClube: (row.senha_clube as string) ?? "",
   };
 }
 
@@ -945,6 +951,8 @@ END $$;`
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
+  const [mostrarClubeSection, setMostrarClubeSection] = useState(false);
+  const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1299,6 +1307,9 @@ END $$;`
           senha_gov: c.senhaGov,
           data_entrada_processo: c.dataEntradaProcesso || null,
           data_deferimento: c.dataDeferimento || null,
+          nome_clube: c.nomeClube,
+          login_clube: c.loginClube,
+          senha_clube: c.senhaClube,
           status: c.status ?? "doc",
           status2: c.status2 ?? "doc",
         }));
@@ -1364,6 +1375,9 @@ END $$;`
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
+          nomeClube: r.nome_clube ?? "",
+          loginClube: r.login_clube ?? "",
+          senhaClube: r.senha_clube ?? "",
           status: (r.status ?? "doc") as ClienteStatus,
           status2: (r.status2 ?? "doc") as ClienteStatus,
           owner_id: r.owner_id ?? undefined,
@@ -1415,7 +1429,7 @@ END $$;`
 
   useEffect(() => {
     supabase.functions.invoke("run-migration", {
-      body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+      body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
     }).catch(() => {});
   }, []);
 
@@ -1425,12 +1439,16 @@ END $$;`
   const abrirNovoCliente = () => {
     setEditandoId(null);
     setFormCliente(EMPTY_CLIENTE);
+    setMostrarClubeSection(false);
+    setMostrarSenhaClubeForm(false);
     setDialogClienteOpen(true);
   };
   const abrirEditarCliente = (c: Cliente) => {
     setEditandoId(c.id);
     const { id: _id, ...rest } = c;
     setFormCliente(rest);
+    setMostrarClubeSection(!!(c.nomeClube || c.loginClube || c.senhaClube));
+    setMostrarSenhaClubeForm(false);
     setDialogClienteOpen(true);
   };
   const salvarCliente = async () => {
@@ -1458,6 +1476,9 @@ END $$;`
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
+      nome_clube: formCliente.nomeClube,
+      login_clube: formCliente.loginClube,
+      senha_clube: formCliente.senhaClube,
       status: formCliente.status ?? "doc",
       status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
@@ -1479,7 +1500,7 @@ END $$;`
     } catch (e: unknown) {
       const errMsg: string = (e as any)?.message ?? "";
       // Column complemento missing in DB — apply migration + reload schema cache then retry
-      if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || (e as any)?.code === "42703") {
+      if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || errMsg.includes("nome_clube") || errMsg.includes("login_clube") || errMsg.includes("senha_clube") || (e as any)?.code === "42703") {
         try {
           await supabase.functions.invoke("run-migration", {
             body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
@@ -2176,6 +2197,53 @@ END $$;`
                 )}
               </div>
             </div>
+          {/* Clube */}
+          <div>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
+              onClick={() => { setMostrarClubeSection(o => !o); if (mostrarClubeSection) { setC("nomeClube", ""); setC("loginClube", ""); setC("senhaClube", ""); } }}
+            >
+              <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Dados do Clube (opcional)</span>
+              {mostrarClubeSection ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            {mostrarClubeSection && (
+              <div className="mt-3 space-y-3 rounded-lg border border-muted-foreground/20 bg-muted/10 p-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome do Clube</Label>
+                  <div className="flex gap-1.5">
+                    <Input className="h-9 text-sm uppercase" placeholder="Ex: CSAM"
+                      value={formCliente.nomeClube} onChange={e => setC("nomeClube", e.target.value.toUpperCase())} />
+                    <CopyButton value={formCliente.nomeClube} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Login</Label>
+                    <div className="flex gap-1.5">
+                      <Input className="h-9 text-sm" placeholder="Usuário ou e-mail"
+                        value={formCliente.loginClube} onChange={e => setC("loginClube", e.target.value)} />
+                      <CopyButton value={formCliente.loginClube} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-yellow-400/80">Senha</Label>
+                    <div className="flex gap-1.5">
+                      <div className="relative flex-1">
+                        <Input className="h-9 text-sm font-mono pr-8" placeholder="••••••••"
+                          type={mostrarSenhaClubeForm ? "text" : "password"}
+                          value={formCliente.senhaClube} onChange={e => setC("senhaClube", e.target.value)} />
+                        <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setMostrarSenhaClubeForm(o => !o)}>
+                          {mostrarSenhaClubeForm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                      <CopyButton value={formCliente.senhaClube} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
