@@ -540,9 +540,9 @@ const Index = () => {
     const transTotal = filtered
       .filter(t => t.tipo === "despesa")
       .reduce((a, t) => a + t.valor, 0);
-    const cartaoTotal = Object.values(gruposCartaoFiltrados).flat().reduce((s, i) => s + i.valor, 0);
+    const cartaoTotal = Object.values(gruposCartaoEmAberto).flat().reduce((s, i) => s + i.valor, 0);
     return transTotal + cartaoTotal;
-  }, [filtered, gruposCartaoFiltrados]);
+  }, [filtered, gruposCartaoEmAberto]);
 
   const emAbertoFiltrado = useMemo(() => {
     const transCount = transacoes.filter(t => {
