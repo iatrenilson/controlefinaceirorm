@@ -50,6 +50,8 @@ interface Cliente {
   nomeMae: string;
   estadoCivil: string;
   dataNascimento: string;
+  localNascimento: string;
+  ufNascimento: string;
   endereco: string;
   numero: string;
   complemento: string;
@@ -70,7 +72,7 @@ type ClienteForm = Omit<Cliente, "id">;
 const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
-  dataNascimento: "", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", status: "doc", status2: "doc",
 };
 
@@ -812,6 +814,8 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     nomeMae: (row.nome_mae as string) ?? "",
     estadoCivil: (row.estado_civil as string) ?? "Solteiro(a)",
     dataNascimento: (row.data_nascimento as string) ?? "",
+    localNascimento: (row.local_nascimento as string) ?? "",
+    ufNascimento: (row.uf_nascimento as string) ?? "AM",
     endereco: (row.endereco as string) ?? "",
     numero: (row.numero as string) ?? "",
     complemento: (row.complemento as string) ?? "",
@@ -1283,6 +1287,8 @@ END $$;`
           nome_mae: c.nomeMae,
           estado_civil: c.estadoCivil,
           data_nascimento: c.dataNascimento,
+          local_nascimento: c.localNascimento,
+          uf_nascimento: c.ufNascimento,
           endereco: c.endereco,
           numero: c.numero,
           complemento: c.complemento,
@@ -1405,6 +1411,12 @@ END $$;`
 
   useEffect(() => { fetchClientes(); }, [fetchClientes, restoreKey]);
 
+  useEffect(() => {
+    supabase.functions.invoke("run-migration", {
+      body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+    }).catch(() => {});
+  }, []);
+
   const setC = (field: keyof ClienteForm, value: string) =>
     setFormCliente(prev => ({ ...prev, [field]: value }));
 
@@ -1432,6 +1444,8 @@ END $$;`
       nome_mae: formCliente.nomeMae,
       estado_civil: formCliente.estadoCivil,
       data_nascimento: formCliente.dataNascimento,
+      local_nascimento: formCliente.localNascimento,
+      uf_nascimento: formCliente.ufNascimento,
       endereco: formCliente.endereco,
       numero: formCliente.numero,
       complemento: formCliente.complemento,
@@ -1463,10 +1477,10 @@ END $$;`
     } catch (e: unknown) {
       const errMsg: string = (e as any)?.message ?? "";
       // Column complemento missing in DB — apply migration + reload schema cache then retry
-      if (errMsg.includes("complemento") || (e as any)?.code === "42703") {
+      if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || (e as any)?.code === "42703") {
         try {
           await supabase.functions.invoke("run-migration", {
-            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
           });
           // Wait for PostgREST schema cache to reload
           await new Promise(r => setTimeout(r, 2500));
@@ -1978,6 +1992,25 @@ END $$;`
                   <Input className="h-9 text-sm text-yellow-400 font-semibold" type="date"
                     value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
                   <CopyButton value={formCliente.dataNascimento} />
+                </div>
+              </div>
+            </div>
+            {/* Naturalidade */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Local de Nascimento</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase" placeholder="Ex: Manaus"
+                    value={formCliente.localNascimento} onChange={e => setC("localNascimento", e.target.value.toUpperCase())} />
+                  <CopyButton value={formCliente.localNascimento} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">UF Nascimento</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase" placeholder="AM" maxLength={2}
+                    value={formCliente.ufNascimento} onChange={e => setC("ufNascimento", e.target.value.toUpperCase())} />
+                  <CopyButton value={formCliente.ufNascimento} />
                 </div>
               </div>
             </div>
