@@ -2197,53 +2197,54 @@ END $$;`
                 )}
               </div>
             </div>
-          {/* Clube */}
-          <div>
-            <button
-              type="button"
-              className="w-full flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
-              onClick={() => { setMostrarClubeSection(o => !o); if (mostrarClubeSection) { setC("nomeClube", ""); setC("loginClube", ""); setC("senhaClube", ""); } }}
-            >
-              <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Dados do Clube (opcional)</span>
-              {mostrarClubeSection ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </button>
-            {mostrarClubeSection && (
-              <div className="mt-3 space-y-3 rounded-lg border border-muted-foreground/20 bg-muted/10 p-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Nome do Clube</Label>
-                  <div className="flex gap-1.5">
-                    <Input className="h-9 text-sm uppercase" placeholder="Ex: CSAM"
-                      value={formCliente.nomeClube} onChange={e => setC("nomeClube", e.target.value.toUpperCase())} />
-                    <CopyButton value={formCliente.nomeClube} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+            {/* Clube */}
+            <div>
+              <button
+                type="button"
+                className="w-full flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
+                onClick={() => { setMostrarClubeSection(o => !o); if (mostrarClubeSection) { setC("nomeClube", ""); setC("loginClube", ""); setC("senhaClube", ""); } }}
+              >
+                <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Dados do Clube (opcional)</span>
+                {mostrarClubeSection ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {mostrarClubeSection && (
+                <div className="mt-3 space-y-3 rounded-lg border border-muted-foreground/20 bg-muted/10 p-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Login</Label>
+                    <Label className="text-xs">Nome do Clube</Label>
                     <div className="flex gap-1.5">
-                      <Input className="h-9 text-sm" placeholder="Usuário ou e-mail"
-                        value={formCliente.loginClube} onChange={e => setC("loginClube", e.target.value)} />
-                      <CopyButton value={formCliente.loginClube} />
+                      <Input className="h-9 text-sm uppercase" placeholder="Ex: CSAM"
+                        value={formCliente.nomeClube} onChange={e => setC("nomeClube", e.target.value.toUpperCase())} />
+                      <CopyButton value={formCliente.nomeClube} />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-yellow-400/80">Senha</Label>
-                    <div className="flex gap-1.5">
-                      <div className="relative flex-1">
-                        <Input className="h-9 text-sm font-mono pr-8" placeholder="••••••••"
-                          type={mostrarSenhaClubeForm ? "text" : "password"}
-                          value={formCliente.senhaClube} onChange={e => setC("senhaClube", e.target.value)} />
-                        <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          onClick={() => setMostrarSenhaClubeForm(o => !o)}>
-                          {mostrarSenhaClubeForm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Login</Label>
+                      <div className="flex gap-1.5">
+                        <Input className="h-9 text-sm" placeholder="Usuário ou e-mail"
+                          value={formCliente.loginClube} onChange={e => setC("loginClube", e.target.value)} />
+                        <CopyButton value={formCliente.loginClube} />
                       </div>
-                      <CopyButton value={formCliente.senhaClube} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-yellow-400/80">Senha</Label>
+                      <div className="flex gap-1.5">
+                        <div className="relative flex-1">
+                          <Input className="h-9 text-sm font-mono pr-8" placeholder="••••••••"
+                            type={mostrarSenhaClubeForm ? "text" : "password"}
+                            value={formCliente.senhaClube} onChange={e => setC("senhaClube", e.target.value)} />
+                          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            onClick={() => setMostrarSenhaClubeForm(o => !o)}>
+                            {mostrarSenhaClubeForm ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                        <CopyButton value={formCliente.senhaClube} />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
