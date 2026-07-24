@@ -1447,7 +1447,9 @@ END $$;`
     setEditandoId(c.id);
     const { id: _id, ...rest } = c;
     setFormCliente(rest);
-    setMostrarClubeSection(!!(c.nomeClube || c.loginClube || c.senhaClube));
+    const temClube = !!(c.nomeClube || c.loginClube || c.senhaClube);
+    setMostrarClubeSection(temClube);
+    if (temClube && !c.loginClube && c.cpf) rest.loginClube = c.cpf;
     setMostrarSenhaClubeForm(false);
     setDialogClienteOpen(true);
   };
@@ -2202,7 +2204,12 @@ END $$;`
               <button
                 type="button"
                 className="w-full flex items-center justify-between rounded-lg border border-dashed border-muted-foreground/30 px-3 py-2 text-xs text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground transition-colors"
-                onClick={() => { setMostrarClubeSection(o => !o); if (mostrarClubeSection) { setC("nomeClube", ""); setC("loginClube", ""); setC("senhaClube", ""); } }}
+                onClick={() => {
+                  const abrindo = !mostrarClubeSection;
+                  setMostrarClubeSection(abrindo);
+                  if (!abrindo) { setC("nomeClube", ""); setC("loginClube", ""); setC("senhaClube", ""); }
+                  else if (!formCliente.loginClube && formCliente.cpf) setC("loginClube", formCliente.cpf);
+                }}
               >
                 <span className="flex items-center gap-1.5"><Trophy className="h-3.5 w-3.5" /> Dados do Clube (opcional)</span>
                 {mostrarClubeSection ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
