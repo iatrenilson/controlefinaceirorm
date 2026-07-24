@@ -260,7 +260,7 @@ export function AppSidebar() {
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=acervo")} className="cursor-pointer text-xs">
-                              Comprovante de Acervo
+                              Comprovante de 2º Endereço de Acervo
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                           <SidebarMenuSubItem>
