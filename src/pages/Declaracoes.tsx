@@ -2222,6 +2222,7 @@ END $$;`
                       <Label className="text-xs">Login</Label>
                       <div className="flex gap-1.5">
                         <Input className="h-9 text-sm" placeholder="Usuário ou e-mail"
+                          autoComplete="off" name="clube-login"
                           value={formCliente.loginClube} onChange={e => setC("loginClube", e.target.value)} />
                         <CopyButton value={formCliente.loginClube} />
                       </div>
@@ -2232,6 +2233,7 @@ END $$;`
                         <div className="relative flex-1">
                           <Input className="h-9 text-sm font-mono pr-8" placeholder="••••••••"
                             type={mostrarSenhaClubeForm ? "text" : "password"}
+                            autoComplete="new-password" name="clube-senha"
                             value={formCliente.senhaClube} onChange={e => setC("senhaClube", e.target.value)} />
                           <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             onClick={() => setMostrarSenhaClubeForm(o => !o)}>
