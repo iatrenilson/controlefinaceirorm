@@ -1328,19 +1328,36 @@ END $$;`
 
   const exportarCSV = () => {
     if (clientes.length === 0) { toast({ title: "Nenhum cliente para exportar", variant: "destructive" }); return; }
-    const headers = ["Nome","CPF","RG","Órgão Emissor","Data Expedição","Nome Pai","Nome Mãe","Estado Civil","Data Nascimento","Local Nascimento","UF Nascimento","Endereço","Número","Complemento","Bairro","CEP","Cidade","Estado","Senha Gov","Data Entrada","Data Deferimento","Status","Status2"];
-    const csvRows = clientes.map(c => [
-      c.nome, c.cpf, c.rg, c.orgaoEmissor, c.dataExpedicao, c.nomePai, c.nomeMae, c.estadoCivil,
-      c.dataNascimento, c.localNascimento, c.ufNascimento, c.endereco, c.numero, c.complemento,
-      c.bairro, c.cep, c.cidade, c.estado, c.senhaGov, c.dataEntradaProcesso, c.dataDeferimento,
-      c.status ?? "doc", c.status2 ?? "doc",
+    const fmtData = (d: string) => {
+      if (!d) return "";
+      try { return format(parseISO(d), "dd/MM/yyyy"); } catch { return d; }
+    };
+    const fmtStatus = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise" }[s ?? "doc"] ?? s ?? "");
+    const headers = [
+      "Nº", "Nome", "CPF", "RG", "Órgão Emissor", "Data Expedição",
+      "Nome do Pai", "Nome da Mãe", "Estado Civil",
+      "Data de Nascimento", "Local de Nascimento", "UF Nasc.",
+      "Endereço", "Número", "Complemento", "Bairro", "CEP", "Cidade", "Estado",
+      "Senha Gov", "Data Entrada Processo", "Data Deferimento",
+      "Situação Doc", "Situação Processo",
+      "Nome do Clube", "Login Clube",
+    ];
+    const csvRows = clientes.map((c, i) => [
+      i + 1, c.nome, c.cpf, c.rg, c.orgaoEmissor, fmtData(c.dataExpedicao),
+      c.nomePai, c.nomeMae, c.estadoCivil,
+      fmtData(c.dataNascimento), c.localNascimento, c.ufNascimento,
+      c.endereco, c.numero, c.complemento, c.bairro, c.cep, c.cidade, c.estado,
+      c.senhaGov, fmtData(c.dataEntradaProcesso), fmtData(c.dataDeferimento),
+      fmtStatus(c.status), fmtStatus(c.status2),
+      c.nomeClube, c.loginClube,
     ]);
-    const csv = [headers, ...csvRows].map(r => r.map(v => `"${(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [headers, ...csvRows].map(r => r.map(esc).join(";")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `clientes_sinarm_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.download = `clientes_sinarm_${format(new Date(), "dd-MM-yyyy")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: `${clientes.length} cliente(s) exportados com sucesso` });
