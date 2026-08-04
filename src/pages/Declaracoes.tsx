@@ -1326,6 +1326,26 @@ END $$;`
     }
   }, []);
 
+  const exportarCSV = () => {
+    if (clientes.length === 0) { toast({ title: "Nenhum cliente para exportar", variant: "destructive" }); return; }
+    const headers = ["Nome","CPF","RG","Órgão Emissor","Data Expedição","Nome Pai","Nome Mãe","Estado Civil","Data Nascimento","Local Nascimento","UF Nascimento","Endereço","Número","Complemento","Bairro","CEP","Cidade","Estado","Senha Gov","Data Entrada","Data Deferimento","Status","Status2"];
+    const csvRows = clientes.map(c => [
+      c.nome, c.cpf, c.rg, c.orgaoEmissor, c.dataExpedicao, c.nomePai, c.nomeMae, c.estadoCivil,
+      c.dataNascimento, c.localNascimento, c.ufNascimento, c.endereco, c.numero, c.complemento,
+      c.bairro, c.cep, c.cidade, c.estado, c.senhaGov, c.dataEntradaProcesso, c.dataDeferimento,
+      c.status ?? "doc", c.status2 ?? "doc",
+    ]);
+    const csv = [headers, ...csvRows].map(r => r.map(v => `"${(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clientes_sinarm_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `${clientes.length} cliente(s) exportados com sucesso` });
+  };
+
   const fetchClientes = useCallback(async () => {
     try {
       const { data: { user: me } } = await supabase.auth.getUser();
@@ -1371,6 +1391,7 @@ END $$;`
         }));
         setClientes(clientes);
         try { sessionStorage.setItem("decl_clientes_cache", JSON.stringify(clientes)); } catch {}
+        try { localStorage.setItem(`sinarm_backup_${myId}`, JSON.stringify(clientes)); } catch {}
 
         // Migra dados antigos do user_metadata se existirem
         const { data: { user } } = await supabase.auth.getUser();
@@ -1401,6 +1422,22 @@ END $$;`
             await supabase.auth.updateUser({ data: { decl_clientes: null } });
           }
         } else {
+          // Verifica backup local antes de mostrar vazio
+          const backupRaw = localStorage.getItem(`sinarm_backup_${myId}`);
+          if (backupRaw) {
+            try {
+              const backup: Cliente[] = JSON.parse(backupRaw);
+              if (backup.length > 0) {
+                toast({
+                  title: "⚠️ Banco retornou vazio — backup local carregado",
+                  description: `${backup.length} cliente(s) recuperado(s) do backup local. Salve novamente para sincronizar com o banco.`,
+                  variant: "destructive",
+                });
+                setClientes(backup);
+                return;
+              }
+            } catch {}
+          }
           setClientes([]);
           try { sessionStorage.setItem("decl_clientes_cache", "[]"); } catch {}
         }
@@ -1644,6 +1681,11 @@ END $$;`
                     {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                   </Button>
                 </>
+              )}
+              {clientes.length > 0 && (
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={exportarCSV} title="Exportar backup em CSV">
+                  <Download className="h-3.5 w-3.5" />Exportar CSV
+                </Button>
               )}
               <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
                 <UserPlus className="h-3.5 w-3.5" />Cadastrar Cliente
