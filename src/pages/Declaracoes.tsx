@@ -1275,66 +1275,49 @@ END $$;`
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   // Retorna true se salvou com sucesso, false caso contrário
   const saveClientesToCloud = useCallback(async (list: Cliente[]): Promise<boolean> => {
+    if (list.length === 0) return true;
     try {
+      const { data: { user: me } } = await supabase.auth.getUser();
+      const myId = me?.id ?? "";
       const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      // Se todos os itens têm UUIDs, é um save normal (pode deletar rows ausentes)
-      // Se algum tem ID antigo (timestamp), é migração — não deve deletar rows existentes
-      const allHaveUUIDs = list.length === 0 || list.every(c => isUUID(c.id));
-
-      // Upsert todos os clientes
-      if (list.length > 0) {
-        const rows = list.map(c => ({
-          // Só inclui id se for UUID válido (não IDs antigos baseados em timestamp)
-          ...(isUUID(c.id) ? { id: c.id } : {}),
-          nome: c.nome,
-          rg: c.rg,
-          orgao_emissor: c.orgaoEmissor,
-          data_expedicao: c.dataExpedicao,
-          cpf: c.cpf,
-          nome_pai: c.nomePai,
-          nome_mae: c.nomeMae,
-          estado_civil: c.estadoCivil,
-          data_nascimento: c.dataNascimento,
-          local_nascimento: c.localNascimento,
-          uf_nascimento: c.ufNascimento,
-          endereco: c.endereco,
-          numero: c.numero,
-          complemento: c.complemento,
-          bairro: c.bairro,
-          cep: c.cep,
-          cidade: c.cidade,
-          estado: c.estado,
-          senha_gov: c.senhaGov,
-          data_entrada_processo: c.dataEntradaProcesso || null,
-          data_deferimento: c.dataDeferimento || null,
-          nome_clube: c.nomeClube,
-          login_clube: c.loginClube,
-          senha_clube: c.senhaClube,
-          status: c.status ?? "doc",
-          status2: c.status2 ?? "doc",
-        }));
-        const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
-        if (error) {
-          console.error("[saveClientesToCloud] upsert error:", error.message, error);
-          // Qualquer erro 400 = alguma coluna não existe. Tenta sem status/status2 como fallback
-          const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
-          const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
-          if (error2) {
-            console.error("[saveClientesToCloud] fallback error:", error2.message);
-            return false;
-          }
-        }
-      }
-      // Deleta clientes removidos da lista (só em save normal com UUIDs, não durante migração de metadata)
-      if (allHaveUUIDs) {
-        const { data: { user: meDelete } } = await supabase.auth.getUser();
-        if (meDelete?.id) {
-          const { data: existing } = await supabase.from("declaracao_clientes").select("id").eq("owner_id", meDelete.id);
-          const listIds = new Set(list.map(c => c.id));
-          const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
-          if (toDelete.length > 0) {
-            await supabase.from("declaracao_clientes").delete().in("id", toDelete);
-          }
+      const rows = list.map(c => ({
+        ...(isUUID(c.id) ? { id: c.id } : {}),
+        ...(myId ? { owner_id: myId } : {}),
+        nome: c.nome,
+        rg: c.rg,
+        orgao_emissor: c.orgaoEmissor,
+        data_expedicao: c.dataExpedicao,
+        cpf: c.cpf,
+        nome_pai: c.nomePai,
+        nome_mae: c.nomeMae,
+        estado_civil: c.estadoCivil,
+        data_nascimento: c.dataNascimento,
+        local_nascimento: c.localNascimento,
+        uf_nascimento: c.ufNascimento,
+        endereco: c.endereco,
+        numero: c.numero,
+        complemento: c.complemento,
+        bairro: c.bairro,
+        cep: c.cep,
+        cidade: c.cidade,
+        estado: c.estado,
+        senha_gov: c.senhaGov,
+        data_entrada_processo: c.dataEntradaProcesso || null,
+        data_deferimento: c.dataDeferimento || null,
+        nome_clube: c.nomeClube,
+        login_clube: c.loginClube,
+        senha_clube: c.senhaClube,
+        status: c.status ?? "doc",
+        status2: c.status2 ?? "doc",
+      }));
+      const { error } = await supabase.from("declaracao_clientes").upsert(rows, { onConflict: "id" });
+      if (error) {
+        console.error("[saveClientesToCloud] upsert error:", error.message, error);
+        const rowsSemStatus = rows.map(({ status: _s, status2: _s2, ...r }) => r);
+        const { error: error2 } = await supabase.from("declaracao_clientes").upsert(rowsSemStatus, { onConflict: "id" });
+        if (error2) {
+          console.error("[saveClientesToCloud] fallback error:", error2.message);
+          return false;
         }
       }
       return true;
@@ -1542,21 +1525,20 @@ END $$;`
   };
   const excluirCliente = async (id: string) => {
     if (!confirm("Excluir este cliente?")) return;
-    const novaLista = clientes.filter(c => c.id !== id);
-    await saveClientesToCloud(novaLista);
-    setClientes(novaLista);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return;
+    const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id).eq("owner_id", user.id);
+    if (!error) setClientes(prev => prev.filter(c => c.id !== id));
   };
 
   const alterarStatus = async (id: string, status: ClienteStatus) => {
-    const novaLista = clientes.map(c => c.id === id ? { ...c, status } : c);
-    await saveClientesToCloud(novaLista);
-    setClientes(novaLista);
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+    await supabase.from("declaracao_clientes").update({ status }).eq("id", id);
   };
 
   const alterarStatus2 = async (id: string, status2: ClienteStatus) => {
-    const novaLista = clientes.map(c => c.id === id ? { ...c, status2 } : c);
-    await saveClientesToCloud(novaLista);
-    setClientes(novaLista);
+    setClientes(prev => prev.map(c => c.id === id ? { ...c, status2 } : c));
+    await supabase.from("declaracao_clientes").update({ status2 }).eq("id", id);
   };
 
   // Diálogo 1 — Inquérito
