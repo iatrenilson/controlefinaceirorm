@@ -1326,41 +1326,159 @@ END $$;`
     }
   }, []);
 
-  const exportarCSV = () => {
+  const exportarExcel = async () => {
     if (clientes.length === 0) { toast({ title: "Nenhum cliente para exportar", variant: "destructive" }); return; }
-    const fmtData = (d: string) => {
-      if (!d) return "";
-      try { return format(parseISO(d), "dd/MM/yyyy"); } catch { return d; }
-    };
-    const fmtStatus = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise" }[s ?? "doc"] ?? s ?? "");
-    const headers = [
-      "Nº", "Nome", "CPF", "RG", "Órgão Emissor", "Data Expedição",
-      "Nome do Pai", "Nome da Mãe", "Estado Civil",
-      "Data de Nascimento", "Local de Nascimento", "UF Nasc.",
-      "Endereço", "Número", "Complemento", "Bairro", "CEP", "Cidade", "Estado",
-      "Senha Gov", "Data Entrada Processo", "Data Deferimento",
-      "Situação Doc", "Situação Processo",
-      "Nome do Clube", "Login Clube",
+    toast({ title: "Gerando planilha..." });
+
+    const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
+    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise" }[s ?? "doc"] ?? "");
+
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "SINARM CAC";
+    const ws = wb.addWorksheet("Clientes SINARM CAC", { views: [{ state: "frozen", ySplit: 4 }] });
+
+    const thin = { style: "thin" as const, color: { argb: "FFD0D0D0" } };
+    const border = { top: thin, bottom: thin, left: thin, right: thin };
+    const boldWhite = { bold: true, color: { argb: "FFFFFFFF" }, size: 10, name: "Calibri" };
+
+    // ── Linha 1: Título ────────────────────────────────────────────────────────
+    ws.mergeCells("A1:Z1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = "CLIENTES SINARM CAC";
+    titleCell.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" }, name: "Calibri" };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A3A5C" } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(1).height = 32;
+
+    // ── Linha 2: Info ──────────────────────────────────────────────────────────
+    ws.mergeCells("A2:Z2");
+    const infoCell = ws.getCell("A2");
+    infoCell.value = `Total: ${clientes.length} cliente(s)   |   Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`;
+    infoCell.font = { size: 10, color: { argb: "FFFFFFFF" }, name: "Calibri" };
+    infoCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2D5986" } };
+    infoCell.alignment = { horizontal: "center", vertical: "middle" };
+    ws.getRow(2).height = 20;
+
+    // ── Linha 3: Grupos de colunas ────────────────────────────────────────────
+    const groupRow = ws.getRow(3);
+    groupRow.height = 18;
+    const groups = [
+      { label: "", cols: 1, color: "FF3D3D3D" },           // Nº
+      { label: "IDENTIFICAÇÃO", cols: 5, color: "FF1A3A5C" },
+      { label: "DADOS PESSOAIS", cols: 6, color: "FF1A5C44" },
+      { label: "ENDEREÇO", cols: 7, color: "FF5C3D1A" },
+      { label: "PROCESSO", cols: 5, color: "FF4A1A5C" },
+      { label: "CLUBE", cols: 2, color: "FF1A4A5C" },
     ];
-    const csvRows = clientes.map((c, i) => [
-      i + 1, c.nome, c.cpf, c.rg, c.orgaoEmissor, fmtData(c.dataExpedicao),
-      c.nomePai, c.nomeMae, c.estadoCivil,
-      fmtData(c.dataNascimento), c.localNascimento, c.ufNascimento,
-      c.endereco, c.numero, c.complemento, c.bairro, c.cep, c.cidade, c.estado,
-      c.senhaGov, fmtData(c.dataEntradaProcesso), fmtData(c.dataDeferimento),
-      fmtStatus(c.status), fmtStatus(c.status2),
-      c.nomeClube, c.loginClube,
-    ]);
-    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const csv = [headers, ...csvRows].map(r => r.map(esc).join(";")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    let col = 1;
+    for (const g of groups) {
+      if (g.cols > 1) {
+        const start = ws.getColumn(col).letter;
+        const end = ws.getColumn(col + g.cols - 1).letter;
+        ws.mergeCells(`${start}3:${end}3`);
+      }
+      const cell = groupRow.getCell(col);
+      cell.value = g.label;
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 9, name: "Calibri" };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: g.color } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      col += g.cols;
+    }
+
+    // ── Linha 4: Cabeçalhos ────────────────────────────────────────────────────
+    const colDefs = [
+      { header: "Nº",                  width: 5,  color: "FF4A4A4A" },
+      { header: "Nome Completo",        width: 32, color: "FF1E4A70" },
+      { header: "CPF",                  width: 14, color: "FF1E4A70" },
+      { header: "RG",                   width: 14, color: "FF1E4A70" },
+      { header: "Órgão Emissor",        width: 12, color: "FF1E4A70" },
+      { header: "Data Expedição",       width: 14, color: "FF1E4A70" },
+      { header: "Nome do Pai",          width: 26, color: "FF1E6B4A" },
+      { header: "Nome da Mãe",          width: 26, color: "FF1E6B4A" },
+      { header: "Estado Civil",         width: 14, color: "FF1E6B4A" },
+      { header: "Data Nasc.",           width: 12, color: "FF1E6B4A" },
+      { header: "Local Nasc.",          width: 18, color: "FF1E6B4A" },
+      { header: "UF Nasc.",             width: 9,  color: "FF1E6B4A" },
+      { header: "Endereço",             width: 28, color: "FF704A1E" },
+      { header: "Nº",                   width: 7,  color: "FF704A1E" },
+      { header: "Complemento",          width: 16, color: "FF704A1E" },
+      { header: "Bairro",               width: 18, color: "FF704A1E" },
+      { header: "CEP",                  width: 11, color: "FF704A1E" },
+      { header: "Cidade",               width: 16, color: "FF704A1E" },
+      { header: "Estado",               width: 8,  color: "FF704A1E" },
+      { header: "Data Entrada",         width: 13, color: "FF5C1E70" },
+      { header: "Data Deferimento",     width: 16, color: "FF5C1E70" },
+      { header: "Situação Doc",         width: 13, color: "FF5C1E70" },
+      { header: "Situação Processo",    width: 18, color: "FF5C1E70" },
+      { header: "Senha Gov",            width: 14, color: "FF5C1E70" },
+      { header: "Nome Clube",           width: 20, color: "FF1E5C70" },
+      { header: "Login Clube",          width: 20, color: "FF1E5C70" },
+    ];
+
+    ws.columns = colDefs.map(c => ({ width: c.width }));
+    const hdrRow = ws.getRow(4);
+    hdrRow.height = 22;
+    colDefs.forEach((def, i) => {
+      const cell = hdrRow.getCell(i + 1);
+      cell.value = def.header;
+      cell.font = boldWhite;
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: def.color } };
+      cell.alignment = { horizontal: "center", vertical: "middle", wrapText: false };
+      cell.border = border;
+    });
+
+    // Ativa filtro automático na linha de cabeçalhos
+    ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: colDefs.length } };
+
+    // ── Dados ──────────────────────────────────────────────────────────────────
+    const statusFill: Record<string, string> = {
+      deferido: "FFC6EFCE",
+      analise:  "FFFFEB9C",
+      docaut:   "FFDCE6F1",
+      doc:      "FFFFFFFF",
+    };
+
+    clientes.forEach((c, i) => {
+      const isEven = i % 2 === 0;
+      const baseFill = isEven ? "FFF5F8FF" : "FFFFFFFF";
+      const statusKey = c.status ?? "doc";
+
+      const row = ws.addRow([
+        i + 1, c.nome, c.cpf, c.rg, c.orgaoEmissor, fmtD(c.dataExpedicao),
+        c.nomePai, c.nomeMae, c.estadoCivil,
+        fmtD(c.dataNascimento), c.localNascimento, c.ufNascimento,
+        c.endereco, c.numero, c.complemento, c.bairro, c.cep, c.cidade, c.estado,
+        fmtD(c.dataEntradaProcesso), fmtD(c.dataDeferimento),
+        fmtS(c.status), fmtS(c.status2), c.senhaGov,
+        c.nomeClube, c.loginClube,
+      ]);
+      row.height = 18;
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.border = border;
+        cell.font = { size: 10, name: "Calibri" };
+        cell.alignment = { vertical: "middle", wrapText: false };
+        // Colunas de situação recebem cor do status
+        if (colNum === 22 || colNum === 23) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: statusFill[statusKey] ?? "FFFFFFFF" } };
+          cell.font = { size: 10, name: "Calibri", bold: true };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        } else {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: baseFill } };
+        }
+        if (colNum === 1) cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `clientes_sinarm_${format(new Date(), "dd-MM-yyyy")}.csv`;
+    a.download = `clientes_sinarm_${format(new Date(), "dd-MM-yyyy")}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: `${clientes.length} cliente(s) exportados com sucesso` });
+    toast({ title: `Planilha gerada: ${clientes.length} cliente(s)` });
   };
 
   const fetchClientes = useCallback(async () => {
@@ -1700,8 +1818,8 @@ END $$;`
                 </>
               )}
               {clientes.length > 0 && (
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={exportarCSV} title="Exportar backup em CSV">
-                  <Download className="h-3.5 w-3.5" />Exportar CSV
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={exportarExcel} title="Exportar planilha Excel">
+                  <Download className="h-3.5 w-3.5" />Exportar Excel
                 </Button>
               )}
               <Button size="sm" className="h-8 text-xs gap-1.5" onClick={abrirNovoCliente}>
