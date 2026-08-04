@@ -1430,10 +1430,19 @@ END $$;`
 
   useEffect(() => {
     const init = async () => {
-      // Migração primeiro, depois fetch — evita erro de schema reload durante o fetch
-      await supabase.functions.invoke("run-migration", {
-        body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
-      }).catch(() => {});
+      // Só roda migração se ainda não foi feita neste browser (evita pg_notify a cada carregamento)
+      const migDone = localStorage.getItem("dc_migration_v4");
+      if (!migDone) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_v4", "1");
+        // Aguarda PostgREST recarregar o schema antes de buscar
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
+      const cached = sessionStorage.getItem("decl_clientes_cache");
+      if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
       fetchClientes();
     };
     init();
