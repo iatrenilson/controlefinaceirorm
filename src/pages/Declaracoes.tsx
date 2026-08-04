@@ -1327,11 +1327,14 @@ END $$;`
       }
       // Deleta clientes removidos da lista (só em save normal com UUIDs, não durante migração de metadata)
       if (allHaveUUIDs) {
-        const { data: existing } = await supabase.from("declaracao_clientes").select("id");
-        const listIds = new Set(list.map(c => c.id));
-        const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
-        if (toDelete.length > 0) {
-          await supabase.from("declaracao_clientes").delete().in("id", toDelete);
+        const { data: { user: meDelete } } = await supabase.auth.getUser();
+        if (meDelete?.id) {
+          const { data: existing } = await supabase.from("declaracao_clientes").select("id").eq("owner_id", meDelete.id);
+          const listIds = new Set(list.map(c => c.id));
+          const toDelete = (existing || []).map((r: any) => r.id).filter((id: string) => !listIds.has(id));
+          if (toDelete.length > 0) {
+            await supabase.from("declaracao_clientes").delete().in("id", toDelete);
+          }
         }
       }
       return true;
@@ -1403,14 +1406,13 @@ END $$;`
             await supabase.auth.updateUser({ data: { decl_clientes: null } });
           }
         }
-      } else {
-        // Fallback: tenta user_metadata (migração)
+      } else if (!error && rows && rows.length === 0) {
+        // Banco retornou vazio sem erro = nenhum cliente cadastrado
         const { data: { user } } = await supabase.auth.getUser();
         const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
         if (cloud.length > 0) {
           const saved = await saveClientesToCloud(cloud);
           setClientes(cloud);
-          // CRÍTICO: só limpa user_metadata se o save foi confirmado com sucesso
           if (saved) {
             await supabase.auth.updateUser({ data: { decl_clientes: null } });
           }
@@ -1419,19 +1421,23 @@ END $$;`
           try { sessionStorage.setItem("decl_clientes_cache", "[]"); } catch {}
         }
       }
+      // Se error !== null, mantém dados existentes no state (não limpa UI por erro temporário do DB)
     } catch {
       // mantém dados cacheados em caso de erro de rede
     }
     setLoadingClientes(false);
   }, [saveClientesToCloud, isAdmin]);
 
-  useEffect(() => { fetchClientes(); }, [fetchClientes, restoreKey]);
-
   useEffect(() => {
-    supabase.functions.invoke("run-migration", {
-      body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
-    }).catch(() => {});
-  }, []);
+    const init = async () => {
+      // Migração primeiro, depois fetch — evita erro de schema reload durante o fetch
+      await supabase.functions.invoke("run-migration", {
+        body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+      }).catch(() => {});
+      fetchClientes();
+    };
+    init();
+  }, [fetchClientes, restoreKey]);
 
   const setC = (field: keyof ClienteForm, value: string) =>
     setFormCliente(prev => ({ ...prev, [field]: value }));
