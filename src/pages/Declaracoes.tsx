@@ -1347,11 +1347,12 @@ END $$;`
     try {
       const { data: { user: me } } = await supabase.auth.getUser();
       const myId = me?.id ?? "";
-      // Busca clientes próprios + sem dono (legados)
+      if (!myId) return;
+      // Busca apenas clientes do próprio usuário
       const { data: rows, error } = await supabase
         .from("declaracao_clientes")
         .select("*")
-        .or(`owner_id.eq.${myId},owner_id.is.null`)
+        .eq("owner_id", myId)
         .order("nome", { ascending: true });
 
       if (!error && rows && rows.length > 0) {
