@@ -504,7 +504,7 @@ const Index = () => {
         }
       }
       return true;
-    });
+    }).sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
   }, [transacoes, busca, filtroTipo, filtroStatus, filtroMes, mostrarPagas]);
 
   const stats = useMemo(() => {
@@ -1008,7 +1008,11 @@ const Index = () => {
               <>
                 {/* Mobile cards */}
                 <div className="space-y-3 md:hidden">
-                  {Object.entries(gruposCartaoEmAberto).map(([nomeCartao, itens]) => {
+                  {Object.entries(gruposCartaoEmAberto).sort(([, aItens], [, bItens]) => {
+                    const aV = aItens.filter(i => i.data_vencimento).map(i => i.data_vencimento!).sort()[0] ?? "9999";
+                    const bV = bItens.filter(i => i.data_vencimento).map(i => i.data_vencimento!).sort()[0] ?? "9999";
+                    return aV.localeCompare(bV);
+                  }).map(([nomeCartao, itens]) => {
                     const total = itens.reduce((s, i) => s + i.valor, 0);
                     const isNu = nomeCartao === "NUBANK";
                     const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
@@ -1107,7 +1111,11 @@ const Index = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Object.entries(gruposCartaoEmAberto).map(([nomeCartao, itens]) => {
+                      {Object.entries(gruposCartaoEmAberto).sort(([, aItens], [, bItens]) => {
+                        const aV = aItens.filter(i => i.data_vencimento).map(i => i.data_vencimento!).sort()[0] ?? "9999";
+                        const bV = bItens.filter(i => i.data_vencimento).map(i => i.data_vencimento!).sort()[0] ?? "9999";
+                        return aV.localeCompare(bV);
+                      }).map(([nomeCartao, itens]) => {
                         const total = itens.reduce((s, i) => s + i.valor, 0);
                         const isNu = nomeCartao === "NUBANK";
                         const vencMin = itens.filter(i => i.data_vencimento).sort((a, b) => (a.data_vencimento ?? "").localeCompare(b.data_vencimento ?? ""))[0]?.data_vencimento;
