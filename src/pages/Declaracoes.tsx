@@ -18,25 +18,31 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "doc" | "docaut" | "deferido" | "analise";
+type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc",
   docaut:   "Doc Aut.",
   deferido: "Defer.",
   analise:  "Análise",
+  autor:    "Autor.",
+  craf:     "Craf.",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   doc:      "text-white border-white/40 bg-white/10",
   docaut:   "text-blue-300 border-blue-400/50 bg-blue-500/10",
   deferido: "text-green-400 border-green-500/50 bg-green-500/10",
   analise:  "text-yellow-300/80 border-yellow-400/40 bg-yellow-400/10",
+  autor:    "text-orange-400 border-orange-500/50 bg-orange-500/10",
+  craf:     "text-cyan-400 border-cyan-500/50 bg-cyan-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
   doc:      "bg-white",
   docaut:   "bg-blue-300",
   deferido: "bg-green-400",
   analise:  "bg-yellow-300/80",
+  autor:    "bg-orange-400",
+  craf:     "bg-cyan-400",
 };
 
 interface Cliente {
@@ -1331,7 +1337,7 @@ END $$;`
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise" }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise", autor: "Autor.", craf: "Craf." }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
@@ -1437,6 +1443,8 @@ END $$;`
       analise:  "FFFFEB9C",
       docaut:   "FFDCE6F1",
       doc:      "FFFFFFFF",
+      autor:    "FFFFE0B2",
+      craf:     "FFE0F7FA",
     };
 
     clientes.forEach((c, i) => {
