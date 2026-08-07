@@ -512,10 +512,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   const titleAc = "COMPROVANTE DE SEGUNDO ENDEREÇO DE GUARDA DO ACERVO";
   const titleAcLines = doc.splitTextToSize(titleAc, CW);
   titleAcLines.forEach((line: string, i: number) => {
-    const ty = y + i * 6;
-    doc.text(line, W / 2, ty, { align: "center" });
-    const tw = doc.getTextWidth(line);
-    doc.line(W / 2 - tw / 2, ty + 1, W / 2 + tw / 2, ty + 1);
+    doc.text(line, W / 2, y + i * 6, { align: "center" });
   });
   y += titleAcLines.length * 6 + 14;
 
