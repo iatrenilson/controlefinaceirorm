@@ -687,8 +687,6 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   doc.setFontSize(14);
   const titleRes = "DECLARAÇÃO DE RESIDÊNCIA";
   doc.text(titleRes, W / 2, y, { align: "center" });
-  const titleResW = doc.getTextWidth(titleRes);
-  doc.line(W / 2 - titleResW / 2, y + 1, W / 2 + titleResW / 2, y + 1);
   y += 7 + 14;
 
   // Corpo principal — trechos em negrito conforme original
