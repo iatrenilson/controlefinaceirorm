@@ -386,16 +386,17 @@ async function aplicarLayoutPassarinho(doc: any) {
     ctxH.drawImage(img, 0, 0, cvH.width, cvH.height);
     logoHeaderData = cvH.toDataURL("image/png");
 
-    // Marca d'água: 1200px largura, fundo branco, 7% opacidade, JPEG 85%
+    // Marca d'água: 900px largura, fundo branco, 7% opacidade, JPEG 65%
+    // (a 7% de opacidade a qualidade JPEG é imperceptível; reduz tamanho sem perda visual)
     const cvW = document.createElement("canvas");
-    cvW.width = 1200; cvW.height = Math.round(1200 * ratio);
+    cvW.width = 900; cvW.height = Math.round(900 * ratio);
     const ctxW = cvW.getContext("2d")!;
     ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "high";
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
     ctxW.globalAlpha = 0.07;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
-    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.85);
+    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.65);
   }
 
   // Marca d'água (200mm de largura na página, centrada)
@@ -683,9 +684,9 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1400, 1800, 0.92), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1200, 1600, 0.86), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 3.0, 0.85), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.5, 0.82), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   // Pág 3 – Comprovante: qualidade original
