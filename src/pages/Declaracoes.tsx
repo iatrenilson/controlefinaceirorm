@@ -397,14 +397,14 @@ async function aplicarLayoutPassarinho(doc: any) {
     ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "high";
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
-    ctxW.globalAlpha = 0.07;
+    ctxW.globalAlpha = 0.04;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
     logoWatermarkData = cvW.toDataURL("image/jpeg", 0.65);
   }
 
   // Marca d'água (200mm de largura na página, centrada)
   if (logoWatermarkData) {
-    const wmW = 155, wmH = wmW * (1024 / 1535);
+    const wmW = 200, wmH = wmW * (1024 / 1535);
     doc.addImage(logoWatermarkData, "JPEG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
 
