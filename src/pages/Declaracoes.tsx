@@ -242,9 +242,9 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 900;
-  const SLOT_H = 560;
-  const GAP = 16;
+  const PAGE_W = 1100;
+  const SLOT_H = 700;
+  const GAP = 20;
 
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
@@ -265,7 +265,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.72);
+  return c.toDataURL("image/jpeg", 0.78);
 }
 
 
@@ -676,20 +676,20 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
 
-  // Pág 2 – RG/CNH: legível mas compacto
+  // Pág 2 – RG/CNH: qualidade alta para legibilidade
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 900, 1200, 0.75), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1100, 1500, 0.80), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1.8, 0.75), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.2, 0.80), label: "Anexo: Documento de Identidade (RG)" });
   }
 
-  // Pág 3 – Comprovante: compacto
+  // Pág 3 – Comprovante: moderado
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 560, 770, 0.68), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 620, 860, 0.70), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 0.9, 0.68), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.0, 0.70), label: "Anexo: Comprovante de Residência" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
