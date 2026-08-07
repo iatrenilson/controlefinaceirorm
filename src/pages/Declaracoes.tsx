@@ -501,56 +501,139 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 // ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
 async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "registro") {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "DSA");
-  const cidadeEstado = `${data.cidade.toUpperCase()}/${data.estado.toUpperCase()}`;
-  const hoje = format(getSiteDate(), "dd/MM/yyyy");
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, ML = 10, CW = 190;
-  let y = 14;
+  const W = 210, H = 297, ML = 15, MR = 15, CW = W - ML - MR;
+  // Cores institucionais
+  const cGold: [number,number,number]      = [198, 155, 55];
+  const cDarkGreen: [number,number,number] = [27,  82,  22];
 
-  // Título: ANEXO A
+  // ── Logo ──────────────────────────────────────────────────────────────────
+  const logo = await loadLogoPassarinho();
+
+  // ── MARCA D'ÁGUA (desenhada primeiro, por baixo de tudo) ─────────────────
+  if (logo) {
+    const img = new Image();
+    img.src = logo;
+    await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); });
+    const nw = img.naturalWidth  || 1535;
+    const nh = img.naturalHeight || 1024;
+    const cv = document.createElement("canvas");
+    cv.width = nw; cv.height = nh;
+    const ctx = cv.getContext("2d")!;
+    ctx.globalAlpha = 0.07;          // muito transparente
+    ctx.drawImage(img, 0, 0);
+    const wmark = cv.toDataURL("image/png");
+    const wmW = 140;
+    const wmH = wmW * (nh / nw);
+    doc.addImage(wmark, "PNG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
+  }
+
+  // ── CABEÇALHO: Logo centralizada + linhas laterais ────────────────────────
+  const logoW = 45;
+  const logoH = logoW * (1024 / 1535);   // ~30 mm
+  const logoX = W / 2 - logoW / 2;       // ~82.5
+  const logoY = 4;
+  const lineGap = 5;                      // espaço entre logo e linha
+  const leftEnd   = logoX - lineGap;
+  const rightStart = logoX + logoW + lineGap;
+
+  // Linha 1 — verde escura (grossa)
+  const lineY1 = logoY + logoH * 0.38;
+  doc.setDrawColor(...cDarkGreen);
+  doc.setLineWidth(1.6);
+  doc.line(ML, lineY1, leftEnd, lineY1);
+  doc.line(rightStart, lineY1, W - MR, lineY1);
+
+  // Linha 2 — dourada (fina, logo abaixo)
+  const lineY2 = lineY1 + 3;
+  doc.setDrawColor(...cGold);
+  doc.setLineWidth(0.7);
+  doc.line(ML, lineY2, leftEnd, lineY2);
+  doc.line(rightStart, lineY2, W - MR, lineY2);
+
+  // Logo
+  if (logo) doc.addImage(logo, "PNG", logoX, logoY, logoW, logoH);
+
+  // Linha verde sob a logo
+  const lineYBottom = logoY + logoH + 4;
+  doc.setDrawColor(...cDarkGreen);
+  doc.setLineWidth(0.6);
+  doc.line(ML, lineYBottom, W - MR, lineYBottom);
+
+  let y = lineYBottom + 8;
+
+  // ── TÍTULO ──────────────────────────────────────────────────────────────────
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(13);
   doc.text("ANEXO A", W / 2, y, { align: "center" });
-  y += 8;
-
-  // Corpo
-  doc.setFont("helvetica", "normal");
+  y += 7;
   doc.setFontSize(12);
+  doc.text("DECLARAÇÃO DE SEGURANÇA DO ACERVO (DSA)", W / 2, y, { align: "center" });
+  y += 10;
+
+  // ── CORPO ────────────────────────────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
 
   const comp = data.complemento.trim() ? ` ${data.complemento.toUpperCase()},` : "";
-  const enderecoStr = `${data.endereco.toUpperCase()}, ${data.numero.toUpperCase()} -${comp} ${data.bairro.toUpperCase()}, ${cidadeEstado} - CEP: ${data.cep}`;
+  const enderecoStr = `${data.endereco.toUpperCase()}, ${data.numero.toUpperCase()} -${comp} ${data.bairro.toUpperCase()}, ${data.cidade.toUpperCase()}/${data.estado.toUpperCase()} - CEP: ${data.cep}`;
 
   const finalidade = tipo === "aquisicao"
     ? "Autorização para Aquisição de Arma de Fogo"
     : "Concessão de registro";
+
   const segs: Array<{ text: string; bold?: boolean }> = [
     { text: "EU, " },
-    { text: data.nome.toUpperCase() },
-    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}${data.profissao.trim() ? `, ${data.profissao.toUpperCase()}` : ``}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de ${finalidade}, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
+    { text: data.nome.toUpperCase(), bold: true },
+    { text: `, brasileiro(a), natural de ${data.naturalidade.toUpperCase()}, nascido em ${formatDate(data.dataNascimento)}${data.profissao.trim() ? `, profissão ${data.profissao.toUpperCase()}` : ``}, residindo em ${enderecoStr}, e CPF nº ${data.cpf}. DECLARO, para fim de ${finalidade}, que o local de guarda do meu acervo de Atirador possui cofre ou lugar seguro, com tranca, para armazenamento das armas de fogo desmuniciadas de que sou proprietário, e de que adotarei as medidas necessárias para impedir que menor de dezoito anos de idade ou pessoa civilmente incapaz se apodere de arma de fogo sob minha posse ou de minha propriedade, observado o disposto no art. 13 da Lei nº 10.826, de 2003.` },
   ];
 
-  y = writeInlinePara(doc, segs, ML, y, CW, 5.0);
-  y += 6;
+  y = writeInlinePara(doc, segs, ML, y, CW, 5.5);
+  y += 10;
 
   // Data
+  const dia = format(getSiteDate(), "d");
+  const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
+  const ano = format(getSiteDate(), "yyyy");
   doc.setFont("helvetica", "bold");
-  doc.text(`${cidadeEstado}, ${hoje}`, ML, y);
-  y += 25;
-
-  // Assinatura
-  doc.setFont("helvetica", "normal");
-  doc.line(W / 2 - 40, y, W / 2 + 40, y);
-  y += 5;
-  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
-  y += 5;
-  doc.text(data.cpf, W / 2, y, { align: "center" });
+  doc.setFontSize(11);
+  doc.text(`${data.cidade.toUpperCase()}, ${data.estado.toUpperCase()}-${dia} de ${mes} de ${ano}`, W - MR, y, { align: "right" });
   y += 30;
 
-  // Segunda linha removida (Presidente da Entidade de Tiro)
+  // ── ASSINATURA DIGITAL ──────────────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const sigLabel = "Assinatura digital (.gov.br ou ICP-Brasil) requerente: ";
+  doc.text(sigLabel, ML, y);
+  const sigLabelW = doc.getTextWidth(sigLabel);
+  doc.line(ML + sigLabelW, y - 0.5, W - MR, y - 0.5);
+
+  // ── RODAPÉ ──────────────────────────────────────────────────────────────────
+  const barH = 16;
+  const barY = H - barH - 2;
+
+  // Fundo verde escuro
+  doc.setFillColor(...cDarkGreen);
+  doc.rect(0, barY, W, barH + 2, "F");
+
+  // Linha dourada no topo
+  doc.setDrawColor(...cGold);
+  doc.setLineWidth(1.5);
+  doc.line(0, barY, W, barY);
+
+  // Textos brancos
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.text("PASSARINHO DESPACHANTE BÉLICO", W / 2, barY + 7, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text("Assessoria em Processos junto à Polícia Federal e Exército Brasileiro — Manaus/AM", W / 2, barY + 13, { align: "center" });
 
   const sufixo = tipo === "aquisicao"
     ? "10 Declaração de Segurança do Acervo - Aquisição"
