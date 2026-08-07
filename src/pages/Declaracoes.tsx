@@ -378,21 +378,21 @@ async function aplicarLayoutPassarinho(doc: any) {
     const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
     const ratio = nh / nw;
 
-    // Cabeçalho: 270×180 PNG (mantém canal alpha para fundo transparente)
+    // Cabeçalho: 540×360 PNG (~300 DPI para 45mm) — preserva canal alpha
     const cvH = document.createElement("canvas");
-    cvH.width = 270; cvH.height = Math.round(270 * ratio);
+    cvH.width = 540; cvH.height = Math.round(540 * ratio);
     cvH.getContext("2d")!.drawImage(img, 0, 0, cvH.width, cvH.height);
     logoHeaderData = cvH.toDataURL("image/png");
 
-    // Marca d'água: 500px de largura, fundo branco, 7% opacidade, JPEG 15%
+    // Marca d'água: 800px largura, fundo branco, 7% opacidade, JPEG 45%
     const cvW = document.createElement("canvas");
-    cvW.width = 500; cvW.height = Math.round(500 * ratio);
+    cvW.width = 800; cvW.height = Math.round(800 * ratio);
     const ctxW = cvW.getContext("2d")!;
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
     ctxW.globalAlpha = 0.07;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
-    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.15);
+    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.45);
   }
 
   // Marca d'água (200mm de largura na página, centrada)
