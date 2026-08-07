@@ -138,26 +138,6 @@ function formatDate(value: string) {
   const [y, m, d] = value.split("-");
   return `${d}/${m}/${y}`;
 }
-let _logoCache: string | null = null;
-async function loadLogoImg(): Promise<string | null> {
-  if (_logoCache) return _logoCache;
-  try {
-    const base = (import.meta as any).env?.BASE_URL ?? "/";
-    const resp = await fetch(base + "logo-passarinho.png");
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => { _logoCache = reader.result as string; resolve(_logoCache); };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch { return null; }
-}
-function addLogo(doc: any, imgData: string) {
-  // Canto superior direito — 38x38mm
-  doc.addImage(imgData, "PNG", 162, 3, 38, 38);
-}
 
 let _watermarkCache: string | null = null;
 async function loadWatermarkImg(): Promise<string | null> {
@@ -387,10 +367,6 @@ async function gerarPDF(data: FormData) {
   const W = 210, M = 20, CW = 170;
   let y = 14;
 
-  // Logo
-  const logoData = await loadLogoImg();
-  if (logoData) addLogo(doc, logoData);
-
   // Título (2 linhas centradas, negrito)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
@@ -462,9 +438,6 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   const W = 210, ML = 20, MT = 25, CW = 170;
   let y = MT;
 
-  // Logo
-  const logoDataAcervo = await loadLogoImg();
-  if (logoDataAcervo) addLogo(doc, logoDataAcervo);
 
   // Título: bold, underline, uppercase, centered, 12pt
   doc.setFont("helvetica", "bold");
@@ -531,10 +504,6 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
 
   const W = 210, ML = 10, CW = 190;
   let y = 14;
-
-  // Logo
-  const logoDataDSA = await loadLogoImg();
-  if (logoDataDSA) addLogo(doc, logoDataDSA);
 
   // Título: ANEXO A
   doc.setFont("helvetica", "bold");
@@ -647,10 +616,6 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   const W = 210, ML = 20, MT = 25, CW = 170;
   let y = MT;
-
-  // Logo
-  const logoDataRes = await loadLogoImg();
-  if (logoDataRes) addLogo(doc, logoDataRes);
 
   // Título: bold, underline, 14pt, centered
   doc.setFont("helvetica", "bold");
