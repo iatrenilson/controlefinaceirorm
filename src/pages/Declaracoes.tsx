@@ -360,6 +360,67 @@ async function salvarPDF(doc: any, filename: string) {
   });
 }
 
+// ─── Layout padrão Passarinho (logo + linhas douradas + marca d'água + rodapé) ──
+async function aplicarLayoutPassarinho(doc: any) {
+  const W = 210, H = 297, ML = 15, MR = 15, CW = W - ML - MR;
+  const cGold: [number,number,number]      = [198, 155, 55];
+  const cDarkGreen: [number,number,number] = [27,  82,  22];
+
+  const logo = await loadLogoPassarinho();
+
+  // Marca d'água (canvas com 7% de opacidade)
+  if (logo) {
+    const img = new Image();
+    img.src = logo;
+    await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); });
+    const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
+    const cv = document.createElement("canvas");
+    cv.width = nw; cv.height = nh;
+    const ctx = cv.getContext("2d")!;
+    ctx.globalAlpha = 0.07;
+    ctx.drawImage(img, 0, 0);
+    const wmW = 200, wmH = wmW * (nh / nw);
+    doc.addImage(cv.toDataURL("image/png"), "PNG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
+  }
+
+  // Logo centralizada + linhas laterais
+  const logoW = 45, logoH = logoW * (1024 / 1535);
+  const logoX = W / 2 - logoW / 2, logoY = 4;
+  const lineGap = 5;
+  const leftEnd = logoX - lineGap, rightStart = logoX + logoW + lineGap;
+
+  const lineY1 = logoY + logoH * 0.38;
+  doc.setDrawColor(...cDarkGreen); doc.setLineWidth(1.6);
+  doc.line(ML, lineY1, leftEnd, lineY1);
+  doc.line(rightStart, lineY1, W - MR, lineY1);
+
+  const lineY2 = lineY1 + 3;
+  doc.setDrawColor(...cGold); doc.setLineWidth(0.7);
+  doc.line(ML, lineY2, leftEnd, lineY2);
+  doc.line(rightStart, lineY2, W - MR, lineY2);
+
+  if (logo) doc.addImage(logo, "PNG", logoX, logoY, logoW, logoH);
+
+  const lineYBottom = logoY + logoH + 4;
+  doc.setDrawColor(...cDarkGreen); doc.setLineWidth(0.6);
+  doc.line(ML, lineYBottom, W - MR, lineYBottom);
+
+  // Rodapé verde + linha dourada
+  const barH = 16, barY = H - barH - 2;
+  doc.setFillColor(...cDarkGreen);
+  doc.rect(0, barY, W, barH + 2, "F");
+  doc.setDrawColor(...cGold); doc.setLineWidth(1.5);
+  doc.line(0, barY, W, barY);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+  doc.text("PASSARINHO DESPACHANTE BÉLICO", W / 2, barY + 7, { align: "center" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+  doc.text("Assessoria em Processos junto à Polícia Federal e Exército Brasileiro — Manaus/AM", W / 2, barY + 13, { align: "center" });
+
+  doc.setTextColor(0, 0, 0);
+  return { startY: lineYBottom + 8, W, H, ML, MR, CW, footerY: barY };
+}
+
 async function gerarPDF(data: FormData) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const dia = format(getSiteDate(), "dd");
@@ -374,43 +435,39 @@ async function gerarPDF(data: FormData) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, M = 20, CW = 170;
-  let y = 20;
-
-  // Logo Passarinho — canto superior direito (45×30 mm, proporção 1535×1024)
-  const logo = await loadLogoPassarinho();
-  if (logo) doc.addImage(logo, "PNG", 152, 4, 45, 30);
+  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  let y = startY;
 
   // ── Título ──────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.text("DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU", W / 2, y, { align: "center" });
   y += 6;
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
   y += 14;
 
-  // ── Parágrafo 1: identificação ───────────────────────────────────────────────
+  // ── Parágrafo 1 ──────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   const p1 = `Eu, ${data.nome.toUpperCase()}, portador (a) do RG nº ${data.rg} e do CPF n°${data.cpf}, residente ${enderecoCompleto}.`;
   const p1Lines = doc.splitTextToSize(p1, CW);
-  doc.text(p1Lines, M, y, { align: "justify", maxWidth: CW });
+  doc.text(p1Lines, ML, y, { align: "justify", maxWidth: CW });
   y += p1Lines.length * 6 + 6;
 
-  // ── Parágrafo 2: declaração ──────────────────────────────────────────────────
+  // ── Parágrafo 2 ──────────────────────────────────────────────────────────────
   const p2 = ` Declaro sob as penas da lei, que não respondo processo criminal e/ou inquérito policial, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.`;
   const p2Lines = doc.splitTextToSize(p2, CW);
-  doc.text(p2Lines, M, y, { align: "justify", maxWidth: CW });
+  doc.text(p2Lines, ML, y, { align: "justify", maxWidth: CW });
   y += p2Lines.length * 6 + 10;
 
   // ── Art. 299 ─────────────────────────────────────────────────────────────────
-  doc.text('"Art. 299', M, y);
+  doc.text('"Art. 299', ML, y);
   y += 6;
-  doc.text("_", M, y);
+  doc.text("_", ML, y);
   y += 6;
   const artBody = ` Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.\nPena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular."`;
   const artLines = doc.splitTextToSize(artBody, CW);
-  doc.text(artLines, M, y, { align: "justify", maxWidth: CW });
+  doc.text(artLines, ML, y, { align: "justify", maxWidth: CW });
   y += artLines.length * 6 + 20;
 
   // ── Cidade e data ─────────────────────────────────────────────────────────────
@@ -441,9 +498,8 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, ML = 20, MT = 25, CW = 170;
-  let y = MT;
-
+  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  let y = startY;
 
   // Título: bold, underline, uppercase, centered, 12pt
   doc.setFont("helvetica", "bold");
@@ -478,15 +534,13 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   y = writeInlinePara(doc, segsAc, ML, y, CW, 6.5);
   y += 10;
 
-  // "Por ser verdade, firmo o presente."
+  doc.setFont("helvetica", "normal");
   doc.text("Por ser verdade, firmo o presente.", W / 2, y, { align: "center" });
   y += 50;
 
-  // Data (centered)
   doc.text(dataFormatada, W / 2, y, { align: "center" });
   y += 45;
 
-  // Assinatura
   doc.line(W / 2 - 40, y, W / 2 + 40, y);
   y += 5;
   doc.setFont("helvetica", "bold");
@@ -506,68 +560,10 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, H = 297, ML = 15, MR = 15, CW = W - ML - MR;
-  // Cores institucionais
-  const cGold: [number,number,number]      = [198, 155, 55];
-  const cDarkGreen: [number,number,number] = [27,  82,  22];
-
-  // ── Logo ──────────────────────────────────────────────────────────────────
-  const logo = await loadLogoPassarinho();
-
-  // ── MARCA D'ÁGUA (desenhada primeiro, por baixo de tudo) ─────────────────
-  if (logo) {
-    const img = new Image();
-    img.src = logo;
-    await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); });
-    const nw = img.naturalWidth  || 1535;
-    const nh = img.naturalHeight || 1024;
-    const cv = document.createElement("canvas");
-    cv.width = nw; cv.height = nh;
-    const ctx = cv.getContext("2d")!;
-    ctx.globalAlpha = 0.07;          // muito transparente
-    ctx.drawImage(img, 0, 0);
-    const wmark = cv.toDataURL("image/png");
-    const wmW = 200;
-    const wmH = wmW * (nh / nw);   // altura proporcional automática (ratio 1535×1024)
-    doc.addImage(wmark, "PNG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
-  }
-
-  // ── CABEÇALHO: Logo centralizada + linhas laterais ────────────────────────
-  const logoW = 45;
-  const logoH = logoW * (1024 / 1535);   // ~30 mm
-  const logoX = W / 2 - logoW / 2;       // ~82.5
-  const logoY = 4;
-  const lineGap = 5;                      // espaço entre logo e linha
-  const leftEnd   = logoX - lineGap;
-  const rightStart = logoX + logoW + lineGap;
-
-  // Linha 1 — verde escura (grossa)
-  const lineY1 = logoY + logoH * 0.38;
-  doc.setDrawColor(...cDarkGreen);
-  doc.setLineWidth(1.6);
-  doc.line(ML, lineY1, leftEnd, lineY1);
-  doc.line(rightStart, lineY1, W - MR, lineY1);
-
-  // Linha 2 — dourada (fina, logo abaixo)
-  const lineY2 = lineY1 + 3;
-  doc.setDrawColor(...cGold);
-  doc.setLineWidth(0.7);
-  doc.line(ML, lineY2, leftEnd, lineY2);
-  doc.line(rightStart, lineY2, W - MR, lineY2);
-
-  // Logo
-  if (logo) doc.addImage(logo, "PNG", logoX, logoY, logoW, logoH);
-
-  // Linha verde sob a logo
-  const lineYBottom = logoY + logoH + 4;
-  doc.setDrawColor(...cDarkGreen);
-  doc.setLineWidth(0.6);
-  doc.line(ML, lineYBottom, W - MR, lineYBottom);
-
-  let y = lineYBottom + 8;
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
+  let y = startY;
 
   // ── TÍTULO ──────────────────────────────────────────────────────────────────
-  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text("ANEXO A", W / 2, y, { align: "center" });
@@ -596,7 +592,6 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   y = writeInlinePara(doc, segs, ML, y, CW, 5.5);
   y += 10;
 
-  // Data
   const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
   const ano = format(getSiteDate(), "yyyy");
@@ -612,28 +607,6 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   doc.text(sigLabel, ML, y);
   const sigLabelW = doc.getTextWidth(sigLabel);
   doc.line(ML + sigLabelW, y - 0.5, W - MR, y - 0.5);
-
-  // ── RODAPÉ ──────────────────────────────────────────────────────────────────
-  const barH = 16;
-  const barY = H - barH - 2;
-
-  // Fundo verde escuro
-  doc.setFillColor(...cDarkGreen);
-  doc.rect(0, barY, W, barH + 2, "F");
-
-  // Linha dourada no topo
-  doc.setDrawColor(...cGold);
-  doc.setLineWidth(1.5);
-  doc.line(0, barY, W, barY);
-
-  // Textos brancos
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.text("PASSARINHO DESPACHANTE BÉLICO", W / 2, barY + 7, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.text("Assessoria em Processos junto à Polícia Federal e Exército Brasileiro — Manaus/AM", W / 2, barY + 13, { align: "center" });
 
   const sufixo = tipo === "aquisicao"
     ? "10 Declaração de Segurança do Acervo - Aquisição"
@@ -703,8 +676,8 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const W = 210, ML = 20, MT = 25, CW = 170;
-  let y = MT;
+  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  let y = startY;
 
   // Título: bold, underline, 14pt, centered
   doc.setFont("helvetica", "bold");
