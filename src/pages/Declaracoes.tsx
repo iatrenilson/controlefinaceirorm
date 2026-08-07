@@ -542,10 +542,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   doc.text(data.cpf, W / 2, y, { align: "center" });
   y += 30;
 
-  // Segunda linha — Presidente da Entidade
-  doc.line(W / 2 - 40, y, W / 2 + 40, y);
-  y += 5;
-  doc.text("PRESIDENTE DA ENTIDADE DE TIRO", W / 2, y, { align: "center" });
+  // Segunda linha removida (Presidente da Entidade de Tiro)
 
   const sufixo = tipo === "aquisicao"
     ? "10 Declaração de Segurança do Acervo - Aquisição"
