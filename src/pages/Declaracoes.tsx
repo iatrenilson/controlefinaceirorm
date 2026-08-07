@@ -378,21 +378,24 @@ async function aplicarLayoutPassarinho(doc: any) {
     const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
     const ratio = nh / nw;
 
-    // Cabeçalho: 540×360 PNG (~300 DPI para 45mm) — preserva canal alpha
+    // Cabeçalho: 900px PNG (~500 DPI para 45mm) — preserva canal alpha
     const cvH = document.createElement("canvas");
-    cvH.width = 540; cvH.height = Math.round(540 * ratio);
-    cvH.getContext("2d")!.drawImage(img, 0, 0, cvH.width, cvH.height);
+    cvH.width = 900; cvH.height = Math.round(900 * ratio);
+    const ctxH = cvH.getContext("2d")!;
+    ctxH.imageSmoothingEnabled = true; ctxH.imageSmoothingQuality = "high";
+    ctxH.drawImage(img, 0, 0, cvH.width, cvH.height);
     logoHeaderData = cvH.toDataURL("image/png");
 
-    // Marca d'água: 800px largura, fundo branco, 7% opacidade, JPEG 45%
+    // Marca d'água: 1200px largura, fundo branco, 7% opacidade, JPEG 85%
     const cvW = document.createElement("canvas");
-    cvW.width = 800; cvW.height = Math.round(800 * ratio);
+    cvW.width = 1200; cvW.height = Math.round(1200 * ratio);
     const ctxW = cvW.getContext("2d")!;
+    ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "high";
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
     ctxW.globalAlpha = 0.07;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
-    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.45);
+    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.85);
   }
 
   // Marca d'água (200mm de largura na página, centrada)
