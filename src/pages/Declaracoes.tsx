@@ -454,7 +454,7 @@ async function gerarPDF(data: FormData) {
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
   const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
@@ -519,7 +519,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
   const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
@@ -579,7 +579,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
   const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
@@ -685,16 +685,16 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.2, 0.80), label: "Anexo: Documento de Identidade (RG)" });
   }
 
-  // Pág 3 – Comprovante: moderado
+  // Pág 3 – Comprovante: boa qualidade (compress:true no jsPDF reduz overhead)
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 620, 860, 0.70), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 760, 1050, 0.78), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.0, 0.70), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.1, 0.76), label: "Anexo: Comprovante de Residência" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
   const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
