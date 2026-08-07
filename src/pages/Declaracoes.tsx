@@ -242,9 +242,9 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 1300;
-  const SLOT_H = 800;
-  const GAP = 24;
+  const PAGE_W = 900;
+  const SLOT_H = 560;
+  const GAP = 16;
 
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
@@ -265,7 +265,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.88);
+  return c.toDataURL("image/jpeg", 0.72);
 }
 
 
@@ -676,21 +676,20 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
 
-  // Pág 2 – RG/CNH: resolução máxima para texto nítido
+  // Pág 2 – RG/CNH: legível mas compacto
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1400, 1800, 0.92), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 900, 1200, 0.75), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    // scale=3.0 → ~1785×2526px — texto da CNH fica nítido
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 3.0, 0.85), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1.8, 0.75), label: "Anexo: Documento de Identidade (RG)" });
   }
 
-  // Pág 3 – Comprovante: pré-escalado para 17cm×23.5cm, sem esticar
+  // Pág 3 – Comprovante: compacto
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 940, 0.76), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 560, 770, 0.68), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.14, 0.76), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 0.9, 0.68), label: "Anexo: Comprovante de Residência" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
