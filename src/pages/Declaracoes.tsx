@@ -527,7 +527,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
     ctx.globalAlpha = 0.07;          // muito transparente
     ctx.drawImage(img, 0, 0);
     const wmark = cv.toDataURL("image/png");
-    const wmW = 140;
+    const wmW = 180;
     const wmH = wmW * (nh / nw);
     doc.addImage(wmark, "PNG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
