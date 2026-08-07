@@ -404,7 +404,7 @@ async function aplicarLayoutPassarinho(doc: any) {
 
   // Marca d'água (200mm de largura na página, centrada)
   if (logoWatermarkData) {
-    const wmW = 200, wmH = wmW * (1024 / 1535);
+    const wmW = 155, wmH = wmW * (1024 / 1535);
     doc.addImage(logoWatermarkData, "JPEG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
 
