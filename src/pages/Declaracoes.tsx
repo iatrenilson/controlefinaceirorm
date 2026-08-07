@@ -415,7 +415,7 @@ async function aplicarLayoutPassarinho(doc: any) {
   doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
   doc.text("PASSARINHO DESPACHANTE BÉLICO", W / 2, barY + 7, { align: "center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
-  doc.text("Assessoria em Processos junto à Polícia Federal e Exército Brasileiro — Manaus/AM", W / 2, barY + 13, { align: "center" });
+  doc.text("Assessoria Bélica Especializada | CR, CRAF, Guias de Tráfego, Compras, Transferências e Regularizações — Manaus/AM", W / 2, barY + 13, { align: "center" });
 
   doc.setTextColor(0, 0, 0);
   return { startY: lineYBottom + 8, W, H, ML, MR, CW, footerY: barY };
