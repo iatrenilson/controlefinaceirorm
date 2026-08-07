@@ -455,8 +455,8 @@ async function gerarPDF(data: FormData) {
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
   const ano = format(getSiteDate(), "yyyy");
   const numStr = data.numero ? `, ${data.numero}` : "";
-  const cepStr = data.cep ? `, ${data.cep}` : "";
-  const bairroStr = data.bairro ? `, ${data.bairro}` : "";
+  const cepStr = data.cep ? `, Cep - ${data.cep}` : "";
+  const bairroStr = data.bairro ? ` - ${data.bairro}` : "";
   const enderecoCompleto = `${data.endereco}${numStr}${cepStr}${bairroStr}, ${data.cidade}, ${data.estado}`;
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
