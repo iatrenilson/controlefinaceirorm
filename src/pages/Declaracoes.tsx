@@ -435,7 +435,7 @@ async function gerarPDF(data: FormData) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
 
   // ── Título ──────────────────────────────────────────────────────────────────
@@ -470,26 +470,28 @@ async function gerarPDF(data: FormData) {
   doc.text(artLines, ML, y, { align: "justify", maxWidth: CW });
   y += artLines.length * 6 + 20;
 
-  // ── Cidade e data ─────────────────────────────────────────────────────────────
-  doc.text(`${data.cidade}, ${data.estado}, ${dia} de ${mes} de ${ano}.`, W / 2, y, { align: "center" });
-  y += 40;
-
-  // ── Assinatura ────────────────────────────────────────────────────────────────
-  doc.line(W / 2 - 45, y, W / 2 + 45, y);
-  y += 5;
+  // ── Data ─────────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
-  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
+  doc.setFontSize(11);
+  doc.text(`${data.cidade.toUpperCase()}, ${data.estado.toUpperCase()}-${dia} de ${mes} de ${ano}`, W - MR, y, { align: "right" });
+  y += 30;
+
+  // ── Assinatura digital ────────────────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const sigLabel = "Assinatura digital (.gov.br ou ICP-Brasil) requerente: ";
+  doc.text(sigLabel, ML, y);
+  const sigLabelW = doc.getTextWidth(sigLabel);
+  doc.line(ML + sigLabelW, y - 0.5, W - MR, y - 0.5);
 
   await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
 async function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
-  const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
   const dia = format(getSiteDate(), "dd");
-  const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toUpperCase();
+  const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
   const ano = format(getSiteDate(), "yyyy");
-  const dataFormatada = `${cidadeEstado}, ${dia} de ${mes} de ${ano}`;
   const paiAcervo = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
   const maeAcervo = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
   const filhoDeAcervo = paiAcervo && maeAcervo ? `${paiAcervo} e ${maeAcervo}` : paiAcervo || maeAcervo;
@@ -498,7 +500,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
 
   // Título: bold, underline, uppercase, centered, 12pt
@@ -536,18 +538,19 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 
   doc.setFont("helvetica", "normal");
   doc.text("Por ser verdade, firmo o presente.", W / 2, y, { align: "center" });
-  y += 50;
+  y += 30;
 
-  doc.text(dataFormatada, W / 2, y, { align: "center" });
-  y += 45;
-
-  doc.line(W / 2 - 40, y, W / 2 + 40, y);
-  y += 5;
   doc.setFont("helvetica", "bold");
-  doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
-  y += 6;
+  doc.setFontSize(11);
+  doc.text(`${data.cidade.toUpperCase()}, ${data.estado.toUpperCase()}-${dia} de ${mes} de ${ano}`, W - MR, y, { align: "right" });
+  y += 30;
+
   doc.setFont("helvetica", "normal");
-  doc.text(data.cpf, W / 2, y, { align: "center" });
+  doc.setFontSize(10);
+  const sigLabelAc = "Assinatura digital (.gov.br ou ICP-Brasil) requerente: ";
+  doc.text(sigLabelAc, ML, y);
+  const sigLabelAcW = doc.getTextWidth(sigLabelAc);
+  doc.line(ML + sigLabelAcW, y - 0.5, W - MR, y - 0.5);
 
   await salvarPDF(doc, `8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
 }
@@ -676,7 +679,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-  const { startY, W, ML, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
   let y = startY;
 
   // Título: bold, underline, 14pt, centered
@@ -787,19 +790,22 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   }
   doc.setFont("helvetica", "normal");
 
-  // Cidade e data (margin-top 3cm)
-  y += 30;
-  doc.text(`${data.cidade}, ${dataEscrita}.`, ML, y);
-  y += 40;
-
-  // Assinatura
-  doc.line(W / 2 - 40, y, W / 2 + 40, y);
-  y += 5;
+  // Data + assinatura digital (padrão Passarinho)
+  y += 20;
+  const diaRes = format(getSiteDate(), "dd");
+  const mesRes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
+  const anoRes = format(getSiteDate(), "yyyy");
   doc.setFont("helvetica", "bold");
-  doc.text(data.nomeDeclarante.toUpperCase(), W / 2, y, { align: "center" });
-  y += 6;
+  doc.setFontSize(11);
+  doc.text(`${data.cidade.toUpperCase()}, ${data.estado.toUpperCase()}-${diaRes} de ${mesRes} de ${anoRes}`, W - MR, y, { align: "right" });
+  y += 30;
+
   doc.setFont("helvetica", "normal");
-  doc.text(data.cpfDeclarante, W / 2, y, { align: "center" });
+  doc.setFontSize(10);
+  const sigLabelRes = "Assinatura digital (.gov.br ou ICP-Brasil) requerente: ";
+  doc.text(sigLabelRes, ML, y);
+  const sigLabelResW = doc.getTextWidth(sigLabelRes);
+  doc.line(ML + sigLabelResW, y - 0.5, W - MR, y - 0.5);
 
   // Páginas 2+ — imagens pré-comprimidas (RG e comprovante)
   for (const att of attachmentList) {
