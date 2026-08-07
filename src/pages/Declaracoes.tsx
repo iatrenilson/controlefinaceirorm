@@ -362,7 +362,7 @@ async function salvarPDF(doc: any, filename: string) {
 
 async function gerarPDF(data: FormData) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
-  const dia = format(getSiteDate(), "d");
+  const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
   const ano = format(getSiteDate(), "yyyy");
   const numStr = data.numero ? `, ${data.numero}` : "";
@@ -429,7 +429,7 @@ async function gerarPDF(data: FormData) {
 async function gerarPDFAcervo(data: FormDataAcervo) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const cidadeEstado = `${data.cidade.toUpperCase()}-${data.estado.toUpperCase()}`;
-  const dia = format(getSiteDate(), "d");
+  const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toUpperCase();
   const ano = format(getSiteDate(), "yyyy");
   const dataFormatada = `${cidadeEstado}, ${dia} de ${mes} de ${ano}`;
@@ -597,7 +597,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   y += 10;
 
   // Data
-  const dia = format(getSiteDate(), "d");
+  const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
   const ano = format(getSiteDate(), "yyyy");
   doc.setFont("helvetica", "bold");
