@@ -397,7 +397,7 @@ async function aplicarLayoutPassarinho(doc: any) {
     ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "high";
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
-    ctxW.globalAlpha = 0.04;
+    ctxW.globalAlpha = 0.055;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
     logoWatermarkData = cvW.toDataURL("image/jpeg", 0.65);
   }
