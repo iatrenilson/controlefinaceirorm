@@ -139,6 +139,23 @@ function formatDate(value: string) {
   return `${d}/${m}/${y}`;
 }
 
+let _logoPassarinhoCache: string | null = null;
+async function loadLogoPassarinho(): Promise<string | null> {
+  if (_logoPassarinhoCache) return _logoPassarinhoCache;
+  try {
+    const base = (import.meta as any).env?.BASE_URL ?? "/";
+    const resp = await fetch(base + "logo-passarinho.png");
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => { _logoPassarinhoCache = reader.result as string; resolve(_logoPassarinhoCache); };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+}
+
 let _watermarkCache: string | null = null;
 async function loadWatermarkImg(): Promise<string | null> {
   if (_watermarkCache) return _watermarkCache;
@@ -344,78 +361,67 @@ async function salvarPDF(doc: any, filename: string) {
 }
 
 async function gerarPDF(data: FormData) {
-  const hoje = format(getSiteDate(), "dd/MM/yyyy");
-  const cidadeEstado = `${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`;
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
-  const normAddr = (s: string) =>
-    s.replace(/(\d)\s*[-]+\s*([A-Za-zÀ-ÿ])/g, "$1 - $2").replace(/\s{2,}/g, " ").trim();
-  const numStr = data.numero ? `, Nº ${data.numero}` : "";
-  const compNorm = normAddr((data.complemento ?? "").replace(/[-\s]+$/, "").trim());
-  const compStr = compNorm ? `, ${compNorm.toUpperCase()}` : "";
-  const bairroNorm = normAddr(data.bairro ?? "");
-  const bairroStr = bairroNorm ? ` - ${bairroNorm.toUpperCase()},` : ",";
-  const enderecoCompleto = `${data.endereco}${numStr}${compStr}${bairroStr} CEP ${data.cep}, ${data.cidade.toUpperCase()} - ${data.estado.toUpperCase()}`
-    .replace(/(\d)-(\s*[A-Za-zÀ-ÿ])/g, (_, d, after) => `${d} - ${after.trimStart()}`);
-  const pai = data.nomePai?.trim() ? data.nomePai.toUpperCase() : "";
-  const mae = data.nomeMae?.trim() ? data.nomeMae.toUpperCase() : "";
-  const filhoDe = pai && mae ? `${pai} e ${mae}` : pai || mae;
+  const dia = format(getSiteDate(), "d");
+  const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
+  const ano = format(getSiteDate(), "yyyy");
+  const numStr = data.numero ? `, ${data.numero}` : "";
+  const cepStr = data.cep ? `, ${data.cep}` : "";
+  const bairroStr = data.bairro ? `, ${data.bairro}` : "";
+  const enderecoCompleto = `${data.endereco}${numStr}${cepStr}${bairroStr}, ${data.cidade}, ${data.estado}`;
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
   const W = 210, M = 20, CW = 170;
-  let y = 14;
+  let y = 20;
 
-  // Título (2 linhas centradas, negrito)
+  // Logo Passarinho — canto superior direito (45×30 mm, proporção 1535×1024)
+  const logo = await loadLogoPassarinho();
+  if (logo) doc.addImage(logo, "PNG", 152, 4, 45, 30);
+
+  // ── Título ──────────────────────────────────────────────────────────────────
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.text("DECLARAÇÃO DE INEXISTÊNCIA DE INQUÉRITOS POLICIAIS OU", W / 2, y, { align: "center" });
-  y += 5.5;
+  y += 6;
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
-  y += 8;
+  y += 14;
 
-  // Corpo da declaração — nome em negrito
+  // ── Parágrafo 1: identificação ───────────────────────────────────────────────
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
-  const segsInq: Array<{ text: string; bold?: boolean }> = [
-    { text: "Eu, " },
-    { text: data.nome.toUpperCase(), bold: true },
-    { text: `, abaixo assinado, ${data.estadoCivil}, nascido em ${formatDate(data.dataNascimento)}${filhoDe ? `, filho de ${filhoDe}` : ""}, residência no(a), ${enderecoCompleto}, RG nº ${data.rg}, expedido em ${formatDate(data.dataExpedicao)}, declaro, sob as penas da lei, que não respondo a inquéritos policiais nem a processos criminais, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.` },
-  ];
-  y = writeInlinePara(doc, segsInq, M, y, CW, 5.0);
-  y += 5;
+  const p1 = `Eu, ${data.nome.toUpperCase()}, portador (a) do RG nº ${data.rg} e do CPF n°${data.cpf}, residente ${enderecoCompleto}.`;
+  const p1Lines = doc.splitTextToSize(p1, CW);
+  doc.text(p1Lines, M, y, { align: "justify", maxWidth: CW });
+  y += p1Lines.length * 6 + 6;
 
-  // Art. 299
-  const art = `Art. 299 - Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante. Pena - reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular.`;
-  const artLines = doc.splitTextToSize(art, CW);
+  // ── Parágrafo 2: declaração ──────────────────────────────────────────────────
+  const p2 = ` Declaro sob as penas da lei, que não respondo processo criminal e/ou inquérito policial, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.`;
+  const p2Lines = doc.splitTextToSize(p2, CW);
+  doc.text(p2Lines, M, y, { align: "justify", maxWidth: CW });
+  y += p2Lines.length * 6 + 10;
+
+  // ── Art. 299 ─────────────────────────────────────────────────────────────────
+  doc.text('"Art. 299', M, y);
+  y += 6;
+  doc.text("_", M, y);
+  y += 6;
+  const artBody = ` Omitir, em documento público ou particular, declaração que nele deveria constar, ou nele inserir ou fazer inserir declaração falsa ou diversa da que devia ser escrita, com o fim de prejudicar direito, criar obrigação ou alterar a verdade sobre o fato juridicamente relevante.\nPena: reclusão de 1 (um) a 5 (cinco) anos e multa, se o documento é público e reclusão de 1 (um) a 3 (três) anos, se o documento é particular."`;
+  const artLines = doc.splitTextToSize(artBody, CW);
   doc.text(artLines, M, y, { align: "justify", maxWidth: CW });
-  y += artLines.length * 6.5 + 6;
+  y += artLines.length * 6 + 20;
 
-  // Validade com "90" em negrito
-  const antes = "Esta declaração tem validade de ";
-  const depois = " dias.";
-  doc.setFont("helvetica", "normal");
-  const antesW = doc.getTextWidth(antes);
-  doc.text(antes, M, y);
-  doc.setFont("helvetica", "bold");
-  const boldW = doc.getTextWidth("90");
-  doc.text("90", M + antesW, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(depois, M + antesW + boldW, y);
-  y += 18;
+  // ── Cidade e data ─────────────────────────────────────────────────────────────
+  doc.text(`${data.cidade}, ${data.estado}, ${dia} de ${mes} de ${ano}.`, W / 2, y, { align: "center" });
+  y += 40;
 
-  // Cidade e data
-  doc.text(`${cidadeEstado}, ${hoje}`, W / 2, y, { align: "center" });
-  y += 42;
-
-  // Assinatura
-  doc.line(W / 2 - 40, y, W / 2 + 40, y);
+  // ── Assinatura ────────────────────────────────────────────────────────────────
+  doc.line(W / 2 - 45, y, W / 2 + 45, y);
   y += 5;
   doc.setFont("helvetica", "bold");
   doc.text(data.nome.toUpperCase(), W / 2, y, { align: "center" });
-  y += 6;
-  doc.setFont("helvetica", "normal");
-  doc.text(data.cpf, W / 2, y, { align: "center" });
 
   await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
