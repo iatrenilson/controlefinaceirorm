@@ -368,19 +368,37 @@ async function aplicarLayoutPassarinho(doc: any) {
 
   const logo = await loadLogoPassarinho();
 
-  // Marca d'água (canvas com 7% de opacidade)
+  // Pré-processa a logo em tamanhos otimizados (evita embedar PNG 1535×1024 bruto)
+  let logoHeaderData: string | null = null;   // PNG 270×180 — preserva transparência
+  let logoWatermarkData: string | null = null; // JPEG 500×333 a 15% qualidade — ~5KB
   if (logo) {
     const img = new Image();
     img.src = logo;
     await new Promise<void>(r => { img.onload = () => r(); img.onerror = () => r(); });
     const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
-    const cv = document.createElement("canvas");
-    cv.width = nw; cv.height = nh;
-    const ctx = cv.getContext("2d")!;
-    ctx.globalAlpha = 0.07;
-    ctx.drawImage(img, 0, 0);
-    const wmW = 200, wmH = wmW * (nh / nw);
-    doc.addImage(cv.toDataURL("image/png"), "PNG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
+    const ratio = nh / nw;
+
+    // Cabeçalho: 270×180 PNG (mantém canal alpha para fundo transparente)
+    const cvH = document.createElement("canvas");
+    cvH.width = 270; cvH.height = Math.round(270 * ratio);
+    cvH.getContext("2d")!.drawImage(img, 0, 0, cvH.width, cvH.height);
+    logoHeaderData = cvH.toDataURL("image/png");
+
+    // Marca d'água: 500px de largura, fundo branco, 7% opacidade, JPEG 15%
+    const cvW = document.createElement("canvas");
+    cvW.width = 500; cvW.height = Math.round(500 * ratio);
+    const ctxW = cvW.getContext("2d")!;
+    ctxW.fillStyle = "#ffffff";
+    ctxW.fillRect(0, 0, cvW.width, cvW.height);
+    ctxW.globalAlpha = 0.07;
+    ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
+    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.15);
+  }
+
+  // Marca d'água (200mm de largura na página, centrada)
+  if (logoWatermarkData) {
+    const wmW = 200, wmH = wmW * (1024 / 1535);
+    doc.addImage(logoWatermarkData, "JPEG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
 
   // Logo centralizada + linhas laterais
@@ -399,7 +417,7 @@ async function aplicarLayoutPassarinho(doc: any) {
   doc.line(ML, lineY2, leftEnd, lineY2);
   doc.line(rightStart, lineY2, W - MR, lineY2);
 
-  if (logo) doc.addImage(logo, "PNG", logoX, logoY, logoW, logoH);
+  if (logoHeaderData) doc.addImage(logoHeaderData, "PNG", logoX, logoY, logoW, logoH);
 
   const lineYBottom = logoY + logoH + 4;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(0.6);
