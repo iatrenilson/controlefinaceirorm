@@ -474,13 +474,15 @@ async function gerarPDF(data: FormData) {
   doc.text("PROCESSOS CRIMINAIS", W / 2, y, { align: "center" });
   y += 14;
 
-  // ── Parágrafo 1 ──────────────────────────────────────────────────────────────
-  doc.setFont("helvetica", "normal");
+  // ── Parágrafo 1 — nome do cliente em negrito ─────────────────────────────────
   doc.setFontSize(12);
-  const p1 = `Eu, ${data.nome.toUpperCase()}, portador (a) do RG nº ${data.rg} e do CPF n°${data.cpf}, residente ${enderecoCompleto}.`;
-  const p1Lines = doc.splitTextToSize(p1, CW);
-  doc.text(p1Lines, ML, y, { align: "justify", maxWidth: CW });
-  y += p1Lines.length * 6 + 6;
+  const segsInq: Array<{ text: string; bold?: boolean }> = [
+    { text: "Eu, " },
+    { text: data.nome.toUpperCase(), bold: true },
+    { text: `, portador (a) do RG nº ${data.rg} e do CPF n°${data.cpf}, residente ${enderecoCompleto}.` },
+  ];
+  y = writeInlinePara(doc, segsInq, ML, y, CW, 6);
+  y += 6;
 
   // ── Parágrafo 2 ──────────────────────────────────────────────────────────────
   const p2 = ` Declaro sob as penas da lei, que não respondo processo criminal e/ou inquérito policial, e estou ciente de que, em caso de falsidade ideológica, ficarei sujeito às sanções prescritas no Código Penal e às demais cominações legais aplicáveis.`;
