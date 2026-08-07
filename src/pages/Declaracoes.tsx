@@ -378,13 +378,16 @@ async function aplicarLayoutPassarinho(doc: any) {
     const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
     const ratio = nh / nw;
 
-    // Cabeçalho: 900px PNG (~500 DPI para 45mm) — preserva canal alpha
+    // Cabeçalho: 900px JPEG 92% com fundo branco
+    // (página é branca e linhas não passam sob o logo → JPEG idêntico ao PNG, mas ~5× menor)
     const cvH = document.createElement("canvas");
     cvH.width = 900; cvH.height = Math.round(900 * ratio);
     const ctxH = cvH.getContext("2d")!;
     ctxH.imageSmoothingEnabled = true; ctxH.imageSmoothingQuality = "high";
+    ctxH.fillStyle = "#ffffff";
+    ctxH.fillRect(0, 0, cvH.width, cvH.height);
     ctxH.drawImage(img, 0, 0, cvH.width, cvH.height);
-    logoHeaderData = cvH.toDataURL("image/png");
+    logoHeaderData = cvH.toDataURL("image/jpeg", 0.92);
 
     // Marca d'água: 900px largura, fundo branco, 7% opacidade, JPEG 65%
     // (a 7% de opacidade a qualidade JPEG é imperceptível; reduz tamanho sem perda visual)
@@ -421,7 +424,7 @@ async function aplicarLayoutPassarinho(doc: any) {
   doc.line(ML, lineY2, leftEnd, lineY2);
   doc.line(rightStart, lineY2, W - MR, lineY2);
 
-  if (logoHeaderData) doc.addImage(logoHeaderData, "PNG", logoX, logoY, logoW, logoH);
+  if (logoHeaderData) doc.addImage(logoHeaderData, "JPEG", logoX, logoY, logoW, logoH);
 
   const lineYBottom = logoY + logoH + 4;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(0.6);
