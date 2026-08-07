@@ -418,6 +418,9 @@ async function aplicarLayoutPassarinho(doc: any) {
   doc.text("Assessoria Bélica Especializada | CR, CRAF, Guias de Tráfego, Compras, Transferências e Regularizações — Manaus/AM", W / 2, barY + 13, { align: "center" });
 
   doc.setTextColor(0, 0, 0);
+  // Reset estado de linha para o conteúdo (verde escuro fino = igual DSA original)
+  doc.setDrawColor(...cDarkGreen);
+  doc.setLineWidth(0.4);
   return { startY: lineYBottom + 8, W, H, ML, MR, CW, footerY: barY };
 }
 
