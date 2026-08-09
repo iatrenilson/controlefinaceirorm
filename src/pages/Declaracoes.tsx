@@ -685,20 +685,20 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   // ── Pré-converte anexos para JPEG com configurações otimizadas ───────────
   const attachmentList: Array<{ dataUrl: string; label: string }> = [];
 
-  // Pág 2 – RG/CNH: qualidade original
+  // Pág 2 – Comprovante de Residência
+  if (compDataUrl?.startsWith("data:image")) {
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 940, 0.76), label: "Anexo: Comprovante de Residência" });
+  } else if (compDataUrl?.startsWith("data:application/pdf")) {
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.14, 0.76), label: "Anexo: Comprovante de Residência" });
+  }
+
+  // Pág 3 – RG/CNH
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
     attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1200, 1600, 0.86), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
     attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.5, 0.82), label: "Anexo: Documento de Identidade (RG)" });
-  }
-
-  // Pág 3 – Comprovante: qualidade original
-  if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 940, 0.76), label: "Anexo: Comprovante de Residência" });
-  } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.14, 0.76), label: "Anexo: Comprovante de Residência" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
