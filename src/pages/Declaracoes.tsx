@@ -244,9 +244,9 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 900;
-  const SLOT_H = 580;
-  const GAP = 20;
+  const PAGE_W = 760;
+  const SLOT_H = 480;
+  const GAP = 18;
 
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
@@ -267,7 +267,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.78);
+  return c.toDataURL("image/jpeg", 0.72);
 }
 
 
@@ -691,7 +691,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   // Pág 2 – Comprovante de Residência
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 820, 1160, 0.78), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 960, 0.68), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
     attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.85, 0.80), label: "Anexo: Comprovante de Residência" });
   }
@@ -700,7 +700,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 920, 1230, 0.80), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 760, 1010, 0.72), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
     attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.2, 0.82), label: "Anexo: Documento de Identidade (RG)" });
   }
