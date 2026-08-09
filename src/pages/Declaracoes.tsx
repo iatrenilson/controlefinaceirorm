@@ -244,9 +244,9 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 600;
-  const SLOT_H = 370;
-  const GAP = 16;
+  const PAGE_W = 700;
+  const SLOT_H = 450;
+  const GAP = 18;
 
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
@@ -267,7 +267,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.60);
+  return c.toDataURL("image/jpeg", 0.68);
 }
 
 
@@ -691,18 +691,18 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   // Pág 2 – Comprovante de Residência
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 580, 820, 0.58), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 660, 930, 0.65), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 0.80, 0.58), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.35, 0.68), label: "Anexo: Comprovante de Residência" });
   }
 
   // Pág 3 – RG/CNH
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 640, 850, 0.62), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 720, 960, 0.68), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1.0, 0.62), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1.6, 0.70), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
