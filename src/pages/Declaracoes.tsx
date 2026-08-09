@@ -288,7 +288,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.72);
+  return c.toDataURL("image/jpeg", 0.82);
 }
 
 
@@ -718,18 +718,18 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   // Pág 2 – Comprovante de Residência
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 960, 0.68), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 720, 1020, 0.78), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 680, 960, 0.76), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 760, 1080, 0.83), label: "Anexo: Comprovante de Residência" });
   }
 
   // Pág 3 – RG/CNH
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 760, 1010, 0.72), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 820, 1090, 0.82), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 760, 1010, 0.76), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 900, 1200, 0.88), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
