@@ -227,6 +227,8 @@ async function fitImageToPage(
       c.height = Math.round(img.naturalHeight * scale);
       const ctx = c.getContext("2d")!;
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, c.width, c.height);
       ctx.drawImage(img, 0, 0, c.width, c.height);
       resolve(c.toDataURL("image/jpeg", quality));
     };
@@ -242,9 +244,9 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   });
   const [img1, img2] = await Promise.all([loadImg(url1), loadImg(url2)]);
 
-  const PAGE_W = 1300;
-  const SLOT_H = 800;
-  const GAP = 24;
+  const PAGE_W = 900;
+  const SLOT_H = 560;
+  const GAP = 20;
 
   const scaleImg = (img: HTMLImageElement) =>
     Math.min(PAGE_W / img.naturalWidth, SLOT_H / img.naturalHeight, 1);
@@ -265,7 +267,7 @@ async function mergeImagesVertical(url1: string, url2: string): Promise<string> 
   ctx.drawImage(img1, Math.round((PAGE_W - w1) / 2), 0, w1, h1);
   ctx.drawImage(img2, Math.round((PAGE_W - w2) / 2), h1 + GAP, w2, h2);
 
-  return c.toDataURL("image/jpeg", 0.88);
+  return c.toDataURL("image/jpeg", 0.76);
 }
 
 
@@ -663,9 +665,11 @@ async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 2.0, quality = 0.
   const page = await pdf.getPage(1);
   const vp = page.getViewport({ scale });
   const c = document.createElement("canvas");
-  c.width = vp.width; c.height = vp.height;
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
   const ctx = c.getContext("2d")!;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
   await page.render({ canvasContext: ctx, viewport: vp }).promise;
   return c.toDataURL("image/jpeg", quality);
 }
@@ -687,18 +691,18 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   // Pág 2 – Comprovante de Residência
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 940, 0.76), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 940, 0.70), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.14, 0.76), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.0, 0.70), label: "Anexo: Comprovante de Residência" });
   }
 
   // Pág 3 – RG/CNH
   if (rgDataUrl && rgDataUrl2) {
     attachmentList.push({ dataUrl: await mergeImagesVertical(rgDataUrl, rgDataUrl2), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 1200, 1600, 0.86), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 850, 1130, 0.76), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.5, 0.82), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1.6, 0.76), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
