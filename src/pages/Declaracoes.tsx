@@ -678,15 +678,21 @@ async function loadScript(src: string): Promise<void> {
 }
 
 // ─── Renderiza 1ª página de PDF para JPEG usando PDF.js ──────────────────
-async function renderPdfPageToJpeg(pdfDataUrl: string, scale = 2.0, quality = 0.82): Promise<string> {
+// maxW/maxH funcionam igual ao fitImageToPage: a página é escalonada para caber
+// dentro do limite de pixels, mantendo proporção. Assim PDF e imagem produzem
+// arquivos de tamanho equivalente.
+async function renderPdfPageToJpeg(pdfDataUrl: string, maxW = 680, maxH = 960, quality = 0.76): Promise<string> {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
   const lib = (window as any).pdfjsLib;
   lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   const pdf = await lib.getDocument(pdfDataUrl).promise;
   const page = await pdf.getPage(1);
+  // Calcula escala para caber em maxW×maxH (igual ao fitImageToPage)
+  const vp1 = page.getViewport({ scale: 1 });
+  const scale = Math.min(maxW / vp1.width, maxH / vp1.height, 2.5);
   const vp = page.getViewport({ scale });
   const c = document.createElement("canvas");
-  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  c.width = Math.max(1, Math.round(vp.width)); c.height = Math.max(1, Math.round(vp.height));
   const ctx = c.getContext("2d")!;
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   ctx.fillStyle = "#ffffff";
@@ -714,7 +720,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   if (compDataUrl?.startsWith("data:image")) {
     attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 680, 960, 0.68), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 1.85, 0.80), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 680, 960, 0.76), label: "Anexo: Comprovante de Residência" });
   }
 
   // Pág 3 – RG/CNH
@@ -723,7 +729,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   } else if (rgDataUrl?.startsWith("data:image")) {
     attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 760, 1010, 0.72), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 2.2, 0.82), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 760, 1010, 0.76), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
