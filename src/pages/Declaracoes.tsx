@@ -729,7 +729,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   } else if (rgDataUrl?.startsWith("data:image")) {
     attachmentList.push({ dataUrl: await fitImageToPage(rgDataUrl, 820, 1090, 0.82), label: "Anexo: Documento de Identidade (RG)" });
   } else if (rgDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 900, 1200, 0.88), label: "Anexo: Documento de Identidade (RG)" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(rgDataUrl, 1400, 1900, 0.91), label: "Anexo: Documento de Identidade (RG)" });
   }
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
