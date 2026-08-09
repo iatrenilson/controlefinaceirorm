@@ -218,21 +218,42 @@ async function fitImageToPage(
   maxW = 700, maxH = 950, quality = 0.70
 ): Promise<string> {
   if (!dataUrl.startsWith("data:image")) return dataUrl;
+
+  const drawBitmap = (src: HTMLImageElement | ImageBitmap, w: number, h: number): string => {
+    const scale = Math.min(maxW / w, maxH / h, 1);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * scale));
+    c.height = Math.max(1, Math.round(h * scale));
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(src as CanvasImageSource, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", quality);
+  };
+
+  // 1ª tentativa: createImageBitmap (suporta TIFF, HEIC, WebP, etc. e é mais robusto)
+  try {
+    const resp = await fetch(dataUrl);
+    const blob = await resp.blob();
+    const bmp = await createImageBitmap(blob);
+    const result = drawBitmap(bmp, bmp.width, bmp.height);
+    bmp.close();
+    return result;
+  } catch { /* falhou — tenta via <img> */ }
+
+  // 2ª tentativa: HTMLImageElement
   return new Promise<string>((resolve) => {
     const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+    img.onload = () => resolve(drawBitmap(img, img.naturalWidth, img.naturalHeight));
+    // Se ambas falharam: retorna placeholder branco (NUNCA a original que pode ser gigante)
+    img.onerror = () => {
       const c = document.createElement("canvas");
-      c.width = Math.round(img.naturalWidth * scale);
-      c.height = Math.round(img.naturalHeight * scale);
+      c.width = maxW; c.height = maxH;
       const ctx = c.getContext("2d")!;
-      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      resolve(c.toDataURL("image/jpeg", quality));
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, maxW, maxH);
+      resolve(c.toDataURL("image/jpeg", 0.5));
     };
-    img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
   });
 }
