@@ -2786,6 +2786,7 @@ END $$;`
               setFormDSA(prev => ({
                 ...prev,
                 nome: c.nome, dataNascimento: c.dataNascimento,
+                naturalidade: `${c.localNascimento}/${c.ufNascimento}`.toUpperCase(),
                 endereco: c.endereco, numero: c.numero, complemento: c.complemento, bairro: c.bairro,
                 cep: c.cep, cidade: c.cidade, estado: c.estado, cpf: c.cpf,
               }));
