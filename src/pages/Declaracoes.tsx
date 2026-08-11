@@ -211,6 +211,15 @@ function maskCep(raw: string): string {
   return d;
 }
 function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
+async function buscarCep(cepMasked: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
+  const d = cepMasked.replace(/\D/g, "");
+  if (d.length !== 8) return null;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+    const j = await r.json();
+    return j.erro ? null : j;
+  } catch { return null; }
+}
 
 // ─── Redimensiona imagem ─────────────────────────────────────────────────────
 async function fitImageToPage(
@@ -2405,7 +2414,17 @@ END $$;`
                 <Label className="text-xs">CEP</Label>
                 <div className="flex gap-1.5">
                   <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
-                    value={formCliente.cep} onChange={e => setC("cep", maskCep(e.target.value))} />
+                    value={formCliente.cep} onChange={async e => {
+                      const masked = maskCep(e.target.value);
+                      setC("cep", masked);
+                      const addr = await buscarCep(masked);
+                      if (addr) {
+                        if (addr.logradouro) setC("endereco", titleCase(addr.logradouro));
+                        if (addr.bairro) setC("bairro", titleCase(addr.bairro));
+                        if (addr.localidade) setC("cidade", addr.localidade);
+                        if (addr.uf) setC("estado", addr.uf.toUpperCase());
+                      }
+                    }} />
                   <CopyButton value={formCliente.cep} />
                 </div>
               </div>
@@ -2644,7 +2663,16 @@ END $$;`
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
-                <Input className="h-9 text-sm font-mono" value={form.cep} onChange={e => set("cep", maskCep(e.target.value))} />
+                <Input className="h-9 text-sm font-mono" value={form.cep} onChange={async e => {
+                  const masked = maskCep(e.target.value); set("cep", masked);
+                  const addr = await buscarCep(masked);
+                  if (addr) {
+                    if (addr.logradouro) set("endereco", titleCase(addr.logradouro));
+                    if (addr.bairro) set("bairro", titleCase(addr.bairro));
+                    if (addr.localidade) set("cidade", addr.localidade);
+                    if (addr.uf) set("estado", addr.uf.toUpperCase());
+                  }
+                }} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
@@ -2833,7 +2861,16 @@ END $$;`
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
-                <Input className="h-9 text-sm font-mono" value={formDSA.cep} onChange={e => setDSA("cep", e.target.value)} />
+                <Input className="h-9 text-sm font-mono" value={formDSA.cep} onChange={async e => {
+                  const masked = maskCep(e.target.value); setDSA("cep", masked);
+                  const addr = await buscarCep(masked);
+                  if (addr) {
+                    if (addr.logradouro) setDSA("endereco", titleCase(addr.logradouro));
+                    if (addr.bairro) setDSA("bairro", titleCase(addr.bairro));
+                    if (addr.localidade) setDSA("cidade", addr.localidade);
+                    if (addr.uf) setDSA("estado", addr.uf.toUpperCase());
+                  }
+                }} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Cidade</Label>
@@ -2970,7 +3007,16 @@ END $$;`
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">CEP</Label>
-                    <Input className="h-9 text-sm font-mono" value={formRes.cep} onChange={e => setR("cep", maskCep(e.target.value))} />
+                    <Input className="h-9 text-sm font-mono" value={formRes.cep} onChange={async e => {
+                      const masked = maskCep(e.target.value); setR("cep", masked);
+                      const addr = await buscarCep(masked);
+                      if (addr) {
+                        if (addr.logradouro) setR("endereco", titleCase(addr.logradouro));
+                        if (addr.bairro) setR("bairro", titleCase(addr.bairro));
+                        if (addr.localidade) setR("cidade", addr.localidade);
+                        if (addr.uf) setR("estado", addr.uf.toUpperCase());
+                      }
+                    }} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Cidade</Label>
