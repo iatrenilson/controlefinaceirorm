@@ -2373,42 +2373,6 @@ END $$;`
               </div>
             </div>
             {/* Endereço */}
-            <div className="grid grid-cols-4 gap-3">
-              <div className="col-span-3 space-y-1">
-                <Label className="text-xs">Endereço (Rua/Beco)</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco"
-                    value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
-                  <CopyButton value={formCliente.endereco} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Nº</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm" placeholder="58"
-                    value={formCliente.numero} onChange={e => setC("numero", e.target.value)} />
-                  <CopyButton value={formCliente.numero} />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Complemento</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm" placeholder="BL-10, Apt 201, s/c"
-                    value={formCliente.complemento} onChange={e => setC("complemento", e.target.value.toUpperCase())} />
-                  <CopyButton value={formCliente.complemento} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Bairro</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm" placeholder="Bairro"
-                    value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
-                  <CopyButton value={formCliente.bairro} />
-                </div>
-              </div>
-            </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CEP</Label>
@@ -2442,6 +2406,42 @@ END $$;`
                   <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
                     value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
                   <CopyButton value={formCliente.estado} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Endereço (Rua/Beco)</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="Ex: Beco São Francisco"
+                    value={formCliente.endereco} onChange={e => setC("endereco", titleCase(e.target.value))} />
+                  <CopyButton value={formCliente.endereco} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nº</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="58"
+                    value={formCliente.numero} onChange={e => setC("numero", e.target.value)} />
+                  <CopyButton value={formCliente.numero} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="BL-10, Apt 201, s/c"
+                    value={formCliente.complemento} onChange={e => setC("complemento", e.target.value.toUpperCase())} />
+                  <CopyButton value={formCliente.complemento} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bairro</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="Bairro"
+                    value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
+                  <CopyButton value={formCliente.bairro} />
                 </div>
               </div>
             </div>
