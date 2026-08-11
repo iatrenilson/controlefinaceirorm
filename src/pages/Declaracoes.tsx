@@ -2373,40 +2373,22 @@ END $$;`
               </div>
             </div>
             {/* Endereço */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">CEP</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
-                    value={formCliente.cep} onChange={async e => {
-                      const masked = maskCep(e.target.value);
-                      setC("cep", masked);
-                      const addr = await buscarCep(masked);
-                      if (addr) {
-                        if (addr.logradouro) setC("endereco", titleCase(addr.logradouro));
-                        if (addr.bairro) setC("bairro", titleCase(addr.bairro));
-                        if (addr.localidade) setC("cidade", addr.localidade);
-                        if (addr.uf) setC("estado", addr.uf.toUpperCase());
-                      }
-                    }} />
-                  <CopyButton value={formCliente.cep} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Cidade</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm"
-                    value={formCliente.cidade} onChange={e => setC("cidade", e.target.value)} />
-                  <CopyButton value={formCliente.cidade} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Estado (sigla)</Label>
-                <div className="flex gap-1.5">
-                  <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
-                    value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
-                  <CopyButton value={formCliente.estado} />
-                </div>
+            <div className="space-y-1">
+              <Label className="text-xs">CEP</Label>
+              <div className="flex gap-1.5 max-w-[160px]">
+                <Input className="h-9 text-sm font-mono" placeholder="00.000-000"
+                  value={formCliente.cep} onChange={async e => {
+                    const masked = maskCep(e.target.value);
+                    setC("cep", masked);
+                    const addr = await buscarCep(masked);
+                    if (addr) {
+                      if (addr.logradouro) setC("endereco", titleCase(addr.logradouro));
+                      if (addr.bairro) setC("bairro", titleCase(addr.bairro));
+                      if (addr.localidade) setC("cidade", addr.localidade);
+                      if (addr.uf) setC("estado", addr.uf.toUpperCase());
+                    }
+                  }} />
+                <CopyButton value={formCliente.cep} />
               </div>
             </div>
             <div className="grid grid-cols-4 gap-3">
@@ -2442,6 +2424,24 @@ END $$;`
                   <Input className="h-9 text-sm" placeholder="Bairro"
                     value={formCliente.bairro} onChange={e => setC("bairro", titleCase(e.target.value))} />
                   <CopyButton value={formCliente.bairro} />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Cidade</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm"
+                    value={formCliente.cidade} onChange={e => setC("cidade", e.target.value)} />
+                  <CopyButton value={formCliente.cidade} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Estado (sigla)</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm uppercase w-24" placeholder="AM"
+                    value={formCliente.estado} onChange={e => setC("estado", e.target.value)} />
+                  <CopyButton value={formCliente.estado} />
                 </div>
               </div>
             </div>
