@@ -727,9 +727,9 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
   // Pág 2 – Comprovante de Residência
   if (compDataUrl?.startsWith("data:image")) {
-    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 720, 1020, 0.78), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await fitImageToPage(compDataUrl, 800, 1130, 0.83), label: "Anexo: Comprovante de Residência" });
   } else if (compDataUrl?.startsWith("data:application/pdf")) {
-    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 760, 1080, 0.83), label: "Anexo: Comprovante de Residência" });
+    attachmentList.push({ dataUrl: await renderPdfPageToJpeg(compDataUrl, 840, 1190, 0.86), label: "Anexo: Comprovante de Residência" });
   }
 
   // Pág 3 – RG/CNH
