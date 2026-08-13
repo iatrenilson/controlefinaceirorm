@@ -77,41 +77,55 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     setDataLoading(true);
 
-    Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", user.id),
-      supabase.from("subscriptions")
-        .select("trial_started_at, subscription_expires_at, plan_name")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-    ]).then(async ([rolesResult, subResult]) => {
-      // Roles
-      if (!rolesResult.error && rolesResult.data) {
-        setIsAdmin(rolesResult.data.some((r) => r.role === "admin"));
-        setIsModerator(rolesResult.data.some((r) => r.role === "moderator"));
-        setIsRestricted(rolesResult.data.some((r) => r.role === ("restrito" as any)));
-      }
-
-      // Subscription
-      if (subResult.error || !subResult.data) {
-        // Create fallback record
-        const { data: newSub } = await supabase
-          .from("subscriptions")
-          .insert({ user_id: user.id, trial_started_at: new Date().toISOString() })
-          .select("trial_started_at, subscription_expires_at, plan_name")
-          .single();
-        if (newSub) {
-          setTrialStartedAt(newSub.trial_started_at);
-          setSubscriptionExpiresAt(newSub.subscription_expires_at);
-          setPlanName(newSub.plan_name);
+    // Fetch roles first — if admin/moderator, skip subscription check entirely
+    supabase.from("user_roles").select("role").eq("user_id", user.id)
+      .then(async (rolesResult) => {
+        // Roles
+        let userIsAdmin = false;
+        let userIsModerator = false;
+        if (!rolesResult.error && rolesResult.data) {
+          userIsAdmin = rolesResult.data.some((r) => r.role === "admin");
+          userIsModerator = rolesResult.data.some((r) => r.role === "moderator");
+          setIsAdmin(userIsAdmin);
+          setIsModerator(userIsModerator);
+          setIsRestricted(rolesResult.data.some((r) => r.role === ("restrito" as any)));
         }
-      } else {
-        setTrialStartedAt(subResult.data.trial_started_at);
-        setSubscriptionExpiresAt(subResult.data.subscription_expires_at);
-        setPlanName(subResult.data.plan_name);
-      }
 
-      setDataLoading(false);
-    });
+        // Admins/moderators always have access — skip subscription check
+        if (userIsAdmin || userIsModerator) {
+          setSubscriptionExpiresAt(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
+          setPlanName("admin");
+          setDataLoading(false);
+          return;
+        }
+
+        // Subscription check for regular users
+        const subResult = await supabase
+          .from("subscriptions")
+          .select("trial_started_at, subscription_expires_at, plan_name")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (subResult.error || !subResult.data) {
+          // Create fallback trial record
+          const { data: newSub } = await supabase
+            .from("subscriptions")
+            .insert({ user_id: user.id, trial_started_at: new Date().toISOString() })
+            .select("trial_started_at, subscription_expires_at, plan_name")
+            .single();
+          if (newSub) {
+            setTrialStartedAt(newSub.trial_started_at);
+            setSubscriptionExpiresAt(newSub.subscription_expires_at);
+            setPlanName(newSub.plan_name);
+          }
+        } else {
+          setTrialStartedAt(subResult.data.trial_started_at);
+          setSubscriptionExpiresAt(subResult.data.subscription_expires_at);
+          setPlanName(subResult.data.plan_name);
+        }
+
+        setDataLoading(false);
+      });
   }, [user?.id, authLoading]);
 
   const loading = authLoading || dataLoading;
