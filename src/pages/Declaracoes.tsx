@@ -672,9 +672,12 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
 
   // ── ASSINATURA PRESIDENTE (3 cm abaixo) ─────────────────────────────────────
   y += 30;
-  const sigLabelPres = "Assinatura digital (.gov.br ou ICP-Brasil) Presidente da Entidade de Tiro ou seu substituto legal: ";
-  doc.text(sigLabelPres, ML, y);
-  const sigLabelPresW = doc.getTextWidth(sigLabelPres);
+  const sigPresLine1 = "Assinatura digital (.gov.br ou ICP-Brasil)";
+  const sigPresLine2 = "Presidente da Entidade de Tiro ou seu substituto legal: ";
+  doc.text(sigPresLine1, ML, y);
+  y += 5;
+  doc.text(sigPresLine2, ML, y);
+  const sigLabelPresW = doc.getTextWidth(sigPresLine2);
   doc.line(ML + sigLabelPresW, y - 0.5, W - MR, y - 0.5);
 
   const sufixo = tipo === "aquisicao"
