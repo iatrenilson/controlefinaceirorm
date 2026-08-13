@@ -1,0 +1,57 @@
+name: Fix Subscription (TEMP)
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-subscription.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check current subscription
+        run: |
+          echo "Checking subscription for user 61599f5b-c105-4fe8-a214-66039a8c2d94"
+          
+          curl -s \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/subscriptions?user_id=eq.61599f5b-c105-4fe8-a214-66039a8c2d94&select=*" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}"
+          
+          echo ""
+          echo "--- Updating/Upsert subscription ---"
+          
+          curl -s -X POST \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/subscriptions" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d '{
+              "user_id": "61599f5b-c105-4fe8-a214-66039a8c2d94",
+              "status": "active",
+              "plan": "mensal",
+              "valid_until": "2027-12-31T23:59:59Z",
+              "created_at": "2026-03-20T00:00:00Z"
+            }'
+          
+          echo ""
+          echo "--- Verifying ---"
+          curl -s \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/subscriptions?user_id=eq.61599f5b-c105-4fe8-a214-66039a8c2d94&select=*" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}"
+
+      - name: Set password for email login
+        run: |
+          echo "Setting password for iat.renilson.martins@gmail.com"
+          curl -s -X PUT \
+            "${{ secrets.VITE_SUPABASE_URL }}/auth/v1/admin/users/61599f5b-c105-4fe8-a214-66039a8c2d94" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"password": "RW2026@rwinvest"}'
+          echo "Password set"
