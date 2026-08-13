@@ -36,9 +36,11 @@ jobs:
       - name: Copiar 404.html
         run: cp dist/index.html dist/404.html
 
+      - name: Marcar build com timestamp
+        run: echo "<!-- build:$(date -u +%Y%m%d%H%M%S) -->" >> dist/index.html
+
       - name: Deploy para gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          force_orphan: true
