@@ -12,27 +12,20 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
-      - name: Check user_roles
+      - name: Check all table counts
         run: |
-          echo "=== Current user_roles ==="
-          curl -s \
-            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/user_roles?user_id=eq.61599f5b-c105-4fe8-a214-66039a8c2d94&select=*" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}"
-
-          echo ""
-          echo "=== Adding admin role ==="
-          curl -s -X POST \
-            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/user_roles" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            -H "Content-Type: application/json" \
-            -H "Prefer: resolution=merge-duplicates" \
-            -d '{"user_id": "61599f5b-c105-4fe8-a214-66039a8c2d94", "role": "admin"}'
-
-          echo ""
-          echo "=== Verifying ==="
-          curl -s \
-            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/user_roles?user_id=eq.61599f5b-c105-4fe8-a214-66039a8c2d94&select=*" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}"
+          TABLES="clientes declaracao_clientes financeiro cartao_itens wallets bank_balances delay_clientes delay_transacoes user_roles"
+          for TABLE in $TABLES; do
+            RESULT=$(curl -s \
+              "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/${TABLE}?select=*&limit=1" \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Prefer: count=exact" \
+              -o /dev/null -w "%{http_code}")
+            COUNT=$(curl -s \
+              "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/${TABLE}?select=count" \
+              -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+              -H "Prefer: count=exact" -I 2>/dev/null | grep -i content-range | tr -d '\r')
+            echo "TABLE ${TABLE}: HTTP=${RESULT} RANGE=${COUNT}"
+          done
