@@ -2143,6 +2143,12 @@ END $$;`
                             )}
                           </div>
                         )}
+                        {c.nomeClube && (
+                          <div className="flex items-center gap-1.5 border-t border-white/5 pt-1 mt-0.5">
+                            <Trophy className="h-3 w-3 text-yellow-400/70 flex-shrink-0" />
+                            <span className="text-[9px] font-semibold text-yellow-400/80 uppercase tracking-wide truncate">{c.nomeClube}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2230,6 +2236,12 @@ END $$;`
                                 <span className="text-[10px] font-mono font-semibold text-green-400">{formatDate(c.dataDeferimento)}</span>
                               </div>
                             )}
+                          </div>
+                        )}
+                        {c.nomeClube && (
+                          <div className="flex items-center gap-1.5 border-t border-white/5 pt-0.5 mt-0.5">
+                            <Trophy className="h-3 w-3 text-yellow-400/70 flex-shrink-0" />
+                            <span className="text-[9px] font-semibold text-yellow-400/80 uppercase tracking-wide truncate">{c.nomeClube}</span>
                           </div>
                         )}
                       </div>
