@@ -1807,8 +1807,27 @@ END $$;`
     };
     const doSave = async (p: typeof payload) => {
       if (editandoId) {
-        const { error } = await supabase.from("declaracao_clientes").update(p).eq("id", editandoId);
+        // .select("id") makes Supabase return the updated rows so we can detect 0-row silent failures
+        const { data: updated, error } = await supabase
+          .from("declaracao_clientes")
+          .update(p)
+          .eq("id", editandoId)
+          .select("id");
         if (error) throw error;
+        if (!updated || updated.length === 0) {
+          // 0 rows updated: try adding missing columns then retry once
+          await supabase.functions.invoke("run-migration", {
+            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+          }).catch(() => {});
+          await new Promise(r => setTimeout(r, 1500));
+          const { data: retry, error: err2 } = await supabase
+            .from("declaracao_clientes")
+            .update(p)
+            .eq("id", editandoId)
+            .select("id");
+          if (err2) throw err2;
+          if (!retry || retry.length === 0) throw new Error("Sem permissão para atualizar este cliente. Verifique se você está logado corretamente.");
+        }
       } else {
         const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: userId });
         if (error) throw error;
@@ -1821,11 +1840,11 @@ END $$;`
       await fetchClientes();
     } catch (e: unknown) {
       const errMsg: string = (e as any)?.message ?? "";
-      // Column complemento missing in DB — apply migration + reload schema cache then retry
+      // Column missing — apply migration + reload schema cache then retry
       if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || errMsg.includes("nome_clube") || errMsg.includes("login_clube") || errMsg.includes("senha_clube") || (e as any)?.code === "42703") {
         try {
           await supabase.functions.invoke("run-migration", {
-            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
           });
           // Wait for PostgREST schema cache to reload
           await new Promise(r => setTimeout(r, 2500));
