@@ -1522,7 +1522,7 @@ const Emprestimos = () => {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
           <thead>
             <tr style={{ background: "#1e293b" }}>
-              {["Nome", "Valor", "Juros", "Valor a Receber", "Data Empréstimo", "Data Pagamento", "Período"].map(h => (
+              {["Nome", "Valor", "Juros", "Valor a Receber", "Data Empréstimo", "Data Pagamento", "Período", "Status"].map(h => (
                 <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#94a3b8", fontWeight: 600, borderBottom: "1px solid #334155" }}>{h}</th>
               ))}
             </tr>
@@ -1542,6 +1542,15 @@ const Emprestimos = () => {
                   <td style={{ padding: "8px 10px", color: "#94a3b8" }}>{format(parseISO(c.dataPagamento), "dd/MM/yyyy")}</td>
                   <td style={{ padding: "8px 10px" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: c.periodicidade === "quinzenal" ? "#7c3aed" : c.periodicidade === "vinte_dias" ? "#ea580c" : "#2563eb", color: "#fff", borderRadius: "4px", padding: "0 10px", height: "22px", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap" }}>{periodo}</span>
+                  </td>
+                  <td style={{ padding: "8px 10px" }}>
+                    {(() => {
+                      const atrasado = isPast(parseISO(c.dataPagamento));
+                      const pago = paidJurosIds.has(c.id);
+                      const bg = pago ? "#1d4ed8" : atrasado ? "#b91c1c" : "#15803d";
+                      const label = pago ? "Pago" : atrasado ? "Em atraso" : "Em dia";
+                      return <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: bg, color: "#fff", borderRadius: "4px", padding: "0 10px", height: "22px", fontSize: "11px", fontWeight: 600, whiteSpace: "nowrap" }}>{label}</span>;
+                    })()}
                   </td>
                 </tr>
               );
