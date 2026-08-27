@@ -398,7 +398,15 @@ async function aplicarLayoutPassarinho(doc: any, semLogo = false) {
   const cGold: [number,number,number]      = [198, 155, 55];
   const cDarkGreen: [number,number,number] = [27,  82,  22];
 
-  const logo = semLogo ? null : await loadLogoPassarinho();
+  // Modo folha limpa: sem nenhum elemento gráfico, só margens
+  if (semLogo) {
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(...cDarkGreen);
+    doc.setLineWidth(0.4);
+    return { startY: ML + 5, W, H, ML, MR, CW, footerY: H - 10 };
+  }
+
+  const logo = await loadLogoPassarinho();
 
   // Pré-processa a logo em tamanhos otimizados (evita embedar PNG 1535×1024 bruto)
   let logoHeaderData: string | null = null;   // PNG 270×180 — preserva transparência
@@ -438,14 +446,13 @@ async function aplicarLayoutPassarinho(doc: any, semLogo = false) {
     doc.addImage(logoWatermarkData, "JPEG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
 
-  // Cabeçalho: logo centralizada + linhas laterais (ou só linhas em modo semLogo)
+  // Cabeçalho: logo centralizada + linhas laterais
   const logoW = 45, logoH = logoW * (1024 / 1535);
   const logoX = W / 2 - logoW / 2, logoY = 4;
   const lineGap = 5;
-  const leftEnd  = semLogo ? W / 2 - 5  : logoX - lineGap;
-  const rightStart = semLogo ? W / 2 + 5 : logoX + logoW + lineGap;
+  const leftEnd = logoX - lineGap, rightStart = logoX + logoW + lineGap;
 
-  const lineY1 = semLogo ? logoY + 6 : logoY + logoH * 0.38;
+  const lineY1 = logoY + logoH * 0.38;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(1.6);
   doc.line(ML, lineY1, leftEnd, lineY1);
   doc.line(rightStart, lineY1, W - MR, lineY1);
@@ -457,7 +464,7 @@ async function aplicarLayoutPassarinho(doc: any, semLogo = false) {
 
   if (logoHeaderData) doc.addImage(logoHeaderData, "JPEG", logoX, logoY, logoW, logoH);
 
-  const lineYBottom = semLogo ? lineY2 + 4 : logoY + logoH + 4;
+  const lineYBottom = logoY + logoH + 4;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(0.6);
   doc.line(ML, lineYBottom, W - MR, lineYBottom);
 
