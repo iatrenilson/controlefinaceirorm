@@ -393,12 +393,12 @@ async function salvarPDF(doc: any, filename: string) {
 }
 
 // ─── Layout padrão Passarinho (logo + linhas douradas + marca d'água + rodapé) ──
-async function aplicarLayoutPassarinho(doc: any) {
+async function aplicarLayoutPassarinho(doc: any, semLogo = false) {
   const W = 210, H = 297, ML = 15, MR = 15, CW = W - ML - MR;
   const cGold: [number,number,number]      = [198, 155, 55];
   const cDarkGreen: [number,number,number] = [27,  82,  22];
 
-  const logo = await loadLogoPassarinho();
+  const logo = semLogo ? null : await loadLogoPassarinho();
 
   // Pré-processa a logo em tamanhos otimizados (evita embedar PNG 1535×1024 bruto)
   let logoHeaderData: string | null = null;   // PNG 270×180 — preserva transparência
@@ -411,7 +411,6 @@ async function aplicarLayoutPassarinho(doc: any) {
     const ratio = nh / nw;
 
     // Cabeçalho: 900px JPEG 92% com fundo branco
-    // (página é branca e linhas não passam sob o logo → JPEG idêntico ao PNG, mas ~5× menor)
     const cvH = document.createElement("canvas");
     cvH.width = 900; cvH.height = Math.round(900 * ratio);
     const ctxH = cvH.getContext("2d")!;
@@ -422,7 +421,6 @@ async function aplicarLayoutPassarinho(doc: any) {
     logoHeaderData = cvH.toDataURL("image/jpeg", 0.92);
 
     // Marca d'água: 900px largura, fundo branco, 7% opacidade, JPEG 65%
-    // (a 7% de opacidade a qualidade JPEG é imperceptível; reduz tamanho sem perda visual)
     const cvW = document.createElement("canvas");
     cvW.width = 900; cvW.height = Math.round(900 * ratio);
     const ctxW = cvW.getContext("2d")!;
@@ -434,19 +432,20 @@ async function aplicarLayoutPassarinho(doc: any) {
     logoWatermarkData = cvW.toDataURL("image/jpeg", 0.65);
   }
 
-  // Marca d'água (200mm de largura na página, centrada)
+  // Marca d'água (200mm de largura na página, centrada) — omitida em modo semLogo
   if (logoWatermarkData) {
     const wmW = 200, wmH = wmW * (1024 / 1535);
     doc.addImage(logoWatermarkData, "JPEG", W / 2 - wmW / 2, H / 2 - wmH / 2, wmW, wmH);
   }
 
-  // Logo centralizada + linhas laterais
+  // Cabeçalho: logo centralizada + linhas laterais (ou só linhas em modo semLogo)
   const logoW = 45, logoH = logoW * (1024 / 1535);
   const logoX = W / 2 - logoW / 2, logoY = 4;
   const lineGap = 5;
-  const leftEnd = logoX - lineGap, rightStart = logoX + logoW + lineGap;
+  const leftEnd  = semLogo ? W / 2 - 5  : logoX - lineGap;
+  const rightStart = semLogo ? W / 2 + 5 : logoX + logoW + lineGap;
 
-  const lineY1 = logoY + logoH * 0.38;
+  const lineY1 = semLogo ? logoY + 6 : logoY + logoH * 0.38;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(1.6);
   doc.line(ML, lineY1, leftEnd, lineY1);
   doc.line(rightStart, lineY1, W - MR, lineY1);
@@ -458,7 +457,7 @@ async function aplicarLayoutPassarinho(doc: any) {
 
   if (logoHeaderData) doc.addImage(logoHeaderData, "JPEG", logoX, logoY, logoW, logoH);
 
-  const lineYBottom = logoY + logoH + 4;
+  const lineYBottom = semLogo ? lineY2 + 4 : logoY + logoH + 4;
   doc.setDrawColor(...cDarkGreen); doc.setLineWidth(0.6);
   doc.line(ML, lineYBottom, W - MR, lineYBottom);
 
@@ -481,7 +480,7 @@ async function aplicarLayoutPassarinho(doc: any) {
   return { startY: lineYBottom + 8, W, H, ML, MR, CW, footerY: barY };
 }
 
-async function gerarPDF(data: FormData) {
+async function gerarPDF(data: FormData, semLogo = false) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
@@ -495,7 +494,7 @@ async function gerarPDF(data: FormData) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc, semLogo);
   let y = startY;
 
   // ── Título ──────────────────────────────────────────────────────────────────
@@ -549,7 +548,7 @@ async function gerarPDF(data: FormData) {
   await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
-async function gerarPDFAcervo(data: FormDataAcervo) {
+async function gerarPDFAcervo(data: FormDataAcervo, semLogo = false) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "Declaração");
   const dia = format(getSiteDate(), "dd");
   const mes = format(getSiteDate(), "MMMM", { locale: ptBR }).toLowerCase();
@@ -562,7 +561,7 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc, semLogo);
   let y = startY;
 
   // Título: bold, underline, uppercase, centered, 12pt
@@ -615,14 +614,14 @@ async function gerarPDFAcervo(data: FormDataAcervo) {
 }
 
 // ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
-async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "registro") {
+async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "registro", semLogo = false) {
   const primeiroNome = capitalize(data.nome.trim().split(/\s+/)[0] || "DSA");
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc, semLogo);
   let y = startY;
 
   // ── TÍTULO ──────────────────────────────────────────────────────────────────
@@ -720,7 +719,7 @@ async function renderPdfPageToJpeg(pdfDataUrl: string, maxW = 680, maxH = 960, q
   return c.toDataURL("image/jpeg", quality);
 }
 
-async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null) {
+async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | null, rgDataUrl2: string | null, compDataUrl: string | null, semLogo = false) {
   const primeiroNome = capitalize(data.nomeDeclarado.trim().split(/\s+/)[0] || "Declaração");
   const dataEscrita = dataExtenso();
   const normAddrR = (s: string) =>
@@ -755,7 +754,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc);
+  const { startY, W, ML, MR, CW } = await aplicarLayoutPassarinho(doc, semLogo);
   let y = startY;
 
   // Título: bold, underline, 14pt, centered
@@ -1881,6 +1880,9 @@ END $$;`
     await supabase.from("declaracao_clientes").update({ status2 }).eq("id", id);
   };
 
+  // Opção global: folha sem logo/marca d'água
+  const [semLogo, setSemLogo] = useState(false);
+
   // Diálogo 1 — Inquérito
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -2745,12 +2747,21 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
+            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+              <div
+                onClick={() => setSemLogo(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+              </div>
+              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
+            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!form.nome || !form.dataNascimento || !form.rg) { alert("Preencha Nome, Data de Nascimento e RG."); return; }
-              await gerarPDF(form);
+              await gerarPDF(form, semLogo);
               setDialogOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
@@ -2812,12 +2823,21 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data gerada automaticamente por extenso ({dataExtenso()}).
             </p>
+            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+              <div
+                onClick={() => setSemLogo(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+              </div>
+              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
+            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogAcervoOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) { alert("Preencha Nome, RG e CPF."); return; }
-              await gerarPDFAcervo(formAcervo);
+              await gerarPDFAcervo(formAcervo, semLogo);
               setDialogAcervoOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
@@ -2929,12 +2949,21 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
+            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+              <div
+                onClick={() => setSemLogo(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+              </div>
+              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
+            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogDSAOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formDSA.nome || !formDSA.dataNascimento || !formDSA.cpf) { alert("Preencha Nome, Data de Nascimento e CPF."); return; }
-              await gerarPDFDSA(formDSA, dsaTipo);
+              await gerarPDFDSA(formDSA, dsaTipo, semLogo);
               setDialogDSAOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
@@ -3136,6 +3165,15 @@ END $$;`
                 </p>
               </div>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none w-fit mt-1">
+              <div
+                onClick={() => setSemLogo(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+              </div>
+              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
+            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogResOpen(false)}>Cancelar</Button>
@@ -3143,7 +3181,7 @@ END $$;`
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl);
+              await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl, semLogo);
               setDialogResOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
