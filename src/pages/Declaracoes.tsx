@@ -2642,9 +2642,15 @@ END $$;`
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Declaração de Inexistência de Inquéritos Policiais ou Processos Criminais</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -2754,15 +2760,6 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
-            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-              <div
-                onClick={() => setSemLogo(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
-              </div>
-              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
-            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
@@ -2779,9 +2776,15 @@ END $$;`
       <Dialog open={dialogAcervoOpen} onOpenChange={setDialogAcervoOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Comprovante de Segundo Endereço de Guarda do Acervo
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Comprovante de Segundo Endereço de Guarda do Acervo</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -2830,15 +2833,6 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data gerada automaticamente por extenso ({dataExtenso()}).
             </p>
-            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-              <div
-                onClick={() => setSemLogo(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
-              </div>
-              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
-            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogAcervoOpen(false)}>Cancelar</Button>
@@ -2855,9 +2849,15 @@ END $$;`
       <Dialog open={dialogDSAOpen} onOpenChange={setDialogDSAOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              Declaração de Segurança do Acervo (DSA)
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Declaração de Segurança do Acervo (DSA)</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -2956,15 +2956,6 @@ END $$;`
             <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
               Data preenchida automaticamente: {format(getSiteDate(), "dd/MM/yyyy")}.
             </p>
-            <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-              <div
-                onClick={() => setSemLogo(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
-              </div>
-              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
-            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogDSAOpen(false)}>Cancelar</Button>
@@ -2981,8 +2972,15 @@ END $$;`
       <Dialog open={dialogResOpen} onOpenChange={setDialogResOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />Declaração de Residência
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Declaração de Residência</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 py-2">
@@ -3172,15 +3170,6 @@ END $$;`
                 </p>
               </div>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none w-fit mt-1">
-              <div
-                onClick={() => setSemLogo(v => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
-              </div>
-              <span className="text-[11px] text-muted-foreground">Folha sem logo e sem marca d'água</span>
-            </label>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogResOpen(false)}>Cancelar</Button>
