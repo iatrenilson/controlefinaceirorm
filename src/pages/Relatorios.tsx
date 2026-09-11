@@ -26,6 +26,7 @@ interface Cliente {
   dataEmprestimo: string;
   dataPagamento: string;
   status?: "ativo" | "pago" | "removido";
+  lastPaymentAt?: string; // quando o usuário clicou para receber (% ou valor completo)
 }
 
 const CHART_COLORS = [
@@ -52,19 +53,37 @@ const Relatorios = () => {
   const fetchClientes = async () => {
     if (!user) return;
 
+    // Busca transações de pagamento para saber quando cada recebimento ocorreu
+    const { data: txData } = await supabase
+      .from("wallet_transactions")
+      .select("created_at, descricao, tipo")
+      .eq("user_id", user.id)
+      .in("tipo", ["pagamento_juros", "pagamento"])
+      .order("created_at", { ascending: false });
+
+    // Monta mapa: nome do cliente → data/hora do recebimento mais recente
+    const txMap = new Map<string, string>();
+    for (const tx of txData || []) {
+      if (!tx.descricao) continue;
+      // Descrições: "Juros recebidos de NOME" | "Parcela X/Y recebida de NOME" | "Pagamento final recebido de NOME (...)"
+      const match = tx.descricao.match(/(?:de )([\w\s\-]+?)(?:\s*\(|$)/i);
+      if (match) {
+        const nome = match[1].trim();
+        if (!txMap.has(nome)) txMap.set(nome, tx.created_at);
+      }
+    }
+
     // Fetch active clients
     const { data: activeData } = await supabase
       .from("clientes")
       .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
 
     // Fetch archived clients
     const { data: archivedData } = await supabase
       .from("clientes_historico" as any)
       .select("*")
-      .eq("user_id", user.id)
-      .order("archived_at", { ascending: false });
+      .eq("user_id", user.id);
 
     const active: Cliente[] = (activeData || []).map((d: any) => ({
       id: d.id,
@@ -74,6 +93,7 @@ const Relatorios = () => {
       dataEmprestimo: d.data_emprestimo,
       dataPagamento: d.data_pagamento,
       status: "ativo" as const,
+      lastPaymentAt: txMap.get(d.nome) ?? d.created_at,
     }));
 
     const archived: Cliente[] = (archivedData || []).map((d: any) => ({
@@ -84,9 +104,17 @@ const Relatorios = () => {
       dataEmprestimo: d.data_emprestimo,
       dataPagamento: d.data_pagamento,
       status: d.tipo === "pago" ? "pago" as const : "removido" as const,
+      lastPaymentAt: d.archived_at,
     }));
 
-    setClientes([...active, ...archived]);
+    // Ordena pelo recebimento mais recente primeiro
+    const all = [...active, ...archived].sort((a, b) => {
+      const ta = a.lastPaymentAt ?? "";
+      const tb = b.lastPaymentAt ?? "";
+      return tb.localeCompare(ta);
+    });
+
+    setClientes(all);
     setLoading(false);
   };
 
