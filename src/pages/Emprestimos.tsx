@@ -844,7 +844,7 @@ const Emprestimos = () => {
           {summaryData && (
             <div className="space-y-3 mt-1">
               <div className="rounded-lg border p-4 text-sm leading-relaxed space-y-2">
-                <p className="font-bold text-base">Situação do seu Empréstimo</p>
+                <p className="font-bold text-base">Situação do seu Contrato</p>
                 <p className="text-muted-foreground text-xs">Olá {summaryData.nome}!</p>
                 <p className="text-muted-foreground text-xs">Segue o resumo do seu contrato:</p>
                 <div className="space-y-1 pt-1">
@@ -861,7 +861,7 @@ const Emprestimos = () => {
                   className="flex-1"
                   onClick={() => {
                     const fmt = (v: number) => v.toFixed(2);
-                    const text = `*_Situação do seu Empréstimo_*\n\nOlá ${summaryData.nome}!\nSegue o resumo do seu contrato:\n\n💵 Valor emprestado: R$ ${fmt(summaryData.valor)}\n📊 Juros ${summaryData.juros}%\n⏳ Saldo devedor: R$ ${fmt(summaryData.total)}\n📅 Próximo vencimento: ${summaryData.dataPagamento} — R$ ${fmt(summaryData.total)}\n\nQualquer dúvida estou à disposição! 🙏`;
+                    const text = `*_Situação do seu Contrato_*\n\nOlá ${summaryData.nome}!\nSegue o resumo do seu contrato:\n\n💵 Valor emprestado: R$ ${fmt(summaryData.valor)}\n📊 Juros ${summaryData.juros}%\n⏳ Saldo devedor: R$ ${fmt(summaryData.total)}\n📅 Próximo vencimento: ${summaryData.dataPagamento} — R$ ${fmt(summaryData.total)}\n\nQualquer dúvida estou à disposição! 🙏`;
                     navigator.clipboard.writeText(text);
                     toast({ title: "Resumo copiado!" });
                   }}
