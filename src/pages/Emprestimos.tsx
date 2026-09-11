@@ -607,14 +607,17 @@ const Emprestimos = () => {
 
     const valorJuros = cliente.valor * (cliente.juros / 100);
 
-    // Busca saldo atual do banco para evitar estado desatualizado
-    const { data: walletData } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
-    const saldoAtual = walletData ? Math.max(0, Number(walletData.saldo) || 0) : 0;
-
-    // Sempre avança: registra juros e avança data pelo período do cliente
+    // Calcula nova data e mensagem ANTES dos awaits (contexto de gesto do usuário)
     const pagDate = parseISO(cliente.dataPagamento);
     const novaData = addDays(pagDate, getDiasPeriodo(cliente.periodicidade));
     const novaDataPagamento = format(novaData, "yyyy-MM-dd");
+    const msgConfirmacao = gerarMensagemConfirmacaoJuros(cliente, novaDataPagamento);
+    // Copia imediatamente enquanto ainda está no contexto de clique do usuário
+    navigator.clipboard.writeText(msgConfirmacao).catch(() => {});
+
+    // Busca saldo atual do banco para evitar estado desatualizado
+    const { data: walletData } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
+    const saldoAtual = walletData ? Math.max(0, Number(walletData.saldo) || 0) : 0;
 
     const { error: updateError } = await supabase
       .from("clientes")
@@ -637,8 +640,6 @@ const Emprestimos = () => {
     setSaldo(newSaldo);
     fetchClientes();
     fetchTransactions();
-    const msgConfirmacao = gerarMensagemConfirmacaoJuros(cliente, novaDataPagamento);
-    navigator.clipboard.writeText(msgConfirmacao).catch(() => {});
     toast({ title: "Juros recebidos! 📋 Mensagem copiada", description: `R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} creditado. Mensagem de confirmação copiada para o cliente.` });
   };
 
@@ -654,6 +655,10 @@ const Emprestimos = () => {
       const novaParcelaAtual = cliente.parcelaAtual - 1;
       const novaData = addMonths(parseISO(cliente.dataPagamento), 1);
       const novaDataStr = format(novaData, "yyyy-MM-dd");
+      const proxFmt = format(novaData, "dd/MM/yyyy");
+
+      // Copia imediatamente enquanto ainda está no contexto de clique do usuário
+      navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela, proxFmt)).catch(() => {});
 
       const { error } = await supabase
         .from("clientes")
@@ -672,8 +677,6 @@ const Emprestimos = () => {
       setSaldo(newSaldo);
       fetchClientes();
       fetchTransactions();
-      const proxFmt = format(novaData, "dd/MM/yyyy");
-      navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela, proxFmt)).catch(() => {});
       toast({
         title: `Parcela recebida! 📋 Mensagem copiada (${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas})`,
         description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Próximo vencimento: ${proxFmt}`,
@@ -682,6 +685,9 @@ const Emprestimos = () => {
     }
 
     // Última parcela — encerra o empréstimo
+    // Copia imediatamente enquanto ainda está no contexto de clique do usuário
+    navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela)).catch(() => {});
+
     await archiveCliente(cliente, "pago");
     const { error } = await supabase.from("clientes").delete().eq("id", id);
     if (error) {
@@ -696,7 +702,6 @@ const Emprestimos = () => {
     setSaldo(newSaldo);
     fetchClientes();
     fetchTransactions();
-    navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela)).catch(() => {});
     toast({ title: "Empréstimo quitado! 📋 Mensagem copiada 🎉", description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebidos. Mensagem de agradecimento copiada para o cliente.` });
   };
 
