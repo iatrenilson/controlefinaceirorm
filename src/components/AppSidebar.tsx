@@ -32,7 +32,7 @@ const menuItems = [
 
 const financeiroItems = [
   { title: "Controle Financeiro", url: "/financeiro", icon: Receipt },
-  { title: "Clientes Empréstimos", url: "/emprestimos", icon: Landmark },
+  { title: "Contrato Clientes", url: "/emprestimos", icon: Landmark },
 ];
 
 function PlanCard() {
