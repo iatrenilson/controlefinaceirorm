@@ -18,7 +18,7 @@ export const CASAS_APOSTAS: CasaAposta[] = [
   { nome: "Rivalo", logo: "https://www.google.com/s2/favicons?domain=rivalo.com&sz=32" },
   { nome: "Parimatch", logo: "https://www.google.com/s2/favicons?domain=parimatch.com&sz=32" },
   { nome: "Stake", logo: "https://www.google.com/s2/favicons?domain=stake.com&sz=32" },
-  { nome: "Superbet", logo: "https://www.google.com/s2/favicons?domain=superbet.com.br&sz=32" },
+  { nome: "Superbet", logo: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNSIgZmlsbD0iI2UzMDUxMiIvPjx0ZXh0IHg9IjE2IiB5PSIyMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIj5TPC90ZXh0Pjwvc3ZnPg==" },
   { nome: "Betsson", logo: "https://www.google.com/s2/favicons?domain=betsson.com&sz=32" },
   { nome: "F12.Bet", logo: "https://www.google.com/s2/favicons?domain=f12.bet&sz=32" },
   { nome: "Estrela Bet", logo: "https://www.google.com/s2/favicons?domain=estrelabet.com&sz=32" },
