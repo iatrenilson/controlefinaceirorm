@@ -18,7 +18,7 @@ export const CASAS_APOSTAS: CasaAposta[] = [
   { nome: "Rivalo", logo: "https://www.google.com/s2/favicons?domain=rivalo.com&sz=32" },
   { nome: "Parimatch", logo: "https://www.google.com/s2/favicons?domain=parimatch.com&sz=32" },
   { nome: "Stake", logo: "https://www.google.com/s2/favicons?domain=stake.com&sz=32" },
-  { nome: "Superbet", logo: "https://www.google.com/s2/favicons?domain=superbet.com&sz=32" },
+  { nome: "Superbet", logo: "https://www.google.com/s2/favicons?domain=superbet.com.br&sz=32" },
   { nome: "Betsson", logo: "https://www.google.com/s2/favicons?domain=betsson.com&sz=32" },
   { nome: "F12.Bet", logo: "https://www.google.com/s2/favicons?domain=f12.bet&sz=32" },
   { nome: "Estrela Bet", logo: "https://www.google.com/s2/favicons?domain=estrelabet.com&sz=32" },
