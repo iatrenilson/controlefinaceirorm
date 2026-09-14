@@ -345,10 +345,10 @@ async function gerarLaudoPDF(f: LaudoForm) {
   fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8);
   doc.text(" CAC", fx, fndY + 8);
 
-  // NOTA — label negrito, valor normal; traço largo se vazio
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12.5);
+  // NOTA — label normal, valor em negrito
+  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  N(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
+  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
 
   // PONTUAÇÃO — label negrito, valores normais; traço largo se vazio
   B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
