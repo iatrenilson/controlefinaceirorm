@@ -219,12 +219,15 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
   const endLblW = doc.getTextWidth("ENDEREÇO:");
   const endX = ML + 2 + endLblW + 2;
-  const endVal = [
+  const _endBase = [
     f.endereco,
     f.endNumero ? `Nº ${f.endNumero}` : "",
     f.endCompl  || "",
-    f.endBairro ? `BAIRRO ${f.endBairro}` : "",
-  ].filter(Boolean).join(", ").toUpperCase();
+  ].filter(Boolean).join(", ");
+  const endVal = (f.endBairro
+    ? `${_endBase} - ${f.endBairro}`
+    : _endBase
+  ).toUpperCase();
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
