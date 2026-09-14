@@ -598,11 +598,6 @@ const Laudos = () => {
               Comprovante de Capacidade Técnica — Arma de Fogo
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
-            onClick={() => { setForm(EMPTY); toast.info("Formulário limpo."); }}>
-            <RotateCcw className="h-3.5 w-3.5" />
-            Limpar
-          </Button>
         </div>
       </header>
 
@@ -615,8 +610,14 @@ const Laudos = () => {
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
                 Dados do Avaliado
               </CardTitle>
-              {/* Tipo de Laudo — radio pill */}
-              <div className="flex gap-2 text-xs font-medium">
+              {/* Tipo de Laudo — radio pill + Limpar */}
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <button type="button"
+                  onClick={() => { setForm(EMPTY); toast.info("Formulário limpo."); }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-all">
+                  <RotateCcw className="h-3 w-3" />
+                  Limpar
+                </button>
                 {(["cr_cac", "sinarm"] as const).map(opt => {
                   const label = opt === "cr_cac" ? "CR / CAC" : "SINARM Posse/Porte";
                   const active = laudoTipo === opt;
