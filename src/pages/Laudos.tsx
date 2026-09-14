@@ -455,6 +455,8 @@ function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
 // ─── Component ──────────────────────────────────────────────────────────────────
 const Laudos = () => {
   const [form, setForm] = useState<LaudoForm>(EMPTY);
+  const [pistOpen, setPistOpen] = useState(false);
+  const [revolOpen, setRevolOpen] = useState(false);
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
@@ -667,29 +669,53 @@ const Laudos = () => {
                 Pontuação no Alvo Silhueta
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Pistola — Select 72-120 */}
+                {/* Pistola — Popover grade 72-120 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Pistola</Label>
-                  <Select value={form.notaPistola} onValueChange={v => set("notaPistola", v)}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PONT_OPTIONS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={pistOpen} onOpenChange={setPistOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("h-9 w-full justify-start text-sm font-normal",
+                        !form.notaPistola && "text-muted-foreground")}>
+                        {form.notaPistola || "Selecionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2 w-44">
+                      <div className="grid grid-cols-4 gap-1 max-h-52 overflow-y-auto">
+                        {PONT_OPTIONS.map(n => (
+                          <button key={n} type="button"
+                            onClick={() => { set("notaPistola", n); setPistOpen(false); }}
+                            className={cn("h-8 rounded text-sm hover:bg-muted transition-colors",
+                              form.notaPistola === n && "bg-primary text-primary-foreground")}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                {/* Revólver — Select 72-120 */}
+                {/* Revólver — Popover grade 72-120 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Revólver</Label>
-                  <Select value={form.notaRevolver} onValueChange={v => set("notaRevolver", v)}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PONT_OPTIONS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={revolOpen} onOpenChange={setRevolOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("h-9 w-full justify-start text-sm font-normal",
+                        !form.notaRevolver && "text-muted-foreground")}>
+                        {form.notaRevolver || "Selecionar"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2 w-44">
+                      <div className="grid grid-cols-4 gap-1 max-h-52 overflow-y-auto">
+                        {PONT_OPTIONS.map(n => (
+                          <button key={n} type="button"
+                            onClick={() => { set("notaRevolver", n); setRevolOpen(false); }}
+                            className={cn("h-8 rounded text-sm hover:bg-muted transition-colors",
+                              form.notaRevolver === n && "bg-primary text-primary-foreground")}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 {/* Rifle — toggle manual: marcado = 50 */}
                 <div className="space-y-1">
