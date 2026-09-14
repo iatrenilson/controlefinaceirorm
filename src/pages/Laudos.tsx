@@ -488,7 +488,40 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `Laudo ${tipo === "sinarm" ? "SINARM Posse" : "CR"} - ${f.nome ? f.nome.split(" ")[0] : "Laudo"}.pdf`;
+  // ── Nome do arquivo ────────────────────────────────────────────────────────
+  const _ano2 = new Date().getFullYear().toString().slice(-2);
+  const _nr   = f.numero ? `${f.numero}.${_ano2}` : "";
+  const _nome = f.nome || "Laudo";
+
+  let _armasLabel: string;
+  if (tipo === "cr_cac") {
+    const _ativos = [
+      f.pistola    ? "Pistola"    : "",
+      f.revolver   ? "Revolver"   : "",
+      f.rifle      ? "Rifle"      : "",
+      f.espingarda ? "Espingarda" : "",
+    ].filter(Boolean);
+    _armasLabel = _ativos.length === 4 ? "Completo"
+                : _ativos.length === 0 ? ""
+                : _ativos.join(" ");
+  } else {
+    // SINARM: deduz tipos das armas selecionadas
+    const _idTipo: Record<string, string> = {
+      g25: "Pistola", "58hc": "Pistola", gx4: "Pistola",
+      ack: "Revolver", rt85: "Revolver",
+      puma: "Rifle", t4: "Rifle",
+      boito: "Espingarda",
+    };
+    const _tipos = new Set(f.armasSinarm.map(id => _idTipo[id]).filter(Boolean));
+    const _tiposOrdem = ["Pistola","Revolver","Rifle","Espingarda"].filter(t => _tipos.has(t));
+    _armasLabel = _tiposOrdem.length === 4 ? "Completo"
+                : _tiposOrdem.length === 0 ? ""
+                : _tiposOrdem.join(" ");
+  }
+
+  const _tipoLabel = tipo === "sinarm" ? "Sinarm" : "CR";
+  const _parts = [_tipoLabel, _armasLabel, _nr, _nome].filter(Boolean);
+  a.download = `Laudo ${_parts.join(" ")}.pdf`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
