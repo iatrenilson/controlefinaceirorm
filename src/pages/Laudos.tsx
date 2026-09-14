@@ -214,7 +214,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
     { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
     { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
   ];
-  const aRowH = 10;
+  const aRowH = 8.5;
   const armasH = HDR + ARMAS.length * aRowH;
   section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
@@ -257,7 +257,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DECLARAÇÃO
   // ════════════════════════════════════════════
-  const declH = HDR + 28;
+  const declH = HDR + 38;
   section(y, declH, "DECLARAÇÃO");
 
   const decY = y + HDR + 1;
@@ -292,8 +292,8 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // Linha de assinatura — canto direito, dentro da caixa
   const sigLineX = PW / 2 + 5;
   const sigLineW = ML + CW - sigLineX - 2;
-  ul(sigLineX, decY + 21, sigLineW);
-  N(9); doc.text("ASSINATURA DO AVALIADO", sigLineX + sigLineW / 2, decY + 25, { align: "center" });
+  ul(sigLineX, decY + 32, sigLineW);
+  N(9); doc.text("ASSINATURA DO AVALIADO", sigLineX + sigLineW / 2, decY + 36, { align: "center" });
 
   y += declH + 0.8;
 
@@ -322,7 +322,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 21;
+  const fundH = HDR + 19;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
@@ -375,7 +375,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // CONCLUSÃO
   // ════════════════════════════════════════════
-  const concH = HDR + 8;
+  const concH = HDR + 7;
   section(y, concH, "CONCLUSÃO");
 
   // Caixas menores, X centralizado, centralizado na largura da caixa
