@@ -683,7 +683,13 @@ const Laudos = () => {
               <div className="space-y-1">
                 <Label className="text-xs">N° Comprovante</Label>
                 <Input className="h-9 text-sm"
-                  value={form.numero} onChange={e => set("numero", e.target.value)} />
+                  value={form.numero}
+                  onChange={e => set("numero", e.target.value)}
+                  onBlur={e => {
+                    const v = e.target.value.trim();
+                    if (v) supabase.rpc("set_laudo_ultimo_numero", { p_numero: v })
+                      .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
+                  }} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
