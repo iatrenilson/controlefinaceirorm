@@ -214,7 +214,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
     { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
     { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
   ];
-  const aRowH = 11;
+  const aRowH = 10;
   const armasH = HDR + ARMAS.length * aRowH;
   section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
@@ -252,7 +252,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DECLARAÇÃO
   // ════════════════════════════════════════════
-  const declH = HDR + 34;
+  const declH = HDR + 30;
   section(y, declH, "DECLARAÇÃO");
 
   const decY = y + HDR + 1;
@@ -418,7 +418,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   N(10);
   doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
 
-  y += 26;   // espaço para assinatura digital GOV.BR
+  y += 20;   // espaço para assinatura digital GOV.BR
   ul(PW / 2 - 43, y, 86);
   y += 5;
   B(10); doc.text("William Bruno Toyoda Hitotuzi", PW / 2, y, { align: "center" });
