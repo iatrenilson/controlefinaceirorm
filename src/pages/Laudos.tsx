@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ClipboardList, Download } from "lucide-react";
+import { ClipboardList, Download, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -537,8 +542,31 @@ const Laudos = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Input className="h-9 text-sm w-44" type="date" value={form.dataDecl}
-              onChange={e => setForm(p => ({ ...p, dataDecl: e.target.value, dataFinal: e.target.value }))} />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline"
+                  className={cn("h-9 w-52 justify-start text-left font-normal text-sm gap-2",
+                    !form.dataDecl && "text-muted-foreground")}>
+                  <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+                  {form.dataDecl
+                    ? format(new Date(form.dataDecl + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR })
+                    : "Selecionar data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={form.dataDecl ? new Date(form.dataDecl + "T12:00:00") : undefined}
+                  onSelect={date => {
+                    if (date) {
+                      const iso = date.toLocaleDateString("sv-SE"); // YYYY-MM-DD
+                      setForm(p => ({ ...p, dataDecl: iso, dataFinal: iso }));
+                    }
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </CardContent>
         </Card>
 
