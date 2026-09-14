@@ -725,6 +725,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_laudo_ultimo_numero: { Args: Record<never, never>; Returns: string }
+      set_laudo_ultimo_numero: { Args: { p_numero: string }; Returns: undefined }
       admin_clear_all_notifications: { Args: never; Returns: undefined }
       delete_email: {
         Args: { message_id: number; queue_name: string }
