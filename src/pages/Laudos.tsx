@@ -12,33 +12,26 @@ interface LaudoForm {
   nome: string;
   cpf: string;
   endereco: string;
-  // Armas usadas
   usouPistola: boolean;    sistPistola: "SINARM" | "SIGMA" | "";
   usouRevolver: boolean;   sistRevolver: "SINARM" | "SIGMA" | "";
   usouRifle: boolean;      sistRifle: "SINARM" | "SIGMA" | "";
   usouEspingarda: boolean; sistEspingarda: "SINARM" | "SIGMA" | "";
-  // Data declaração (campo do avaliado)
-  dataDecl: string; // yyyy-MM-dd
-  // Local de prova
+  dataDecl: string;
   local: "juliet" | "texas" | "cta" | "";
-  // Fundamentação
   finalidade: "aquisicao" | "porte" | "cr" | "";
   categoria: "defesa" | "institucional" | "cac" | "";
-  // Notas
   notaTeorica: string;
   notaPistola: string; notaRevolver: string; notaRifle: string; notaEspingarda: string;
-  // Conclusão
   conclusao: "apto" | "inapto" | "";
-  // Data final (assinatura avaliador)
-  dataFinal: string; // yyyy-MM-dd
+  dataFinal: string;
 }
 
 const EMPTY: LaudoForm = {
   numero: "",
   nome: "", cpf: "", endereco: "",
-  usouPistola: false,    sistPistola: "",
-  usouRevolver: false,   sistRevolver: "",
-  usouRifle: false,      sistRifle: "",
+  usouPistola: false, sistPistola: "",
+  usouRevolver: false, sistRevolver: "",
+  usouRifle: false, sistRifle: "",
   usouEspingarda: false, sistEspingarda: "",
   dataDecl: "",
   local: "",
@@ -57,7 +50,7 @@ function maskCpf(v: string) {
 }
 
 function fmtDate(iso: string) {
-  if (!iso) return "___/___/______";
+  if (!iso) return "____/____/________";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
@@ -71,139 +64,349 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// ─── PDF Generator ──────────────────────────────────────────────────────────────
+// ─── PDF Generator — Layout idêntico ao original ────────────────────────────
 async function gerarLaudoPDF(f: LaudoForm) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const W = 210, ML = 12, MR = 12, CW = W - ML - MR;
-  let y = 8;
+  const PW = 210, PH = 297;
+  const ML = 10, MR = 10;
+  const CW = PW - ML - MR; // 190mm
 
-  const bold   = (size: number) => { doc.setFont("helvetica", "bold");   doc.setFontSize(size); };
-  const normal = (size: number) => { doc.setFont("helvetica", "normal"); doc.setFontSize(size); };
-  const line   = () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.line(ML, y, W - MR, y); y += 3; };
-  const wrap   = (text: string, x: number, maxW: number, lh: number): number => {
-    const lines = doc.splitTextToSize(text, maxW);
-    doc.text(lines, x, y, { maxWidth: maxW }); return y + lines.length * lh;
+  doc.setDrawColor(0, 0, 0);
+
+  // ── helpers ──
+  const B  = (sz: number) => { doc.setFont("helvetica", "bold");   doc.setFontSize(sz); };
+  const N  = (sz: number) => { doc.setFont("helvetica", "normal"); doc.setFontSize(sz); };
+  const BI = (sz: number) => { doc.setFont("helvetica", "bolditalic"); doc.setFontSize(sz); };
+
+  // Caixa com borda e cabeçalho cinza (header text centered bold)
+  const sectionBox = (y: number, h: number) => {
+    doc.setLineWidth(0.3);
+    doc.rect(ML, y, CW, h);
+  };
+  // Linha separadora interna horizontal
+  const hLine = (y: number, x1 = ML, x2 = ML + CW) => {
+    doc.setLineWidth(0.2);
+    doc.line(x1, y, x2, y);
+  };
+  // Linha underline para campo
+  const underline = (x: number, y: number, w: number) => {
+    doc.setLineWidth(0.2);
+    doc.line(x, y, x + w, y);
+  };
+  // Checkbox quadrado pequeno
+  const sq = (x: number, y: number, checked: boolean, sz = 3) => {
+    doc.setLineWidth(0.25);
+    doc.rect(x, y - sz + 0.5, sz, sz);
+    if (checked) {
+      B(8); doc.setTextColor(0);
+      doc.text("X", x + sz / 2, y - 0.3, { align: "center" });
+    }
+  };
+  // Checkbox com parênteses: ( ) ou (X)
+  const pc = (x: number, y: number, checked: boolean) => {
+    N(8); doc.setTextColor(0);
+    doc.text(checked ? "(X)" : "(   )", x, y);
   };
 
-  const chk  = (ok: boolean) => ok ? "(X)" : "(  )";
-  const sq   = (ok: boolean) => ok ? "[X]" : "[  ]";
+  let y = ML; // cursor vertical
 
-  // ── CABEÇALHO ──
-  bold(8);
-  doc.text("ANEXO II", W / 2, y, { align: "center" }); y += 5;
+  // ══════════════════════════════════════════════════════
+  // BLOCO 1 — TÍTULO + TEXTO LEGAL (com borda)
+  // ══════════════════════════════════════════════════════
+  const bloco1H = 30;
+  sectionBox(y, bloco1H);
 
-  bold(9);
-  const title = `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${f.numero ? f.numero : "______"}2026`;
-  y = wrap(title, W / 2, CW, 4.5) + 1; // centered trick via splitTextToSize
-  // Rewrite centered
-  const tLines = doc.splitTextToSize(title, CW);
-  y -= tLines.length * 4.5 + 1;
-  doc.text(tLines, W / 2, y, { align: "center" }); y += tLines.length * 4.5 + 2;
+  // ANEXO II — canto superior direito dentro da caixa
+  B(9); doc.setTextColor(0);
+  doc.text("ANEXO II", ML + CW - 2, y + 4.5, { align: "right" });
 
-  // Legal
-  normal(7);
+  // Título principal centrado e negrito
+  B(9);
+  const numStr = f.numero ? f.numero : "______";
+  doc.text(
+    `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${numStr}2026`,
+    PW / 2, y + 4.5, { align: "center", maxWidth: CW - 30 }
+  );
+
+  // Texto legal em fonte pequena
+  N(6.5);
   const legal = "O comprovante de capacidade técnica de arma de fogo deverá ser expedido por instrutor de armamento e tiro credenciado pela Polícia Federal e deverá atestar, necessariamente: (a) conhecimento da conceituação e normas de segurança pertinentes à arma de fogo; (b) conhecimento básico dos componentes e partes da arma de fogo e (c) habilidade do uso da arma de fogo demonstrada, pelo interessado, em estande de tiro (artigo 4°, inciso III e artigo 12, inciso VI e § 3°, da Lei nº 10.826/03; e artigo 36 do Decreto nº 5.123/04).";
-  const lLines = doc.splitTextToSize(legal, CW);
-  doc.text(lLines, ML, y); y += lLines.length * 3.2 + 2;
+  const legalLines = doc.splitTextToSize(legal, CW - 4);
+  doc.text(legalLines, ML + 2, y + 9);
 
-  line();
+  y += bloco1H + 1;
 
-  // ── DADOS DO AVALIADO ──
-  bold(8); doc.text("DADOS DO AVALIADO", ML, y); y += 5;
-  normal(8);
-  doc.text(`NOME: ${f.nome.toUpperCase()}`, ML, y); y += 5;
-  doc.text(`CPF: ${f.cpf}`, ML, y); y += 5;
-  doc.text(`ENDEREÇO: ${f.endereco.toUpperCase()}`, ML, y); y += 5;
-  line();
+  // ══════════════════════════════════════════════════════
+  // BLOCO 2 — DADOS DO AVALIADO
+  // ══════════════════════════════════════════════════════
+  const bloco2H = 24;
+  sectionBox(y, bloco2H);
+  // Cabeçalho cinza com borda inferior
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("DADOS DO AVALIADO", PW / 2, y + 4.3, { align: "center" });
 
-  // ── ARMAS DE FOGO ──
-  bold(8); doc.text("ARMAS DE FOGO UTILIZADAS", ML, y); y += 5;
-  normal(7.5);
+  // Campos
+  N(8.5); doc.setTextColor(0);
+  const nomeVal = f.nome.toUpperCase();
+  const cpfVal  = f.cpf;
+  const endVal  = f.endereco.toUpperCase();
+
+  // NOME
+  doc.text("NOME:", ML + 2, y + 11);
+  B(8.5); doc.text(nomeVal, ML + 14, y + 11);
+  underline(ML + 13, y + 11.5, CW - 15);
+
+  // CPF
+  N(8.5);
+  doc.text("CPF:", ML + 2, y + 16);
+  B(8.5); doc.text(cpfVal, ML + 11, y + 16);
+  underline(ML + 10, y + 16.5, CW - 12);
+
+  // ENDEREÇO
+  N(8.5);
+  doc.text("ENDEREÇO:", ML + 2, y + 21);
+  B(8.5); doc.text(endVal, ML + 22, y + 21);
+  underline(ML + 21, y + 21.5, CW - 23);
+
+  y += bloco2H + 1;
+
+  // ══════════════════════════════════════════════════════
+  // BLOCO 3 — ARMAS DE FOGO UTILIZADAS
+  // ══════════════════════════════════════════════════════
   const armas = [
-    { tipo: "PISTOLA",    marca: "TAUROS GX4",   calibre: "9 MM",    serie: "ADK 818094",  reg: "905970870", usado: f.usouPistola,    sist: f.sistPistola },
-    { tipo: "REVOLVER",   marca: "TAURUS RT 85S", calibre: "38",     serie: "ACL 493291",  reg: "906589762", usado: f.usouRevolver,   sist: f.sistRevolver },
-    { tipo: "RIFLE",      marca: "ROSSI",         calibre: "357 MAG", serie: "NWE 4872174", reg: "905938944", usado: f.usouRifle,     sist: f.sistRifle },
-    { tipo: "ESPINGARDA", marca: "BOITO",         calibre: "12",      serie: "G11534022",   reg: "905938936", usado: f.usouEspingarda, sist: f.sistEspingarda },
+    { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", calibre: "9 MM",    usou: f.usouPistola,    sist: f.sistPistola },
+    { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", calibre: "38",      usou: f.usouRevolver,   sist: f.sistRevolver },
+    { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", calibre: "357 MAG", usou: f.usouRifle,     sist: f.sistRifle },
+    { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", calibre: "12",      usou: f.usouEspingarda, sist: f.sistEspingarda },
   ];
-  for (const a of armas) {
-    doc.text(`${sq(a.usado)} TIPO: ${a.tipo}   MARCA: ${a.marca}   CALIBRE: ${a.calibre}`, ML, y); y += 3.8;
-    doc.text(`    N° SÉRIE: ${a.serie}   REGISTRO Nº: ${a.reg}   ${chk(a.sist === "SINARM")} SINARM   ${chk(a.sist === "SIGMA")} SIGMA`, ML, y); y += 4.2;
-  }
-  line();
+  const armaRowH = 9;
+  const bloco3H = 6 + armas.length * armaRowH + 1;
+  sectionBox(y, bloco3H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("ARMAS DE FOGO UTILIZADAS", PW / 2, y + 4.3, { align: "center" });
 
-  // ── DECLARAÇÃO ──
-  bold(8); doc.text("DECLARAÇÃO", ML, y); y += 5;
-  normal(7.5);
-  const nomeDecl = f.nome ? f.nome.toUpperCase() : "_________________________________________________";
-  const declText = `${nomeDecl}, acima identificado, DECLARO, sob as penas da lei, que NÃO ME SUBMETI a testes para a aferição de capacidade técnica para o manuseio de armas de fogo nos últimos 30 dias.`;
-  const dLines = doc.splitTextToSize(declText, CW);
-  doc.text(dLines, ML, y); y += dLines.length * 3.5 + 3;
-  doc.text(`Manaus/AM, ${fmtDate(f.dataDecl)}`, ML, y); y += 5;
-  doc.text("ASSINATURA DO AVALIADO: _________________________________________________", ML, y); y += 5;
-  line();
+  // Linhas verticais separando colunas: col1=70, col2=120
+  const c1 = ML + 68, c2 = ML + 118;
+  doc.setLineWidth(0.2);
+  doc.line(c1, y + 6, c1, y + bloco3H);
+  doc.line(c2, y + 6, c2, y + bloco3H);
 
-  // ── LOCAL DE PROVA ──
-  bold(8); doc.text("LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)", ML, y); y += 5;
-  normal(7.5);
+  armas.forEach((a, i) => {
+    const ry = y + 6 + i * armaRowH;
+    if (i > 0) hLine(ry);
+
+    // Coluna 1 — TIPO + SÉRIE (com checkbox de uso)
+    B(7.5); doc.setTextColor(0);
+    // Checkbox de uso da arma (marcado com X se usou)
+    sq(ML + 2, ry + 5.5, a.usou);
+    doc.text(`TIPO: ${a.tipo}`, ML + 7, ry + 5);
+    N(7); doc.text(`Nº SÉRIE: ${a.serie}`, ML + 7, ry + 8.3);
+
+    // Coluna 2 — MARCA + REGISTRO
+    B(7.5);
+    doc.text(`MARCA: ${a.marca}`, c1 + 3, ry + 5);
+    N(7); doc.text(`REGISTRO Nº: ${a.reg}`, c1 + 3, ry + 8.3);
+
+    // Coluna 3 — CALIBRE + SINARM/SIGMA
+    B(7.5);
+    doc.text(`CALIBRE: ${a.calibre}`, c2 + 3, ry + 5);
+    N(7);
+    pc(c2 + 3, ry + 8.3, a.sist === "SINARM");
+    doc.text(" SINARM  ", c2 + 9, ry + 8.3);
+    pc(c2 + 28, ry + 8.3, a.sist === "SIGMA");
+    doc.text(" SIGMA", c2 + 34, ry + 8.3);
+  });
+
+  y += bloco3H + 1;
+
+  // ══════════════════════════════════════════════════════
+  // BLOCO 4 — DECLARAÇÃO
+  // ══════════════════════════════════════════════════════
+  const bloco4H = 36;
+  sectionBox(y, bloco4H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("DECLARAÇÃO", PW / 2, y + 4.3, { align: "center" });
+
+  N(8.5); doc.setTextColor(0);
+  // Linha underline para o nome do avaliado
+  underline(ML + 2, y + 12, 70);
+  if (f.nome) { B(8.5); doc.text(f.nome.toUpperCase(), ML + 3, y + 11.5); }
+  N(8.5);
+  doc.text("acima identificado, DECLARO, sob as penas da lei, que NÃO ME SUBMETI a", ML + 75, y + 11.5);
+
+  N(8.5);
+  const declTxt = "testes para a aferição de capacidade técnica para o manuseio de armas de fogo nos últimos 30 dias.  Manaus/AM,";
+  doc.text(declTxt, ML + 2, y + 16);
+  // Data inline
+  B(8.5);
+  const dDecl = fmtDate(f.dataDecl);
+  doc.text(dDecl, ML + 2 + doc.getTextWidth(declTxt) + 1, y + 16);
+
+  // Linha de assinatura
+  underline(ML + 40, y + 29, 110);
+  N(8.5); doc.setTextColor(0);
+  doc.text("ASSINATURA DO AVALIADO", PW / 2, y + 32.5, { align: "center" });
+
+  y += bloco4H + 1;
+
+  // ══════════════════════════════════════════════════════
+  // BLOCO 5 — LOCAL DE APLICAÇÃO PROVA PRATICA
+  // ══════════════════════════════════════════════════════
   const locais = [
-    { id: "juliet", nome: "Clube de Tiro Juliet Papa",            end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
-    { id: "texas",  nome: "Clube de Tiro Texas Gun",              end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
-    { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas",  end: "Av. Pedro Teixeira - Chapada, Manaus/AM." },
+    { id: "juliet", nome: "Clube de Tiro Juliet Papa",           end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
+    { id: "texas",  nome: "Clube de Tiro Texas Gun",             end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
+    { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas", end: "Av. Pedro Teixeira - Chapada, Manaus/AM." },
   ];
-  for (const loc of locais) {
-    doc.text(`${chk(f.local === loc.id)} NOME: ${loc.nome}`, ML, y); y += 3.5;
-    doc.text(`    ENDEREÇO: ${loc.end}`, ML, y); y += 4;
-  }
-  line();
+  const bloco5H = 6 + locais.length * 10 + 2;
+  sectionBox(y, bloco5H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)", PW / 2, y + 4.3, { align: "center" });
 
-  // ── FUNDAMENTAÇÃO ──
-  bold(8); doc.text("FUNDAMENTAÇÃO", ML, y); y += 5;
-  normal(7.5);
-  doc.text(`FINALIDADE: ${chk(f.finalidade === "aquisicao")} AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA   ${chk(f.finalidade === "porte")} PORTE   ${chk(f.finalidade === "cr")} CR`, ML, y); y += 5;
-  doc.text(`CATEGORIA: ${chk(f.categoria === "defesa")} DEFESA PESSOAL   ${chk(f.categoria === "institucional")} INSTITUCIONAL   ${chk(f.categoria === "cac")} CAC`, ML, y); y += 5;
-  line();
+  locais.forEach((loc, i) => {
+    const ly = y + 6 + i * 10;
+    if (i > 0) hLine(ly);
+    sq(ML + 2, ly + 5.5, f.local === loc.id);
+    B(8.5); doc.setTextColor(0);
+    doc.text(`NOME: ${loc.nome}`, ML + 7, ly + 5);
+    N(8); doc.text(`ENDEREÇO: ${loc.end}`, ML + 7, ly + 9);
+  });
 
-  // ── NOTAS ──
-  normal(8);
-  doc.text(`NOTA DA PROVA TEÓRICA: ${f.notaTeorica || "______"}`, ML, y); y += 5;
-  doc.text(`PONTUAÇÃO NO ALVO SILHUETA:   PISTOLA: ${f.notaPistola || "___"}   REVOLVER: ${f.notaRevolver || "___"}   RIFLE: ${f.notaRifle || "___"}   ESPINGARDA: ${f.notaEspingarda || "___"}`, ML, y); y += 5;
-  line();
+  y += bloco5H + 1;
 
-  // ── CONCLUSÃO ──
-  bold(9); doc.text("CONCLUSÃO", ML, y); y += 6;
-  bold(12);
-  doc.text(`${sq(f.conclusao === "apto")} APTO`, ML + 25, y);
-  doc.text(`${sq(f.conclusao === "inapto")} INAPTO`, ML + 90, y);
-  y += 8;
-  line();
+  // ══════════════════════════════════════════════════════
+  // BLOCO 6 — FUNDAMENTAÇÃO
+  // ══════════════════════════════════════════════════════
+  const bloco6H = 29;
+  sectionBox(y, bloco6H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("FUNDAMENTAÇÃO", PW / 2, y + 4.3, { align: "center" });
 
-  // ── AVALIADOR ──
-  bold(8); doc.text("AVALIADOR", ML, y); y += 5;
-  normal(8);
-  doc.text("NOME: William Bruno Toyoda Hitotuzi                      CPF: 733.633.592-68", ML, y); y += 5;
-  doc.text("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025         VALIDADE: 31/10/2029", ML, y); y += 8;
-  doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML, y); y += 12;
+  N(8.5); doc.setTextColor(0);
 
-  // Assinatura
-  doc.line(W / 2 - 38, y, W / 2 + 38, y); y += 4;
-  normal(7);
-  doc.text("William Bruno Toyoda Hitotuzi", W / 2, y, { align: "center" }); y += 4;
-  doc.text("IAT", W / 2, y, { align: "center" });
+  // FINALIDADE
+  let fx = ML + 2;
+  doc.text("FINALIDADE:", fx, y + 12); fx += 24;
+  pc(fx, y + 12, f.finalidade === "aquisicao"); fx += 10;
+  doc.text("AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA", fx, y + 12); fx += 75;
+  pc(fx, y + 12, f.finalidade === "porte"); fx += 10;
+  doc.text("PORTE", fx, y + 12); fx += 14;
+  pc(fx, y + 12, f.finalidade === "cr"); fx += 10;
+  doc.text("CR", fx, y + 12);
+
+  // CATEGORIA
+  fx = ML + 2;
+  doc.text("CATEGORIA:", fx, y + 18); fx += 22;
+  pc(fx, y + 18, f.categoria === "defesa"); fx += 10;
+  doc.text("DEFESA PESSOAL", fx, y + 18); fx += 32;
+  pc(fx, y + 18, f.categoria === "institucional"); fx += 10;
+  doc.text("INSTITUCIONAL", fx, y + 18); fx += 30;
+  pc(fx, y + 18, f.categoria === "cac"); fx += 10;
+  doc.text("CAC", fx, y + 18);
+
+  hLine(y + 20);
+
+  // NOTA TEÓRICA
+  doc.text(`NOTA DA PROVA TEÓRICA: ${f.notaTeorica || "_____"}`, ML + 2, y + 25);
+  // PONTUAÇÃO
+  doc.text(
+    `PONTUAÇÃO NO ALVO SILHUETA:  PISTOLA: ${f.notaPistola || "___"}    REVOLVER: ${f.notaRevolver || "___"}    RIFLE: ${f.notaRifle || "___"}    ESPINGARDA: ${f.notaEspingarda || "___"}`,
+    ML + 2, y + 27.5
+  );
+
+  y += bloco6H + 1;
+
+  // ══════════════════════════════════════════════════════
+  // BLOCO 7 — CONCLUSÃO
+  // ══════════════════════════════════════════════════════
+  const bloco7H = 17;
+  sectionBox(y, bloco7H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("CONCLUSÃO", PW / 2, y + 4.3, { align: "center" });
+
+  // Caixas grandes APTO / INAPTO
+  const bsz = 5;
+  const cx1 = PW / 2 - 30, cx2 = PW / 2 + 10;
+  const cy  = y + 12;
+
+  doc.setLineWidth(0.4);
+  doc.rect(cx1, cy - bsz + 0.5, bsz, bsz);
+  if (f.conclusao === "apto") { B(10); doc.text("X", cx1 + bsz / 2, cy - 0.2, { align: "center" }); }
+
+  doc.rect(cx2, cy - bsz + 0.5, bsz, bsz);
+  if (f.conclusao === "inapto") { B(10); doc.text("X", cx2 + bsz / 2, cy - 0.2, { align: "center" }); }
+
+  B(11); doc.setTextColor(0);
+  doc.text("APTO",   cx1 + bsz + 2, cy);
+  doc.text("INAPTO", cx2 + bsz + 2, cy);
+
+  y += bloco7H + 1;
+
+  // ══════════════════════════════════════════════════════
+  // BLOCO 8 — AVALIADOR
+  // ══════════════════════════════════════════════════════
+  const bloco8H = 14;
+  sectionBox(y, bloco8H);
+  doc.setFillColor(220, 220, 220);
+  doc.rect(ML, y, CW, 6, "F");
+  hLine(y + 6);
+  B(9); doc.setTextColor(0);
+  doc.text("AVALIADOR", PW / 2, y + 4.3, { align: "center" });
+
+  N(8.5); doc.setTextColor(0);
+  doc.text("NOME: William Bruno Toyoda Hitotuzi", ML + 2, y + 10.5);
+  doc.text("CPF: 733.633.592-68", ML + 100, y + 10.5);
+  doc.text("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ML + 2, y + 13.5);
+  doc.text("VALIDADE: 31/10/2029", ML + 115, y + 13.5);
+
+  y += bloco8H + 6;
+
+  // ══════════════════════════════════════════════════════
+  // DATA FINAL + ASSINATURA AVALIADOR
+  // ══════════════════════════════════════════════════════
+  N(9); doc.setTextColor(0);
+  const dFinal = fmtDate(f.dataFinal);
+  doc.text(`Manaus/AM. ${dFinal}`, ML + CW - 2, y, { align: "right" });
+
+  y += 12;
+  underline(PW / 2 - 40, y, 80);
+  y += 4;
+  B(8.5);
+  doc.text("William Bruno Toyoda Hitotuzi", PW / 2, y, { align: "center" });
+  y += 4;
+  doc.text("IAT", PW / 2, y, { align: "center" });
 
   // Download
   const blob = doc.output("blob");
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url;
+  a.href     = url;
   a.download = `Laudo CR - ${f.nome ? f.nome.split(" ")[0] : "Laudo"}.pdf`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// ─── UI Helper ─────────────────────────────────────────────────────────────────
+// ─── UI Helpers ────────────────────────────────────────────────────────────────
 function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -285,7 +488,7 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Armas utilizadas */}
+        {/* Armas */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-primary">Armas de Fogo Utilizadas</CardTitle>
@@ -293,11 +496,7 @@ const Laudos = () => {
           <CardContent className="space-y-3">
             {armaRows.map(({ label, usouKey, sistKey }) => (
               <div key={label} className="flex flex-wrap items-center gap-2">
-                <CheckBtn
-                  checked={form[usouKey] as boolean}
-                  onClick={() => set(usouKey, !form[usouKey])}
-                  label={label}
-                />
+                <CheckBtn checked={form[usouKey] as boolean} onClick={() => set(usouKey, !form[usouKey])} label={label} />
                 {form[usouKey] && (
                   <div className="flex gap-2 ml-2">
                     <RadioBtn checked={form[sistKey] === "SINARM"} onClick={() => set(sistKey, "SINARM")} label="SINARM" />
@@ -309,7 +508,7 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Data da Declaração */}
+        {/* Data Declaração */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-primary">Data da Declaração (Avaliado)</CardTitle>
@@ -322,23 +521,19 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Local de prova */}
+        {/* Local */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-primary">Local da Prova Prática (Estande)</CardTitle>
+            <CardTitle className="text-sm font-semibold uppercase tracking-wide text-primary">Local da Prova Prática</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {[
-              { id: "juliet", label: "Clube de Tiro Juliet Papa — R. Alm. Maximiano, 8 - Dom Pedro" },
-              { id: "texas",  label: "Clube de Tiro Texas Gun — Av. Compensa, 180B – Vila da Prata" },
-              { id: "cta",    label: "CTA INDOR Clube de Tiro do Amazonas — Av. Pedro Teixeira - Chapada" },
+              { id: "juliet", label: "Clube de Tiro Juliet Papa" },
+              { id: "texas",  label: "Clube de Tiro Texas Gun" },
+              { id: "cta",    label: "CTA INDOR Clube de Tiro do Amazonas" },
             ].map(loc => (
-              <RadioBtn
-                key={loc.id}
-                checked={form.local === loc.id}
-                onClick={() => set("local", loc.id as LaudoForm["local"])}
-                label={loc.label}
-              />
+              <RadioBtn key={loc.id} checked={form.local === loc.id}
+                onClick={() => set("local", loc.id as LaudoForm["local"])} label={loc.label} />
             ))}
           </CardContent>
         </Card>
@@ -381,10 +576,10 @@ const Laudos = () => {
             <div>
               <p className="text-xs text-muted-foreground mb-2 font-medium">PONTUAÇÃO NO ALVO SILHUETA</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {([["Pistola", "notaPistola"], ["Revólver", "notaRevolver"], ["Rifle", "notaRifle"], ["Espingarda", "notaEspingarda"]] as const).map(([label, key]) => (
-                  <div key={key} className="space-y-1">
-                    <Label className="text-xs">{label}</Label>
-                    <Input className="h-9 text-sm" placeholder="0" value={form[key]} onChange={e => set(key, e.target.value)} />
+                {([["Pistola","notaPistola"],["Revólver","notaRevolver"],["Rifle","notaRifle"],["Espingarda","notaEspingarda"]] as const).map(([lb,k]) => (
+                  <div key={k} className="space-y-1">
+                    <Label className="text-xs">{lb}</Label>
+                    <Input className="h-9 text-sm" placeholder="0" value={form[k]} onChange={e => set(k, e.target.value)} />
                   </div>
                 ))}
               </div>
@@ -405,7 +600,7 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Data final */}
+        {/* Data Avaliador */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold uppercase tracking-wide text-primary">Data — Manaus/AM (Avaliador)</CardTitle>
@@ -419,9 +614,7 @@ const Laudos = () => {
         </Card>
 
         {/* Botão Gerar PDF */}
-        <Button
-          size="lg"
-          className="w-full gap-2 h-11"
+        <Button size="lg" className="w-full gap-2 h-11"
           onClick={async () => {
             if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
@@ -429,6 +622,7 @@ const Laudos = () => {
               await gerarLaudoPDF(form);
               toast.success("Laudo gerado com sucesso!");
             } catch (e) {
+              console.error(e);
               toast.error("Erro ao gerar PDF.");
             }
           }}
