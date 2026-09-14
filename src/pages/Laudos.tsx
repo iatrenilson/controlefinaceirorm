@@ -237,7 +237,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   // ════════════════════════════════════════════
   if (tipo === "sinarm") {
     // SINARM: lista de 8 armas pré-definidas com checkboxes em 2 colunas
-    const sRowH = 7;
+    // sRowH=8: texto centrado em 4mm → margem topo=4mm, base=4mm ✓
+    const sRowH = 8;
     const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas × 2 colunas = 8 armas
     const midColX = ML + CW / 2;
     section(y, sinarmArmasH, "DADOS DA ARMA DE FOGO UTILIZADA");
@@ -247,7 +248,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const ax = col === 0 ? ML + 3 : midColX + 3;
-      const ay = y + HDR + row * sRowH + 4.5;
+      const ay = y + HDR + row * sRowH + 4; // centrado em 4mm (era 4.5)
       const checked = f.armasSinarm.includes(arma.id);
       N(9);
       const pcW2 = renderPc(checked, ax, ay);
@@ -257,13 +258,14 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     y += sinarmArmasH + 0.8;
   } else {
     // CR/CAC: tabela com tipo, marca, calibre, registro SINARM/SIGMA
+    // aRowH=10: linhas em +3.5 e +7 → margens topo≈3.5mm, base=3mm ✓
     const ARMAS = [
       { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", cal: "9 MM",    sist: f.pistola },
       { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", cal: "38",      sist: f.revolver },
       { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
       { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
     ];
-    const aRowH = 8.5;
+    const aRowH = 10;
     const armasH = HDR + ARMAS.length * aRowH;
     section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
@@ -273,10 +275,10 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
 
     ARMAS.forEach((a, i) => {
       const ry = y + HDR + i * aRowH;
-      B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4);
-      N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7.5);
-      B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4);
-      N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7.5);
+      B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 3.5);
+      N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7);
+      B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 3.5);
+      N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7);
       const col3Center = c2 + (ML + CW - c2) / 2;
       // Calcula rx (início do grupo SINARM/SIGMA) antes de renderizar CALIBRE
       N(8);
@@ -287,11 +289,11 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
       const row2W = pcW + doc.getTextWidth(sinarmLbl) + gap2 + pcW + doc.getTextWidth(sigmaLbl);
       let rx = col3Center - row2W / 2;
       // CALIBRE alinha à esquerda com o "(" da linha abaixo
-      B(8.5); doc.text(`CALIBRE: ${a.cal}`, rx, ry + 4);
-      rx += renderPc(a.sist === "SINARM", rx, ry + 7.5);
-      doc.text(sinarmLbl, rx, ry + 7.5); rx += doc.getTextWidth(sinarmLbl) + gap2;
-      rx += renderPc(a.sist === "SIGMA", rx, ry + 7.5);
-      doc.text(sigmaLbl, rx, ry + 7.5);
+      B(8.5); doc.text(`CALIBRE: ${a.cal}`, rx, ry + 3.5);
+      rx += renderPc(a.sist === "SINARM", rx, ry + 7);
+      doc.text(sinarmLbl, rx, ry + 7); rx += doc.getTextWidth(sinarmLbl) + gap2;
+      rx += renderPc(a.sist === "SIGMA", rx, ry + 7);
+      doc.text(sigmaLbl, rx, ry + 7);
     });
 
     y += armasH + 0.8;
