@@ -238,8 +238,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   // ════════════════════════════════════════════
   if (tipo === "sinarm") {
     // SINARM: lista de 8 armas pré-definidas com checkboxes em 2 colunas
-    // sRowH=8: texto centrado em 4mm → margem topo=4mm, base=4mm ✓
-    const sRowH = 8;
+    // sRowH=9: baseline em +5.5 → topo visual=3.2mm, base visual=3.5mm ✓
+    const sRowH = 9;
     const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas × 2 colunas = 8 armas
     const midColX = ML + CW / 2;
     section(y, sinarmArmasH, "DADOS DA ARMA DE FOGO UTILIZADA");
@@ -249,7 +249,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
       const col = i % 2;
       const row = Math.floor(i / 2);
       const ax = col === 0 ? ML + 3 : midColX + 3;
-      const ay = y + HDR + row * sRowH + 4; // centrado em 4mm (era 4.5)
+      const ay = y + HDR + row * sRowH + 5.5; // baseline 5.5mm → topo visual ~3.2mm
       const checked = f.armasSinarm.includes(arma.id);
       N(9);
       const pcW2 = renderPc(checked, ax, ay);
@@ -496,10 +496,12 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   y += avalH + 6;
 
   // ════════════════════════════════════════════
-  // DATA FINAL + ASSINATURA DO AVALIADOR
+  // DATA FINAL + ASSINATURA DO AVALIADOR (data só no CR/CAC)
   // ════════════════════════════════════════════
   N(10);
-  doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
+  if (tipo === "cr_cac") {
+    doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
+  }
 
   y += 20;   // espaço para assinatura digital GOV.BR
   ul(PW / 2 - 43, y, 86);
