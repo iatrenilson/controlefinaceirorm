@@ -370,12 +370,12 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // CONCLUSÃO
   // ════════════════════════════════════════════
-  const concH = HDR + 10;
+  const concH = HDR + 8;
   section(y, concH, "CONCLUSÃO");
 
   // Caixas menores, X centralizado, fonte normal (igual original)
   const bsz = 3.2;
-  const ccY = y + HDR + 5;
+  const ccY = y + HDR + 3.5;
   const bx1 = PW / 2 - 22, bx2 = PW / 2 + 8;
 
   // Desenha caixa e X centralizado manualmente
