@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, Download, CalendarIcon } from "lucide-react";
+import { ClipboardList, Download, CalendarIcon, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -950,23 +950,34 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Botão */}
-        <Button size="lg" className="w-full gap-2 h-12"
-          onClick={async () => {
-            if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
-            if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
-            try {
-              await gerarLaudoPDF(form, laudoTipo);
-              toast.success("Laudo gerado com sucesso!");
-            } catch (e) {
-              console.error(e);
-              toast.error("Erro ao gerar PDF.");
-            }
-          }}
-        >
-          <Download className="h-4 w-4" />
-          Gerar Laudo PDF
-        </Button>
+        {/* Botões */}
+        <div className="flex gap-3">
+          <Button variant="outline" size="lg" className="gap-2 h-12 flex-1"
+            onClick={() => {
+              setForm(EMPTY);
+              toast.info("Formulário limpo.");
+            }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Limpar
+          </Button>
+          <Button size="lg" className="gap-2 h-12 flex-[2]"
+            onClick={async () => {
+              if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
+              if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
+              try {
+                await gerarLaudoPDF(form, laudoTipo);
+                toast.success("Laudo gerado com sucesso!");
+              } catch (e) {
+                console.error(e);
+                toast.error("Erro ao gerar PDF.");
+              }
+            }}
+          >
+            <Download className="h-4 w-4" />
+            Gerar Laudo PDF
+          </Button>
+        </div>
 
         <div className="h-6" />
       </main>
