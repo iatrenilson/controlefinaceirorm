@@ -110,12 +110,23 @@ async function gerarLaudoPDF(f: LaudoForm) {
     if (marked) { B(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
-  // Parenthesis checkbox — espaços internos maiores para o X respirar
+  // Parenthesis checkbox — X em negrito quando marcado
   const pc = (ok: boolean) => ok ? "(  X  )" : "(      )";
-  // Renderiza pc e avança x — fonte já deve estar setada antes de chamar
   const renderPc = (ok: boolean, x: number, y: number): number => {
     const str = pc(ok);
-    doc.text(str, x, y);
+    if (ok) {
+      // "( " normal, "X" negrito, " )" normal
+      N(9);
+      const open = "(  "; const close = "  )";
+      doc.text(open, x, y);
+      const ow = doc.getTextWidth(open);
+      B(9); doc.setTextColor(0); doc.text("X", x + ow, y);
+      const xw = doc.getTextWidth("X");
+      N(9); doc.text(close, x + ow + xw, y);
+    } else {
+      N(9); doc.text(str, x, y);
+    }
+    N(9);
     return doc.getTextWidth(str);
   };
 
@@ -243,7 +254,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DECLARAÇÃO
   // ════════════════════════════════════════════
-  const declH = HDR + 28;
+  const declH = HDR + 34;
   section(y, declH, "DECLARAÇÃO");
 
   const decY = y + HDR + 1;
@@ -275,9 +286,11 @@ async function gerarLaudoPDF(f: LaudoForm) {
     N(9); doc.text(restLines as string[], ML + 2, decY + 10.5);
   }
 
-  // Linha de assinatura
-  ul(ML + 37, decY + 22, 116);
-  N(9); doc.text("ASSINATURA DO AVALIADO", PW / 2, decY + 26, { align: "center" });
+  // Linha de assinatura — canto direito, mais espaço para GOV.BR
+  const sigLineX = PW / 2 + 5;          // começa no meio + 5mm
+  const sigLineW = ML + CW - sigLineX - 2; // vai até margem direita
+  ul(sigLineX, decY + 28, sigLineW);
+  N(9); doc.text("ASSINATURA DO AVALIADO", sigLineX + sigLineW / 2, decY + 32, { align: "center" });
 
   y += declH + 0.8;
 
@@ -306,49 +319,47 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 19;
+  const fundH = HDR + 21;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE (~4.5mm entre linhas, igual ao original)
-  B(9); doc.text("FINALIDADE:", ML + 2, fndY + 4);
+  // FINALIDADE — sem negrito, igual ao original
+  N(9); doc.text("FINALIDADE:", ML + 2, fndY + 3.5);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
-  N(9);
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 4);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 4);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 3.5);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 3.5);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 4);
-  doc.text(" PORTE  ", fx, fndY + 4);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 3.5);
+  doc.text(" PORTE  ", fx, fndY + 3.5);
   fx += doc.getTextWidth(" PORTE  ");
-  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 4);
-  doc.text(" CR", fx, fndY + 4);
+  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 3.5);
+  doc.text(" CR", fx, fndY + 3.5);
 
-  // CATEGORIA
-  B(9); doc.text("CATEGORIA:", ML + 2, fndY + 8.5);
+  // CATEGORIA — sem negrito
+  N(9); doc.text("CATEGORIA:", ML + 2, fndY + 8);
   fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
-  N(9);
-  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 8.5);
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 8.5);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 8);
+  doc.text(" DEFESA PESSOAL  ", fx, fndY + 8);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 8.5);
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 8.5);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 8);
+  doc.text(" INSTITUCIONAL  ", fx, fndY + 8);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8.5);
-  doc.text(" CAC", fx, fndY + 8.5);
+  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8);
+  doc.text(" CAC", fx, fndY + 8);
 
-  // NOTA
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 13);
+  // NOTA — label negrito, valor normal; traço largo se vazio
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  N(9); doc.text(f.notaTeorica || "_____", notaX, fndY + 13);
+  N(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
 
-  // PONTUAÇÃO
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17.5);
+  // PONTUAÇÃO — label negrito, valores normais; traço largo se vazio
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
   const pontX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   N(9);
   doc.text(
-    `PISTOLA: ${f.notaPistola || "-"}   REVOLVER: ${f.notaRevolver || "-"}   RIFLE: ${f.notaRifle || "-"}   ESPINGARDA: ${f.notaEspingarda || "-"}`,
-    pontX, fndY + 17.5
+    `PISTOLA: ${f.notaPistola || "–"}   REVOLVER: ${f.notaRevolver || "–"}   RIFLE: ${f.notaRifle || "–"}   ESPINGARDA: ${f.notaEspingarda || "–"}`,
+    pontX, fndY + 17
   );
 
   y += fundH + 0.8;
@@ -356,45 +367,52 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // CONCLUSÃO
   // ════════════════════════════════════════════
-  const concH = HDR + 12;
+  const concH = HDR + 10;
   section(y, concH, "CONCLUSÃO");
 
-  const ccY = y + HDR + 7;
-  const bsz = 4.5;
-  const bx1 = PW / 2 - 30, bx2 = PW / 2 + 10;
+  // Caixas menores, X centralizado, fonte normal (igual original)
+  const bsz = 3.2;
+  const ccY = y + HDR + 5;
+  const bx1 = PW / 2 - 22, bx2 = PW / 2 + 8;
 
-  sqBox(bx1, ccY, f.conclusao === "apto", bsz);
-  N(9); doc.text("APTO",   bx1 + bsz + 2, ccY);
+  // Desenha caixa e X centralizado manualmente
+  const drawBox = (bx: number, marked: boolean) => {
+    doc.setDrawColor(0); doc.setFillColor(255,255,255); doc.setLineWidth(0.25);
+    doc.rect(bx, ccY - bsz + 0.3, bsz, bsz, "S");
+    if (marked) {
+      N(8); doc.setTextColor(0);
+      doc.text("X", bx + bsz / 2, ccY - bsz / 2 + 1.1, { align: "center" });
+    }
+  };
 
-  sqBox(bx2, ccY, f.conclusao === "inapto", bsz);
-  N(9); doc.text("INAPTO", bx2 + bsz + 2, ccY);
+  drawBox(bx1, f.conclusao === "apto");
+  N(9); doc.text("APTO",   bx1 + bsz + 1, ccY);
+
+  drawBox(bx2, f.conclusao === "inapto");
+  N(9); doc.text("INAPTO", bx2 + bsz + 1, ccY);
 
   y += concH + 0.8;
 
   // ════════════════════════════════════════════
   // AVALIADOR
   // ════════════════════════════════════════════
-  const avalH = HDR + 15;
+  const avalH = HDR + 13;
   section(y, avalH, "AVALIADOR");
 
   const avY = y + HDR + 1;
-  // Linha 1 — centralizada verticalmente (3 linhas disponíveis: 15mm / 2 = 7.5mm centro)
+  // Linha 1 — fluxo natural, sem posição fixa de coluna
   let ax = ML + 2;
-  B(9); doc.text("NOME:", ax, avY + 5); ax += doc.getTextWidth("NOME:");
-  N(9); doc.text(" William Bruno Toyoda Hitotuzi", ax, avY + 5);
-  ax = ML + 105;
-  B(9); doc.text("CPF:", ax, avY + 5); ax += doc.getTextWidth("CPF:");
-  N(9); doc.text(" 733.633.592-68", ax, avY + 5);
+  N(9); doc.text("NOME: William Bruno Toyoda Hitotuzi", ax, avY + 4.5);
+  ax += doc.getTextWidth("NOME: William Bruno Toyoda Hitotuzi") + 3;
+  doc.text("CPF: 733.633.592-68", ax, avY + 4.5);
 
-  // Linha 2
+  // Linha 2 — fluxo natural
   ax = ML + 2;
-  B(9); doc.text("PORTARIA:", ax, avY + 10); ax += doc.getTextWidth("PORTARIA:");
-  N(9); doc.text(" DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 10);
-  ax = ML + 112;
-  B(9); doc.text("VALIDADE:", ax, avY + 10); ax += doc.getTextWidth("VALIDADE:");
-  N(9); doc.text(" 31/10/2029", ax, avY + 10);
+  N(9); doc.text("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 9.5);
+  ax += doc.getTextWidth("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025") + 3;
+  doc.text("VALIDADE: 31/10/2029", ax, avY + 9.5);
 
-  y += avalH + 2;
+  y += avalH + 6;
 
   // ════════════════════════════════════════════
   // DATA FINAL + ASSINATURA DO AVALIADOR
@@ -402,7 +420,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   N(10);
   doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
 
-  y += 22;   // espaço para assinatura digital GOV.BR
+  y += 26;   // espaço para assinatura digital GOV.BR
   ul(PW / 2 - 43, y, 86);
   y += 5;
   B(10); doc.text("William Bruno Toyoda Hitotuzi", PW / 2, y, { align: "center" });
@@ -679,12 +697,13 @@ const Laudos = () => {
                         {form.notaPistola || "Selecionar"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-2 w-44">
-                      <div className="grid grid-cols-4 gap-1 max-h-52 overflow-y-auto">
+                    <PopoverContent className="p-2 w-64">
+                      {/* Grade 7×7 = 49 opções sem rolagem, estilo calendário */}
+                      <div className="grid grid-cols-7 gap-0.5">
                         {PONT_OPTIONS.map(n => (
                           <button key={n} type="button"
                             onClick={() => { set("notaPistola", n); setPistOpen(false); }}
-                            className={cn("h-8 rounded text-sm hover:bg-muted transition-colors",
+                            className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
                               form.notaPistola === n && "bg-primary text-primary-foreground")}>
                             {n}
                           </button>
@@ -693,7 +712,7 @@ const Laudos = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Revólver — Popover grade 72-120 */}
+                {/* Revólver — Popover grade 72-120 sem rolagem */}
                 <div className="space-y-1">
                   <Label className="text-xs">Revólver</Label>
                   <Popover open={revolOpen} onOpenChange={setRevolOpen}>
@@ -703,12 +722,12 @@ const Laudos = () => {
                         {form.notaRevolver || "Selecionar"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-2 w-44">
-                      <div className="grid grid-cols-4 gap-1 max-h-52 overflow-y-auto">
+                    <PopoverContent className="p-2 w-64">
+                      <div className="grid grid-cols-7 gap-0.5">
                         {PONT_OPTIONS.map(n => (
                           <button key={n} type="button"
                             onClick={() => { set("notaRevolver", n); setRevolOpen(false); }}
-                            className={cn("h-8 rounded text-sm hover:bg-muted transition-colors",
+                            className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
                               form.notaRevolver === n && "bg-primary text-primary-foreground")}>
                             {n}
                           </button>
