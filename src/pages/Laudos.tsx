@@ -539,24 +539,28 @@ const Laudos = () => {
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
                 Dados do Avaliado
               </CardTitle>
-              {/* Tipo de Laudo */}
-              <div className="flex rounded-md overflow-hidden border border-border text-xs font-medium">
-                <button type="button"
-                  onClick={() => setLaudoTipo("cr_cac")}
-                  className={cn("px-3 py-1.5 transition-colors",
-                    laudoTipo === "cr_cac"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:bg-muted")}>
-                  CR / CAC
-                </button>
-                <button type="button"
-                  onClick={() => setLaudoTipo("sinarm")}
-                  className={cn("px-3 py-1.5 border-l border-border transition-colors",
-                    laudoTipo === "sinarm"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:bg-muted")}>
-                  SINARM Posse/Porte
-                </button>
+              {/* Tipo de Laudo — radio pill */}
+              <div className="flex gap-2 text-xs font-medium">
+                {(["cr_cac", "sinarm"] as const).map(opt => {
+                  const label = opt === "cr_cac" ? "CR / CAC" : "SINARM Posse/Porte";
+                  const active = laudoTipo === opt;
+                  return (
+                    <button key={opt} type="button"
+                      onClick={() => setLaudoTipo(opt)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all",
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      )}>
+                      <span className={cn(
+                        "h-2.5 w-2.5 rounded-full border-2 flex-shrink-0 transition-all",
+                        active ? "border-primary bg-primary" : "border-muted-foreground bg-transparent"
+                      )} />
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </CardHeader>
