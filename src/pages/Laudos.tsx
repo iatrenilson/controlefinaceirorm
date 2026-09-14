@@ -213,7 +213,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
     { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
     { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
   ];
-  const aRowH = 9;
+  const aRowH = 11;
   const armasH = HDR + ARMAS.length * aRowH;
   section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
