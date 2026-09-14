@@ -351,14 +351,19 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
   B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
 
-  // PONTUAÇÃO — label negrito, valores normais; traço largo se vazio
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
-  const pontX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
-  N(9);
-  doc.text(
-    `PISTOLA: ${f.notaPistola || "–"}   REVOLVER: ${f.notaRevolver || "–"}   RIFLE: ${f.notaRifle || "–"}   ESPINGARDA: ${f.notaEspingarda || "–"}`,
-    pontX, fndY + 17
-  );
+  // PONTUAÇÃO — label normal, valores em negrito
+  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
+  let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
+  const armas2 = [
+    { lbl: "PISTOLA: ",    val: f.notaPistola    || "–" },
+    { lbl: "  REVOLVER: ", val: f.notaRevolver   || "–" },
+    { lbl: "  RIFLE: ",    val: f.notaRifle      || "–" },
+    { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "–" },
+  ];
+  armas2.forEach(({ lbl, val }) => {
+    N(9); doc.text(lbl, px, fndY + 17); px += doc.getTextWidth(lbl);
+    B(9); doc.text(val, px, fndY + 17); px += doc.getTextWidth(val);
+  });
 
   y += fundH + 0.8;
 
