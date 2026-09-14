@@ -178,30 +178,30 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DADOS DO AVALIADO
   // ════════════════════════════════════════════
-  const dadosH = HDR + 21;
+  const dadosH = HDR + 17;
   section(y, dadosH, "DADOS DO AVALIADO");
 
   const dy = y + HDR + 1;
 
   // NOME
-  B(9); doc.text("NOME:", ML + 2, dy + 4);
+  B(9); doc.text("NOME:", ML + 2, dy + 3.5);
   const nomeLblW = doc.getTextWidth("NOME:");
   const nomeVal = f.nome.toUpperCase();
   const nomeX = ML + 2 + nomeLblW + 2;
-  N(9); doc.text(nomeVal, nomeX, dy + 4);
+  N(9); doc.text(nomeVal, nomeX, dy + 3.5);
 
   // CPF
-  B(9); doc.text("CPF:", ML + 2, dy + 11);
+  B(9); doc.text("CPF:", ML + 2, dy + 8.5);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
-  N(9); doc.text(f.cpf, cpfX, dy + 11);
+  N(9); doc.text(f.cpf, cpfX, dy + 8.5);
 
   // ENDEREÇO
-  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 18);
+  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 13.5);
   const endLblW = doc.getTextWidth("ENDEREÇO:");
   const endX = ML + 2 + endLblW + 2;
   const endVal = f.endereco.toUpperCase();
-  N(9); doc.text(endVal, endX, dy + 18);
+  N(9); doc.text(endVal, endX, dy + 13.5);
 
   y += dadosH + 0.8;
 
@@ -252,7 +252,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DECLARAÇÃO
   // ════════════════════════════════════════════
-  const declH = HDR + 30;
+  const declH = HDR + 28;
   section(y, declH, "DECLARAÇÃO");
 
   const decY = y + HDR + 1;
@@ -284,11 +284,11 @@ async function gerarLaudoPDF(f: LaudoForm) {
     N(9); doc.text(restLines as string[], ML + 2, decY + 10.5);
   }
 
-  // Linha de assinatura — canto direito, mais espaço para GOV.BR
-  const sigLineX = PW / 2 + 5;          // começa no meio + 5mm
-  const sigLineW = ML + CW - sigLineX - 2; // vai até margem direita
-  ul(sigLineX, decY + 28, sigLineW);
-  N(9); doc.text("ASSINATURA DO AVALIADO", sigLineX + sigLineW / 2, decY + 32, { align: "center" });
+  // Linha de assinatura — canto direito, dentro da caixa
+  const sigLineX = PW / 2 + 5;
+  const sigLineW = ML + CW - sigLineX - 2;
+  ul(sigLineX, decY + 21, sigLineW);
+  N(9); doc.text("ASSINATURA DO AVALIADO", sigLineX + sigLineW / 2, decY + 25, { align: "center" });
 
   y += declH + 0.8;
 
