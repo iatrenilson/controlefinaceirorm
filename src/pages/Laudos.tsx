@@ -651,19 +651,6 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Data Avaliador */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Data — Manaus/AM (Assinatura do Avaliador)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Input className="h-9 text-sm w-44" type="date" value={form.dataFinal}
-              onChange={e => set("dataFinal", e.target.value)} />
-          </CardContent>
-        </Card>
-
         {/* Botão */}
         <Button size="lg" className="w-full gap-2 h-12"
           onClick={async () => {
