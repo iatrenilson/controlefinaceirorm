@@ -594,7 +594,8 @@ const Laudos = () => {
   // Carrega o último número usado (compartilhado entre todos os usuários)
   useEffect(() => {
     supabase.rpc("get_laudo_ultimo_numero").then(({ data, error }) => {
-      if (!error && data) set("numero", String(data));
+      if (error) { console.error("[laudo] get_ultimo_numero:", error); return; }
+      if (data) set("numero", String(data));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1013,7 +1014,8 @@ const Laudos = () => {
               await gerarLaudoPDF(form, laudoTipo);
               // Salva o último número usado para todos os usuários
               if (form.numero) {
-                supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero });
+                supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero })
+                  .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
               }
               toast.success("Laudo gerado com sucesso!");
             } catch (e) {
