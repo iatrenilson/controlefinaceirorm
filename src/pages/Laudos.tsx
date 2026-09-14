@@ -9,6 +9,9 @@ import { toast } from "sonner";
 // ─── Types ──────────────────────────────────────────────────────────────────────
 type SistReg = "" | "SINARM" | "SIGMA";
 
+type Finalidade = "aquisicao" | "porte" | "cr";
+type Categoria  = "defesa" | "institucional" | "cac";
+
 interface LaudoForm {
   numero: string;
   nome: string;
@@ -20,8 +23,8 @@ interface LaudoForm {
   espingarda: SistReg;
   dataDecl: string;
   local: "" | "juliet" | "texas" | "cta";
-  finalidade: "" | "aquisicao" | "porte" | "cr";
-  categoria: "" | "defesa" | "institucional" | "cac";
+  finalidade: Finalidade[];   // múltipla seleção
+  categoria: Categoria[];     // múltipla seleção
   notaTeorica: string;
   notaPistola: string;
   notaRevolver: string;
@@ -35,10 +38,14 @@ const EMPTY: LaudoForm = {
   numero: "", nome: "", cpf: "", endereco: "",
   pistola: "", revolver: "", rifle: "", espingarda: "",
   dataDecl: "", local: "",
-  finalidade: "", categoria: "",
+  finalidade: [], categoria: [],
   notaTeorica: "", notaPistola: "", notaRevolver: "", notaRifle: "", notaEspingarda: "",
   conclusao: "", dataFinal: "",
 };
+
+function toggle<T>(arr: T[], val: T): T[] {
+  return arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val];
+}
 
 function maskCpf(v: string) {
   return v.replace(/\D/g, "").slice(0, 11)
@@ -270,32 +277,32 @@ async function gerarLaudoPDF(f: LaudoForm) {
   let fx = ML + 2;
   B(9); doc.text("FINALIDADE:", fx, fndY + 6); fx += 27;
   N(9);
-  doc.text(pc(f.finalidade === "aquisicao"), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade === "aquisicao"));
+  doc.text(pc(f.finalidade.includes("aquisicao")), fx, fndY + 6);
+  fx += doc.getTextWidth(pc(f.finalidade.includes("aquisicao")));
   doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 6);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  doc.text(pc(f.finalidade === "porte"), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade === "porte"));
+  doc.text(pc(f.finalidade.includes("porte")), fx, fndY + 6);
+  fx += doc.getTextWidth(pc(f.finalidade.includes("porte")));
   doc.text(" PORTE  ", fx, fndY + 6);
   fx += doc.getTextWidth(" PORTE  ");
-  doc.text(pc(f.finalidade === "cr"), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade === "cr"));
+  doc.text(pc(f.finalidade.includes("cr")), fx, fndY + 6);
+  fx += doc.getTextWidth(pc(f.finalidade.includes("cr")));
   doc.text(" CR", fx, fndY + 6);
 
   // CATEGORIA
   fx = ML + 2;
   B(9); doc.text("CATEGORIA:", fx, fndY + 12); fx += 24;
   N(9);
-  doc.text(pc(f.categoria === "defesa"), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria === "defesa"));
+  doc.text(pc(f.categoria.includes("defesa")), fx, fndY + 12);
+  fx += doc.getTextWidth(pc(f.categoria.includes("defesa")));
   doc.text(" DEFESA PESSOAL  ", fx, fndY + 12);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  doc.text(pc(f.categoria === "institucional"), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria === "institucional"));
+  doc.text(pc(f.categoria.includes("institucional")), fx, fndY + 12);
+  fx += doc.getTextWidth(pc(f.categoria.includes("institucional")));
   doc.text(" INSTITUCIONAL  ", fx, fndY + 12);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  doc.text(pc(f.categoria === "cac"), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria === "cac"));
+  doc.text(pc(f.categoria.includes("cac")), fx, fndY + 12);
+  fx += doc.getTextWidth(pc(f.categoria.includes("cac")));
   doc.text(" CAC", fx, fndY + 12);
 
   hl(y + HDR + 14);
@@ -380,6 +387,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
 }
 
 // ─── UI helpers ──────────────────────────────────────────────────────────────────
+// Seleção única (radio) — círculo
 function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -389,6 +397,22 @@ function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
       <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0
         ${checked ? "border-primary-foreground" : "border-current"}`}>
         {checked && <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+// Seleção múltipla (checkbox) — quadrado com ✓
+function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border transition-colors
+        ${checked ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/50"}`}
+    >
+      <span className={`w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center flex-shrink-0
+        ${checked ? "border-primary-foreground" : "border-current"}`}>
+        {checked && <span className="text-[9px] leading-none font-black">✓</span>}
       </span>
       {label}
     </button>
@@ -526,28 +550,28 @@ const Laudos = () => {
             <div>
               <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">Finalidade</p>
               <div className="flex flex-wrap gap-2">
-                <RadioBtn checked={form.finalidade === "aquisicao"}
-                  onClick={() => set("finalidade", form.finalidade === "aquisicao" ? "" : "aquisicao")}
+                <CheckBtn checked={form.finalidade.includes("aquisicao")}
+                  onClick={() => set("finalidade", toggle(form.finalidade, "aquisicao"))}
                   label="Aquisição / Registro / Transferência" />
-                <RadioBtn checked={form.finalidade === "porte"}
-                  onClick={() => set("finalidade", form.finalidade === "porte" ? "" : "porte")}
+                <CheckBtn checked={form.finalidade.includes("porte")}
+                  onClick={() => set("finalidade", toggle(form.finalidade, "porte"))}
                   label="Porte" />
-                <RadioBtn checked={form.finalidade === "cr"}
-                  onClick={() => set("finalidade", form.finalidade === "cr" ? "" : "cr")}
+                <CheckBtn checked={form.finalidade.includes("cr")}
+                  onClick={() => set("finalidade", toggle(form.finalidade, "cr"))}
                   label="CR" />
               </div>
             </div>
             <div>
               <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">Categoria</p>
               <div className="flex flex-wrap gap-2">
-                <RadioBtn checked={form.categoria === "defesa"}
-                  onClick={() => set("categoria", form.categoria === "defesa" ? "" : "defesa")}
+                <CheckBtn checked={form.categoria.includes("defesa")}
+                  onClick={() => set("categoria", toggle(form.categoria, "defesa"))}
                   label="Defesa Pessoal" />
-                <RadioBtn checked={form.categoria === "institucional"}
-                  onClick={() => set("categoria", form.categoria === "institucional" ? "" : "institucional")}
+                <CheckBtn checked={form.categoria.includes("institucional")}
+                  onClick={() => set("categoria", toggle(form.categoria, "institucional"))}
                   label="Institucional" />
-                <RadioBtn checked={form.categoria === "cac"}
-                  onClick={() => set("categoria", form.categoria === "cac" ? "" : "cac")}
+                <CheckBtn checked={form.categoria.includes("cac")}
+                  onClick={() => set("categoria", toggle(form.categoria, "cac"))}
                   label="CAC" />
               </div>
             </div>
