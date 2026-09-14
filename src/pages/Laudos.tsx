@@ -298,20 +298,22 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const fndY = y + HDR + 1;
   N(8.5);
 
-  // FINALIDADE — ( ) / (X) em fonte normal
+  // 4 linhas espaçadas uniformemente no conteúdo (fundH-HDR = 24mm)
+  // Espaçamento ~6mm entre baselines: fndY+5 / fndY+11 / fndY+17 / fndY+22
+  // FINALIDADE
   let fx = ML + 2;
-  B(9); doc.text("FINALIDADE:", fx, fndY + 5.5); fx += 27;
+  B(9); doc.text("FINALIDADE:", fx, fndY + 5); fx += 27;
   N(9);
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 5.5);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 5.5);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 5);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 5);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 5.5);
-  doc.text(" PORTE  ", fx, fndY + 5.5);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 5);
+  doc.text(" PORTE  ", fx, fndY + 5);
   fx += doc.getTextWidth(" PORTE  ");
-  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 5.5);
-  doc.text(" CR", fx, fndY + 5.5);
+  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 5);
+  doc.text(" CR", fx, fndY + 5);
 
-  // CATEGORIA — ( ) / (X) em fonte normal
+  // CATEGORIA
   fx = ML + 2;
   B(9); doc.text("CATEGORIA:", fx, fndY + 11); fx += 24;
   N(9);
@@ -324,17 +326,18 @@ async function gerarLaudoPDF(f: LaudoForm) {
   fx += renderPc(f.categoria.includes("cac"), fx, fndY + 11);
   doc.text(" CAC", fx, fndY + 11);
 
-  hl(y + HDR + 13);
+  // Sem linha divisória entre CATEGORIA e NOTA
 
-  // NOTA + PONTUAÇÃO — centralizados no espaço abaixo da divisória
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 15.5);
-  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 15.5);
+  // NOTA
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 17);
+  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 17);
 
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 19.5);
+  // PONTUAÇÃO
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 22);
   N(9);
   doc.text(
     ` PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    ML + 62, fndY + 19.5
+    ML + 62, fndY + 22
   );
 
   y += fundH + 0.8;
