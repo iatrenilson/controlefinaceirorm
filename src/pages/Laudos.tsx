@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ClipboardList, Download, CalendarIcon, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 type SistReg = "" | "SINARM" | "SIGMA";
@@ -590,6 +591,14 @@ const Laudos = () => {
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
+  // Carrega o último número usado (compartilhado entre todos os usuários)
+  useEffect(() => {
+    supabase.rpc("get_laudo_ultimo_numero").then(({ data, error }) => {
+      if (!error && data) set("numero", String(data));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Seleciona registro SINARM/SIGMA — sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
     setForm(p => ({ ...p, [key]: val }));
@@ -1002,6 +1011,10 @@ const Laudos = () => {
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
               await gerarLaudoPDF(form, laudoTipo);
+              // Salva o último número usado para todos os usuários
+              if (form.numero) {
+                supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero });
+              }
               toast.success("Laudo gerado com sucesso!");
             } catch (e) {
               console.error(e);
