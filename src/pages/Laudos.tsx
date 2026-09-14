@@ -535,7 +535,7 @@ const Laudos = () => {
           </CardHeader>
           <CardContent>
             <Input className="h-9 text-sm w-44" type="date" value={form.dataDecl}
-              onChange={e => set("dataDecl", e.target.value)} />
+              onChange={e => setForm(p => ({ ...p, dataDecl: e.target.value, dataFinal: e.target.value }))} />
           </CardContent>
         </Card>
 
