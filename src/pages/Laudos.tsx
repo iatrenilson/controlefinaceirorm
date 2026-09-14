@@ -422,7 +422,9 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
 
   // Caixas menores, X centralizado, centralizado na largura da caixa
   const bsz = 3.2;
-  const ccY = y + HDR + 3.5;
+  // ccY calculado para centralizar o box (bsz=3.2) na área de conteúdo (concH-HDR=7mm)
+  // box_top = ccY - bsz + 0.3 ; para box_top = 1.9mm → ccY = 1.9 + 3.2 - 0.3 = 4.8
+  const ccY = y + HDR + 4.8;
   // Calcula largura total e centraliza dinamicamente
   N(9);
   const _aptoW  = doc.getTextWidth("APTO");
