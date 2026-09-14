@@ -311,11 +311,10 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const fndY = y + HDR + 1;
   N(8.5);
 
-  // 4 linhas espaçadas uniformemente no conteúdo (fundH-HDR = 24mm)
-  // Espaçamento ~6mm entre baselines: fndY+5 / fndY+11 / fndY+17 / fndY+22
+  // 4 linhas espaçadas uniformemente; label+valor colados (getTextWidth + 2mm)
   // FINALIDADE
-  let fx = ML + 2;
-  B(9); doc.text("FINALIDADE:", fx, fndY + 5); fx += 27;
+  B(9); doc.text("FINALIDADE:", ML + 2, fndY + 5);
+  let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   N(9);
   fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 5);
   doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 5);
@@ -327,8 +326,8 @@ async function gerarLaudoPDF(f: LaudoForm) {
   doc.text(" CR", fx, fndY + 5);
 
   // CATEGORIA
-  fx = ML + 2;
-  B(9); doc.text("CATEGORIA:", fx, fndY + 11); fx += 24;
+  B(9); doc.text("CATEGORIA:", ML + 2, fndY + 11);
+  fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
   N(9);
   fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 11);
   doc.text(" DEFESA PESSOAL  ", fx, fndY + 11);
@@ -339,18 +338,18 @@ async function gerarLaudoPDF(f: LaudoForm) {
   fx += renderPc(f.categoria.includes("cac"), fx, fndY + 11);
   doc.text(" CAC", fx, fndY + 11);
 
-  // Sem linha divisória entre CATEGORIA e NOTA
-
   // NOTA
   B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 17);
-  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 17);
+  const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
+  N(9); doc.text(f.notaTeorica || "_____", notaX, fndY + 17);
 
   // PONTUAÇÃO
   B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 22);
+  const pontX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   N(9);
   doc.text(
-    ` PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    ML + 62, fndY + 22
+    `PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
+    pontX, fndY + 22
   );
 
   y += fundH + 0.8;
