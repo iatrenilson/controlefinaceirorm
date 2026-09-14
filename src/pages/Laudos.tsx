@@ -538,14 +538,9 @@ const Laudos = () => {
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
-  // Ao marcar rifle/espingarda → preenche nota automaticamente
+  // Seleciona registro SINARM/SIGMA — sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
-    setForm(p => ({
-      ...p,
-      [key]: val,
-      ...(key === "rifle"      ? { notaRifle:      val ? "50"   : "" } : {}),
-      ...(key === "espingarda" ? { notaEspingarda: val ? "APTO" : "" } : {}),
-    }));
+    setForm(p => ({ ...p, [key]: val }));
   };
 
   const armaRows: Array<{ label: string; key: "pistola" | "revolver" | "rifle" | "espingarda" }> = [
@@ -810,7 +805,7 @@ const Laudos = () => {
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
-                            onClick={() => { set("notaPistola", n); setPistOpen(false); }}
+                            onClick={() => { set("notaPistola", form.notaPistola === n ? "" : n); setPistOpen(false); }}
                             className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
                               form.notaPistola === n && "bg-primary text-primary-foreground")}>
                             {n}
@@ -834,7 +829,7 @@ const Laudos = () => {
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
-                            onClick={() => { set("notaRevolver", n); setRevolOpen(false); }}
+                            onClick={() => { set("notaRevolver", form.notaRevolver === n ? "" : n); setRevolOpen(false); }}
                             className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
                               form.notaRevolver === n && "bg-primary text-primary-foreground")}>
                             {n}
@@ -889,7 +884,7 @@ const Laudos = () => {
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_COLORIDO.map(n => (
                           <button key={n} type="button"
-                            onClick={() => { set("notaMulticolorido", n); setColoridoOpen(false); }}
+                            onClick={() => { set("notaMulticolorido", form.notaMulticolorido === n ? "" : n); setColoridoOpen(false); }}
                             className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
                               form.notaMulticolorido === n && "bg-primary text-primary-foreground")}>
                             {n}
