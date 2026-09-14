@@ -161,24 +161,24 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DADOS DO AVALIADO
   // ════════════════════════════════════════════
-  const dadosH = HDR + 20;
+  const dadosH = HDR + 14;
   section(y, dadosH, "DADOS DO AVALIADO");
 
   const dy = y + HDR + 1;
   // NOME — sublinhado só embaixo do texto
-  B(9); doc.text("NOME:", ML + 2, dy + 5);
+  B(9); doc.text("NOME:", ML + 2, dy + 3.5);
   const nomeVal = f.nome.toUpperCase();
-  N(9); doc.text(nomeVal, ML + 17, dy + 5);
-  if (nomeVal) { const nw = doc.getTextWidth(nomeVal); ul(ML + 17, dy + 5.7, nw); }
+  N(9); doc.text(nomeVal, ML + 17, dy + 3.5);
+  if (nomeVal) { const nw = doc.getTextWidth(nomeVal); ul(ML + 17, dy + 4.2, nw); }
   // CPF — sublinhado só embaixo do texto
-  B(9); doc.text("CPF:", ML + 2, dy + 11.5);
-  N(9); doc.text(f.cpf, ML + 13, dy + 11.5);
-  if (f.cpf) { const cw2 = doc.getTextWidth(f.cpf); ul(ML + 13, dy + 12.2, cw2); }
+  B(9); doc.text("CPF:", ML + 2, dy + 8);
+  N(9); doc.text(f.cpf, ML + 13, dy + 8);
+  if (f.cpf) { const cw2 = doc.getTextWidth(f.cpf); ul(ML + 13, dy + 8.7, cw2); }
   // ENDEREÇO — sublinhado só embaixo do texto
-  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 18);
+  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 12.5);
   const endVal = f.endereco.toUpperCase();
-  N(9); doc.text(endVal, ML + 25, dy + 18);
-  if (endVal) { const ew = doc.getTextWidth(endVal); ul(ML + 25, dy + 18.7, ew); }
+  N(9); doc.text(endVal, ML + 25, dy + 12.5);
+  if (endVal) { const ew = doc.getTextWidth(endVal); ul(ML + 25, dy + 13.2, ew); }
 
   y += dadosH + 0.8;
 
