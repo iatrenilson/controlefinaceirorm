@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import DelayAddClient from "./pages/DelayAddClient";
 import DelayViewer from "./pages/DelayViewer";
 import Declaracoes from "./pages/Declaracoes";
+import Laudos from "./pages/Laudos";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -102,6 +103,7 @@ const ProtectedLayout = () => {
             <Route path="/delay-esportivo" element={<DelayRoute><DelayEsportivo /></DelayRoute>} />
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
             <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
+            <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
