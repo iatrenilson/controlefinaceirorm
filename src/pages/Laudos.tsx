@@ -347,7 +347,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const pontX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   N(9);
   doc.text(
-    `PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
+    `PISTOLA: ${f.notaPistola || "-"}   REVOLVER: ${f.notaRevolver || "-"}   RIFLE: ${f.notaRifle || "-"}   ESPINGARDA: ${f.notaEspingarda || "-"}`,
     pontX, fndY + 17.5
   );
 
@@ -691,21 +691,29 @@ const Laudos = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Rifle — auto 50 */}
+                {/* Rifle — toggle manual: marcado = 50 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Rifle</Label>
-                  <div className={cn("h-9 px-3 flex items-center rounded-md border text-sm",
-                    form.notaRifle ? "bg-muted font-semibold" : "bg-muted/40 text-muted-foreground")}>
-                    {form.notaRifle || "Auto (marque rifle)"}
-                  </div>
+                  <button type="button"
+                    onClick={() => set("notaRifle", form.notaRifle ? "" : "50")}
+                    className={cn("h-9 px-3 w-full flex items-center justify-between rounded-md border text-sm transition-colors",
+                      form.notaRifle
+                        ? "bg-primary text-primary-foreground border-primary font-semibold"
+                        : "border-border text-muted-foreground hover:border-primary/50")}>
+                    <span>{form.notaRifle ? `50 ✓` : "- (clique p/ marcar)"}</span>
+                  </button>
                 </div>
-                {/* Espingarda — auto APTO */}
+                {/* Espingarda — toggle manual: marcada = APTO */}
                 <div className="space-y-1">
                   <Label className="text-xs">Espingarda</Label>
-                  <div className={cn("h-9 px-3 flex items-center rounded-md border text-sm",
-                    form.notaEspingarda ? "bg-muted font-semibold" : "bg-muted/40 text-muted-foreground")}>
-                    {form.notaEspingarda || "Auto (marque espingarda)"}
-                  </div>
+                  <button type="button"
+                    onClick={() => set("notaEspingarda", form.notaEspingarda ? "" : "APTO")}
+                    className={cn("h-9 px-3 w-full flex items-center justify-between rounded-md border text-sm transition-colors",
+                      form.notaEspingarda
+                        ? "bg-primary text-primary-foreground border-primary font-semibold"
+                        : "border-border text-muted-foreground hover:border-primary/50")}>
+                    <span>{form.notaEspingarda ? `APTO ✓` : "- (clique p/ marcar)"}</span>
+                  </button>
                 </div>
               </div>
             </div>
