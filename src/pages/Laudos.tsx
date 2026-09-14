@@ -18,6 +18,19 @@ type SistReg = "" | "SINARM" | "SIGMA";
 type Finalidade = "aquisicao" | "porte" | "cr";
 type Categoria  = "defesa" | "institucional" | "cac";
 
+// Armas pré-definidas do Laudo SINARM Posse/Porte
+const ARMAS_SINARM = [
+  { id: "g25",   label: "PISTOLA 380 GLOCK G25 PYM 777" },
+  { id: "ack",   label: "REVOLVER 357 TAURUS ACK 359643" },
+  { id: "rt85",  label: "REVOLVER 38 85S TAURUS ACL 493291" },
+  { id: "58hc",  label: "PISTOLA 380 TAURUS 58HC AEK783002" },
+  { id: "puma",  label: "RIFLE PUMA 357 CBC NWE 4872174" },
+  { id: "t4",    label: "RIFLE T4 556 ABJ 857767" },
+  { id: "gx4",   label: "PISTOLA 9MM TAURUS GX4 ADK 818094" },
+  { id: "boito", label: "ESPINGARDA 12 BOITO G115340-22" },
+] as const;
+type ArmaSinarmId = typeof ARMAS_SINARM[number]["id"];
+
 interface LaudoForm {
   numero: string;
   nome: string;
@@ -36,6 +49,8 @@ interface LaudoForm {
   notaRevolver: string;
   notaRifle: string;
   notaEspingarda: string;
+  notaMulticolorido: string;  // SINARM: pontuação alvo multicolorido
+  armasSinarm: ArmaSinarmId[]; // SINARM: armas selecionadas
   conclusao: "" | "apto" | "inapto";
   dataFinal: string;
 }
@@ -46,6 +61,7 @@ const EMPTY: LaudoForm = {
   dataDecl: "", local: "",
   finalidade: [], categoria: [],
   notaTeorica: "20", notaPistola: "", notaRevolver: "", notaRifle: "", notaEspingarda: "",
+  notaMulticolorido: "", armasSinarm: [],
   conclusao: "", dataFinal: "",
 };
 
@@ -76,7 +92,7 @@ function loadScript(src: string): Promise<void> {
 }
 
 // ─── PDF idêntico ao original ────────────────────────────────────────────────────
-async function gerarLaudoPDF(f: LaudoForm) {
+async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
@@ -206,53 +222,67 @@ async function gerarLaudoPDF(f: LaudoForm) {
   y += dadosH + 0.8;
 
   // ════════════════════════════════════════════
-  // ARMAS DE FOGO UTILIZADAS
+  // DADOS DA ARMA DE FOGO
   // ════════════════════════════════════════════
-  const ARMAS = [
-    { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", cal: "9 MM",    sist: f.pistola },
-    { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", cal: "38",      sist: f.revolver },
-    { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
-    { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
-  ];
-  const aRowH = 8.5;
-  const armasH = HDR + ARMAS.length * aRowH;
-  section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
+  if (tipo === "sinarm") {
+    // SINARM: lista de 8 armas pré-definidas com checkboxes em 2 colunas
+    const sRowH = 7;
+    const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas × 2 colunas = 8 armas
+    const midColX = ML + CW / 2;
+    section(y, sinarmArmasH, "DADOS DA ARMA DE FOGO UTILIZADA");
+    vl(midColX, y + HDR, y + sinarmArmasH);
 
-  // Colunas: c1 a 65mm, c2 a 125mm
-  const c1 = ML + 65, c2 = ML + 126;
-  vl(c1, y + HDR, y + armasH);
-  vl(c2, y + HDR, y + armasH);
+    ARMAS_SINARM.forEach((arma, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const ax = col === 0 ? ML + 3 : midColX + 3;
+      const ay = y + HDR + row * sRowH + 4.5;
+      const checked = f.armasSinarm.includes(arma.id);
+      N(9);
+      const pcW2 = renderPc(checked, ax, ay);
+      N(9); doc.text(` ${arma.label}`, ax + pcW2, ay);
+    });
 
-  ARMAS.forEach((a, i) => {
-    const ry = y + HDR + i * aRowH;
-    // sem linha horizontal entre linhas de arma (igual ao original)
+    y += sinarmArmasH + 0.8;
+  } else {
+    // CR/CAC: tabela com tipo, marca, calibre, registro SINARM/SIGMA
+    const ARMAS = [
+      { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", cal: "9 MM",    sist: f.pistola },
+      { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", cal: "38",      sist: f.revolver },
+      { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
+      { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
+    ];
+    const aRowH = 8.5;
+    const armasH = HDR + ARMAS.length * aRowH;
+    section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
-    // Col 1
-    B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4);
-    N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7.5);
+    const c1 = ML + 65, c2 = ML + 126;
+    vl(c1, y + HDR, y + armasH);
+    vl(c2, y + HDR, y + armasH);
 
-    // Col 2
-    B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4);
-    N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7.5);
+    ARMAS.forEach((a, i) => {
+      const ry = y + HDR + i * aRowH;
+      B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4);
+      N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7.5);
+      B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4);
+      N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7.5);
+      const col3Center = c2 + (ML + CW - c2) / 2;
+      B(8.5); doc.text(`CALIBRE: ${a.cal}`, col3Center, ry + 4, { align: "center" });
+      N(8);
+      const pcStr = "(      )";
+      const pcW = doc.getTextWidth(pcStr);
+      const sinarmLbl = " SINARM"; const sigmaLbl = " SIGMA";
+      const gap2 = 2;
+      const row2W = pcW + doc.getTextWidth(sinarmLbl) + gap2 + pcW + doc.getTextWidth(sigmaLbl);
+      let rx = col3Center - row2W / 2;
+      rx += renderPc(a.sist === "SINARM", rx, ry + 7.5);
+      doc.text(sinarmLbl, rx, ry + 7.5); rx += doc.getTextWidth(sinarmLbl) + gap2;
+      rx += renderPc(a.sist === "SIGMA", rx, ry + 7.5);
+      doc.text(sigmaLbl, rx, ry + 7.5);
+    });
 
-    // Col 3 — centralizado horizontalmente
-    const col3Center = c2 + (ML + CW - c2) / 2;
-    B(8.5); doc.text(`CALIBRE: ${a.cal}`, col3Center, ry + 4, { align: "center" });
-    // SINARM / SIGMA — mede total e centraliza
-    N(8);
-    const pcStr = "(      )";
-    const pcW = doc.getTextWidth(pcStr);
-    const sinarmLbl = " SINARM"; const sigmaLbl = " SIGMA";
-    const gap2 = 2;
-    const row2W = pcW + doc.getTextWidth(sinarmLbl) + gap2 + pcW + doc.getTextWidth(sigmaLbl);
-    let rx = col3Center - row2W / 2;
-    rx += renderPc(a.sist === "SINARM", rx, ry + 7.5);
-    doc.text(sinarmLbl, rx, ry + 7.5); rx += doc.getTextWidth(sinarmLbl) + gap2;
-    rx += renderPc(a.sist === "SIGMA", rx, ry + 7.5);
-    doc.text(sigmaLbl, rx, ry + 7.5);
-  });
-
-  y += armasH + 0.8;
+    y += armasH + 0.8;
+  }
 
   // ════════════════════════════════════════════
   // DECLARAÇÃO
@@ -322,12 +352,12 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 19;
+  const fundH = tipo === "sinarm" ? HDR + 23 : HDR + 19;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE — sem negrito, igual ao original
+  // FINALIDADE
   N(9); doc.text("FINALIDADE:", ML + 2, fndY + 3.5);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 3.5);
@@ -336,10 +366,12 @@ async function gerarLaudoPDF(f: LaudoForm) {
   fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 3.5);
   doc.text(" PORTE  ", fx, fndY + 3.5);
   fx += doc.getTextWidth(" PORTE  ");
-  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 3.5);
-  doc.text(" CR", fx, fndY + 3.5);
+  if (tipo === "cr_cac") {
+    fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 3.5);
+    N(9); doc.text(" CR", fx, fndY + 3.5);
+  }
 
-  // CATEGORIA — sem negrito
+  // CATEGORIA
   N(9); doc.text("CATEGORIA:", ML + 2, fndY + 8);
   fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
   fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 8);
@@ -348,27 +380,36 @@ async function gerarLaudoPDF(f: LaudoForm) {
   fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 8);
   doc.text(" INSTITUCIONAL  ", fx, fndY + 8);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8);
-  doc.text(" CAC", fx, fndY + 8);
+  if (tipo === "cr_cac") {
+    fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8);
+    N(9); doc.text(" CAC", fx, fndY + 8);
+  }
 
   // NOTA — label normal, valor em negrito
   N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
   B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
 
-  // PONTUAÇÃO — label normal, valores em negrito
+  // PONTUAÇÃO SILHUETA — label normal, valores em negrito
   N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
-    { lbl: "PISTOLA: ",    val: f.notaPistola    || "–" },
-    { lbl: "  REVOLVER: ", val: f.notaRevolver   || "–" },
-    { lbl: "  RIFLE: ",    val: f.notaRifle      || "–" },
+    { lbl: "PISTOLA: ",      val: f.notaPistola    || "–" },
+    { lbl: "  REVOLVER: ",   val: f.notaRevolver   || "–" },
+    { lbl: "  RIFLE: ",      val: f.notaRifle      || "–" },
     { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "–" },
   ];
   armas2.forEach(({ lbl, val }) => {
     N(9); doc.text(lbl, px, fndY + 17); px += doc.getTextWidth(lbl);
     B(9); doc.text(val, px, fndY + 17); px += doc.getTextWidth(val);
   });
+
+  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM
+  if (tipo === "sinarm") {
+    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 21.5);
+    const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
+    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 21.5);
+  }
 
   y += fundH + 0.8;
 
@@ -448,7 +489,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `Laudo CR - ${f.nome ? f.nome.split(" ")[0] : "Laudo"}.pdf`;
+  a.download = `Laudo ${tipo === "sinarm" ? "SINARM Posse" : "CR"} - ${f.nome ? f.nome.split(" ")[0] : "Laudo"}.pdf`;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
@@ -492,6 +533,7 @@ const Laudos = () => {
   const [laudoTipo, setLaudoTipo] = useState<"cr_cac" | "sinarm">("cr_cac");
   const [pistOpen, setPistOpen] = useState(false);
   const [revolOpen, setRevolOpen] = useState(false);
+  const [coloridoOpen, setColoridoOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
@@ -513,8 +555,10 @@ const Laudos = () => {
     { label: "Espingarda", key: "espingarda" },
   ];
 
-  // Opções de pontuação 72-120
-  const PONT_OPTIONS = Array.from({ length: 49 }, (_, i) => String(72 + i));
+  // Silhueta: 60-100 (41 opções, grid 7×6)
+  const PONT_SILHUETA = Array.from({ length: 41 }, (_, i) => String(60 + i));
+  // Multicolorido: 72-120 (49 opções, grid 7×7)
+  const PONT_COLORIDO = Array.from({ length: 49 }, (_, i) => String(72 + i));
 
   return (
     <div className="min-h-screen bg-background">
@@ -592,27 +636,43 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Armas */}
+        {/* Armas — conteúdo muda por tipo de laudo */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Armas de Fogo — SINARM / SIGMA
+              {laudoTipo === "sinarm" ? "Dados da Arma de Fogo Utilizada" : "Armas de Fogo — SINARM / SIGMA"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="divide-y divide-border">
-              {armaRows.map(({ label, key }) => (
-                <div key={key} className="flex items-center gap-3 py-2.5">
-                  <span className="text-sm font-medium w-24 flex-shrink-0">{label}</span>
-                  <div className="flex gap-2">
-                    <RadioBtn checked={form[key] === "SINARM"}
-                      onClick={() => setArma(key, form[key] === "SINARM" ? "" : "SINARM")} label="SINARM" />
-                    <RadioBtn checked={form[key] === "SIGMA"}
-                      onClick={() => setArma(key, form[key] === "SIGMA" ? "" : "SIGMA")}  label="SIGMA"  />
+            {laudoTipo === "sinarm" ? (
+              /* SINARM: lista de armas pré-definidas com toggle */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {ARMAS_SINARM.map(arma => {
+                  const checked = form.armasSinarm.includes(arma.id);
+                  return (
+                    <CheckBtn key={arma.id}
+                      checked={checked}
+                      onClick={() => set("armasSinarm", toggle(form.armasSinarm, arma.id))}
+                      label={arma.label} />
+                  );
+                })}
+              </div>
+            ) : (
+              /* CR/CAC: SINARM / SIGMA radio por tipo de arma */
+              <div className="divide-y divide-border">
+                {armaRows.map(({ label, key }) => (
+                  <div key={key} className="flex items-center gap-3 py-2.5">
+                    <span className="text-sm font-medium w-24 flex-shrink-0">{label}</span>
+                    <div className="flex gap-2">
+                      <RadioBtn checked={form[key] === "SINARM"}
+                        onClick={() => setArma(key, form[key] === "SINARM" ? "" : "SINARM")} label="SINARM" />
+                      <RadioBtn checked={form[key] === "SIGMA"}
+                        onClick={() => setArma(key, form[key] === "SIGMA" ? "" : "SIGMA")}  label="SIGMA"  />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -689,9 +749,11 @@ const Laudos = () => {
                 <CheckBtn checked={form.finalidade.includes("porte")}
                   onClick={() => set("finalidade", toggle(form.finalidade, "porte"))}
                   label="Porte" />
-                <CheckBtn checked={form.finalidade.includes("cr")}
-                  onClick={() => set("finalidade", toggle(form.finalidade, "cr"))}
-                  label="CR" />
+                {laudoTipo === "cr_cac" && (
+                  <CheckBtn checked={form.finalidade.includes("cr")}
+                    onClick={() => set("finalidade", toggle(form.finalidade, "cr"))}
+                    label="CR" />
+                )}
               </div>
             </div>
             <div>
@@ -703,9 +765,11 @@ const Laudos = () => {
                 <CheckBtn checked={form.categoria.includes("institucional")}
                   onClick={() => set("categoria", toggle(form.categoria, "institucional"))}
                   label="Institucional" />
-                <CheckBtn checked={form.categoria.includes("cac")}
-                  onClick={() => set("categoria", toggle(form.categoria, "cac"))}
-                  label="CAC" />
+                {laudoTipo === "cr_cac" && (
+                  <CheckBtn checked={form.categoria.includes("cac")}
+                    onClick={() => set("categoria", toggle(form.categoria, "cac"))}
+                    label="CAC" />
+                )}
               </div>
             </div>
           </CardContent>
@@ -742,9 +806,9 @@ const Laudos = () => {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
-                      {/* Grade 7×7 = 49 opções sem rolagem, estilo calendário */}
+                      {/* Grade 7×6 = 42 slots para 41 opções (60-100), sem rolagem */}
                       <div className="grid grid-cols-7 gap-0.5">
-                        {PONT_OPTIONS.map(n => (
+                        {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
                             onClick={() => { set("notaPistola", n); setPistOpen(false); }}
                             className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
@@ -768,7 +832,7 @@ const Laudos = () => {
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
                       <div className="grid grid-cols-7 gap-0.5">
-                        {PONT_OPTIONS.map(n => (
+                        {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
                             onClick={() => { set("notaRevolver", n); setRevolOpen(false); }}
                             className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
@@ -806,6 +870,37 @@ const Laudos = () => {
                 </div>
               </div>
             </div>
+            {/* Alvo Multicolorido — apenas SINARM Posse/Porte */}
+            {laudoTipo === "sinarm" && (
+              <div>
+                <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
+                  Pontuação no Alvo Multicolorido
+                </p>
+                <div className="w-full sm:w-48">
+                  <Popover open={coloridoOpen} onOpenChange={setColoridoOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("h-9 w-full justify-start text-sm font-normal",
+                        !form.notaMulticolorido && "text-muted-foreground")}>
+                        {form.notaMulticolorido || "Selecionar (72-120)"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-2 w-64">
+                      {/* Grade 7×7 = 49 opções (72-120), estilo calendário */}
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {PONT_COLORIDO.map(n => (
+                          <button key={n} type="button"
+                            onClick={() => { set("notaMulticolorido", n); setColoridoOpen(false); }}
+                            className={cn("h-8 w-full rounded text-xs hover:bg-muted transition-colors",
+                              form.notaMulticolorido === n && "bg-primary text-primary-foreground")}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -834,7 +929,7 @@ const Laudos = () => {
             if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
-              await gerarLaudoPDF(form);
+              await gerarLaudoPDF(form, laudoTipo);
               toast.success("Laudo gerado com sucesso!");
             } catch (e) {
               console.error(e);
