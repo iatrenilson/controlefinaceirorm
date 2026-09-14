@@ -178,29 +178,30 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DADOS DO AVALIADO
   // ════════════════════════════════════════════
-  const dadosH = HDR + 20;
+  const dadosH = HDR + 21;
   section(y, dadosH, "DADOS DO AVALIADO");
 
   const dy = y + HDR + 1;
-  // NOME — label + valor colados (gap 2mm)
-  B(9); doc.text("NOME:", ML + 2, dy + 4.5);
+
+  // NOME
+  B(9); doc.text("NOME:", ML + 2, dy + 4);
   const nomeLblW = doc.getTextWidth("NOME:");
   const nomeVal = f.nome.toUpperCase();
   const nomeX = ML + 2 + nomeLblW + 2;
-  N(9); doc.text(nomeVal, nomeX, dy + 4.5);
+  N(9); doc.text(nomeVal, nomeX, dy + 4);
 
-  // CPF — label + valor colados (gap 2mm)
+  // CPF
   B(9); doc.text("CPF:", ML + 2, dy + 11);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
   N(9); doc.text(f.cpf, cpfX, dy + 11);
 
-  // ENDEREÇO — label + valor colados (gap 2mm)
-  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 17.5);
+  // ENDEREÇO
+  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 18);
   const endLblW = doc.getTextWidth("ENDEREÇO:");
   const endX = ML + 2 + endLblW + 2;
   const endVal = f.endereco.toUpperCase();
-  N(9); doc.text(endVal, endX, dy + 17.5);
+  N(9); doc.text(endVal, endX, dy + 18);
 
   y += dadosH + 0.8;
 
@@ -472,6 +473,7 @@ const Laudos = () => {
   const [form, setForm] = useState<LaudoForm>(EMPTY);
   const [pistOpen, setPistOpen] = useState(false);
   const [revolOpen, setRevolOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
@@ -578,7 +580,7 @@ const Laudos = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Popover>
+            <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline"
                   className={cn("h-9 w-52 justify-start text-left font-normal text-sm gap-2",
@@ -597,6 +599,7 @@ const Laudos = () => {
                     if (date) {
                       const iso = date.toLocaleDateString("sv-SE"); // YYYY-MM-DD
                       setForm(p => ({ ...p, dataDecl: iso, dataFinal: iso }));
+                      setDateOpen(false); // fecha ao selecionar
                     }
                   }}
                   initialFocus
