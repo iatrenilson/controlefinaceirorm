@@ -104,8 +104,8 @@ async function gerarLaudoPDF(f: LaudoForm) {
     if (marked) { N(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
-  // Parenthesis checkbox — texto simples, sem negrito
-  const pc = (ok: boolean) => ok ? "(X)" : "(   )";
+  // Parenthesis checkbox — espaços internos maiores para o X respirar
+  const pc = (ok: boolean) => ok ? "(  X  )" : "(      )";
   // Renderiza pc e avança x — fonte já deve estar setada antes de chamar
   const renderPc = (ok: boolean, x: number, y: number): number => {
     const str = pc(ok);
