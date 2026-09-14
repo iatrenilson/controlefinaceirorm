@@ -90,17 +90,17 @@ async function gerarLaudoPDF(f: LaudoForm) {
   //   Weapon rows body   → 8.5 / 8
   //   APTO / INAPTO      → 12
 
-  // Horizontal line
-  const hl = (y: number, x1 = ML, x2 = ML + CW, w = 0.2) => { doc.setLineWidth(w); doc.line(x1, y, x2, y); };
-  // Vertical line
-  const vl = (x: number, y1: number, y2: number) => { doc.setLineWidth(0.2); doc.line(x, y1, x, y2); };
-  // Underline field
-  const ul = (x: number, y: number, w: number) => { doc.setLineWidth(0.2); doc.line(x, y, x + w, y); };
+  // Horizontal line — sempre preto
+  const hl = (y: number, x1 = ML, x2 = ML + CW, w = 0.2) => { doc.setDrawColor(0); doc.setLineWidth(w); doc.line(x1, y, x2, y); };
+  // Vertical line — sempre preto
+  const vl = (x: number, y1: number, y2: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y1, x, y2); };
+  // Underline field — sempre preto
+  const ul = (x: number, y: number, w: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y, x + w, y); };
 
-  // Checkbox quadrado
+  // Checkbox quadrado — reset completo de cores antes de desenhar
   const sqBox = (x: number, y: number, marked: boolean, sz = 3.5) => {
-    doc.setLineWidth(0.25); doc.setDrawColor(0);
-    doc.rect(x, y - sz + 0.3, sz, sz);
+    doc.setDrawColor(0); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.25);
+    doc.rect(x, y - sz + 0.3, sz, sz, "S");
     if (marked) { N(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
@@ -191,7 +191,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   ];
   const aRowH = 10.5;
   const armasH = HDR + ARMAS.length * aRowH;
-  section(y, armasH, "ARNAS DE FOGO ULTILIZADAS");
+  section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
   // Colunas: c1 a 65mm, c2 a 125mm
   const c1 = ML + 65, c2 = ML + 126;
