@@ -849,7 +849,7 @@ const Emprestimos = () => {
                 <p className="text-muted-foreground text-xs">Segue o resumo do seu contrato:</p>
                 <div className="space-y-1 pt-1">
                   <p>💵 Valor: <span className="font-semibold">R$ {summaryData.valor.toFixed(2)}</span></p>
-                  <p>📊 Juros <span className="font-semibold">{summaryData.juros}%</span></p>
+                  <p>📊 Acréscimo <span className="font-semibold">{summaryData.juros}%</span></p>
                   <p>⏳ Saldo devedor: <span className="font-semibold text-green-500">R$ {summaryData.total.toFixed(2)}</span></p>
                   <p>📅 Próximo vencimento: <span className="font-semibold">{summaryData.dataPagamento}</span> — R$ {summaryData.total.toFixed(2)}</p>
                 </div>
@@ -861,7 +861,7 @@ const Emprestimos = () => {
                   className="flex-1"
                   onClick={() => {
                     const fmt = (v: number) => v.toFixed(2);
-                    const text = `*_Situação do seu Contrato_*\n\nOlá ${summaryData.nome}!\nSegue o resumo do seu contrato:\n\n💵 Valor: R$ ${fmt(summaryData.valor)}\n📊 Juros ${summaryData.juros}%\n⏳ Saldo devedor: R$ ${fmt(summaryData.total)}\n📅 Próximo vencimento: ${summaryData.dataPagamento} — R$ ${fmt(summaryData.total)}\n\nQualquer dúvida estou à disposição! 🙏`;
+                    const text = `*_Situação do seu Contrato_*\n\nOlá ${summaryData.nome}!\nSegue o resumo do seu contrato:\n\n💵 Valor: R$ ${fmt(summaryData.valor)}\n📊 Acréscimo ${summaryData.juros}%\n⏳ Saldo devedor: R$ ${fmt(summaryData.total)}\n📅 Próximo vencimento: ${summaryData.dataPagamento} — R$ ${fmt(summaryData.total)}\n\nQualquer dúvida estou à disposição! 🙏`;
                     navigator.clipboard.writeText(text);
                     toast({ title: "Resumo copiado!" });
                   }}
