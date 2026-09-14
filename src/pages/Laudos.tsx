@@ -267,7 +267,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
       B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4);
       N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7.5);
       const col3Center = c2 + (ML + CW - c2) / 2;
-      B(8.5); doc.text(`CALIBRE: ${a.cal}`, col3Center, ry + 4, { align: "center" });
+      // Calcula rx (início do grupo SINARM/SIGMA) antes de renderizar CALIBRE
       N(8);
       const pcStr = "(      )";
       const pcW = doc.getTextWidth(pcStr);
@@ -275,6 +275,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
       const gap2 = 2;
       const row2W = pcW + doc.getTextWidth(sinarmLbl) + gap2 + pcW + doc.getTextWidth(sigmaLbl);
       let rx = col3Center - row2W / 2;
+      // CALIBRE alinha à esquerda com o "(" da linha abaixo
+      B(8.5); doc.text(`CALIBRE: ${a.cal}`, rx, ry + 4);
       rx += renderPc(a.sist === "SINARM", rx, ry + 7.5);
       doc.text(sinarmLbl, rx, ry + 7.5); rx += doc.getTextWidth(sinarmLbl) + gap2;
       rx += renderPc(a.sist === "SIGMA", rx, ry + 7.5);
