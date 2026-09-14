@@ -188,14 +188,12 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const nomeVal = f.nome.toUpperCase();
   const nomeX = ML + 2 + nomeLblW + 2;
   N(9); doc.text(nomeVal, nomeX, dy + 3.5);
-  if (nomeVal) { ul(nomeX, dy + 4.2, doc.getTextWidth(nomeVal)); }
 
   // CPF — label + valor colados (gap 2mm)
   B(9); doc.text("CPF:", ML + 2, dy + 8);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
   N(9); doc.text(f.cpf, cpfX, dy + 8);
-  if (f.cpf) { ul(cpfX, dy + 8.7, doc.getTextWidth(f.cpf)); }
 
   // ENDEREÇO — label + valor colados (gap 2mm)
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 12.5);
@@ -203,7 +201,6 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const endX = ML + 2 + endLblW + 2;
   const endVal = f.endereco.toUpperCase();
   N(9); doc.text(endVal, endX, dy + 12.5);
-  if (endVal) { ul(endX, dy + 13.2, doc.getTextWidth(endVal)); }
 
   y += dadosH + 0.8;
 
