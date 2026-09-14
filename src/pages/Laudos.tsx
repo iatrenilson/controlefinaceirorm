@@ -150,12 +150,12 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const titleTxt = `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${f.numero || "______"}/2026`;
   const titleLines = doc.splitTextToSize(titleTxt, CW - 6);
   const titleH = titleLines.length * 5;
-  const legalH = legalLines.length * 3.5;
-  const box1H = 3 + titleH + 2 + legalH + 3;
+  const legalH = legalLines.length * 3.4;
+  const box1H = 2 + titleH + 1 + legalH + 1.5;
 
   doc.setLineWidth(0.35); doc.rect(ML, y, CW, box1H);
-  B(10); doc.text(titleLines, PW / 2, y + 5, { align: "center" });
-  N(7.5);  doc.text(legalLines, ML + 2, y + 5 + titleH + 2);
+  B(10); doc.text(titleLines, PW / 2, y + 4, { align: "center" });
+  N(7.5);  doc.text(legalLines, ML + 2, y + 4 + titleH + 1);
   y += box1H + 0.8;
 
   // ════════════════════════════════════════════
