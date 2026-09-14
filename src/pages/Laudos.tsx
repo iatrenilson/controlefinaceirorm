@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -44,7 +45,7 @@ const EMPTY: LaudoForm = {
   pistola: "", revolver: "", rifle: "", espingarda: "",
   dataDecl: "", local: "",
   finalidade: [], categoria: [],
-  notaTeorica: "", notaPistola: "", notaRevolver: "", notaRifle: "", notaEspingarda: "",
+  notaTeorica: "20", notaPistola: "", notaRevolver: "", notaRifle: "", notaEspingarda: "",
   conclusao: "", dataFinal: "",
 };
 
@@ -457,12 +458,25 @@ const Laudos = () => {
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
+  // Ao marcar rifle/espingarda → preenche nota automaticamente
+  const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
+    setForm(p => ({
+      ...p,
+      [key]: val,
+      ...(key === "rifle"      ? { notaRifle:      val ? "50"   : "" } : {}),
+      ...(key === "espingarda" ? { notaEspingarda: val ? "APTO" : "" } : {}),
+    }));
+  };
+
   const armaRows: Array<{ label: string; key: "pistola" | "revolver" | "rifle" | "espingarda" }> = [
     { label: "Pistola",    key: "pistola" },
     { label: "Revólver",   key: "revolver" },
     { label: "Rifle",      key: "rifle" },
     { label: "Espingarda", key: "espingarda" },
   ];
+
+  // Opções de pontuação 72-120
+  const PONT_OPTIONS = Array.from({ length: 49 }, (_, i) => String(72 + i));
 
   return (
     <div className="min-h-screen bg-background">
@@ -529,9 +543,9 @@ const Laudos = () => {
                   <span className="text-sm font-medium w-24 flex-shrink-0">{label}</span>
                   <div className="flex gap-2">
                     <RadioBtn checked={form[key] === "SINARM"}
-                      onClick={() => set(key, form[key] === "SINARM" ? "" : "SINARM")} label="SINARM" />
+                      onClick={() => setArma(key, form[key] === "SINARM" ? "" : "SINARM")} label="SINARM" />
                     <RadioBtn checked={form[key] === "SIGMA"}
-                      onClick={() => set(key, form[key] === "SIGMA" ? "" : "SIGMA")}  label="SIGMA"  />
+                      onClick={() => setArma(key, form[key] === "SIGMA" ? "" : "SIGMA")}  label="SIGMA"  />
                   </div>
                 </div>
               ))}
@@ -641,28 +655,58 @@ const Laudos = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Nota Teórica — sempre 20 */}
             <div className="space-y-1">
               <Label className="text-xs">Nota da Prova Teórica</Label>
-              <Input className="h-9 text-sm w-28" placeholder="0"
-                value={form.notaTeorica} onChange={e => set("notaTeorica", e.target.value)} />
+              <div className="h-9 px-3 flex items-center rounded-md border bg-muted text-sm font-semibold w-28">
+                20
+              </div>
             </div>
             <div>
               <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
                 Pontuação no Alvo Silhueta
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {([
-                  ["Pistola",    "notaPistola"],
-                  ["Revólver",   "notaRevolver"],
-                  ["Rifle",      "notaRifle"],
-                  ["Espingarda", "notaEspingarda"],
-                ] as const).map(([lb, k]) => (
-                  <div key={k} className="space-y-1">
-                    <Label className="text-xs">{lb}</Label>
-                    <Input className="h-9 text-sm" placeholder="0"
-                      value={form[k]} onChange={e => set(k, e.target.value)} />
+                {/* Pistola — Select 72-120 */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Pistola</Label>
+                  <Select value={form.notaPistola} onValueChange={v => set("notaPistola", v)}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PONT_OPTIONS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Revólver — Select 72-120 */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Revólver</Label>
+                  <Select value={form.notaRevolver} onValueChange={v => set("notaRevolver", v)}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="—" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PONT_OPTIONS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Rifle — auto 50 */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Rifle</Label>
+                  <div className={cn("h-9 px-3 flex items-center rounded-md border text-sm",
+                    form.notaRifle ? "bg-muted font-semibold" : "bg-muted/40 text-muted-foreground")}>
+                    {form.notaRifle || "Auto (marque rifle)"}
                   </div>
-                ))}
+                </div>
+                {/* Espingarda — auto APTO */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Espingarda</Label>
+                  <div className={cn("h-9 px-3 flex items-center rounded-md border text-sm",
+                    form.notaEspingarda ? "bg-muted font-semibold" : "bg-muted/40 text-muted-foreground")}>
+                    {form.notaEspingarda || "Auto (marque espingarda)"}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
