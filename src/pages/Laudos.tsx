@@ -364,46 +364,49 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = tipo === "sinarm" ? HDR + 23 : HDR + 19;
+  // Margens iguais (3mm topo e base): fndY=content+1 → first_offset=2 → topo=3mm
+  // SINARM: 5 linhas a 4.5mm → last_offset=20 → content=24 → base=3mm ✓
+  // CR/CAC: 4 linhas a 4.5mm → last_offset=15.5 → content=20 → base=3mm ✓
+  const fundH = tipo === "sinarm" ? HDR + 24 : HDR + 20;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE
-  N(9); doc.text("FINALIDADE:", ML + 2, fndY + 3.5);
+  // FINALIDADE  (offset +2)
+  N(9); doc.text("FINALIDADE:", ML + 2, fndY + 2);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 3.5);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 3.5);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 2);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 2);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 3.5);
-  doc.text(" PORTE  ", fx, fndY + 3.5);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 2);
+  doc.text(" PORTE  ", fx, fndY + 2);
   fx += doc.getTextWidth(" PORTE  ");
   if (tipo === "cr_cac") {
-    fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 3.5);
-    N(9); doc.text(" CR", fx, fndY + 3.5);
+    fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 2);
+    N(9); doc.text(" CR", fx, fndY + 2);
   }
 
-  // CATEGORIA
-  N(9); doc.text("CATEGORIA:", ML + 2, fndY + 8);
+  // CATEGORIA  (offset +6.5)
+  N(9); doc.text("CATEGORIA:", ML + 2, fndY + 6.5);
   fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
-  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 8);
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 8);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 6.5);
+  doc.text(" DEFESA PESSOAL  ", fx, fndY + 6.5);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 8);
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 8);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 6.5);
+  doc.text(" INSTITUCIONAL  ", fx, fndY + 6.5);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
   if (tipo === "cr_cac") {
-    fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8);
-    N(9); doc.text(" CAC", fx, fndY + 8);
+    fx += renderPc(f.categoria.includes("cac"), fx, fndY + 6.5);
+    N(9); doc.text(" CAC", fx, fndY + 6.5);
   }
 
-  // NOTA — label normal, valor em negrito
-  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12.5);
+  // NOTA — label normal, valor em negrito  (offset +11)
+  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 11);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12.5);
+  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 11);
 
-  // PONTUAÇÃO SILHUETA — label normal, valores em negrito
-  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17);
+  // PONTUAÇÃO SILHUETA — label normal, valores em negrito  (offset +15.5)
+  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 15.5);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
     { lbl: "PISTOLA: ",      val: f.notaPistola    || "–" },
@@ -412,15 +415,15 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "–" },
   ];
   armas2.forEach(({ lbl, val }) => {
-    N(9); doc.text(lbl, px, fndY + 17); px += doc.getTextWidth(lbl);
-    B(9); doc.text(val, px, fndY + 17); px += doc.getTextWidth(val);
+    N(9); doc.text(lbl, px, fndY + 15.5); px += doc.getTextWidth(lbl);
+    B(9); doc.text(val, px, fndY + 15.5); px += doc.getTextWidth(val);
   });
 
-  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM
+  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM  (offset +20)
   if (tipo === "sinarm") {
-    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 21.5);
+    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 20);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 21.5);
+    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 20);
   }
 
   y += fundH + 0.8;
