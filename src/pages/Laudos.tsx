@@ -377,7 +377,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
     doc.setDrawColor(0); doc.setFillColor(255,255,255); doc.setLineWidth(0.25);
     doc.rect(bx, ccY - bsz + 0.3, bsz, bsz, "S");
     if (marked) {
-      N(8); doc.setTextColor(0);
+      B(9); doc.setTextColor(0);
       doc.text("X", bx + bsz / 2, ccY - bsz / 2 + 1.1, { align: "center" });
     }
   };
