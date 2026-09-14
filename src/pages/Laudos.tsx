@@ -476,6 +476,7 @@ function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
 // ─── Component ──────────────────────────────────────────────────────────────────
 const Laudos = () => {
   const [form, setForm] = useState<LaudoForm>(EMPTY);
+  const [laudoTipo, setLaudoTipo] = useState<"cr_cac" | "sinarm">("cr_cac");
   const [pistOpen, setPistOpen] = useState(false);
   const [revolOpen, setRevolOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
@@ -521,9 +522,30 @@ const Laudos = () => {
         {/* Dados do Avaliado */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Dados do Avaliado
-            </CardTitle>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
+                Dados do Avaliado
+              </CardTitle>
+              {/* Tipo de Laudo */}
+              <div className="flex rounded-md overflow-hidden border border-border text-xs font-medium">
+                <button type="button"
+                  onClick={() => setLaudoTipo("cr_cac")}
+                  className={cn("px-3 py-1.5 transition-colors",
+                    laudoTipo === "cr_cac"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground hover:bg-muted")}>
+                  CR / CAC
+                </button>
+                <button type="button"
+                  onClick={() => setLaudoTipo("sinarm")}
+                  className={cn("px-3 py-1.5 border-l border-border transition-colors",
+                    laudoTipo === "sinarm"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground hover:bg-muted")}>
+                  SINARM Posse/Porte
+                </button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
