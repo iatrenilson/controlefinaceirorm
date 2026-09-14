@@ -529,7 +529,7 @@ const Laudos = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">N° Comprovante</Label>
-                <Input className="h-9 text-sm" placeholder="______"
+                <Input className="h-9 text-sm"
                   value={form.numero} onChange={e => set("numero", e.target.value)} />
               </div>
             </div>
