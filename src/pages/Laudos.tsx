@@ -378,10 +378,17 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const concH = HDR + 8;
   section(y, concH, "CONCLUSÃO");
 
-  // Caixas menores, X centralizado, fonte normal (igual original)
+  // Caixas menores, X centralizado, centralizado na largura da caixa
   const bsz = 3.2;
   const ccY = y + HDR + 3.5;
-  const bx1 = PW / 2 - 22, bx2 = PW / 2 + 8;
+  // Calcula largura total e centraliza dinamicamente
+  N(9);
+  const _aptoW  = doc.getTextWidth("APTO");
+  const _inaptW = doc.getTextWidth("INAPTO");
+  const _gapGrp = 14; // espaço entre grupos
+  const _totalConc = bsz + 1 + _aptoW + _gapGrp + bsz + 1 + _inaptW;
+  const bx1 = ML + (CW - _totalConc) / 2;
+  const bx2 = bx1 + bsz + 1 + _aptoW + _gapGrp;
 
   // Desenha caixa e X centralizado manualmente
   const drawBox = (bx: number, marked: boolean) => {
@@ -389,7 +396,8 @@ async function gerarLaudoPDF(f: LaudoForm) {
     doc.rect(bx, ccY - bsz + 0.3, bsz, bsz, "S");
     if (marked) {
       B(9); doc.setTextColor(0);
-      doc.text("X", bx + bsz / 2, ccY - bsz / 2 + 1.1, { align: "center" });
+      // Centraliza X: topo_caixa + bsz/2 + ajuste_baseline
+      doc.text("X", bx + bsz / 2, (ccY - bsz + 0.3) + bsz / 2 + 1.2, { align: "center" });
     }
   };
 
