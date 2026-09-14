@@ -147,7 +147,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const legalLines = doc.splitTextToSize(legalTxt, CW - 4);
 
   B(10);
-  const titleTxt = `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${f.numero || "______"}2026`;
+  const titleTxt = `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${f.numero || "______"}/2026`;
   const titleLines = doc.splitTextToSize(titleTxt, CW - 6);
   const titleH = titleLines.length * 5;
   const legalH = legalLines.length * 3.5;
@@ -156,7 +156,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   doc.setLineWidth(0.35); doc.rect(ML, y, CW, box1H);
   B(10); doc.text(titleLines, PW / 2, y + 5, { align: "center" });
   N(7.5);  doc.text(legalLines, ML + 2, y + 5 + titleH + 2);
-  y += box1H + 1.5;
+  y += box1H + 0.8;
 
   // ════════════════════════════════════════════
   // DADOS DO AVALIADO
@@ -178,7 +178,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   N(9); doc.text(f.endereco.toUpperCase(), ML + 25, dy + 18);
   ul(ML + 24, dy + 18.7, CW - 26);
 
-  y += dadosH + 1.5;
+  y += dadosH + 0.8;
 
   // ════════════════════════════════════════════
   // ARMAS DE FOGO UTILIZADAS
@@ -189,7 +189,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
     { tipo: "RIFLE",      serie: "NWE 4872174", marca: "ROSSI",         reg: "905938944", cal: "357 MAG", sist: f.rifle },
     { tipo: "ESPINGARDA", serie: "G11534022",   marca: "BOITO",         reg: "905938936", cal: "12",      sist: f.espingarda },
   ];
-  const aRowH = 10.5;
+  const aRowH = 9;
   const armasH = HDR + ARMAS.length * aRowH;
   section(y, armasH, "ARMAS DE FOGO UTILIZADAS");
 
@@ -203,31 +203,31 @@ async function gerarLaudoPDF(f: LaudoForm) {
     if (i > 0) hl(ry);
 
     // Col 1
-    B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4.5);
-    N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 8.8);
+    B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4);
+    N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7.5);
 
     // Col 2
-    B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4.5);
-    N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 8.8);
+    B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 4);
+    N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7.5);
 
     // Col 3
-    B(8.5); doc.text(`CALIBRE: ${a.cal}`,  c2 + 3, ry + 4.5);
-    // SINARM — X em negrito
+    B(8.5); doc.text(`CALIBRE: ${a.cal}`,  c2 + 3, ry + 4);
+    // SINARM / SIGMA
     N(8);
     let rx = c2 + 3;
-    rx += renderPc(a.sist === "SINARM", rx, ry + 8.8);
-    doc.text(" SINARM", rx, ry + 8.8);
+    rx += renderPc(a.sist === "SINARM", rx, ry + 7.5);
+    doc.text(" SINARM", rx, ry + 7.5);
     rx += doc.getTextWidth(" SINARM") + 2;
-    rx += renderPc(a.sist === "SIGMA", rx, ry + 8.8);
-    doc.text(" SIGMA", rx, ry + 8.8);
+    rx += renderPc(a.sist === "SIGMA", rx, ry + 7.5);
+    doc.text(" SIGMA", rx, ry + 7.5);
   });
 
-  y += armasH + 1.5;
+  y += armasH + 0.8;
 
   // ════════════════════════════════════════════
   // DECLARAÇÃO
   // ════════════════════════════════════════════
-  const declH = HDR + 34;
+  const declH = HDR + 28;
   section(y, declH, "DECLARAÇÃO");
 
   const decY = y + HDR + 1;
@@ -239,8 +239,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // Mede o que foi usado na linha 1 por "Eu [NOME]"
   N(9); const euW   = doc.getTextWidth("Eu ");
   N(9); const nomeW = doc.getTextWidth(nomeDecl);
-  const line1Used   = euW + nomeW;
-  const line1Avail  = CW - 4 - line1Used;
+  const line1Avail  = CW - 4 - euW - nomeW;
 
   // Quebra o suffix: parte que cabe na linha 1 e resto
   N(9);
@@ -251,20 +250,20 @@ async function gerarLaudoPDF(f: LaudoForm) {
 
   // Desenha linha 1
   let dx = ML + 2;
-  N(9); doc.text("Eu ", dx, decY + 6);      dx += euW;
-  N(9); doc.text(nomeDecl, dx, decY + 6);   dx += nomeW;
-  N(9); doc.text(part1, dx, decY + 6);
+  N(9); doc.text("Eu ", dx, decY + 5);      dx += euW;
+  N(9); doc.text(nomeDecl, dx, decY + 5);   dx += nomeW;
+  N(9); doc.text(part1, dx, decY + 5);
 
   // Linhas seguintes
   if (restLines.length) {
-    N(9); doc.text(restLines as string[], ML + 2, decY + 12);
+    N(9); doc.text(restLines as string[], ML + 2, decY + 10.5);
   }
 
-  // Linha de assinatura (espaço para assinatura física)
-  ul(ML + 37, decY + 29, 116);
-  N(9); doc.text("ASSINATURA DO AVALIADO", PW / 2, decY + 33, { align: "center" });
+  // Linha de assinatura
+  ul(ML + 37, decY + 22, 116);
+  N(9); doc.text("ASSINATURA DO AVALIADO", PW / 2, decY + 26, { align: "center" });
 
-  y += declH + 1.5;
+  y += declH + 0.8;
 
   // ════════════════════════════════════════════
   // LOCAL DE APLICAÇÃO PROVA PRATICA
@@ -274,24 +273,24 @@ async function gerarLaudoPDF(f: LaudoForm) {
     { id: "texas",  nome: "Clube de Tiro Texas Gun",             end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
     { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas", end: "ENDERECO: Av. Pedro Teixeira - Chapada, Manaus/AM." },
   ];
-  const lRowH = 10.5;
+  const lRowH = 9;
   const localH = HDR + LOCAIS.length * lRowH;
   section(y, localH, "LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)");
 
   LOCAIS.forEach((loc, i) => {
     const ly = y + HDR + i * lRowH;
     if (i > 0) hl(ly);
-    sqBox(ML + 2.5, ly + 6, f.local === loc.id);
-    B(9); doc.text(`NOME: ${loc.nome}`, ML + 8, ly + 5);
-    N(9); doc.text(`ENDEREÇO: ${loc.end}`, ML + 8, ly + 9.5);
+    sqBox(ML + 2.5, ly + 5, f.local === loc.id);
+    B(9); doc.text(`NOME: ${loc.nome}`, ML + 8, ly + 4);
+    N(9); doc.text(`ENDEREÇO: ${loc.end}`, ML + 8, ly + 7.8);
   });
 
-  y += localH + 1.5;
+  y += localH + 0.8;
 
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 25;
+  const fundH = HDR + 22;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
@@ -299,52 +298,52 @@ async function gerarLaudoPDF(f: LaudoForm) {
 
   // FINALIDADE — ( ) / (X) em fonte normal
   let fx = ML + 2;
-  B(9); doc.text("FINALIDADE:", fx, fndY + 6); fx += 27;
+  B(9); doc.text("FINALIDADE:", fx, fndY + 5.5); fx += 27;
   N(9);
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 6);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 5.5);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 5.5);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 6);
-  doc.text(" PORTE  ", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 5.5);
+  doc.text(" PORTE  ", fx, fndY + 5.5);
   fx += doc.getTextWidth(" PORTE  ");
-  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 6);
-  doc.text(" CR", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 5.5);
+  doc.text(" CR", fx, fndY + 5.5);
 
   // CATEGORIA — ( ) / (X) em fonte normal
   fx = ML + 2;
-  B(9); doc.text("CATEGORIA:", fx, fndY + 12); fx += 24;
+  B(9); doc.text("CATEGORIA:", fx, fndY + 11); fx += 24;
   N(9);
-  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 12);
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 11);
+  doc.text(" DEFESA PESSOAL  ", fx, fndY + 11);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 12);
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 11);
+  doc.text(" INSTITUCIONAL  ", fx, fndY + 11);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 12);
-  doc.text(" CAC", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 11);
+  doc.text(" CAC", fx, fndY + 11);
 
-  hl(y + HDR + 14);
+  hl(y + HDR + 13);
 
   // NOTA + PONTUAÇÃO
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 19.5);
-  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 19.5);
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 17);
+  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 17);
 
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 24);
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 21);
   N(9);
   doc.text(
     ` PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    ML + 62, fndY + 23.5
+    ML + 62, fndY + 21
   );
 
-  y += fundH + 1.5;
+  y += fundH + 0.8;
 
   // ════════════════════════════════════════════
   // CONCLUSÃO
   // ════════════════════════════════════════════
-  const concH = HDR + 14;
+  const concH = HDR + 12;
   section(y, concH, "CONCLUSÃO");
 
-  const ccY = y + HDR + 8;
+  const ccY = y + HDR + 7;
   const bsz = 4.5;
   const bx1 = PW / 2 - 30, bx2 = PW / 2 + 10;
 
@@ -354,7 +353,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   sqBox(bx2, ccY, f.conclusao === "inapto", bsz);
   B(12); doc.text("INAPTO", bx2 + bsz + 2, ccY);
 
-  y += concH + 1.5;
+  y += concH + 0.8;
 
   // ════════════════════════════════════════════
   // AVALIADOR
@@ -379,7 +378,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   B(9); doc.text("VALIDADE:", ax, avY + 11.5); ax += doc.getTextWidth("VALIDADE:");
   N(9); doc.text(" 31/10/2029", ax, avY + 11.5);
 
-  y += avalH + 9;
+  y += avalH + 0.8;
 
   // ════════════════════════════════════════════
   // DATA FINAL + ASSINATURA DO AVALIADOR
@@ -387,7 +386,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   N(10);
   doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
 
-  y += 16;
+  y += 22;   // espaço para assinatura digital GOV.BR
   ul(PW / 2 - 43, y, 86);
   y += 5;
   B(10); doc.text("William Bruno Toyoda Hitotuzi", PW / 2, y, { align: "center" });
