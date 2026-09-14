@@ -292,7 +292,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 22;
+  const fundH = HDR + 24;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
@@ -326,15 +326,15 @@ async function gerarLaudoPDF(f: LaudoForm) {
 
   hl(y + HDR + 13);
 
-  // NOTA + PONTUAÇÃO
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 16);
-  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 16);
+  // NOTA + PONTUAÇÃO — centralizados no espaço abaixo da divisória
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 15.5);
+  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 15.5);
 
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 20);
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 19.5);
   N(9);
   doc.text(
     ` PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    ML + 62, fndY + 20
+    ML + 62, fndY + 19.5
   );
 
   y += fundH + 0.8;
@@ -360,27 +360,27 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // AVALIADOR
   // ════════════════════════════════════════════
-  const avalH = HDR + 12;
+  const avalH = HDR + 15;
   section(y, avalH, "AVALIADOR");
 
   const avY = y + HDR + 1;
-  // Linha 1
+  // Linha 1 — centralizada verticalmente (3 linhas disponíveis: 15mm / 2 = 7.5mm centro)
   let ax = ML + 2;
-  B(9); doc.text("NOME:", ax, avY + 6); ax += doc.getTextWidth("NOME:");
-  N(9); doc.text(" William Bruno Toyoda Hitotuzi", ax, avY + 6);
+  B(9); doc.text("NOME:", ax, avY + 5); ax += doc.getTextWidth("NOME:");
+  N(9); doc.text(" William Bruno Toyoda Hitotuzi", ax, avY + 5);
   ax = ML + 105;
-  B(9); doc.text("CPF:", ax, avY + 6); ax += doc.getTextWidth("CPF:");
-  N(9); doc.text(" 733.633.592-68", ax, avY + 6);
+  B(9); doc.text("CPF:", ax, avY + 5); ax += doc.getTextWidth("CPF:");
+  N(9); doc.text(" 733.633.592-68", ax, avY + 5);
 
   // Linha 2
   ax = ML + 2;
-  B(9); doc.text("PORTARIA:", ax, avY + 11.5); ax += doc.getTextWidth("PORTARIA:");
-  N(9); doc.text(" DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 11.5);
+  B(9); doc.text("PORTARIA:", ax, avY + 10); ax += doc.getTextWidth("PORTARIA:");
+  N(9); doc.text(" DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 10);
   ax = ML + 112;
-  B(9); doc.text("VALIDADE:", ax, avY + 11.5); ax += doc.getTextWidth("VALIDADE:");
-  N(9); doc.text(" 31/10/2029", ax, avY + 11.5);
+  B(9); doc.text("VALIDADE:", ax, avY + 10); ax += doc.getTextWidth("VALIDADE:");
+  N(9); doc.text(" 31/10/2029", ax, avY + 10);
 
-  y += avalH + 0.8;
+  y += avalH + 2;
 
   // ════════════════════════════════════════════
   // DATA FINAL + ASSINATURA DO AVALIADOR
