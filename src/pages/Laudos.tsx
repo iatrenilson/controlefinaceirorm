@@ -97,15 +97,29 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // Underline field
   const ul = (x: number, y: number, w: number) => { doc.setLineWidth(0.2); doc.line(x, y, x + w, y); };
 
-  // Small square checkbox
+  // Small square checkbox — X sempre em negrito
   const sqBox = (x: number, y: number, marked: boolean, sz = 3.5) => {
     doc.setLineWidth(0.25); doc.setDrawColor(0);
     doc.rect(x, y - sz + 0.3, sz, sz);
-    if (marked) { B(9); doc.text("X", x + sz / 2, y - 0.2, { align: "center" }); }
+    if (marked) { B(10); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
-  // Parenthesis checkbox: (X) or (   )
-  const pc = (ok: boolean) => ok ? "(X)" : "(   )";
+  // Parenthesis checkbox — renderiza ( ) com X em negrito quando marcado
+  // Retorna a string para medir largura; o texto é desenhado via renderPc
+  const pc      = (ok: boolean) => ok ? "(X)" : "(   )";
+  const renderPc = (ok: boolean, x: number, y: number, sz: number): number => {
+    if (!ok) {
+      N(sz); doc.text("(   )", x, y);
+      return doc.getTextWidth("(   )");
+    }
+    // "(" normal, "X" bold, ")" normal
+    N(sz); doc.text("(", x, y);
+    const lp = doc.getTextWidth("(");
+    B(sz); doc.text("X", x + lp, y);
+    const xW = doc.getTextWidth("X");
+    N(sz); doc.text(")", x + lp + xW, y);
+    return lp + xW + doc.getTextWidth(")");
+  };
 
   // Write bold label then normal value on same line
   const labelVal = (x: number, y: number, lbl: string, val: string, sz = 8.5) => {
@@ -206,16 +220,14 @@ async function gerarLaudoPDF(f: LaudoForm) {
 
     // Col 3
     B(8.5); doc.text(`CALIBRE: ${a.cal}`,  c2 + 3, ry + 4.5);
-    N(8);
-    // SINARM
-    doc.text(pc(a.sist === "SINARM"), c2 + 3, ry + 8.8);
-    const sinW = doc.getTextWidth(pc(a.sist === "SINARM"));
-    doc.text(" SINARM", c2 + 3 + sinW, ry + 8.8);
-    const sinTot = sinW + doc.getTextWidth(" SINARM");
-    // SIGMA
-    doc.text("  " + pc(a.sist === "SIGMA"), c2 + 3 + sinTot, ry + 8.8);
-    const sigW = doc.getTextWidth("  " + pc(a.sist === "SIGMA"));
-    doc.text(" SIGMA", c2 + 3 + sinTot + sigW, ry + 8.8);
+    // SINARM — X em negrito
+    let rx = c2 + 3;
+    rx += renderPc(a.sist === "SINARM", rx, ry + 8.8, 8);
+    N(8); doc.text(" SINARM", rx, ry + 8.8);
+    rx += doc.getTextWidth(" SINARM") + 2;
+    // SIGMA — X em negrito
+    rx += renderPc(a.sist === "SIGMA", rx, ry + 8.8, 8);
+    N(8); doc.text(" SIGMA", rx, ry + 8.8);
   });
 
   y += armasH + 1.5;
@@ -274,37 +286,29 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const fndY = y + HDR + 1;
   N(8.5);
 
-  // FINALIDADE
+  // FINALIDADE — X em negrito
   let fx = ML + 2;
   B(9); doc.text("FINALIDADE:", fx, fndY + 6); fx += 27;
-  N(9);
-  doc.text(pc(f.finalidade.includes("aquisicao")), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade.includes("aquisicao")));
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 6, 9);
+  N(9); doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 6);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  doc.text(pc(f.finalidade.includes("porte")), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade.includes("porte")));
-  doc.text(" PORTE  ", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 6, 9);
+  N(9); doc.text(" PORTE  ", fx, fndY + 6);
   fx += doc.getTextWidth(" PORTE  ");
-  doc.text(pc(f.finalidade.includes("cr")), fx, fndY + 6);
-  fx += doc.getTextWidth(pc(f.finalidade.includes("cr")));
-  doc.text(" CR", fx, fndY + 6);
+  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 6, 9);
+  N(9); doc.text(" CR", fx, fndY + 6);
 
-  // CATEGORIA
+  // CATEGORIA — X em negrito
   fx = ML + 2;
   B(9); doc.text("CATEGORIA:", fx, fndY + 12); fx += 24;
-  N(9);
-  doc.text(pc(f.categoria.includes("defesa")), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria.includes("defesa")));
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 12, 9);
+  N(9); doc.text(" DEFESA PESSOAL  ", fx, fndY + 12);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  doc.text(pc(f.categoria.includes("institucional")), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria.includes("institucional")));
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 12, 9);
+  N(9); doc.text(" INSTITUCIONAL  ", fx, fndY + 12);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  doc.text(pc(f.categoria.includes("cac")), fx, fndY + 12);
-  fx += doc.getTextWidth(pc(f.categoria.includes("cac")));
-  doc.text(" CAC", fx, fndY + 12);
+  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 12, 9);
+  N(9); doc.text(" CAC", fx, fndY + 12);
 
   hl(y + HDR + 14);
 
