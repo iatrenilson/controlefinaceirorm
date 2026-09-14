@@ -101,7 +101,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const sqBox = (x: number, y: number, marked: boolean, sz = 3.5) => {
     doc.setDrawColor(0); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.25);
     doc.rect(x, y - sz + 0.3, sz, sz, "S");
-    if (marked) { N(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
+    if (marked) { B(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
   // Parenthesis checkbox — espaços internos maiores para o X respirar
@@ -273,7 +273,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const LOCAIS = [
     { id: "juliet", nome: "Clube de Tiro Juliet Papa",           end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
     { id: "texas",  nome: "Clube de Tiro Texas Gun",             end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
-    { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas", end: "ENDERECO: Av. Pedro Teixeira - Chapada, Manaus/AM." },
+    { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas", end: "Av. Pedro Teixeira - Chapada, Manaus/AM." },
   ];
   const lRowH = 9;
   const localH = HDR + LOCAIS.length * lRowH;
@@ -327,14 +327,14 @@ async function gerarLaudoPDF(f: LaudoForm) {
   hl(y + HDR + 13);
 
   // NOTA + PONTUAÇÃO
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 17);
-  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 17);
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 16);
+  N(9); doc.text(f.notaTeorica || "_____", ML + 56, fndY + 16);
 
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 21);
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 20);
   N(9);
   doc.text(
     ` PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    ML + 62, fndY + 21
+    ML + 62, fndY + 20
   );
 
   y += fundH + 0.8;
@@ -350,10 +350,10 @@ async function gerarLaudoPDF(f: LaudoForm) {
   const bx1 = PW / 2 - 30, bx2 = PW / 2 + 10;
 
   sqBox(bx1, ccY, f.conclusao === "apto", bsz);
-  B(12); doc.text("APTO",   bx1 + bsz + 2, ccY);
+  N(9); doc.text("APTO",   bx1 + bsz + 2, ccY);
 
   sqBox(bx2, ccY, f.conclusao === "inapto", bsz);
-  B(12); doc.text("INAPTO", bx2 + bsz + 2, ccY);
+  N(9); doc.text("INAPTO", bx2 + bsz + 2, ccY);
 
   y += concH + 0.8;
 
