@@ -592,12 +592,17 @@ const Laudos = () => {
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           <ClipboardList className="h-5 w-5 text-primary flex-shrink-0" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Laudos</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">
               Comprovante de Capacidade Técnica — Arma de Fogo
             </p>
           </div>
+          <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs"
+            onClick={() => { setForm(EMPTY); toast.info("Formulário limpo."); }}>
+            <RotateCcw className="h-3.5 w-3.5" />
+            Limpar
+          </Button>
         </div>
       </header>
 
@@ -950,34 +955,23 @@ const Laudos = () => {
           </CardContent>
         </Card>
 
-        {/* Botões */}
-        <div className="flex gap-3">
-          <Button variant="outline" size="lg" className="gap-2 h-12 flex-1"
-            onClick={() => {
-              setForm(EMPTY);
-              toast.info("Formulário limpo.");
-            }}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Limpar
-          </Button>
-          <Button size="lg" className="gap-2 h-12 flex-[2]"
-            onClick={async () => {
-              if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
-              if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
-              try {
-                await gerarLaudoPDF(form, laudoTipo);
-                toast.success("Laudo gerado com sucesso!");
-              } catch (e) {
-                console.error(e);
-                toast.error("Erro ao gerar PDF.");
-              }
-            }}
-          >
-            <Download className="h-4 w-4" />
-            Gerar Laudo PDF
-          </Button>
-        </div>
+        {/* Botão */}
+        <Button size="lg" className="w-full gap-2 h-12"
+          onClick={async () => {
+            if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
+            if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
+            try {
+              await gerarLaudoPDF(form, laudoTipo);
+              toast.success("Laudo gerado com sucesso!");
+            } catch (e) {
+              console.error(e);
+              toast.error("Erro ao gerar PDF.");
+            }
+          }}
+        >
+          <Download className="h-4 w-4" />
+          Gerar Laudo PDF
+        </Button>
 
         <div className="h-6" />
       </main>
