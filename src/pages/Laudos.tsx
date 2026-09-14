@@ -350,16 +350,17 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     { id: "texas",  nome: "Clube de Tiro Texas Gun",             end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
     { id: "cta",    nome: "CTA INDOR Clube de Tiro do Amazonas", end: "Av. Pedro Teixeira - Chapada, Manaus/AM." },
   ];
-  const lRowH = 9;
+  // lRowH=11: NOME em +3.5, ENDEREÇO em +7.5 → margem 3.5mm topo e base ✓
+  const lRowH = 11;
   const localH = HDR + LOCAIS.length * lRowH;
   section(y, localH, "LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)");
 
   LOCAIS.forEach((loc, i) => {
     const ly = y + HDR + i * lRowH;
     if (i > 0) hl(ly);
-    sqBox(ML + 2.5, ly + 5, f.local === loc.id);
-    B(9); doc.text(`NOME: ${loc.nome}`, ML + 8, ly + 4);
-    N(9); doc.text(`ENDEREÇO: ${loc.end}`, ML + 8, ly + 7.8);
+    sqBox(ML + 2.5, ly + 5.5, f.local === loc.id);
+    B(9); doc.text(`NOME: ${loc.nome}`, ML + 8, ly + 3.5);
+    N(9); doc.text(`ENDEREÇO: ${loc.end}`, ML + 8, ly + 7.5);
   });
 
   y += localH + 0.8;
@@ -367,49 +368,50 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  // Margens iguais (3mm topo e base): fndY=content+1 → first_offset=2 → topo=3mm
-  // SINARM: 5 linhas a 4.5mm → last_offset=20 → content=24 → base=3mm ✓
-  // CR/CAC: 4 linhas a 4.5mm → last_offset=15.5 → content=20 → base=3mm ✓
-  const fundH = tipo === "sinarm" ? HDR + 24 : HDR + 20;
+  // Margens iguais 4mm topo e base:
+  // fndY = content+1 → first_offset = 3 → topo = 1+3 = 4mm
+  // SINARM: 5 linhas a 4.5mm → last = 3+18 = 21 → content=26 → base=26-22=4mm ✓
+  // CR/CAC: 4 linhas a 4.5mm → last = 3+13.5=16.5 → content=22 → base=22-17.5=4.5mm ✓
+  const fundH = tipo === "sinarm" ? HDR + 26 : HDR + 22;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE  (offset +2)
-  N(9); doc.text("FINALIDADE:", ML + 2, fndY + 2);
+  // FINALIDADE  (offset +3 → topo=4mm)
+  N(9); doc.text("FINALIDADE:", ML + 2, fndY + 3);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 2);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 2);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 3);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 3);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 2);
-  doc.text(" PORTE  ", fx, fndY + 2);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 3);
+  doc.text(" PORTE  ", fx, fndY + 3);
   fx += doc.getTextWidth(" PORTE  ");
   if (tipo === "cr_cac") {
-    fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 2);
-    N(9); doc.text(" CR", fx, fndY + 2);
+    fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 3);
+    N(9); doc.text(" CR", fx, fndY + 3);
   }
 
-  // CATEGORIA  (offset +6.5)
-  N(9); doc.text("CATEGORIA:", ML + 2, fndY + 6.5);
+  // CATEGORIA  (offset +7.5)
+  N(9); doc.text("CATEGORIA:", ML + 2, fndY + 7.5);
   fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
-  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 6.5);
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 6.5);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 7.5);
+  doc.text(" DEFESA PESSOAL  ", fx, fndY + 7.5);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 6.5);
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 6.5);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 7.5);
+  doc.text(" INSTITUCIONAL  ", fx, fndY + 7.5);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
   if (tipo === "cr_cac") {
-    fx += renderPc(f.categoria.includes("cac"), fx, fndY + 6.5);
-    N(9); doc.text(" CAC", fx, fndY + 6.5);
+    fx += renderPc(f.categoria.includes("cac"), fx, fndY + 7.5);
+    N(9); doc.text(" CAC", fx, fndY + 7.5);
   }
 
-  // NOTA — label normal, valor em negrito  (offset +11)
-  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 11);
+  // NOTA — label normal, valor em negrito  (offset +12)
+  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 12);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 11);
+  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 12);
 
-  // PONTUAÇÃO SILHUETA — label normal, valores em negrito  (offset +15.5)
-  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 15.5);
+  // PONTUAÇÃO SILHUETA — label normal, valores em negrito  (offset +16.5)
+  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 16.5);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
     { lbl: "PISTOLA: ",      val: f.notaPistola    || "–" },
@@ -418,15 +420,15 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "–" },
   ];
   armas2.forEach(({ lbl, val }) => {
-    N(9); doc.text(lbl, px, fndY + 15.5); px += doc.getTextWidth(lbl);
-    B(9); doc.text(val, px, fndY + 15.5); px += doc.getTextWidth(val);
+    N(9); doc.text(lbl, px, fndY + 16.5); px += doc.getTextWidth(lbl);
+    B(9); doc.text(val, px, fndY + 16.5); px += doc.getTextWidth(val);
   });
 
-  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM  (offset +20)
+  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM  (offset +21)
   if (tipo === "sinarm") {
-    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 20);
+    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 21);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 20);
+    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 21);
   }
 
   y += fundH + 0.8;
