@@ -178,30 +178,30 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // DADOS DO AVALIADO
   // ════════════════════════════════════════════
-  const dadosH = HDR + 17;
+  const dadosH = HDR + 14;
   section(y, dadosH, "DADOS DO AVALIADO");
 
   const dy = y + HDR + 1;
 
   // NOME
-  B(9); doc.text("NOME:", ML + 2, dy + 3.5);
+  B(9); doc.text("NOME:", ML + 2, dy + 3);
   const nomeLblW = doc.getTextWidth("NOME:");
   const nomeVal = f.nome.toUpperCase();
   const nomeX = ML + 2 + nomeLblW + 2;
-  N(9); doc.text(nomeVal, nomeX, dy + 3.5);
+  N(9); doc.text(nomeVal, nomeX, dy + 3);
 
   // CPF
-  B(9); doc.text("CPF:", ML + 2, dy + 8.5);
+  B(9); doc.text("CPF:", ML + 2, dy + 7);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
-  N(9); doc.text(f.cpf, cpfX, dy + 8.5);
+  N(9); doc.text(f.cpf, cpfX, dy + 7);
 
   // ENDEREÇO
-  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 13.5);
+  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
   const endLblW = doc.getTextWidth("ENDEREÇO:");
   const endX = ML + 2 + endLblW + 2;
   const endVal = f.endereco.toUpperCase();
-  N(9); doc.text(endVal, endX, dy + 13.5);
+  N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
 
