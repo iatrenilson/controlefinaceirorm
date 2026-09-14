@@ -165,18 +165,20 @@ async function gerarLaudoPDF(f: LaudoForm) {
   section(y, dadosH, "DADOS DO AVALIADO");
 
   const dy = y + HDR + 1;
-  // NOME
+  // NOME — sublinhado só embaixo do texto
   B(9); doc.text("NOME:", ML + 2, dy + 5);
-  N(9); doc.text(f.nome.toUpperCase(), ML + 17, dy + 5);
-  ul(ML + 16, dy + 5.7, CW - 18);
-  // CPF
+  const nomeVal = f.nome.toUpperCase();
+  N(9); doc.text(nomeVal, ML + 17, dy + 5);
+  if (nomeVal) { const nw = doc.getTextWidth(nomeVal); ul(ML + 17, dy + 5.7, nw); }
+  // CPF — sublinhado só embaixo do texto
   B(9); doc.text("CPF:", ML + 2, dy + 11.5);
   N(9); doc.text(f.cpf, ML + 13, dy + 11.5);
-  ul(ML + 12, dy + 12.2, CW - 14);
-  // ENDEREÇO
+  if (f.cpf) { const cw2 = doc.getTextWidth(f.cpf); ul(ML + 13, dy + 12.2, cw2); }
+  // ENDEREÇO — sublinhado só embaixo do texto
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 18);
-  N(9); doc.text(f.endereco.toUpperCase(), ML + 25, dy + 18);
-  ul(ML + 24, dy + 18.7, CW - 26);
+  const endVal = f.endereco.toUpperCase();
+  N(9); doc.text(endVal, ML + 25, dy + 18);
+  if (endVal) { const ew = doc.getTextWidth(endVal); ul(ML + 25, dy + 18.7, ew); }
 
   y += dadosH + 0.8;
 
