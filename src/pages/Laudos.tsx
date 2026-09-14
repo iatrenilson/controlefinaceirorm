@@ -215,7 +215,7 @@ async function gerarLaudoPDF(f: LaudoForm) {
 
   ARMAS.forEach((a, i) => {
     const ry = y + HDR + i * aRowH;
-    if (i > 0) hl(ry);
+    // sem linha horizontal entre linhas de arma (igual ao original)
 
     // Col 1
     B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 4);
@@ -305,51 +305,49 @@ async function gerarLaudoPDF(f: LaudoForm) {
   // ════════════════════════════════════════════
   // FUNDAMENTAÇÃO
   // ════════════════════════════════════════════
-  const fundH = HDR + 24;
+  const fundH = HDR + 19;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
-  N(8.5);
 
-  // 4 linhas espaçadas uniformemente; label+valor colados (getTextWidth + 2mm)
-  // FINALIDADE
-  B(9); doc.text("FINALIDADE:", ML + 2, fndY + 5);
+  // FINALIDADE (~4.5mm entre linhas, igual ao original)
+  B(9); doc.text("FINALIDADE:", ML + 2, fndY + 4);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   N(9);
-  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 5);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 5);
+  fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 4);
+  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 4);
   fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
-  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 5);
-  doc.text(" PORTE  ", fx, fndY + 5);
+  fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 4);
+  doc.text(" PORTE  ", fx, fndY + 4);
   fx += doc.getTextWidth(" PORTE  ");
-  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 5);
-  doc.text(" CR", fx, fndY + 5);
+  fx += renderPc(f.finalidade.includes("cr"), fx, fndY + 4);
+  doc.text(" CR", fx, fndY + 4);
 
   // CATEGORIA
-  B(9); doc.text("CATEGORIA:", ML + 2, fndY + 11);
+  B(9); doc.text("CATEGORIA:", ML + 2, fndY + 8.5);
   fx = ML + 2 + doc.getTextWidth("CATEGORIA:") + 2;
   N(9);
-  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 11);
-  doc.text(" DEFESA PESSOAL  ", fx, fndY + 11);
+  fx += renderPc(f.categoria.includes("defesa"), fx, fndY + 8.5);
+  doc.text(" DEFESA PESSOAL  ", fx, fndY + 8.5);
   fx += doc.getTextWidth(" DEFESA PESSOAL  ");
-  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 11);
-  doc.text(" INSTITUCIONAL  ", fx, fndY + 11);
+  fx += renderPc(f.categoria.includes("institucional"), fx, fndY + 8.5);
+  doc.text(" INSTITUCIONAL  ", fx, fndY + 8.5);
   fx += doc.getTextWidth(" INSTITUCIONAL  ");
-  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 11);
-  doc.text(" CAC", fx, fndY + 11);
+  fx += renderPc(f.categoria.includes("cac"), fx, fndY + 8.5);
+  doc.text(" CAC", fx, fndY + 8.5);
 
   // NOTA
-  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 17);
+  B(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 13);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  N(9); doc.text(f.notaTeorica || "_____", notaX, fndY + 17);
+  N(9); doc.text(f.notaTeorica || "_____", notaX, fndY + 13);
 
   // PONTUAÇÃO
-  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 22);
+  B(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 17.5);
   const pontX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   N(9);
   doc.text(
     `PISTOLA: ${f.notaPistola || "____"}   REVOLVER: ${f.notaRevolver || "____"}   RIFLE: ${f.notaRifle || "____"}   ESPINGARDA: ${f.notaEspingarda || "____"}`,
-    pontX, fndY + 22
+    pontX, fndY + 17.5
   );
 
   y += fundH + 0.8;
