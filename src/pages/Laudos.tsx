@@ -36,6 +36,9 @@ interface LaudoForm {
   nome: string;
   cpf: string;
   endereco: string;
+  endNumero: string;
+  endCompl: string;
+  endBairro: string;
   pistola: SistReg;
   revolver: SistReg;
   rifle: SistReg;
@@ -56,7 +59,7 @@ interface LaudoForm {
 }
 
 const EMPTY: LaudoForm = {
-  numero: "", nome: "", cpf: "", endereco: "",
+  numero: "", nome: "", cpf: "", endereco: "", endNumero: "", endCompl: "", endBairro: "",
   pistola: "", revolver: "", rifle: "", espingarda: "",
   dataDecl: "", local: "",
   finalidade: [], categoria: [],
@@ -212,11 +215,16 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
   const cpfX = ML + 2 + cpfLblW + 2;
   N(9); doc.text(f.cpf, cpfX, dy + 7);
 
-  // ENDEREÇO
+  // ENDEREÇO (compõe: rua, Nº, complemento, bairro)
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
   const endLblW = doc.getTextWidth("ENDEREÇO:");
   const endX = ML + 2 + endLblW + 2;
-  const endVal = f.endereco.toUpperCase();
+  const endVal = [
+    f.endereco,
+    f.endNumero ? `Nº ${f.endNumero}` : "",
+    f.endCompl  || "",
+    f.endBairro ? `BAIRRO ${f.endBairro}` : "",
+  ].filter(Boolean).join(", ").toUpperCase();
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
@@ -665,10 +673,29 @@ const Laudos = () => {
                   value={form.cpf} onChange={e => set("cpf", maskCpf(e.target.value))} />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Endereço</Label>
-              <Input className="h-9 text-sm uppercase" value={form.endereco}
-                onChange={e => set("endereco", e.target.value)} />
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Endereço</Label>
+                <Input className="h-9 text-sm uppercase" value={form.endereco}
+                  onChange={e => set("endereco", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nº</Label>
+                <Input className="h-9 text-sm" value={form.endNumero}
+                  onChange={e => set("endNumero", e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <Input className="h-9 text-sm uppercase" value={form.endCompl}
+                  onChange={e => set("endCompl", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bairro</Label>
+                <Input className="h-9 text-sm uppercase" value={form.endBairro}
+                  onChange={e => set("endBairro", e.target.value)} />
+              </div>
             </div>
           </CardContent>
         </Card>
