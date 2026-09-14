@@ -115,12 +115,13 @@ async function gerarLaudoPDF(f: LaudoForm) {
     return x + w + doc.getTextWidth(val);
   };
 
-  // Draw section: outer rect + gray filled header
+  // Draw section: outer rect + header row (sem fill, só borda inferior)
   const section = (y: number, h: number, title: string) => {
     doc.setLineWidth(0.35); doc.setDrawColor(0);
     doc.rect(ML, y, CW, h);
-    doc.setFillColor(210, 210, 210);
-    doc.rect(ML, y, CW, HDR, "FD");
+    // linha separando o cabeçalho do conteúdo
+    doc.setLineWidth(0.2);
+    doc.line(ML, y + HDR, ML + CW, y + HDR);
     B(10); doc.text(title, PW / 2, y + 4.7, { align: "center" });
   };
 
