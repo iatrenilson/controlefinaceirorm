@@ -292,31 +292,30 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
 
   const decY = y + HDR + 1;
 
-  // Texto corrido: "Eu [NOME] acima identificado, DECLARO..." + data
-  const nomeDecl   = (f.nome || "___________________________________").toUpperCase();
-  const suffix     = ` acima identificado, DECLARO, sob as penas da lei, que NÃO ME SUBMETI a testes para a aferição de capacidade técnica para o manuseio de armas de fogo nos últimos 30 dias. Manaus/AM, ${fmtDate(f.dataDecl)}`;
-
-  // Mede o que foi usado na linha 1 por "Eu [NOME]"
-  N(9); const euW   = doc.getTextWidth("Eu ");
-  N(9); const nomeW = doc.getTextWidth(nomeDecl);
-  const line1Avail  = CW - 4 - euW - nomeW;
-
-  // Quebra o suffix: parte que cabe na linha 1 e resto
-  N(9);
-  const suffixParts = doc.splitTextToSize(suffix, line1Avail);
-  const part1       = (suffixParts[0] as string) || "";
-  const restText    = suffix.slice(part1.length).trim();
-  const restLines   = restText ? doc.splitTextToSize(restText, CW - 4) : [];
-
-  // Desenha linha 1
-  let dx = ML + 2;
-  N(9); doc.text("Eu ", dx, decY + 5);      dx += euW;
-  N(9); doc.text(nomeDecl, dx, decY + 5);   dx += nomeW;
-  N(9); doc.text(part1, dx, decY + 5);
-
-  // Linhas seguintes
-  if (restLines.length) {
-    N(9); doc.text(restLines as string[], ML + 2, decY + 10.5);
+  // Texto corrido com DECLARO e NÃO ME SUBMETI em negrito
+  const nomeDecl = (f.nome || "___________________________________").toUpperCase();
+  type DRun = { txt: string; b: boolean };
+  const declRuns: DRun[] = [
+    { txt: `Eu ${nomeDecl} acima identificado, `,  b: false },
+    { txt: "DECLARO",                               b: true  },
+    { txt: ", sob as penas da lei, que ",           b: false },
+    { txt: "NÃO ME SUBMETI ",                       b: true  },
+    { txt: `a testes para a aferição de capacidade técnica para o manuseio de armas de fogo nos últimos 30 dias. Manaus/AM, ${fmtDate(f.dataDecl)}`, b: false },
+  ];
+  const decMaxW = CW - 4, decStartX = ML + 2;
+  let dcx = decStartX, dcy = decY + 5;
+  const dcLH = 5.5;
+  for (const { txt, b } of declRuns) {
+    const words = txt.match(/\S+\s*/g) ?? [txt];
+    for (const w of words) {
+      if (b) B(9); else N(9);
+      const ww = doc.getTextWidth(w);
+      if (dcx > decStartX && dcx + ww > decStartX + decMaxW) {
+        dcx = decStartX; dcy += dcLH;
+      }
+      doc.text(w, dcx, dcy);
+      dcx += ww;
+    }
   }
 
   // Linha de assinatura — canto direito, dentro da caixa
