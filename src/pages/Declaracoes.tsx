@@ -23,10 +23,10 @@ type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf
 const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc",
   docaut:   "Doc Aut.",
-  deferido: "Defer.",
+  deferido: "CR defer.",
   analise:  "Análise",
-  autor:    "Autor.",
-  craf:     "Craf.",
+  autor:    "Aut. Analise",
+  craf:     "Craf. Analise",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   doc:      "text-white border-white/40 bg-white/10",
@@ -1484,7 +1484,7 @@ END $$;`
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "Deferido", analise: "Análise", autor: "Autor.", craf: "Craf." }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "CR defer.", analise: "Análise", autor: "Aut. Analise", craf: "Craf. Analise" }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
