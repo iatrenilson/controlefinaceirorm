@@ -564,12 +564,18 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     }
   }
 
-  // Fallback: download direto (mobile / Safari / Firefox)
+  // Fallback mobile: abre em nova aba (iOS: botão compartilhar→Arquivos; Android: menu download do browser)
   const url = URL.createObjectURL(blob);
-  const a   = document.createElement("a");
-  a.href = url; a.download = fileName;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } else {
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
 }
 
 // ─── UI helpers ──────────────────────────────────────────────────────────────────
