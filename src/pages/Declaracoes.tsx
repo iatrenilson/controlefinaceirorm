@@ -2006,12 +2006,13 @@ END $$;`
                   </div>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
-                      const count = clientes.filter(c => (c.status ?? "doc") === val).length;
-                      if (count === 0) return null;
+                      const grupo = clientes.filter(c => (c.status ?? "doc") === val);
+                      if (grupo.length === 0) return null;
+                      const nomes = grupo.map(c => c.nome).join("\n");
                       return (
-                        <span key={val} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${STATUS_COLORS[val]}`}>
+                        <span key={val} title={nomes} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-default ${STATUS_COLORS[val]}`}>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[val]}`} />
-                          {label}: {count}
+                          {label}: {grupo.length}
                         </span>
                       );
                     })}
