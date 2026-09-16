@@ -2035,7 +2035,7 @@ END $$;`
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
-                    const order: Record<string, number> = { deferido: 0, autor: 1, craf: 2, analise: 3, doc: 4, docaut: 5 };
+                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
@@ -2183,7 +2183,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
                   {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
-                    const order: Record<string, number> = { deferido: 0, autor: 1, craf: 2, analise: 3, doc: 4, docaut: 5 };
+                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
