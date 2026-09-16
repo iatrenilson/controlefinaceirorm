@@ -2009,7 +2009,13 @@ END $$;`
                       const grupo = clientes.filter(c => (c.status ?? "doc") === val);
                       const sempreVisivel = val === "doc" || val === "docaut";
                       if (grupo.length === 0 && !sempreVisivel) return null;
-                      const nomes = grupo.map(c => c.nome).join("\n");
+                      const hoje = new Date(); hoje.setHours(0,0,0,0);
+                      const nomes = grupo.map(c => {
+                        if (!c.dataEntradaProcesso) return c.nome;
+                        const ini = new Date(c.dataEntradaProcesso); ini.setHours(0,0,0,0);
+                        const dias = Math.round((hoje.getTime() - ini.getTime()) / 86400000);
+                        return `${c.nome} (${dias}d)`;
+                      }).join("\n");
                       return (
                         <span key={val} title={nomes} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-default ${STATUS_COLORS[val]}`}>
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[val]}`} />
