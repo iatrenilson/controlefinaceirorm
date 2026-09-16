@@ -2010,7 +2010,7 @@ END $$;`
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
                       const grupo = clientes.filter(c => (c.status ?? "doc") === val);
-                      const sempreVisivel = val === "doc" || val === "docaut";
+                      const sempreVisivel = val === "doc" || val === "docaut" || val === "completo";
                       if (grupo.length === 0 && !sempreVisivel) return null;
                       const hoje = new Date(); hoje.setHours(0,0,0,0);
                       const nomes = grupo.map(c => {
