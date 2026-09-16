@@ -18,7 +18,7 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf";
+type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "completo";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc. CR",
@@ -27,6 +27,7 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
   analise:  "CR Analise",
   autor:    "Aut. Analise",
   craf:     "Craf. Analise",
+  completo: "Completo",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
   doc:      "text-white border-white/40 bg-white/10",
@@ -35,6 +36,7 @@ const STATUS_COLORS: Record<ClienteStatus, string> = {
   analise:  "text-yellow-300/80 border-yellow-400/40 bg-yellow-400/10",
   autor:    "text-orange-400 border-orange-500/50 bg-orange-500/10",
   craf:     "text-cyan-400 border-cyan-500/50 bg-cyan-500/10",
+  completo: "text-purple-300 border-purple-400/50 bg-purple-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
   doc:      "bg-white",
@@ -43,6 +45,7 @@ const STATUS_DOT: Record<ClienteStatus, string> = {
   analise:  "bg-yellow-300/80",
   autor:    "bg-orange-400",
   craf:     "bg-cyan-400",
+  completo: "bg-purple-300",
 };
 
 interface Cliente {
@@ -1484,7 +1487,7 @@ END $$;`
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise" }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise", completo: "Completo" }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
@@ -2035,7 +2038,7 @@ END $$;`
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
-                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5 };
+                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
@@ -2183,7 +2186,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
                   {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
-                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5 };
+                    const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
                     if (sa !== sb) return sa - sb;
