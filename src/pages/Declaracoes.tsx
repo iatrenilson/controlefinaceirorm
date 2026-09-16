@@ -1712,22 +1712,9 @@ END $$;`
             await supabase.auth.updateUser({ data: { decl_clientes: null } });
           }
         } else {
-          // Verifica backup local antes de mostrar vazio
-          const backupRaw = localStorage.getItem(`sinarm_backup_${myId}`);
-          if (backupRaw) {
-            try {
-              const backup: Cliente[] = JSON.parse(backupRaw);
-              if (backup.length > 0) {
-                toast({
-                  title: "⚠️ Banco retornou vazio — backup local carregado",
-                  description: `${backup.length} cliente(s) recuperado(s) do backup local. Salve novamente para sincronizar com o banco.`,
-                  variant: "destructive",
-                });
-                setClientes(backup);
-                return;
-              }
-            } catch {}
-          }
+          // Banco retornou 0 sem erro = estado legítimo (ex: dados transferidos para outro usuário)
+          // Limpa backup local desatualizado para não mostrar aviso falso
+          try { localStorage.removeItem(`sinarm_backup_${myId}`); } catch {}
           setClientes([]);
           try { sessionStorage.setItem("decl_clientes_cache", "[]"); } catch {}
         }
