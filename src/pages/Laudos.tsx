@@ -168,13 +168,13 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
     B(10); doc.text(title, PW / 2, y + 4.7, { align: "center" });
   };
 
-  let y = 10;
+  let y = 5;
 
   // ════════════════════════════════════════════
   // ANEXO II  (fora da caixa, centrado em cima)
   // ════════════════════════════════════════════
   B(16); doc.text("ANEXO II", PW / 2, y + 4, { align: "center" });
-  y += 10;
+  y += 8;
 
   // ════════════════════════════════════════════
   // CAIXA DO TÍTULO + TEXTO LEGAL
