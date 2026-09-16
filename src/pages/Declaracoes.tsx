@@ -1994,15 +1994,29 @@ END $$;`
           {mostrarClientes && (
             <CardContent>
               {clientes.length > 0 && (
-                <div className="relative mb-4">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar cliente..."
-                    value={buscaCliente}
-                    onChange={(e) => setBuscaCliente(e.target.value)}
-                    className="pl-8 h-9"
-                  />
-                </div>
+                <>
+                  <div className="relative mb-3">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar cliente..."
+                      value={buscaCliente}
+                      onChange={(e) => setBuscaCliente(e.target.value)}
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
+                      const count = clientes.filter(c => (c.status ?? "doc") === val).length;
+                      if (count === 0) return null;
+                      return (
+                        <span key={val} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${STATUS_COLORS[val]}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[val]}`} />
+                          {label}: {count}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </>
               )}
               {loadingClientes && clientes.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">Carregando clientes...</p>
