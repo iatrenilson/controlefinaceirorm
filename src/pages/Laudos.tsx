@@ -512,10 +512,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
 
   // ─── Download ───
   const blob = doc.output("blob");
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  // ── Nome do arquivo ────────────────────────────────────────────────────────
+
+  // ── Nome do arquivo ──────────────────────────────────────────────────────
   const _ano2 = new Date().getFullYear().toString().slice(-2);
   const _nr   = f.numero ? `${f.numero}.${_ano2}` : "";
   const _nome = (f.nome || "Laudo").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
@@ -532,7 +530,6 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
                 : _ativos.length === 0 ? ""
                 : _ativos.join(" ");
   } else {
-    // SINARM: deduz tipos das armas selecionadas
     const _idTipo: Record<string, string> = {
       g25: "Pistola", "58hc": "Pistola", gx4: "Pistola",
       ack: "Revolver", rt85: "Revolver",
@@ -548,7 +545,29 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
 
   const _tipoLabel = tipo === "sinarm" ? "Sinarm" : "CR";
   const _parts = [_tipoLabel, _armasLabel, _nr, _nome].filter(Boolean);
-  a.download = `Laudo ${_parts.join(" ")}.pdf`;
+  const fileName = `Laudo ${_parts.join(" ")}.pdf`;
+
+  // Abre diálogo "Salvar como" nativo no desktop (Chrome/Edge)
+  // No celular e outros browsers cai no download direto automático
+  if ("showSaveFilePicker" in window) {
+    try {
+      const handle = await (window as unknown as { showSaveFilePicker: (o: object) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return; // usuário cancelou
+    }
+  }
+
+  // Fallback: download direto (mobile / Safari / Firefox)
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement("a");
+  a.href = url; a.download = fileName;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
