@@ -21,8 +21,8 @@ import { ptBR } from "date-fns/locale";
 type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
-  doc:      "Doc",
-  docaut:   "Doc Aut.",
+  doc:      "Doc. CR",
+  docaut:   "Doc. Aut.",
   deferido: "CR defer.",
   analise:  "CR Analise",
   autor:    "Aut. Analise",
@@ -1484,7 +1484,7 @@ END $$;`
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc", docaut: "Doc Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise" }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise" }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
@@ -2007,7 +2007,8 @@ END $$;`
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
                       const grupo = clientes.filter(c => (c.status ?? "doc") === val);
-                      if (grupo.length === 0) return null;
+                      const sempreVisivel = val === "doc" || val === "docaut";
+                      if (grupo.length === 0 && !sempreVisivel) return null;
                       const nomes = grupo.map(c => c.nome).join("\n");
                       return (
                         <span key={val} title={nomes} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-default ${STATUS_COLORS[val]}`}>
