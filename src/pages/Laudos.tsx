@@ -347,9 +347,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // LOCAL DE APLICAÇÃO PROVA PRATICA
   // ════════════════════════════════════════════
   const LOCAIS = [
-    { id: "juliet", nome: "Clube de Tiro Juliet Papa",           end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
-    { id: "texas",  nome: "Clube de Tiro Texas Gun",             end: "Av. Compensa, 180B – Vila da Prata, Manaus/AM." },
-    { id: "cta",    nome: "CTA Iranduba",                        end: "Rodovia AM-070 (Manoel Urbano), km 04, Iranduba/AM." },
+    { id: "juliet", nome: "Clube de Tiro Juliet Papa", end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
+    { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04, Iranduba/AM." },
   ];
   // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm → visual igual ✓
   const lRowH = 12;
@@ -850,7 +849,6 @@ const Laudos = () => {
           <CardContent className="space-y-2">
             {([
               ["juliet", "Clube de Tiro Juliet Papa"],
-              ["texas",  "Clube de Tiro Texas Gun"],
               ["cta",    "CTA Iranduba"],
             ] as const).map(([id, nome]) => (
               <RadioBtn key={id} checked={form.local === id}
