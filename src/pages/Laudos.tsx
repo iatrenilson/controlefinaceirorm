@@ -348,7 +348,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // ════════════════════════════════════════════
   const LOCAIS = [
     { id: "juliet", nome: "Clube de Tiro Juliet Papa", end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
-    { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04, Iranduba/AM." },
+    { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04 - Iranduba/AM." },
   ];
   // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm → visual igual ✓
   const lRowH = 12;
