@@ -982,6 +982,16 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────
+// Converte DD/MM/YYYY colado para YYYY-MM-DD esperado pelo input type="date"
+function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: string) => void) {
+  const txt = e.clipboardData.getData("text").trim();
+  const m = txt.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) {
+    e.preventDefault();
+    setter(`${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`);
+  }
+}
+
 export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
@@ -2381,7 +2391,8 @@ END $$;`
                 <Label className="text-xs text-yellow-400 font-semibold">Data de Nascimento</Label>
                 <div className="flex gap-1.5">
                   <Input className="h-9 text-sm text-yellow-400 font-semibold" type="date"
-                    value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)} />
+                    value={formCliente.dataNascimento} onChange={e => setC("dataNascimento", e.target.value)}
+                    onPaste={e => onPasteDate(e, v => setC("dataNascimento", v))} />
                   <CopyButton value={formCliente.dataNascimento} />
                 </div>
               </div>
@@ -2685,7 +2696,8 @@ END $$;`
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data de Nascimento</Label>
-                <Input className="h-9 text-sm" type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)} />
+                <Input className="h-9 text-sm" type="date" value={form.dataNascimento} onChange={e => set("dataNascimento", e.target.value)}
+                  onPaste={e => onPasteDate(e, v => set("dataNascimento", v))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -2901,7 +2913,8 @@ END $$;`
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data de Nascimento</Label>
-                <Input className="h-9 text-sm" type="date" value={formDSA.dataNascimento} onChange={e => setDSA("dataNascimento", e.target.value)} />
+                <Input className="h-9 text-sm" type="date" value={formDSA.dataNascimento} onChange={e => setDSA("dataNascimento", e.target.value)}
+                  onPaste={e => onPasteDate(e, v => setDSA("dataNascimento", v))} />
               </div>
             </div>
             <div className="space-y-1">
