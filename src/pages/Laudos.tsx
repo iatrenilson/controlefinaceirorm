@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,7 +97,7 @@ function loadScript(src: string): Promise<void> {
 }
 
 // ─── PDF idêntico ao original ────────────────────────────────────────────────────
-async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
+async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPorte = false) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
@@ -543,7 +544,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm") {
                 : _tiposOrdem.join(" ");
   }
 
-  const _tipoLabel = tipo === "sinarm" ? "Sinarm" : "CR";
+  const _tipoLabel = tipo === "sinarm" ? (sinarmPorte ? "Sinarm Porte" : "Sinarm") : "CR";
   const _parts = [_tipoLabel, _armasLabel, _nr, _nome].filter(Boolean);
   const fileName = `Laudo ${_parts.join(" ")}.pdf`;
 
@@ -615,6 +616,7 @@ function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
 const Laudos = () => {
   const [form, setForm] = useState<LaudoForm>(EMPTY);
   const [laudoTipo, setLaudoTipo] = useState<"cr_cac" | "sinarm">("cr_cac");
+  const [sinarmPorte, setSinarmPorte] = useState(false);
   const [pistOpen, setPistOpen] = useState(false);
   const [revolOpen, setRevolOpen] = useState(false);
   const [coloridoOpen, setColoridoOpen] = useState(false);
@@ -674,7 +676,7 @@ const Laudos = () => {
               {/* Tipo de Laudo — radio pill + Limpar */}
               <div className="flex items-center gap-2 text-xs font-medium">
                 <button type="button"
-                  onClick={() => { setForm(EMPTY); toast.info("Formulário limpo."); }}
+                  onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); toast.info("Formulário limpo."); }}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-all">
                   <RotateCcw className="h-3 w-3" />
                   Limpar
@@ -699,6 +701,12 @@ const Laudos = () => {
                     </button>
                   );
                 })}
+                {laudoTipo === "sinarm" && (
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <Switch checked={sinarmPorte} onCheckedChange={setSinarmPorte} />
+                    <span className="text-muted-foreground">Porte</span>
+                  </div>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -1048,7 +1056,7 @@ const Laudos = () => {
             if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
-              await gerarLaudoPDF(form, laudoTipo);
+              await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
               // Salva o último número usado para todos os usuários
               if (form.numero) {
                 supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero })
