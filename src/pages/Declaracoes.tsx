@@ -924,10 +924,14 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   for (let i = 0; i < anexos.length; i++) {
     if (i > 0) doc.addPage();
     const anexo = anexos[i];
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Anexo: ${anexo.label}`, 10, 8);
     const imgEl = document.createElement("img");
     imgEl.src = anexo.dataUrl;
     await new Promise<void>(r => { imgEl.onload = () => r(); });
-    doc.addImage(anexo.dataUrl, "JPEG", 0, 0, 210, 297);
+    doc.addImage(anexo.dataUrl, "JPEG", 0, 12, 210, 285);
   }
 
   await salvarPDF(doc, `Docs Emissão de CRAF - ${primeiroNome}.pdf`);
