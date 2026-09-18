@@ -902,6 +902,62 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
   await salvarPDF(doc, `6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
 }
 
+// ─── Docs Emissão de CRAF (Nota Fiscal + Autorização de Compra + CNH) ─────
+async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; dataUrl: string }>, semLogo = false) {
+  const primeiroNome = capitalize(nome.trim().split(/\s+/)[0] || "Craf");
+
+  const anexos: Array<{ dataUrl: string; label: string }> = [];
+  for (const a of anexosRaw) {
+    if (a.dataUrl.startsWith("data:image")) {
+      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 800, 1130, 0.83), label: a.label });
+    } else if (a.dataUrl.startsWith("data:application/pdf")) {
+      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 840, 1190, 0.86), label: a.label });
+    }
+  }
+
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+
+  const { startY, W, ML } = await aplicarLayoutPassarinho(doc, semLogo);
+  let y = startY;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("DOCUMENTOS PARA EMISSÃO DE CRAF", W / 2, y, { align: "center" });
+  y += 14;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  if (nome.trim()) {
+    doc.text(`Cliente: ${nome.toUpperCase()}`, ML, y);
+    y += 8;
+  }
+  doc.text(`Data: ${dataExtenso()}`, ML, y);
+  y += 10;
+
+  doc.setFontSize(10.5);
+  anexos.forEach((a, i) => { doc.text(`${i + 1}. ${a.label}`, ML, y); y += 6; });
+
+  for (const anexo of anexos) {
+    doc.addPage();
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    doc.text(`Anexo: ${anexo.label}`, ML, 15);
+    const imgEl = document.createElement("img");
+    imgEl.src = anexo.dataUrl;
+    await new Promise<void>(r => { imgEl.onload = () => r(); });
+    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
+    const maxImgW = 180, maxImgH = 260;
+    let dw = maxImgW, dh = maxImgW / ratio;
+    if (dh > maxImgH) { dh = maxImgH; dw = maxImgH * ratio; }
+    const dx = (W - dw) / 2, dy = 22;
+    doc.addImage(anexo.dataUrl, "JPEG", dx, dy, dw, dh);
+  }
+
+  await salvarPDF(doc, `Docs Emissão de CRAF - ${primeiroNome}.pdf`);
+}
+
 // ─── Botão copiar ─────────────────────────────────────────────────────────
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -1911,7 +1967,20 @@ END $$;`
   const rgInputRef2 = useRef<HTMLInputElement>(null);
   const compInputRef = useRef<HTMLInputElement>(null);
 
-  // Abre dialog via URL param ?open=inquerito|acervo|residencia
+  // Diálogo 5 — Docs Emissão de CRAF
+  const [dialogCrafOpen, setDialogCrafOpen] = useState(false);
+  const [crafNome, setCrafNome] = useState("");
+  const [notaFiscalUrl, setNotaFiscalUrl] = useState<string | null>(null);
+  const [notaFiscalNome, setNotaFiscalNome] = useState("");
+  const notaFiscalRef = useRef<HTMLInputElement>(null);
+  const [autorizacaoCompraUrl, setAutorizacaoCompraUrl] = useState<string | null>(null);
+  const [autorizacaoCompraNome, setAutorizacaoCompraNome] = useState("");
+  const autorizacaoCompraRef = useRef<HTMLInputElement>(null);
+  const [cnhCrafUrl, setCnhCrafUrl] = useState<string | null>(null);
+  const [cnhCrafNome, setCnhCrafNome] = useState("");
+  const cnhCrafRef = useRef<HTMLInputElement>(null);
+
+  // Abre dialog via URL param ?open=inquerito|acervo|residencia|dsa|craf
   useEffect(() => {
     const open = searchParams.get("open");
     if (!open) return;
@@ -1919,6 +1988,7 @@ END $$;`
     else if (open === "acervo") { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); }
     else if (open === "residencia") { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); }
     else if (open === "dsa") { setFormDSA(EMPTY_FORM_DSA); setDialogDSAOpen(true); }
+    else if (open === "craf") { setCrafNome(""); clearNotaFiscal(); clearAutorizacaoCompra(); clearCnhCraf(); setDialogCrafOpen(true); }
     setSearchParams({}, { replace: true });
   }, [searchParams]);
 
@@ -1932,6 +2002,9 @@ END $$;`
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
   const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
+  const clearNotaFiscal = () => { setNotaFiscalUrl(null); setNotaFiscalNome(""); if (notaFiscalRef.current) notaFiscalRef.current.value = ""; };
+  const clearAutorizacaoCompra = () => { setAutorizacaoCompraUrl(null); setAutorizacaoCompraNome(""); if (autorizacaoCompraRef.current) autorizacaoCompraRef.current.value = ""; };
+  const clearCnhCraf = () => { setCnhCrafUrl(null); setCnhCrafNome(""); if (cnhCrafRef.current) cnhCrafRef.current.value = ""; };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -3194,6 +3267,108 @@ END $$;`
               }
               await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl, semLogo);
               setDialogResOpen(false);
+            }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog 5: Docs Emissão de CRAF ── */}
+      <Dialog open={dialogCrafOpen} onOpenChange={setDialogCrafOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Docs Emissão de CRAF</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <ClienteSelector clientes={clientes} label="Selecionar cliente cadastrado" onSelect={c => setCrafNome(c.nome)} />
+            {clientes.length > 0 && <div className="border-t border-dashed border-border/60" />}
+            <div className="space-y-1">
+              <Label className="text-xs">Nome Completo</Label>
+              <Input className="h-9 text-sm uppercase" value={crafNome} onChange={e => setCrafNome(e.target.value)} />
+            </div>
+            <div className="border-t border-border/50" />
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Nota Fiscal (imagem ou PDF)</Label>
+                {notaFiscalUrl ? (
+                  <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
+                    <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="truncate flex-1 text-xs">{notaFiscalNome}</span>
+                    <button onClick={clearNotaFiscal}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <input ref={notaFiscalRef} type="file" accept="image/*,application/pdf" className="hidden"
+                      onChange={e => handleFileRead(e, setNotaFiscalUrl, setNotaFiscalNome)} />
+                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
+                      onClick={() => notaFiscalRef.current?.click()}>
+                      <Paperclip className="h-3.5 w-3.5" />Anexar Nota Fiscal
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Autorização de Compra (imagem ou PDF)</Label>
+                {autorizacaoCompraUrl ? (
+                  <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
+                    <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="truncate flex-1 text-xs">{autorizacaoCompraNome}</span>
+                    <button onClick={clearAutorizacaoCompra}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <input ref={autorizacaoCompraRef} type="file" accept="image/*,application/pdf" className="hidden"
+                      onChange={e => handleFileRead(e, setAutorizacaoCompraUrl, setAutorizacaoCompraNome)} />
+                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
+                      onClick={() => autorizacaoCompraRef.current?.click()}>
+                      <Paperclip className="h-3.5 w-3.5" />Anexar Autorização de Compra
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">CNH (imagem ou PDF)</Label>
+                {cnhCrafUrl ? (
+                  <div className="flex items-center gap-2 h-9 px-3 rounded-md border border-border bg-muted/30 text-sm">
+                    <Paperclip className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                    <span className="truncate flex-1 text-xs">{cnhCrafNome}</span>
+                    <button onClick={clearCnhCraf}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
+                  </div>
+                ) : (
+                  <>
+                    <input ref={cnhCrafRef} type="file" accept="image/*,application/pdf" className="hidden"
+                      onChange={e => handleFileRead(e, setCnhCrafUrl, setCnhCrafNome)} />
+                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
+                      onClick={() => cnhCrafRef.current?.click()}>
+                      <Paperclip className="h-3.5 w-3.5" />Anexar CNH
+                    </Button>
+                  </>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
+                Cada documento é anexado em uma página separada do PDF final.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogCrafOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
+              const anexos = [
+                notaFiscalUrl ? { label: "Nota Fiscal", dataUrl: notaFiscalUrl } : null,
+                autorizacaoCompraUrl ? { label: "Autorização de Compra", dataUrl: autorizacaoCompraUrl } : null,
+                cnhCrafUrl ? { label: "CNH", dataUrl: cnhCrafUrl } : null,
+              ].filter((a): a is { label: string; dataUrl: string } => a !== null);
+              if (anexos.length === 0) { alert("Anexe ao menos um documento."); return; }
+              await gerarPDFCraf(crafNome, anexos, semLogo);
+              setDialogCrafOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
