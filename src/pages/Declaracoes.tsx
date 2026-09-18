@@ -909,9 +909,9 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   const anexos: Array<{ dataUrl: string; label: string }> = [];
   for (const a of anexosRaw) {
     if (a.dataUrl.startsWith("data:image")) {
-      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 1240, 1754, 0.98), label: a.label });
+      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 900, 1270, 0.85), label: a.label });
     } else if (a.dataUrl.startsWith("data:application/pdf")) {
-      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 1240, 1754, 0.98), label: a.label });
+      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 900, 1270, 0.85), label: a.label });
     }
   }
 
