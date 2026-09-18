@@ -903,39 +903,31 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 }
 
 // ─── Docs Emissão de CRAF (Nota Fiscal + Autorização de Compra + CNH) ─────
-async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; dataUrl: string }>, semLogo = false) {
+async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; dataUrl: string }>) {
   const primeiroNome = capitalize(nome.trim().split(/\s+/)[0] || "Craf");
 
   const anexos: Array<{ dataUrl: string; label: string }> = [];
   for (const a of anexosRaw) {
     if (a.dataUrl.startsWith("data:image")) {
-      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 800, 1130, 0.83), label: a.label });
+      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 800, 1130, 0.95), label: a.label });
     } else if (a.dataUrl.startsWith("data:application/pdf")) {
-      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 840, 1190, 0.86), label: a.label });
+      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 840, 1190, 0.95), label: a.label });
     }
   }
+
+  if (anexos.length === 0) return;
 
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { W, ML } = await aplicarLayoutPassarinho(doc, semLogo);
-
   for (let i = 0; i < anexos.length; i++) {
     if (i > 0) doc.addPage();
     const anexo = anexos[i];
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    doc.text(`Anexo: ${anexo.label}`, ML, 15);
     const imgEl = document.createElement("img");
     imgEl.src = anexo.dataUrl;
     await new Promise<void>(r => { imgEl.onload = () => r(); });
-    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
-    const maxImgW = 180, maxImgH = 260;
-    let dw = maxImgW, dh = maxImgW / ratio;
-    if (dh > maxImgH) { dh = maxImgH; dw = maxImgH * ratio; }
-    const dx = (W - dw) / 2, dy = 22;
-    doc.addImage(anexo.dataUrl, "JPEG", dx, dy, dw, dh);
+    doc.addImage(anexo.dataUrl, "JPEG", 0, 0, 210, 297);
   }
 
   await salvarPDF(doc, `Docs Emissão de CRAF - ${primeiroNome}.pdf`);
@@ -3350,7 +3342,7 @@ END $$;`
                 cnhCrafUrl ? { label: "CNH", dataUrl: cnhCrafUrl } : null,
               ].filter((a): a is { label: string; dataUrl: string } => a !== null);
               if (anexos.length === 0) { alert("Anexe ao menos um documento."); return; }
-              await gerarPDFCraf(crafNome, anexos, semLogo);
+              await gerarPDFCraf(crafNome, anexos);
               setDialogCrafOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
