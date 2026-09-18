@@ -904,42 +904,65 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
 
 // ─── Docs Emissão de CRAF (Nota Fiscal + Autorização de Compra + CNH) ─────
 async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; dataUrl: string }>) {
+  if (anexosRaw.length === 0) return;
   const primeiroNome = capitalize(nome.trim().split(/\s+/)[0] || "Craf");
+  const filename = `Docs Emissão de CRAF - ${primeiroNome}.pdf`;
 
-  const anexos: Array<{ dataUrl: string; label: string }> = [];
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js");
+  const { PDFDocument, rgb, StandardFonts } = (window as any).PDFLib;
+
+  const merged = await PDFDocument.create();
+  const font = await merged.embedFont(StandardFonts.HelveticaBold);
+  const A4W = 595.28, A4H = 841.89;
+
   for (const a of anexosRaw) {
-    if (a.dataUrl.startsWith("data:image")) {
-      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 1100, 1554, 0.92), label: a.label });
-    } else if (a.dataUrl.startsWith("data:application/pdf")) {
-      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 1100, 1554, 0.92), label: a.label });
+    if (a.dataUrl.startsWith("data:application/pdf")) {
+      // Copia as páginas do PDF original sem rasterizar (texto permanece selecionável)
+      const b64 = a.dataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      const indices = src.getPageIndices();
+      const copied = await merged.copyPages(src, indices);
+      copied.forEach((pg: any, idx: number) => {
+        merged.addPage(pg);
+        if (idx === 0) {
+          const { width: pw, height: ph } = pg.getSize();
+          // Faixa branca no topo e texto de identificação
+          pg.drawRectangle({ x: 0, y: ph - 16, width: pw, height: 16, color: rgb(1, 1, 1) });
+          pg.drawText(`Anexo: ${a.label}`, { x: 8, y: ph - 12, size: 9, font, color: rgb(0, 0, 0) });
+        }
+      });
+    } else if (a.dataUrl.startsWith("data:image")) {
+      // Converte imagem para JPEG e embute como página
+      const jpegDataUrl = await fitImageToPage(a.dataUrl, 1100, 1554, 0.92);
+      const b64 = jpegDataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const img = await merged.embedJpg(bytes);
+      const pg = merged.addPage([A4W, A4H]);
+      pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
+      const dims = img.scaleToFit(A4W - 20, A4H - 26);
+      pg.drawImage(img, { x: (A4W - dims.width) / 2, y: A4H - dims.height - 18, width: dims.width, height: dims.height });
     }
   }
 
-  if (anexos.length === 0) return;
-
-  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
-  const { jsPDF } = (window as any).jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-
-  for (let i = 0; i < anexos.length; i++) {
-    if (i > 0) doc.addPage();
-    const anexo = anexos[i];
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Anexo: ${anexo.label}`, 10, 8);
-    const imgEl = document.createElement("img");
-    imgEl.src = anexo.dataUrl;
-    await new Promise<void>(r => { imgEl.onload = () => r(); });
-    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
-    const maxW = 200, maxH = 282;
-    let dw = maxW, dh = maxW / ratio;
-    if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
-    const dx = (210 - dw) / 2;
-    doc.addImage(anexo.dataUrl, "JPEG", dx, 12, dw, dh);
+  const pdfBytes = await merged.save();
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  if (typeof (window as any).showSaveFilePicker === "function") {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob); await writable.close(); return;
+    } catch (_) {}
   }
-
-  await salvarPDF(doc, `Docs Emissão de CRAF - ${primeiroNome}.pdf`);
+  const url = URL.createObjectURL(blob);
+  const el = document.createElement("a");
+  el.href = url; el.download = filename;
+  document.body.appendChild(el); el.click();
+  document.body.removeChild(el);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
