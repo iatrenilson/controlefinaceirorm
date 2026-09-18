@@ -919,28 +919,11 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
-  const { startY, W, ML } = await aplicarLayoutPassarinho(doc, semLogo);
-  let y = startY;
+  const { W, ML } = await aplicarLayoutPassarinho(doc, semLogo);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("DOCUMENTOS PARA EMISSÃO DE CRAF", W / 2, y, { align: "center" });
-  y += 14;
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  if (nome.trim()) {
-    doc.text(`Cliente: ${nome.toUpperCase()}`, ML, y);
-    y += 8;
-  }
-  doc.text(`Data: ${dataExtenso()}`, ML, y);
-  y += 10;
-
-  doc.setFontSize(10.5);
-  anexos.forEach((a, i) => { doc.text(`${i + 1}. ${a.label}`, ML, y); y += 6; });
-
-  for (const anexo of anexos) {
-    doc.addPage();
+  for (let i = 0; i < anexos.length; i++) {
+    if (i > 0) doc.addPage();
+    const anexo = anexos[i];
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.text(`Anexo: ${anexo.label}`, ML, 15);
