@@ -909,9 +909,9 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   const anexos: Array<{ dataUrl: string; label: string }> = [];
   for (const a of anexosRaw) {
     if (a.dataUrl.startsWith("data:image")) {
-      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 800, 1130, 0.95), label: a.label });
+      anexos.push({ dataUrl: await fitImageToPage(a.dataUrl, 1240, 1754, 0.98), label: a.label });
     } else if (a.dataUrl.startsWith("data:application/pdf")) {
-      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 840, 1190, 0.95), label: a.label });
+      anexos.push({ dataUrl: await renderPdfPageToJpeg(a.dataUrl, 1240, 1754, 0.98), label: a.label });
     }
   }
 
@@ -931,7 +931,12 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
     const imgEl = document.createElement("img");
     imgEl.src = anexo.dataUrl;
     await new Promise<void>(r => { imgEl.onload = () => r(); });
-    doc.addImage(anexo.dataUrl, "JPEG", 0, 12, 210, 285);
+    const ratio = imgEl.naturalWidth / imgEl.naturalHeight;
+    const maxW = 200, maxH = 282;
+    let dw = maxW, dh = maxW / ratio;
+    if (dh > maxH) { dh = maxH; dw = maxH * ratio; }
+    const dx = (210 - dw) / 2;
+    doc.addImage(anexo.dataUrl, "JPEG", dx, 12, dw, dh);
   }
 
   await salvarPDF(doc, `Docs Emissão de CRAF - ${primeiroNome}.pdf`);
