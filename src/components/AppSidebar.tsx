@@ -281,6 +281,11 @@ export function AppSidebar() {
                               Declaração de Residência
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
+                          <SidebarMenuSubItem>
+                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=craf")} className="cursor-pointer text-xs">
+                              Docs Emissão de CRAF
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
                         </SidebarMenuSub>
                       </CollapsibleContent>
                     </SidebarMenuItem>
