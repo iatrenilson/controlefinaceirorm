@@ -213,7 +213,7 @@ function maskCep(raw: string): string {
   if (d.length > 2) return d.replace(/(\d{2})(\d{1,3})/, "$1.$2");
   return d;
 }
-function titleCase(s: string) { return s.replace(/\b\w/g, (c) => c.toUpperCase()); }
+function titleCase(s: string) { return s.replace(/(^|\s)(\S)/g, (_, sp, c) => sp + c.toUpperCase()); }
 async function buscarCep(cepMasked: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
   const d = cepMasked.replace(/\D/g, "");
   if (d.length !== 8) return null;
