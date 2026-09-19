@@ -933,21 +933,11 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
         }
       });
     } else if (a.dataUrl.startsWith("data:image")) {
-      // Embute a imagem original sem recomprimir (máxima qualidade)
-      const b64 = a.dataUrl.split(",")[1];
+      // Redimensiona para A4 legível (900px) e comprime para manter arquivo < 800 KB
+      const jpegDataUrl = await fitImageToPage(a.dataUrl, 900, 1274, 0.84);
+      const b64 = jpegDataUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      let img: any;
-      try {
-        img = a.dataUrl.startsWith("data:image/png")
-          ? await merged.embedPng(bytes)
-          : await merged.embedJpg(bytes);
-      } catch {
-        // fallback: converte para jpeg se o formato não for suportado
-        const jpegDataUrl = await fitImageToPage(a.dataUrl, 1100, 1554, 0.95);
-        const fb64 = jpegDataUrl.split(",")[1];
-        const fb = Uint8Array.from(atob(fb64), c => c.charCodeAt(0));
-        img = await merged.embedJpg(fb);
-      }
+      const img = await merged.embedJpg(bytes);
       const pg = merged.addPage([A4W, A4H]);
       pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
       const dims = img.scaleToFit(A4W - 20, A4H - 26);
