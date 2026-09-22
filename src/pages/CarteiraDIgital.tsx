@@ -47,6 +47,23 @@ END $$;
 CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome) ORDER BY d.tipo) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  VALUES ('carteira-docs', 'carteira-docs', true, 52428800, NULL)
+  ON CONFLICT (id) DO UPDATE SET public = true;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_public_select') THEN
+    CREATE POLICY "carteira_docs_public_select" ON storage.objects FOR SELECT TO public USING (bucket_id = 'carteira-docs');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_insert') THEN
+    CREATE POLICY "carteira_docs_auth_insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'carteira-docs');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_update') THEN
+    CREATE POLICY "carteira_docs_auth_update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'carteira-docs');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_delete') THEN
+    CREATE POLICY "carteira_docs_auth_delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'carteira-docs');
+  END IF;
+END $$;
 `.trim();
 
 function publicUrl(path: string) {
@@ -131,12 +148,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     if (!cliente?.id) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
     setUploading(tipo);
     const path = `${cliente.id}/${tipo}.pdf`;
-    let { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
-    if (error && (error.message.includes("Bucket not found") || error.message.includes("bucket") || error.message.includes("not found"))) {
-      await supabase.storage.createBucket(BUCKET, { public: true });
-      const retry = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
-      error = retry.error;
-    }
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
     if (error) { toast.error("Erro ao enviar arquivo: " + error.message); setUploading(null); return; }
     await supabase.from("carteira_docs").upsert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name }, { onConflict: "carteira_cliente_id,tipo" });
     setDocs(d => ({ ...d, [tipo]: { tipo, arquivo_path: path, arquivo_nome: file.name } }));
@@ -304,14 +316,11 @@ export default function CarteiraDIgital() {
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v2";
+    const FLAG = "carteira_migration_v3";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
-        .then(() => {
-          localStorage.setItem(FLAG, "1");
-          setMigrated(true);
-          supabase.storage.createBucket(BUCKET, { public: true }).catch(() => {});
-        }).catch(() => setMigrated(true));
+        .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
+        .catch(() => setMigrated(true));
     } else {
       setMigrated(true);
     }
