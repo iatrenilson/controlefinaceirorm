@@ -22,9 +22,15 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
-// Mostra só a frente do CR: padding-bottom % é proporcional à largura do container,
-// funciona igual em qualquer celular. A4 ratio ≈ 141%, metade ≈ 70%.
-function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
+// shift/zoom por tipo: CR tem margem esquerda menor, CRAF maior
+const PDF_CONFIG: Record<string, { zoom: number; leftShift: number }> = {
+  cr:   { zoom: 128, leftShift: 20 },
+  craf: { zoom: 145, leftShift: 38 },
+  gt:   { zoom: 120, leftShift: 15 },
+};
+
+function PdfFirstPage({ url, onClick, tipo }: { url: string; onClick: () => void; tipo: string }) {
+  const { zoom, leftShift } = PDF_CONFIG[tipo] ?? { zoom: 120, leftShift: 15 };
   return (
     <div
       onClick={onClick}
@@ -45,8 +51,8 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
         style={{
           position: "absolute",
           top: 0,
-          left: 0,
-          width: "100%",
+          left: `-${leftShift}%`,
+          width: `${zoom}%`,
           height: "210%",
           border: "none",
           pointerEvents: "none",
@@ -232,7 +238,7 @@ export default function CarteiraCliente() {
                     {doc && url && (
                       <div style={{ margin:"0 10px 10px" }}>
                         {isPdf ? (
-                          <PdfFirstPage url={url} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })} />
+                          <PdfFirstPage url={url} tipo={key} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })} />
                         ) : (
                           <div style={{ borderRadius:8, overflow:"hidden", cursor:"pointer" }} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}>
                             <img src={url} alt={label} style={{ width:"100%", display:"block" }} />
