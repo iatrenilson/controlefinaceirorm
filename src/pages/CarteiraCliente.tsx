@@ -22,6 +22,23 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
+async function baixarArquivo(url: string, nomeArquivo: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
 function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
   const isPdf = url.toLowerCase().includes(".pdf") || url.includes("pdf");
   return (
@@ -33,10 +50,10 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#1e293b", flexShrink:0, gap:12 }}>
         <p style={{ color:"#f1f5f9", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <a href={url} download target="_blank" rel="noopener noreferrer"
-            style={{ padding:"6px 14px", background:"#16a34a", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:12, fontWeight:600 }}>
+          <button onClick={() => baixarArquivo(url, nome)}
+            style={{ padding:"6px 14px", background:"#16a34a", color:"#fff", borderRadius:8, border:"none", fontSize:12, fontWeight:600, cursor:"pointer" }}>
             ⬇ Baixar
-          </a>
+          </button>
           <button onClick={onClose}
             style={{ width:32, height:32, borderRadius:8, background:"#334155", border:"none", color:"#94a3b8", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
             ✕
@@ -165,10 +182,10 @@ export default function CarteiraCliente() {
                             style={{ padding:"6px 10px", background:"#1e3a5f", color:"#93c5fd", borderRadius:7, border:"1px solid #3b82f633", fontSize:11, fontWeight:600, cursor:"pointer" }}>
                             ⛶ Expandir
                           </button>
-                          <a href={url} download target="_blank" rel="noopener noreferrer"
-                            style={{ padding:"6px 10px", background:"#16a34a", color:"#fff", borderRadius:7, textDecoration:"none", fontSize:11, fontWeight:600 }}>
+                          <button onClick={() => baixarArquivo(url, doc.arquivo_nome || `${label}.pdf`)}
+                            style={{ padding:"6px 10px", background:"#16a34a", color:"#fff", borderRadius:7, border:"none", fontSize:11, fontWeight:600, cursor:"pointer" }}>
                             ⬇ Baixar
-                          </a>
+                          </button>
                         </div>
                       ) : (
                         <span style={{ flexShrink:0, padding:"6px 12px", background:"#1e293b", color:"#475569", borderRadius:7, fontSize:11, border:"1px solid #334155" }}>
