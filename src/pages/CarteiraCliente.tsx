@@ -39,7 +39,6 @@ async function loadPdfJs(): Promise<any> {
 
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
   const [estado, setEstado] = useState<"loading" | "ok" | "err">("loading");
 
   useEffect(() => {
@@ -47,21 +46,25 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
     (async () => {
       try {
         const pdfjsLib = await loadPdfJs();
-        const pdf = await pdfjsLib.getDocument({ url, cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/", cMapPacked: true }).promise;
-        const page = await pdf.getPage(1);
+        // fetch como arraybuffer evita problemas de CORS com pdfjsLib
+        const resp = await fetch(url);
+        const data = await resp.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data }).promise;
+        const page = await pdf.getPage(1); // só página 1
         if (cancelled) return;
         const canvas = canvasRef.current;
-        const wrap = wrapRef.current;
-        if (!canvas || !wrap) return;
-        const containerW = wrap.clientWidth || 340;
+        if (!canvas) return;
+        const containerW = Math.min(window.innerWidth - 60, 400);
         const vp0 = page.getViewport({ scale: 1 });
-        const scale = (containerW / vp0.width) * window.devicePixelRatio;
+        const scale = containerW / vp0.width;
         const vp = page.getViewport({ scale });
-        canvas.width = vp.width;
-        canvas.height = vp.height;
-        canvas.style.width = `${vp.width / window.devicePixelRatio}px`;
-        canvas.style.height = `${vp.height / window.devicePixelRatio}px`;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = vp.width * dpr;
+        canvas.height = vp.height * dpr;
+        canvas.style.width = `${vp.width}px`;
+        canvas.style.height = `${vp.height}px`;
         const ctx = canvas.getContext("2d")!;
+        ctx.scale(dpr, dpr);
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
         if (!cancelled) setEstado("ok");
       } catch { if (!cancelled) setEstado("err"); }
@@ -70,17 +73,19 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   }, [url]);
 
   return (
-    <div ref={wrapRef} onClick={onClick} style={{ cursor:"pointer", background:"#fff", borderRadius:8, overflow:"hidden", position:"relative", minHeight:estado === "ok" ? undefined : 160, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div onClick={onClick} style={{ cursor:"pointer", background:"#f8fafc", borderRadius:8, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
       {estado === "loading" && (
-        <div style={{ textAlign:"center", color:"#94a3b8", padding:24 }}>
-          <div style={{ width:28, height:28, border:"3px solid #e2e8f0", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 8px" }} />
-          <p style={{ fontSize:11, margin:0 }}>Carregando...</p>
+        <div style={{ height:180, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 }}>
+          <div style={{ width:26, height:26, border:"3px solid #e2e8f0", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+          <p style={{ fontSize:11, color:"#94a3b8", margin:0 }}>Carregando documento...</p>
         </div>
       )}
       {estado === "err" && (
-        <p style={{ color:"#94a3b8", fontSize:12, padding:20 }}>Não foi possível pré-visualizar</p>
+        <div style={{ height:80, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <p style={{ color:"#94a3b8", fontSize:12, margin:0 }}>Toque para visualizar</p>
+        </div>
       )}
-      <canvas ref={canvasRef} style={{ display: estado === "ok" ? "block" : "none", width:"100%" }} />
+      <canvas ref={canvasRef} style={{ display: estado === "ok" ? "block" : "none", maxWidth:"100%" }} />
     </div>
   );
 }
