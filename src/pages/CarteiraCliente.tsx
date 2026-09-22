@@ -181,7 +181,7 @@ export default function CarteiraCliente() {
 
           {/* Header */}
           <div style={{ textAlign:"center", marginBottom:24 }}>
-            <img src="https://rwinvestimentos.com.br/rw-logo.png" alt="Passarinho" style={{ height:72, objectFit:"contain", marginBottom:6 }}
+            <img src="https://rwinvestimentos.com.br/passarinho-logo.webp" alt="Passarinho Assessoria Bélica" style={{ height:110, objectFit:"contain", marginBottom:6 }}
               onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             <p style={{ color:"#64748b", fontSize:11, margin:0 }}>PASSARINHO ASSESSORIA BÉLICA</p>
           </div>
