@@ -147,10 +147,16 @@ export default function CarteiraCliente() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const BG = "linear-gradient(160deg, #0a0b0f 0%, #111318 60%, #0d0e13 100%)";
+  const GOLD = "#c9a227";
+  const GOLD_DIM = "rgba(201,162,39,0.18)";
+  const GOLD_BORDER = "rgba(201,162,39,0.28)";
+  const CARD_BG = "rgba(255,255,255,0.03)";
+
   if (loading) return (
-    <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ textAlign:"center", color:"#94a3b8" }}>
-        <div style={{ width:40, height:40, border:"3px solid #334155", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }} />
+    <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center", color:"#8b7d5a" }}>
+        <div style={{ width:40, height:40, border:`3px solid ${GOLD_BORDER}`, borderTopColor:GOLD, borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }} />
         <p style={{ fontSize:14 }}>Carregando carteira...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -158,10 +164,10 @@ export default function CarteiraCliente() {
   );
 
   if (erro || !data) return (
-    <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ textAlign:"center", color:"#94a3b8", maxWidth:320 }}>
+    <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ textAlign:"center", color:"#8b7d5a", maxWidth:320 }}>
         <div style={{ fontSize:48, marginBottom:16 }}>🔍</div>
-        <h2 style={{ color:"#f1f5f9", fontSize:18, marginBottom:8 }}>Carteira não encontrada</h2>
+        <h2 style={{ color:"#e8d5a0", fontSize:18, marginBottom:8 }}>Carteira não encontrada</h2>
         <p style={{ fontSize:14 }}>Este link pode estar incorreto ou expirado.</p>
         <a href="https://wa.me/5592985032288" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600 }}>
           📱 Falar com a Assessoria
@@ -175,27 +181,39 @@ export default function CarteiraCliente() {
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      <div style={{ minHeight:"100vh", background:"#0f172a", padding:"24px 16px", fontFamily:"system-ui, sans-serif" }}>
-        <div style={{ maxWidth:420, margin:"0 auto" }}>
+      <div style={{ minHeight:"100vh", background:BG, padding:"0 0 32px", fontFamily:"system-ui, sans-serif" }}>
 
-          {/* Header */}
-          <div style={{ textAlign:"center", marginBottom:24 }}>
-            <img src="https://rwinvestimentos.com.br/passarinho-logo.webp" alt="Passarinho Assessoria Bélica" style={{ height:110, objectFit:"contain", marginBottom:6 }}
-              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            <p style={{ color:"#64748b", fontSize:11, margin:0 }}>PASSARINHO ASSESSORIA BÉLICA</p>
-          </div>
+        {/* Header com glow dourado */}
+        <div style={{
+          background:"linear-gradient(180deg, rgba(201,162,39,0.10) 0%, transparent 100%)",
+          borderBottom:`1px solid ${GOLD_BORDER}`,
+          padding:"28px 16px 24px",
+          textAlign:"center",
+          marginBottom:20,
+        }}>
+          <img
+            src="https://rwinvestimentos.com.br/passarinho-logo.webp"
+            alt="Passarinho Assessoria Bélica"
+            style={{ height:130, objectFit:"contain", display:"block", margin:"0 auto 8px", filter:"drop-shadow(0 4px 16px rgba(201,162,39,0.35))" }}
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+          <p style={{ color:GOLD, fontSize:10, margin:0, letterSpacing:"0.18em", fontWeight:600 }}>PASSARINHO ASSESSORIA BÉLICA</p>
+        </div>
+
+        <div style={{ maxWidth:440, margin:"0 auto", padding:"0 14px" }}>
 
           {/* Card cliente */}
-          <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
-            <p style={{ color:"#64748b", fontSize:11, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Carteira Digital</p>
-            <h1 style={{ color:"#f1f5f9", fontSize:20, fontWeight:700, margin:0 }}>{primeiroNome(data.nome)}</h1>
-            <p style={{ color:"#94a3b8", fontSize:12, margin:"2px 0 0" }}>{data.nome}</p>
+          <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(8px)" }}>
+            <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:600 }}>✦ Carteira Digital</p>
+            <h1 style={{ color:"#f0e6c8", fontSize:22, fontWeight:800, margin:0 }}>{primeiroNome(data.nome)}</h1>
+            <p style={{ color:"#7a6a48", fontSize:12, margin:"3px 0 0" }}>{data.nome}</p>
           </div>
 
           {/* Documentos */}
-          <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
-            <p style={{ color:"#64748b", fontSize:11, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Seus Documentos</p>
+          <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}` }}>
+            <p style={{ color:GOLD, fontSize:10, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:600 }}>✦ Seus Documentos</p>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {TIPOS.map(({ key, label, desc, emoji }) => {
                 const doc = docsMap[key];
@@ -203,32 +221,34 @@ export default function CarteiraCliente() {
                 const isPdf = url ? (doc!.arquivo_nome?.toLowerCase().endsWith(".pdf") || doc!.arquivo_path?.toLowerCase().endsWith(".pdf")) : false;
                 return (
                   <div key={key} style={{
-                    borderRadius:12, border:`1px solid ${doc ? "#22c55e33" : "#334155"}`,
-                    background: doc ? "#14291a" : "#0f172a", overflow:"hidden",
+                    borderRadius:12,
+                    border: doc ? `1px solid ${GOLD_BORDER}` : "1px solid rgba(255,255,255,0.06)",
+                    background: doc ? "rgba(201,162,39,0.05)" : "rgba(255,255,255,0.02)",
+                    overflow:"hidden",
                   }}>
                     {/* Linha topo */}
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"12px 14px" }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
                         <span style={{ fontSize:18, flexShrink:0 }}>{emoji}</span>
                         <div style={{ minWidth:0 }}>
-                          <p style={{ color: doc ? "#86efac" : "#94a3b8", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
-                          <p style={{ color:"#64748b", fontSize:10, margin:0 }}>{desc}</p>
+                          <p style={{ color: doc ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
+                          <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
                         </div>
                       </div>
                       {doc && url ? (
                         <div style={{ display:"flex", gap:6, flexShrink:0 }}>
                           <button
                             onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
-                            style={{ padding:"6px 10px", background:"#1e3a5f", color:"#93c5fd", borderRadius:7, border:"1px solid #3b82f633", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+                            style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
                             ⛶ Expandir
                           </button>
                           <button onClick={() => baixarArquivo(url, doc.arquivo_nome || `${label}.pdf`)}
-                            style={{ padding:"6px 10px", background:"#16a34a", color:"#fff", borderRadius:7, border:"none", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+                            style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                             ⬇ Baixar
                           </button>
                         </div>
                       ) : (
-                        <span style={{ flexShrink:0, padding:"6px 12px", background:"#1e293b", color:"#475569", borderRadius:7, fontSize:11, border:"1px solid #334155" }}>
+                        <span style={{ flexShrink:0, padding:"6px 12px", background:"rgba(255,255,255,0.03)", color:"#3a3020", borderRadius:7, fontSize:11, border:"1px solid rgba(255,255,255,0.06)" }}>
                           Pendente
                         </span>
                       )}
@@ -244,7 +264,7 @@ export default function CarteiraCliente() {
                             <img src={url} alt={label} style={{ width:"100%", display:"block" }} />
                           </div>
                         )}
-                        <div style={{ padding:"4px 10px", fontSize:10, color:"#475569", textAlign:"center" }}>
+                        <div style={{ padding:"4px 10px", fontSize:10, color:"#4a3f2a", textAlign:"center" }}>
                           Toque para ampliar
                         </div>
                       </div>
@@ -255,12 +275,16 @@ export default function CarteiraCliente() {
             </div>
           </div>
 
-          {/* Contato */}
-          <a href="https://wa.me/5592985032288" style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:"#14532d", borderRadius:16, textDecoration:"none", color:"#fff", border:"1px solid #16a34a44" }}>
-            <span style={{ fontSize:22 }}>📱</span>
+          {/* Contato WhatsApp */}
+          <a href="https://wa.me/5592985032288" style={{
+            display:"flex", alignItems:"center", gap:12, padding:"14px 18px",
+            background:"rgba(37,211,102,0.08)", borderRadius:16, textDecoration:"none",
+            color:"#fff", border:"1px solid rgba(37,211,102,0.25)",
+          }}>
+            <span style={{ fontSize:24 }}>📱</span>
             <div>
-              <p style={{ margin:0, fontWeight:600, fontSize:14 }}>Dúvidas? WhatsApp</p>
-              <p style={{ margin:0, fontSize:11, opacity:0.7 }}>Passarinho Assessoria Bélica</p>
+              <p style={{ margin:0, fontWeight:700, fontSize:14, color:"#5fda8a" }}>Dúvidas? WhatsApp</p>
+              <p style={{ margin:0, fontSize:11, color:"#3a7a52" }}>Passarinho Assessoria Bélica</p>
             </div>
           </a>
 
