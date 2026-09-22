@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -240,6 +240,14 @@ export function AppSidebar() {
               <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Sinarm CAC</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Carteira Digital">
+                      <NavLink to="/carteira-digital" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <Wallet className="h-[18px] w-[18px]" />
+                        <span>Carteira Digital</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Clientes">
                       <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
