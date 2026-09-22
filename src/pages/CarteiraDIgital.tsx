@@ -96,7 +96,12 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     if (!cliente?.id) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
     setUploading(tipo);
     const path = `${cliente.id}/${tipo}.pdf`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    let { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    if (error && (error.message.includes("Bucket not found") || error.message.includes("bucket") || error.message.includes("not found"))) {
+      await supabase.storage.createBucket(BUCKET, { public: true });
+      const retry = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+      error = retry.error;
+    }
     if (error) { toast.error("Erro ao enviar arquivo: " + error.message); setUploading(null); return; }
     await supabase.from("carteira_docs").upsert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name }, { onConflict: "carteira_cliente_id,tipo" });
     setDocs(d => ({ ...d, [tipo]: { tipo, arquivo_path: path, arquivo_nome: file.name } }));
