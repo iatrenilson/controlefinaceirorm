@@ -916,20 +916,31 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   const A4W = 595.28, A4H = 841.89;
 
   for (const a of anexosRaw) {
-    // PDFs e imagens são rasterizados para JPEG para garantir arquivo < 800 KB
-    let jpegDataUrl: string;
     if (a.dataUrl.startsWith("data:application/pdf")) {
-      jpegDataUrl = await renderPdfPageToJpeg(a.dataUrl, 800, 1132, 0.78);
+      // PDF: copia páginas originais — texto permanece selecionável e copiável
+      const b64 = a.dataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+      const copied = await merged.copyPages(src, src.getPageIndices());
+      copied.forEach((pg: any, idx: number) => {
+        merged.addPage(pg);
+        if (idx === 0) {
+          const { width: pw, height: ph } = pg.getSize();
+          pg.drawRectangle({ x: 0, y: ph - 16, width: pw, height: 16, color: rgb(1, 1, 1) });
+          pg.drawText(`Anexo: ${a.label}`, { x: 8, y: ph - 12, size: 9, font, color: rgb(0, 0, 0) });
+        }
+      });
     } else if (a.dataUrl.startsWith("data:image")) {
-      jpegDataUrl = await fitImageToPage(a.dataUrl, 800, 1132, 0.78);
-    } else { continue; }
-    const b64 = jpegDataUrl.split(",")[1];
-    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-    const img = await merged.embedJpg(bytes);
-    const pg = merged.addPage([A4W, A4H]);
-    pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
-    const dims = img.scaleToFit(A4W - 20, A4H - 26);
-    pg.drawImage(img, { x: (A4W - dims.width) / 2, y: A4H - dims.height - 18, width: dims.width, height: dims.height });
+      // Imagem: alta qualidade (1200px) para leitura fácil de detalhes como CNH
+      const jpegDataUrl = await fitImageToPage(a.dataUrl, 1200, 1697, 0.88);
+      const b64 = jpegDataUrl.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const img = await merged.embedJpg(bytes);
+      const pg = merged.addPage([A4W, A4H]);
+      pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
+      const dims = img.scaleToFit(A4W - 20, A4H - 26);
+      pg.drawImage(img, { x: (A4W - dims.width) / 2, y: A4H - dims.height - 18, width: dims.width, height: dims.height });
+    }
   }
 
   const pdfBytes = await merged.save();
