@@ -130,7 +130,7 @@ export default function CarteiraCliente() {
         <div style={{ fontSize:48, marginBottom:16 }}>🔍</div>
         <h2 style={{ color:"#e8d5a0", fontSize:18, marginBottom:8 }}>Carteira não encontrada</h2>
         <p style={{ fontSize:14 }}>Este link pode estar incorreto ou expirado.</p>
-        <a href="https://wa.me/5592985032288" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600 }}>
+        <a href="https://wa.me/5592993161828" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600 }}>
           📱 Falar com a Assessoria
         </a>
       </div>
@@ -229,7 +229,7 @@ export default function CarteiraCliente() {
           </div>
 
           {/* Contato WhatsApp */}
-          <a href="https://wa.me/5592985032288" style={{
+          <a href="https://wa.me/5592993161828" style={{
             display:"flex", alignItems:"center", gap:12, padding:"14px 18px",
             background:"rgba(37,211,102,0.08)", borderRadius:16, textDecoration:"none",
             color:"#fff", border:"1px solid rgba(37,211,102,0.25)",
