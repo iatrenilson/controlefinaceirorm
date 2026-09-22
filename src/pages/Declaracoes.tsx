@@ -931,8 +931,8 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
         }
       });
     } else if (a.dataUrl.startsWith("data:image")) {
-      // Imagem: alta qualidade (1200px) para leitura fácil de detalhes como CNH
-      const jpegDataUrl = await fitImageToPage(a.dataUrl, 1200, 1697, 0.88);
+      // Imagem: 700px 65% — tamanho compacto, ainda legível para CNH e notas
+      const jpegDataUrl = await fitImageToPage(a.dataUrl, 700, 990, 0.65);
       const b64 = jpegDataUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const img = await merged.embedJpg(bytes);
