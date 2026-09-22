@@ -25,7 +25,7 @@ function primeiroNome(nome: string) {
 // shift/zoom por tipo: CR tem margem esquerda menor, CRAF maior
 const PDF_CONFIG: Record<string, { zoom: number; leftShift: number }> = {
   cr:   { zoom: 128, leftShift: 20 },
-  craf: { zoom: 145, leftShift: 38 },
+  craf: { zoom: 130, leftShift: 22 },
   gt:   { zoom: 120, leftShift: 15 },
 };
 
