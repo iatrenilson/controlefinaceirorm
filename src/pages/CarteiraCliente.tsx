@@ -25,11 +25,11 @@ function primeiroNome(nome: string) {
 // Mostra só a primeira metade do PDF (frente do documento) via iframe clippado
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   return (
-    <div onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", position:"relative", height:310 }}>
+    <div onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", position:"relative", height:250 }}>
       <iframe
         src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
         title="preview"
-        style={{ width:"100%", height:"620px", border:"none", display:"block", pointerEvents:"none" }}
+        style={{ width:"100%", height:"500px", border:"none", display:"block", pointerEvents:"none" }}
       />
     </div>
   );
