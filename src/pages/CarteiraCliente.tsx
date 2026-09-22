@@ -1,9 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
@@ -26,63 +22,36 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
+// Mostra só a frente do CR: padding-bottom % é proporcional à largura do container,
+// funciona igual em qualquer celular. A4 ratio ≈ 141%, metade ≈ 70%.
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [clipHeight, setClipHeight] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setErro(false);
-    setClipHeight(0);
-
-    pdfjsLib.getDocument({ url }).promise
-      .then(pdf => pdf.getPage(1))
-      .then(page => {
-        if (cancelled) return;
-        const w = container.offsetWidth || 340;
-        const base = page.getViewport({ scale: 1 });
-        const scale = w / base.width;
-        const vp = page.getViewport({ scale });
-        canvas.width = Math.floor(vp.width);
-        canvas.height = Math.floor(vp.height);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        return page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
-          if (cancelled) return;
-          // Guarda a altura no estado React — não será apagada no re-render
-          setClipHeight(Math.floor(vp.height / 2));
-          setLoading(false);
-        });
-      })
-      .catch(() => { if (!cancelled) { setLoading(false); setErro(true); } });
-
-    return () => { cancelled = true; };
-  }, [url]);
-
   return (
-    <div ref={containerRef} onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff" }}>
-      {loading && !erro && (
-        <div style={{ minHeight:160, display:"flex", alignItems:"center", justifyContent:"center", color:"#94a3b8", fontSize:12 }}>
-          Carregando...
-        </div>
-      )}
-      {erro && (
-        <div style={{ minHeight:160, display:"flex", alignItems:"center", justifyContent:"center", color:"#94a3b8", fontSize:12 }}>
-          Prévia indisponível
-        </div>
-      )}
-      {/* clipHeight no style do React garante que o re-render não apaga a altura */}
-      <div style={{ overflow:"hidden", height: clipHeight || undefined, display: loading || erro ? "none" : "block" }}>
-        <canvas ref={canvasRef} style={{ width:"100%", display:"block" }} />
-      </div>
+    <div
+      onClick={onClick}
+      style={{
+        cursor: "pointer",
+        borderRadius: 8,
+        overflow: "hidden",
+        background: "#fff",
+        position: "relative",
+        width: "100%",
+        height: 0,
+        paddingBottom: "68%",
+      }}
+    >
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title="preview"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "210%",
+          border: "none",
+          pointerEvents: "none",
+        }}
+      />
     </div>
   );
 }
