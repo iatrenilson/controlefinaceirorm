@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
@@ -22,15 +26,47 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
-// Mostra só a primeira metade do PDF (frente do documento) via iframe clippado
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setErro(false);
+
+    pdfjsLib.getDocument({ url }).promise
+      .then(pdf => pdf.getPage(1))
+      .then(page => {
+        if (cancelled) return;
+        const containerWidth = container.offsetWidth || 340;
+        const base = page.getViewport({ scale: 1 });
+        const scale = containerWidth / base.width;
+        const vp = page.getViewport({ scale });
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height / 2); // apenas a metade superior (frente do CR)
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        return page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
+          if (!cancelled) setLoading(false);
+        });
+      })
+      .catch(() => { if (!cancelled) { setLoading(false); setErro(true); } });
+
+    return () => { cancelled = true; };
+  }, [url]);
+
   return (
-    <div onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", position:"relative", height:210 }}>
-      <iframe
-        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-        title="preview"
-        style={{ width:"155%", height:"420px", marginLeft:"-25%", border:"none", display:"block", pointerEvents:"none" }}
-      />
+    <div ref={containerRef} onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", minHeight:160, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      {loading && !erro && <div style={{ color:"#94a3b8", fontSize:12, padding:16 }}>Carregando...</div>}
+      {erro && <div style={{ color:"#94a3b8", fontSize:12, padding:16 }}>Prévia indisponível</div>}
+      <canvas ref={canvasRef} style={{ display: loading || erro ? "none" : "block", width:"100%", height:"auto" }} />
     </div>
   );
 }
