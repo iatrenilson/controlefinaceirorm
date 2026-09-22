@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
@@ -22,84 +22,15 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
-const PDFJS_SRC = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-async function loadPdfJs(): Promise<any> {
-  const w = window as any;
-  if (w.pdfjsLib) return w.pdfjsLib;
-  await new Promise<void>((res, rej) => {
-    const s = document.createElement("script");
-    s.src = PDFJS_SRC; s.onload = () => res(); s.onerror = rej;
-    document.head.appendChild(s);
-  });
-  w.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-  return w.pdfjsLib;
-}
-
+// Mostra só a primeira metade do PDF (frente do documento) via iframe clippado
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [estado, setEstado] = useState<"loading" | "ok" | "err">("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const pdfjsLib = await loadPdfJs();
-        const resp = await fetch(url);
-        const data = await resp.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data }).promise;
-        const numPages = pdf.numPages;
-        const page = await pdf.getPage(1);
-        if (cancelled) return;
-
-        const vp0 = page.getViewport({ scale: 1 });
-        const scale = 2.5;
-        const vp = page.getViewport({ scale });
-        const offscreen = document.createElement("canvas");
-        offscreen.width = vp.width;
-        offscreen.height = vp.height;
-        await page.render({ canvasContext: offscreen.getContext("2d")!, viewport: vp }).promise;
-
-        // 1 página = frente+verso na mesma → corta top 52%
-        // 2+ páginas = cada lado separado → página 1 já é só a frente
-        const shouldCrop = numPages === 1 && vp0.height > vp0.width * 0.8;
-        let src: string;
-        if (shouldCrop) {
-          const cropH = Math.round(offscreen.height * 0.52);
-          const crop = document.createElement("canvas");
-          crop.width = offscreen.width;
-          crop.height = cropH;
-          crop.getContext("2d")!.drawImage(offscreen, 0, 0, offscreen.width, cropH, 0, 0, offscreen.width, cropH);
-          src = crop.toDataURL("image/jpeg", 0.92);
-        } else {
-          src = offscreen.toDataURL("image/jpeg", 0.92);
-        }
-
-        if (!cancelled) { setImgSrc(src); setEstado("ok"); }
-      } catch { if (!cancelled) setEstado("err"); }
-    })();
-    return () => { cancelled = true; };
-  }, [url]);
-
   return (
-    <div onClick={onClick} style={{ cursor:"pointer", background:"#f8fafc", borderRadius:8, overflow:"hidden" }}>
-      {estado === "loading" && (
-        <div style={{ height:160, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 }}>
-          <div style={{ width:26, height:26, border:"3px solid #e2e8f0", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
-          <p style={{ fontSize:11, color:"#94a3b8", margin:0 }}>Carregando documento...</p>
-        </div>
-      )}
-      {estado === "err" && (
-        <div style={{ position:"relative", overflow:"hidden", height: 280 }}>
-          <iframe
-            src={`${url}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-            title="preview"
-            style={{ width:"142%", height:"400px", border:"none", marginLeft:"-21%", marginTop:"-10px", pointerEvents:"none" }}
-          />
-        </div>
-      )}
-      {imgSrc && <img src={imgSrc} alt="preview" style={{ width:"100%", height:"auto", display:"block" }} />}
+    <div onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", position:"relative", height:270 }}>
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title="preview"
+        style={{ width:"100%", height:"560px", border:"none", display:"block", pointerEvents:"none" }}
+      />
     </div>
   );
 }
