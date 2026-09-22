@@ -41,7 +41,10 @@ async function baixarArquivo(url: string, nomeArquivo: string) {
 }
 
 function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isPdf = url.toLowerCase().includes(".pdf") || url.includes("pdf");
+  const isPdf = nome.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf") || (!nome.match(/\.(png|jpg|jpeg|gif|webp)$/i) && !url.match(/\.(png|jpg|jpeg|gif|webp)(\?|$)/i));
+  const viewerUrl = isPdf
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
   return (
     <div
       onClick={e => e.target === e.currentTarget && onClose()}
@@ -66,7 +69,7 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
       <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
         {isPdf ? (
           <iframe
-            src={url + "#toolbar=0&navpanes=0"}
+            src={viewerUrl}
             title={nome}
             style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }}
           />
