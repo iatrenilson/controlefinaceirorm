@@ -1065,7 +1065,7 @@ export default function Declaracoes() {
 
   // Migração: adiciona owner_id e atualiza RLS — roda só uma vez por browser
   useEffect(() => {
-    if (localStorage.getItem("schema_migration_v3")) return;
+    if (localStorage.getItem("schema_migration_v4")) return;
     supabase.functions.invoke("run-migration", {
       body: {
         sql: `DO $$ BEGIN
@@ -1074,26 +1074,21 @@ export default function Declaracoes() {
   DROP POLICY IF EXISTS "Admins and moderators can insert declaracao_clientes" ON public.declaracao_clientes;
   DROP POLICY IF EXISTS "Admins and moderators can update declaracao_clientes" ON public.declaracao_clientes;
   DROP POLICY IF EXISTS "Admins and moderators can delete declaracao_clientes" ON public.declaracao_clientes;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins select') THEN
-    CREATE POLICY "Owners or admins select" ON public.declaracao_clientes FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins insert') THEN
-    CREATE POLICY "Owners or admins insert" ON public.declaracao_clientes FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins update') THEN
-    CREATE POLICY "Owners or admins update" ON public.declaracao_clientes FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='declaracao_clientes' AND policyname='Owners or admins delete') THEN
-    CREATE POLICY "Owners or admins delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  END IF;
+  DROP POLICY IF EXISTS "Owners or admins insert" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Owners or admins select" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Owners or admins update" ON public.declaracao_clientes;
+  DROP POLICY IF EXISTS "Owners or admins delete" ON public.declaracao_clientes;
+  CREATE POLICY "dc_select" ON public.declaracao_clientes FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  CREATE POLICY "dc_insert" ON public.declaracao_clientes FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'moderator'));
+  CREATE POLICY "dc_update" ON public.declaracao_clientes FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
+  CREATE POLICY "dc_delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
   PERFORM pg_notify('pgrst', 'reload schema');
-  -- Atribui legados sem dono ao admin
   UPDATE public.declaracao_clientes
     SET owner_id = (SELECT id FROM auth.users WHERE email = 'iat.renilson.martins@gmail.com' LIMIT 1)
     WHERE owner_id IS NULL;
 END $$;`
       }
-    }).then(() => localStorage.setItem("schema_migration_v3", "1")).catch(() => {});
+    }).then(() => localStorage.setItem("schema_migration_v4", "1")).catch(() => {});
   }, []);
 
   // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
@@ -1886,7 +1881,9 @@ END $$;`
           if (!retry || retry.length === 0) throw new Error("Sem permissão para atualizar este cliente. Verifique se você está logado corretamente.");
         }
       } else {
-        const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: userId });
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const ownerId = currentUser?.id ?? userId;
+        const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: ownerId });
         if (error) throw error;
       }
     };
