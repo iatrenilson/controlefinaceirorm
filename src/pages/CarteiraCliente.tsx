@@ -24,6 +24,11 @@ function primeiroNome(nome: string) {
 
 
 async function baixarArquivo(url: string, nomeArquivo: string) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    window.open(url, "_blank");
+    return;
+  }
   try {
     const res = await fetch(url);
     const blob = await res.blob();
