@@ -38,7 +38,7 @@ async function loadPdfJs(): Promise<any> {
 }
 
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [estado, setEstado] = useState<"loading" | "ok" | "err">("loading");
 
   useEffect(() => {
@@ -46,36 +46,45 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
     (async () => {
       try {
         const pdfjsLib = await loadPdfJs();
-        // fetch como arraybuffer evita problemas de CORS com pdfjsLib
         const resp = await fetch(url);
         const data = await resp.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data }).promise;
-        const page = await pdf.getPage(1); // só página 1
+        const page = await pdf.getPage(1);
         if (cancelled) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const containerW = Math.min(window.innerWidth - 60, 400);
+
         const vp0 = page.getViewport({ scale: 1 });
-        const scale = containerW / vp0.width;
+        // Renderiza em alta res num canvas offscreen
+        const scale = 2.5;
         const vp = page.getViewport({ scale });
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = vp.width * dpr;
-        canvas.height = vp.height * dpr;
-        canvas.style.width = `${vp.width}px`;
-        canvas.style.height = `${vp.height}px`;
-        const ctx = canvas.getContext("2d")!;
-        ctx.scale(dpr, dpr);
-        await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        if (!cancelled) setEstado("ok");
+        const offscreen = document.createElement("canvas");
+        offscreen.width = vp.width;
+        offscreen.height = vp.height;
+        await page.render({ canvasContext: offscreen.getContext("2d")!, viewport: vp }).promise;
+
+        // Se portrait (frente+verso empilhados), corta a metade de cima
+        const isPortrait = vp0.height > vp0.width;
+        let src: string;
+        if (isPortrait) {
+          const cropH = Math.round(offscreen.height * 0.5);
+          const crop = document.createElement("canvas");
+          crop.width = offscreen.width;
+          crop.height = cropH;
+          crop.getContext("2d")!.drawImage(offscreen, 0, 0, offscreen.width, cropH, 0, 0, offscreen.width, cropH);
+          src = crop.toDataURL("image/jpeg", 0.92);
+        } else {
+          src = offscreen.toDataURL("image/jpeg", 0.92);
+        }
+
+        if (!cancelled) { setImgSrc(src); setEstado("ok"); }
       } catch { if (!cancelled) setEstado("err"); }
     })();
     return () => { cancelled = true; };
   }, [url]);
 
   return (
-    <div onClick={onClick} style={{ cursor:"pointer", background:"#f8fafc", borderRadius:8, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div onClick={onClick} style={{ cursor:"pointer", background:"#f8fafc", borderRadius:8, overflow:"hidden" }}>
       {estado === "loading" && (
-        <div style={{ height:180, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 }}>
+        <div style={{ height:160, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:8 }}>
           <div style={{ width:26, height:26, border:"3px solid #e2e8f0", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
           <p style={{ fontSize:11, color:"#94a3b8", margin:0 }}>Carregando documento...</p>
         </div>
@@ -85,7 +94,7 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
           <p style={{ color:"#94a3b8", fontSize:12, margin:0 }}>Toque para visualizar</p>
         </div>
       )}
-      <canvas ref={canvasRef} style={{ display: estado === "ok" ? "block" : "none", maxWidth:"100%" }} />
+      {imgSrc && <img src={imgSrc} alt="preview" style={{ width:"100%", height:"auto", display:"block" }} />}
     </div>
   );
 }
