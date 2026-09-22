@@ -11,7 +11,7 @@ const TIPOS = [
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                         emoji: "📋" },
 ] as const;
 
-interface CartDoc { tipo: string; arquivo_path: string; arquivo_nome: string; }
+interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; }
 interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
@@ -48,15 +48,15 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
       style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}
     >
       {/* Barra topo */}
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#1e293b", flexShrink:0, gap:12 }}>
-        <p style={{ color:"#f1f5f9", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
+        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <button onClick={() => baixarArquivo(url, nome)}
-            style={{ padding:"6px 14px", background:"#16a34a", color:"#fff", borderRadius:8, border:"none", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+            style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
             ⬇ Baixar
           </button>
           <button onClick={onClose}
-            style={{ width:32, height:32, borderRadius:8, background:"#334155", border:"none", color:"#94a3b8", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
             ✕
           </button>
         </div>
@@ -137,7 +137,8 @@ export default function CarteiraCliente() {
     </div>
   );
 
-  const docsMap = Object.fromEntries((data.docs ?? []).map(d => [d.tipo, d]));
+  const docsMap: Record<string, CartDoc[]> = {};
+  (data.docs ?? []).forEach(d => { (docsMap[d.tipo] ??= []).push(d); });
 
   return (
     <>
@@ -177,44 +178,50 @@ export default function CarteiraCliente() {
             <p style={{ color:GOLD, fontSize:10, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:600 }}>✦ Seus Documentos</p>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {TIPOS.map(({ key, label, desc, emoji }) => {
-                const doc = docsMap[key];
-                const url = doc ? publicUrl(doc.arquivo_path) : null;
-                const isPdf = url ? (doc!.arquivo_nome?.toLowerCase().endsWith(".pdf") || doc!.arquivo_path?.toLowerCase().endsWith(".pdf")) : false;
+                const docList = docsMap[key] ?? [];
+                const temDocs = docList.length > 0;
                 return (
                   <div key={key} style={{
                     borderRadius:12,
-                    border: doc ? `1px solid ${GOLD_BORDER}` : "1px solid rgba(255,255,255,0.06)",
-                    background: doc ? "rgba(201,162,39,0.05)" : "rgba(255,255,255,0.02)",
+                    border: temDocs ? `1px solid ${GOLD_BORDER}` : "1px solid rgba(255,255,255,0.06)",
+                    background: temDocs ? "rgba(201,162,39,0.05)" : "rgba(255,255,255,0.02)",
                     overflow:"hidden",
                   }}>
-                    {/* Linha topo */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"12px 14px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
-                        <span style={{ fontSize:18, flexShrink:0 }}>{emoji}</span>
-                        <div style={{ minWidth:0 }}>
-                          <p style={{ color: doc ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
-                          <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
-                        </div>
+                    {/* Cabeçalho do tipo */}
+                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 14px", borderBottom: temDocs ? `1px solid rgba(201,162,39,0.15)` : "none" }}>
+                      <span style={{ fontSize:18, flexShrink:0 }}>{emoji}</span>
+                      <div style={{ minWidth:0, flex:1 }}>
+                        <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
+                        <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
                       </div>
-                      {doc && url ? (
-                        <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                          <button
-                            onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
-                            style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
-                            ⛶ Expandir
-                          </button>
-                          <button onClick={() => baixarArquivo(url, doc.arquivo_nome || `${label}.pdf`)}
-                            style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                            ⬇ Baixar
-                          </button>
-                        </div>
-                      ) : (
+                      {!temDocs && (
                         <span style={{ flexShrink:0, padding:"6px 12px", background:"rgba(255,255,255,0.03)", color:"#3a3020", borderRadius:7, fontSize:11, border:"1px solid rgba(255,255,255,0.06)" }}>
                           Pendente
                         </span>
                       )}
                     </div>
-
+                    {/* Lista de arquivos */}
+                    {docList.map((doc, i) => {
+                      const url = publicUrl(doc.arquivo_path);
+                      return (
+                        <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
+                          <p style={{ color:"#a89060", fontSize:11, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                            {docList.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
+                          </p>
+                          <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                            <button
+                              onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
+                              style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
+                              ⛶ Expandir
+                            </button>
+                            <button onClick={() => baixarArquivo(url, doc.arquivo_nome || `${label}.pdf`)}
+                              style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                              ⬇ Baixar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}

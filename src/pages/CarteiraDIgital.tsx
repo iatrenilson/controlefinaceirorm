@@ -14,7 +14,7 @@ const TIPOS = [
 
 type TipoKey = "cr" | "craf" | "gt";
 
-interface CartDoc { tipo: TipoKey; arquivo_path: string; arquivo_nome: string; }
+interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
 const MIGRATION_SQL = `
@@ -44,7 +44,7 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_del') THEN CREATE POLICY "cd_del" ON public.carteira_docs FOR DELETE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
   PERFORM pg_notify('pgrst','reload schema');
 END $$;
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome) ORDER BY d.tipo) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
+CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -64,6 +64,7 @@ DO $$ BEGIN
     CREATE POLICY "carteira_docs_auth_delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'carteira-docs');
   END IF;
 END $$;
+ALTER TABLE public.carteira_docs DROP CONSTRAINT IF EXISTS carteira_docs_carteira_cliente_id_tipo_key;
 `.trim();
 
 function publicUrl(path: string) {
@@ -102,11 +103,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [nome, setNome] = useState(cliente?.nome ?? "");
   const [telefone, setTelefone] = useState(cliente?.telefone ?? "");
   const [cpf, setCpf] = useState(cliente?.cpf ?? "");
-  const [docs, setDocs] = useState<Record<TipoKey, CartDoc | null>>({
-    cr:   cliente?.docs?.find(d => d.tipo === "cr")   ?? null,
-    craf: cliente?.docs?.find(d => d.tipo === "craf") ?? null,
-    gt:   cliente?.docs?.find(d => d.tipo === "gt")   ?? null,
-  });
+  const [docs, setDocs] = useState<CartDoc[]>(cliente?.docs ?? []);
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
   const refs = { cr: useRef<HTMLInputElement>(null), craf: useRef<HTMLInputElement>(null), gt: useRef<HTMLInputElement>(null) };
@@ -147,21 +144,22 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const handleFile = async (tipo: TipoKey, file: File) => {
     if (!cliente?.id) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
     setUploading(tipo);
-    const path = `${cliente.id}/${tipo}.pdf`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    const ext = file.name.split('.').pop() || 'pdf';
+    const path = `${cliente.id}/${tipo}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
     if (error) { toast.error("Erro ao enviar arquivo: " + error.message); setUploading(null); return; }
-    await supabase.from("carteira_docs").upsert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name }, { onConflict: "carteira_cliente_id,tipo" });
-    setDocs(d => ({ ...d, [tipo]: { tipo, arquivo_path: path, arquivo_nome: file.name } }));
+    const { data: newDoc } = await supabase.from("carteira_docs").insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name }).select().single();
+    if (newDoc) setDocs(d => [...d, newDoc as CartDoc]);
     setUploading(null);
     toast.success(`${tipo.toUpperCase()} enviado!`);
   };
 
-  const handleRemoveDoc = async (tipo: TipoKey) => {
+  const handleRemoveDoc = async (doc: CartDoc) => {
     if (!cliente?.id) return;
-    await supabase.storage.from(BUCKET).remove([`${cliente.id}/${tipo}.pdf`]);
-    await supabase.from("carteira_docs").delete().eq("carteira_cliente_id", cliente.id).eq("tipo", tipo);
-    setDocs(d => ({ ...d, [tipo]: null }));
-    toast.success(`${tipo.toUpperCase()} removido.`);
+    await supabase.storage.from(BUCKET).remove([doc.arquivo_path]);
+    await supabase.from("carteira_docs").delete().eq("id", doc.id);
+    setDocs(d => d.filter(x => x.id !== doc.id));
+    toast.success(`Documento removido.`);
   };
 
   const handleSave = async () => {
@@ -239,40 +237,49 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
 
           {/* Documentos — só mostra após salvar */}
           {!isNew && (
-            <div className="space-y-2 pt-2 border-t border-border">
+            <div className="space-y-3 pt-2 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documentos</p>
               {TIPOS.map(({ key, label, desc }) => {
-                const doc = docs[key];
+                const tipoDocs = docs.filter(d => d.tipo === key);
                 return (
-                  <div key={key} className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-background/50 border-border">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <FileText className={`h-4 w-4 flex-shrink-0 ${doc ? "text-green-400" : "text-muted-foreground"}`} />
+                  <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${tipoDocs.length > 0 ? "text-green-400" : "text-muted-foreground"}`} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold">{label}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{doc ? doc.arquivo_nome : desc}</p>
+                          <p className="text-[10px] text-muted-foreground">{desc}</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {doc && (
-                        <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
-                          className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      {doc && (
-                        <button onClick={() => handleRemoveDoc(key)} className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remover">
-                          <Trash2 className="h-3.5 w-3.5" />
+                      <div className="flex-shrink-0">
+                        <input ref={refs[key]} type="file" accept="application/pdf,image/*" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(key, f); e.target.value = ""; }} />
+                        <button onClick={() => refs[key].current?.click()} disabled={uploading === key}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50">
+                          {uploading === key ? "..." : <><Plus className="h-3 w-3" />Adicionar</>}
                         </button>
-                      )}
-                      <input ref={refs[key]} type="file" accept="application/pdf,image/*" className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(key, f); e.target.value = ""; }} />
-                      <button onClick={() => refs[key].current?.click()} disabled={uploading === key}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50">
-                        {uploading === key ? "..." : <><Upload className="h-3 w-3" />{doc ? "Trocar" : "Enviar"}</>}
-                      </button>
+                      </div>
                     </div>
+                    {tipoDocs.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhum arquivo enviado</p>
+                    ) : (
+                      <div className="divide-y divide-border/30">
+                        {tipoDocs.map((doc, i) => (
+                          <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                            <p className="text-xs text-muted-foreground truncate min-w-0 flex-1">{i + 1}. {doc.arquivo_nome}</p>
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver">
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              <button onClick={() => handleRemoveDoc(doc)} className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remover">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -309,14 +316,14 @@ export default function CarteiraDIgital() {
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
     const { data: ds } = ids.length > 0
-      ? await supabase.from("carteira_docs").select("carteira_cliente_id, tipo, arquivo_path, arquivo_nome").in("carteira_cliente_id", ids)
+      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome").in("carteira_cliente_id", ids)
       : { data: [] };
     setClientes(cs.map(c => ({ ...c, docs: (ds ?? []).filter(d => d.carteira_cliente_id === c.id) as CartDoc[] })));
     setLoading(false);
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v3";
+    const FLAG = "carteira_migration_v4";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
         .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
