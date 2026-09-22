@@ -143,38 +143,59 @@ export default function CarteiraCliente() {
               {TIPOS.map(({ key, label, desc, emoji }) => {
                 const doc = docsMap[key];
                 const url = doc ? publicUrl(doc.arquivo_path) : null;
+                const isPdf = url ? (doc!.arquivo_nome?.toLowerCase().endsWith(".pdf") || doc!.arquivo_path?.toLowerCase().endsWith(".pdf")) : false;
                 return (
                   <div key={key} style={{
                     borderRadius:12, border:`1px solid ${doc ? "#22c55e33" : "#334155"}`,
                     background: doc ? "#14291a" : "#0f172a", overflow:"hidden",
                   }}>
-                    {/* Linha principal */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"14px 16px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                        <span style={{ fontSize:20, flexShrink:0 }}>{emoji}</span>
+                    {/* Linha topo */}
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"12px 14px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                        <span style={{ fontSize:18, flexShrink:0 }}>{emoji}</span>
                         <div style={{ minWidth:0 }}>
-                          <p style={{ color: doc ? "#86efac" : "#94a3b8", fontSize:14, fontWeight:700, margin:0 }}>{label}</p>
-                          <p style={{ color:"#64748b", fontSize:11, margin:0 }}>{desc}</p>
+                          <p style={{ color: doc ? "#86efac" : "#94a3b8", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
+                          <p style={{ color:"#64748b", fontSize:10, margin:0 }}>{desc}</p>
                         </div>
                       </div>
                       {doc && url ? (
                         <div style={{ display:"flex", gap:6, flexShrink:0 }}>
                           <button
                             onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
-                            style={{ padding:"8px 12px", background:"#1e3a5f", color:"#93c5fd", borderRadius:8, border:"1px solid #3b82f633", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
-                            👁 Ver
+                            style={{ padding:"6px 10px", background:"#1e3a5f", color:"#93c5fd", borderRadius:7, border:"1px solid #3b82f633", fontSize:11, fontWeight:600, cursor:"pointer" }}>
+                            ⛶ Expandir
                           </button>
                           <a href={url} download target="_blank" rel="noopener noreferrer"
-                            style={{ padding:"8px 12px", background:"#16a34a", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
+                            style={{ padding:"6px 10px", background:"#16a34a", color:"#fff", borderRadius:7, textDecoration:"none", fontSize:11, fontWeight:600 }}>
                             ⬇ Baixar
                           </a>
                         </div>
                       ) : (
-                        <span style={{ flexShrink:0, padding:"8px 14px", background:"#1e293b", color:"#475569", borderRadius:8, fontSize:12, border:"1px solid #334155" }}>
+                        <span style={{ flexShrink:0, padding:"6px 12px", background:"#1e293b", color:"#475569", borderRadius:7, fontSize:11, border:"1px solid #334155" }}>
                           Pendente
                         </span>
                       )}
                     </div>
+
+                    {/* Preview inline */}
+                    {doc && url && (
+                      <div style={{ margin:"0 10px 10px", borderRadius:8, overflow:"hidden", background:"#fff", cursor:"pointer" }}
+                        onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}>
+                        {isPdf ? (
+                          <iframe
+                            src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                            title={label}
+                            scrolling="no"
+                            style={{ width:"100%", height:220, border:"none", display:"block", pointerEvents:"none" }}
+                          />
+                        ) : (
+                          <img src={url} alt={label} style={{ width:"100%", height:220, objectFit:"cover", display:"block" }} />
+                        )}
+                        <div style={{ background:"#0f1929", padding:"4px 10px", fontSize:10, color:"#64748b", textAlign:"center" }}>
+                          Toque para ampliar
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
