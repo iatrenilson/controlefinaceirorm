@@ -29,13 +29,15 @@ function primeiroNome(nome: string) {
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const clipRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    const clip = clipRef.current;
+    if (!canvas || !container || !clip) return;
 
     let cancelled = false;
     setLoading(true);
@@ -45,16 +47,20 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
       .then(pdf => pdf.getPage(1))
       .then(page => {
         if (cancelled) return;
-        const containerWidth = container.offsetWidth || 340;
+        const w = container.offsetWidth || 340;
         const base = page.getViewport({ scale: 1 });
-        const scale = containerWidth / base.width;
+        const scale = w / base.width;
         const vp = page.getViewport({ scale });
+        // Renderiza a página inteira no canvas
         canvas.width = Math.floor(vp.width);
-        canvas.height = Math.floor(vp.height / 2); // apenas a metade superior (frente do CR)
+        canvas.height = Math.floor(vp.height);
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         return page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
-          if (!cancelled) setLoading(false);
+          if (cancelled) return;
+          // Wrapper com overflow:hidden mostra apenas a metade superior (frente do CR)
+          clip.style.height = `${Math.floor(canvas.height / 2)}px`;
+          setLoading(false);
         });
       })
       .catch(() => { if (!cancelled) { setLoading(false); setErro(true); } });
@@ -63,10 +69,20 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   }, [url]);
 
   return (
-    <div ref={containerRef} onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff", minHeight:160, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      {loading && !erro && <div style={{ color:"#94a3b8", fontSize:12, padding:16 }}>Carregando...</div>}
-      {erro && <div style={{ color:"#94a3b8", fontSize:12, padding:16 }}>Prévia indisponível</div>}
-      <canvas ref={canvasRef} style={{ display: loading || erro ? "none" : "block", width:"100%", height:"auto" }} />
+    <div ref={containerRef} onClick={onClick} style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff" }}>
+      {loading && !erro && (
+        <div style={{ minHeight:160, display:"flex", alignItems:"center", justifyContent:"center", color:"#94a3b8", fontSize:12 }}>
+          Carregando...
+        </div>
+      )}
+      {erro && (
+        <div style={{ minHeight:160, display:"flex", alignItems:"center", justifyContent:"center", color:"#94a3b8", fontSize:12 }}>
+          Prévia indisponível
+        </div>
+      )}
+      <div ref={clipRef} style={{ overflow:"hidden", display: loading || erro ? "none" : "block" }}>
+        <canvas ref={canvasRef} style={{ width:"100%", display:"block" }} />
+      </div>
     </div>
   );
 }
