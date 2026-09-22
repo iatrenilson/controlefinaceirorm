@@ -421,26 +421,26 @@ async function aplicarLayoutPassarinho(doc: any, semLogo = false) {
     const nw = img.naturalWidth || 1535, nh = img.naturalHeight || 1024;
     const ratio = nh / nw;
 
-    // Cabeçalho: 320px JPEG 72% com fundo branco (logo aparece ~45mm na página)
+    // Cabeçalho: 900px JPEG 92% com fundo branco
     const cvH = document.createElement("canvas");
-    cvH.width = 320; cvH.height = Math.round(320 * ratio);
+    cvH.width = 900; cvH.height = Math.round(900 * ratio);
     const ctxH = cvH.getContext("2d")!;
     ctxH.imageSmoothingEnabled = true; ctxH.imageSmoothingQuality = "high";
     ctxH.fillStyle = "#ffffff";
     ctxH.fillRect(0, 0, cvH.width, cvH.height);
     ctxH.drawImage(img, 0, 0, cvH.width, cvH.height);
-    logoHeaderData = cvH.toDataURL("image/jpeg", 0.72);
+    logoHeaderData = cvH.toDataURL("image/jpeg", 0.92);
 
-    // Marca d'água: 400px, opacidade 5.5%, JPEG 22% (quase branco, baixa qualidade não importa)
+    // Marca d'água: 900px largura, fundo branco, 7% opacidade, JPEG 65%
     const cvW = document.createElement("canvas");
-    cvW.width = 400; cvW.height = Math.round(400 * ratio);
+    cvW.width = 900; cvW.height = Math.round(900 * ratio);
     const ctxW = cvW.getContext("2d")!;
-    ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "medium";
+    ctxW.imageSmoothingEnabled = true; ctxW.imageSmoothingQuality = "high";
     ctxW.fillStyle = "#ffffff";
     ctxW.fillRect(0, 0, cvW.width, cvW.height);
     ctxW.globalAlpha = 0.055;
     ctxW.drawImage(img, 0, 0, cvW.width, cvW.height);
-    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.22);
+    logoWatermarkData = cvW.toDataURL("image/jpeg", 0.65);
   }
 
   // Marca d'água (200mm de largura na página, centrada) — omitida em modo semLogo
