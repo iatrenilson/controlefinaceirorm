@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
@@ -20,6 +20,69 @@ function publicUrl(path: string) {
 
 function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
+}
+
+const PDFJS_SRC = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+async function loadPdfJs(): Promise<any> {
+  const w = window as any;
+  if (w.pdfjsLib) return w.pdfjsLib;
+  await new Promise<void>((res, rej) => {
+    const s = document.createElement("script");
+    s.src = PDFJS_SRC; s.onload = () => res(); s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  w.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+  return w.pdfjsLib;
+}
+
+function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [estado, setEstado] = useState<"loading" | "ok" | "err">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const pdfjsLib = await loadPdfJs();
+        const pdf = await pdfjsLib.getDocument({ url, cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/", cMapPacked: true }).promise;
+        const page = await pdf.getPage(1);
+        if (cancelled) return;
+        const canvas = canvasRef.current;
+        const wrap = wrapRef.current;
+        if (!canvas || !wrap) return;
+        const containerW = wrap.clientWidth || 340;
+        const vp0 = page.getViewport({ scale: 1 });
+        const scale = (containerW / vp0.width) * window.devicePixelRatio;
+        const vp = page.getViewport({ scale });
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        canvas.style.width = `${vp.width / window.devicePixelRatio}px`;
+        canvas.style.height = `${vp.height / window.devicePixelRatio}px`;
+        const ctx = canvas.getContext("2d")!;
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        if (!cancelled) setEstado("ok");
+      } catch { if (!cancelled) setEstado("err"); }
+    })();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return (
+    <div ref={wrapRef} onClick={onClick} style={{ cursor:"pointer", background:"#fff", borderRadius:8, overflow:"hidden", position:"relative", minHeight:estado === "ok" ? undefined : 160, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      {estado === "loading" && (
+        <div style={{ textAlign:"center", color:"#94a3b8", padding:24 }}>
+          <div style={{ width:28, height:28, border:"3px solid #e2e8f0", borderTopColor:"#3b82f6", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 8px" }} />
+          <p style={{ fontSize:11, margin:0 }}>Carregando...</p>
+        </div>
+      )}
+      {estado === "err" && (
+        <p style={{ color:"#94a3b8", fontSize:12, padding:20 }}>Não foi possível pré-visualizar</p>
+      )}
+      <canvas ref={canvasRef} style={{ display: estado === "ok" ? "block" : "none", width:"100%" }} />
+    </div>
+  );
 }
 
 async function baixarArquivo(url: string, nomeArquivo: string) {
@@ -196,19 +259,15 @@ export default function CarteiraCliente() {
 
                     {/* Preview inline */}
                     {doc && url && (
-                      <div style={{ margin:"0 10px 10px", borderRadius:8, overflow:"hidden", background:"#fff", cursor:"pointer" }}
-                        onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}>
+                      <div style={{ margin:"0 10px 10px" }}>
                         {isPdf ? (
-                          <iframe
-                            src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                            title={label}
-                            scrolling="no"
-                            style={{ width:"100%", height:220, border:"none", display:"block", pointerEvents:"none" }}
-                          />
+                          <PdfFirstPage url={url} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })} />
                         ) : (
-                          <img src={url} alt={label} style={{ width:"100%", height:220, objectFit:"cover", display:"block" }} />
+                          <div style={{ borderRadius:8, overflow:"hidden", cursor:"pointer" }} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}>
+                            <img src={url} alt={label} style={{ width:"100%", display:"block" }} />
+                          </div>
                         )}
-                        <div style={{ background:"#0f1929", padding:"4px 10px", fontSize:10, color:"#64748b", textAlign:"center" }}>
+                        <div style={{ padding:"4px 10px", fontSize:10, color:"#475569", textAlign:"center" }}>
                           Toque para ampliar
                         </div>
                       </div>
