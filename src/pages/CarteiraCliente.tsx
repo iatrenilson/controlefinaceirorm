@@ -29,19 +29,19 @@ function primeiroNome(nome: string) {
 function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const clipRef = useRef<HTMLDivElement>(null);
+  const [clipHeight, setClipHeight] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    const clip = clipRef.current;
-    if (!canvas || !container || !clip) return;
+    if (!canvas || !container) return;
 
     let cancelled = false;
     setLoading(true);
     setErro(false);
+    setClipHeight(0);
 
     pdfjsLib.getDocument({ url }).promise
       .then(pdf => pdf.getPage(1))
@@ -51,15 +51,14 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
         const base = page.getViewport({ scale: 1 });
         const scale = w / base.width;
         const vp = page.getViewport({ scale });
-        // Renderiza a página inteira no canvas
         canvas.width = Math.floor(vp.width);
         canvas.height = Math.floor(vp.height);
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         return page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
           if (cancelled) return;
-          // Wrapper com overflow:hidden mostra apenas a metade superior (frente do CR)
-          clip.style.height = `${Math.floor(canvas.height / 2)}px`;
+          // Guarda a altura no estado React — não será apagada no re-render
+          setClipHeight(Math.floor(vp.height / 2));
           setLoading(false);
         });
       })
@@ -80,7 +79,8 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
           Prévia indisponível
         </div>
       )}
-      <div ref={clipRef} style={{ overflow:"hidden", display: loading || erro ? "none" : "block" }}>
+      {/* clipHeight no style do React garante que o re-render não apaga a altura */}
+      <div style={{ overflow:"hidden", height: clipHeight || undefined, display: loading || erro ? "none" : "block" }}>
         <canvas ref={canvasRef} style={{ width:"100%", display:"block" }} />
       </div>
     </div>
