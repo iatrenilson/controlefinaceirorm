@@ -49,11 +49,11 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
         const resp = await fetch(url);
         const data = await resp.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data }).promise;
+        const numPages = pdf.numPages;
         const page = await pdf.getPage(1);
         if (cancelled) return;
 
         const vp0 = page.getViewport({ scale: 1 });
-        // Renderiza em alta res num canvas offscreen
         const scale = 2.5;
         const vp = page.getViewport({ scale });
         const offscreen = document.createElement("canvas");
@@ -61,11 +61,12 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
         offscreen.height = vp.height;
         await page.render({ canvasContext: offscreen.getContext("2d")!, viewport: vp }).promise;
 
-        // Se portrait (frente+verso empilhados), corta a metade de cima
-        const isPortrait = vp0.height > vp0.width;
+        // 1 página = frente+verso na mesma → corta top 52%
+        // 2+ páginas = cada lado separado → página 1 já é só a frente
+        const shouldCrop = numPages === 1 && vp0.height > vp0.width * 0.8;
         let src: string;
-        if (isPortrait) {
-          const cropH = Math.round(offscreen.height * 0.5);
+        if (shouldCrop) {
+          const cropH = Math.round(offscreen.height * 0.52);
           const crop = document.createElement("canvas");
           crop.width = offscreen.width;
           crop.height = cropH;
@@ -90,8 +91,12 @@ function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void }) {
         </div>
       )}
       {estado === "err" && (
-        <div style={{ height:80, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <p style={{ color:"#94a3b8", fontSize:12, margin:0 }}>Toque para visualizar</p>
+        <div style={{ position:"relative", overflow:"hidden", height: 280 }}>
+          <iframe
+            src={`${url}#page=1&toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+            title="preview"
+            style={{ width:"142%", height:"400px", border:"none", marginLeft:"-21%", marginTop:"-10px", pointerEvents:"none" }}
+          />
         </div>
       )}
       {imgSrc && <img src={imgSrc} alt="preview" style={{ width:"100%", height:"auto", display:"block" }} />}
