@@ -1,8 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
@@ -25,75 +22,6 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
-// Renderiza com PDF.js no canvas — funciona em Android, iOS e Desktop
-// Dois canvas: offscreen (página completa) → visible (metade superior = frente)
-function PdfFirstPage({ url, onClick }: { url: string; onClick: () => void; tipo: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-    let cancelled = false;
-    setReady(false);
-    setFailed(false);
-
-    (async () => {
-      try {
-        const w = container.offsetWidth || 340;
-        const pdf = await pdfjsLib.getDocument({ url }).promise;
-        if (cancelled) return;
-        const page = await pdf.getPage(1);
-        if (cancelled) return;
-
-        const base = page.getViewport({ scale: 1 });
-        const scale = w / base.width;
-        const vp = page.getViewport({ scale });
-
-        // 1) Renderiza a página inteira num canvas offscreen
-        const off = document.createElement("canvas");
-        off.width  = Math.floor(vp.width);
-        off.height = Math.floor(vp.height);
-        await page.render({ canvasContext: off.getContext("2d")!, viewport: vp }).promise;
-        if (cancelled) return;
-
-        // 2) Copia só a metade superior para o canvas visível
-        canvas.width  = off.width;
-        canvas.height = Math.floor(off.height / 2);
-        canvas.getContext("2d")!.drawImage(
-          off,
-          0, 0, off.width, off.height / 2,   // fonte: topo do offscreen
-          0, 0, canvas.width, canvas.height   // destino: canvas inteiro
-        );
-        setReady(true);
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [url]);
-
-  return (
-    <div ref={containerRef} onClick={onClick}
-      style={{ cursor:"pointer", borderRadius:8, overflow:"hidden", background:"#fff" }}>
-      {!ready && !failed && (
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:120, color:"#94a3b8", fontSize:12 }}>
-          Carregando...
-        </div>
-      )}
-      {failed && (
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:60, color:"#94a3b8", fontSize:11 }}>
-          Prévia indisponível
-        </div>
-      )}
-      <canvas ref={canvasRef} style={{ display: ready ? "block" : "none", width:"100%" }} />
-    </div>
-  );
-}
 
 async function baixarArquivo(url: string, nomeArquivo: string) {
   try {
@@ -287,21 +215,6 @@ export default function CarteiraCliente() {
                       )}
                     </div>
 
-                    {/* Preview inline */}
-                    {doc && url && (
-                      <div style={{ margin:"0 10px 10px" }}>
-                        {isPdf ? (
-                          <PdfFirstPage url={url} tipo={key} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })} />
-                        ) : (
-                          <div style={{ borderRadius:8, overflow:"hidden", cursor:"pointer" }} onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}>
-                            <img src={url} alt={label} style={{ width:"100%", display:"block" }} />
-                          </div>
-                        )}
-                        <div style={{ padding:"4px 10px", fontSize:10, color:"#4a3f2a", textAlign:"center" }}>
-                          Toque para ampliar
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
