@@ -79,6 +79,8 @@ interface DialogProps {
   onSaved: () => void;
 }
 
+interface SinarmCliente { id: string; nome: string; cpf?: string; }
+
 function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [nome, setNome] = useState(cliente?.nome ?? "");
   const [telefone, setTelefone] = useState(cliente?.telefone ?? "");
@@ -91,6 +93,39 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
   const refs = { cr: useRef<HTMLInputElement>(null), craf: useRef<HTMLInputElement>(null), gt: useRef<HTMLInputElement>(null) };
+
+  // Sinarm CAC selector (only for new clients)
+  const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
+  const [sinarmBusca, setSinarmBusca] = useState("");
+  const [sinarmOpen, setSinarmOpen] = useState(false);
+  const sinarmRef = useRef<HTMLDivElement>(null);
+  const isNew = !cliente?.id;
+
+  useEffect(() => {
+    if (!isNew) return;
+    supabase.from("declaracao_clientes").select("id, nome, cpf").order("nome").then(({ data }) => {
+      if (data) setSinarmList(data as SinarmCliente[]);
+    });
+  }, [isNew]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sinarmRef.current && !sinarmRef.current.contains(e.target as Node)) setSinarmOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const sinarmFiltrados = sinarmBusca.trim()
+    ? sinarmList.filter(c => c.nome.toLowerCase().includes(sinarmBusca.toLowerCase()) || (c.cpf ?? "").includes(sinarmBusca))
+    : sinarmList;
+
+  const selecionarSinarm = (c: SinarmCliente) => {
+    setNome(c.nome);
+    setCpf(c.cpf ?? "");
+    setSinarmBusca(c.nome + (c.cpf ? ` · ${c.cpf}` : ""));
+    setSinarmOpen(false);
+  };
 
   const handleFile = async (tipo: TipoKey, file: File) => {
     if (!cliente?.id) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
@@ -136,8 +171,6 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     onClose();
   };
 
-  const isNew = !cliente?.id;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -146,6 +179,31 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
           <button onClick={onClose} className="p-1 rounded text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-5 space-y-4">
+          {/* Seleção Sinarm CAC */}
+          {isNew && sinarmList.length > 0 && (
+            <div ref={sinarmRef} className="relative">
+              <label className="text-xs text-muted-foreground mb-1 block">Selecionar cliente cadastrado</label>
+              <input
+                value={sinarmBusca}
+                onChange={e => { setSinarmBusca(e.target.value); setSinarmOpen(true); }}
+                onFocus={() => setSinarmOpen(true)}
+                placeholder="— Selecionar cliente cadastrado —"
+                className="w-full px-3 py-2 text-sm rounded-lg border bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              {sinarmOpen && sinarmFiltrados.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-xl max-h-52 overflow-y-auto">
+                  {sinarmFiltrados.map(c => (
+                    <button key={c.id} type="button" onMouseDown={() => selecionarSinarm(c)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 transition-colors border-b border-border/50 last:border-0">
+                      <span className="font-medium">{c.nome}</span>
+                      {c.cpf && <span className="text-muted-foreground"> · {c.cpf}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Dados */}
           <div className="space-y-3">
             <div>
