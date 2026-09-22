@@ -28,6 +28,8 @@ import DelayAddClient from "./pages/DelayAddClient";
 import DelayViewer from "./pages/DelayViewer";
 import Declaracoes from "./pages/Declaracoes";
 import Laudos from "./pages/Laudos";
+import CarteiraCliente from "./pages/CarteiraCliente";
+import CarteiraDIgital from "./pages/CarteiraDIgital";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -104,6 +106,7 @@ const ProtectedLayout = () => {
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
             <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
             <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
+            <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
@@ -126,6 +129,7 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/adicionar-cliente" element={<DelayAddClient />} />
       <Route path="/visualizar-delay" element={<DelayViewer />} />
+      <Route path="/carteira/:id" element={<CarteiraCliente />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );
