@@ -6,9 +6,9 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const BUCKET = "carteira-docs";
 
 const TIPOS = [
-  { key: "cr",   label: "CR",           desc: "Certificado de Registro",            emoji: "📄" },
+  { key: "cr",   label: "CR",           desc: "Certificado de Registro",                emoji: "📄" },
   { key: "craf", label: "CRAF da Arma", desc: "Certificado de Registro de Arma de Fogo", emoji: "🔫" },
-  { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                    emoji: "📋" },
+  { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                         emoji: "📋" },
 ] as const;
 
 interface CartDoc { tipo: string; arquivo_path: string; arquivo_nome: string; }
@@ -22,11 +22,50 @@ function primeiroNome(nome: string) {
   return nome.trim().split(/\s+/)[0] || nome;
 }
 
+function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
+  const isPdf = url.toLowerCase().includes(".pdf") || url.includes("pdf");
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}
+    >
+      {/* Barra topo */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#1e293b", flexShrink:0, gap:12 }}>
+        <p style={{ color:"#f1f5f9", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          <a href={url} download target="_blank" rel="noopener noreferrer"
+            style={{ padding:"6px 14px", background:"#16a34a", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:12, fontWeight:600 }}>
+            ⬇ Baixar
+          </a>
+          <button onClick={onClose}
+            style={{ width:32, height:32, borderRadius:8, background:"#334155", border:"none", color:"#94a3b8", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Preview */}
+      <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
+        {isPdf ? (
+          <iframe
+            src={url + "#toolbar=0&navpanes=0"}
+            title={nome}
+            style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }}
+          />
+        ) : (
+          <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CarteiraCliente() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<CarteiraData | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
+  const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
 
   useEffect(() => {
     if (!id) { setErro(true); setLoading(false); return; }
@@ -43,6 +82,13 @@ export default function CarteiraCliente() {
       })
       .catch(() => { setErro(true); setLoading(false); });
   }, [id]);
+
+  // Fecha preview com ESC
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setPreview(null); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   if (loading) return (
     <div style={{ minHeight:"100vh", background:"#0f172a", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -70,71 +116,85 @@ export default function CarteiraCliente() {
   const docsMap = Object.fromEntries((data.docs ?? []).map(d => [d.tipo, d]));
 
   return (
-    <div style={{ minHeight:"100vh", background:"#0f172a", padding:"24px 16px", fontFamily:"system-ui, sans-serif" }}>
-      <div style={{ maxWidth:420, margin:"0 auto" }}>
+    <>
+      {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
 
-        {/* Header */}
-        <div style={{ textAlign:"center", marginBottom:24 }}>
-          <img src="https://rwinvestimentos.com.br/rw-logo.png" alt="Passarinho" style={{ height:72, objectFit:"contain", marginBottom:6 }}
-            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-          <p style={{ color:"#64748b", fontSize:11, margin:0 }}>PASSARINHO ASSESSORIA BÉLICA</p>
-        </div>
+      <div style={{ minHeight:"100vh", background:"#0f172a", padding:"24px 16px", fontFamily:"system-ui, sans-serif" }}>
+        <div style={{ maxWidth:420, margin:"0 auto" }}>
 
-        {/* Card cliente */}
-        <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
-          <p style={{ color:"#64748b", fontSize:11, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Carteira Digital</p>
-          <h1 style={{ color:"#f1f5f9", fontSize:20, fontWeight:700, margin:0 }}>{primeiroNome(data.nome)}</h1>
-          <p style={{ color:"#94a3b8", fontSize:12, margin:"2px 0 0" }}>{data.nome}</p>
-        </div>
+          {/* Header */}
+          <div style={{ textAlign:"center", marginBottom:24 }}>
+            <img src="https://rwinvestimentos.com.br/rw-logo.png" alt="Passarinho" style={{ height:72, objectFit:"contain", marginBottom:6 }}
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <p style={{ color:"#64748b", fontSize:11, margin:0 }}>PASSARINHO ASSESSORIA BÉLICA</p>
+          </div>
 
-        {/* Documentos */}
-        <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
-          <p style={{ color:"#64748b", fontSize:11, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Seus Documentos</p>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {TIPOS.map(({ key, label, desc, emoji }) => {
-              const doc = docsMap[key];
-              return (
-                <div key={key} style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
-                  padding:"14px 16px", borderRadius:12, border:`1px solid ${doc ? "#22c55e33" : "#334155"}`,
-                  background: doc ? "#14291a" : "#0f172a",
-                }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                    <span style={{ fontSize:20, flexShrink:0 }}>{emoji}</span>
-                    <div style={{ minWidth:0 }}>
-                      <p style={{ color: doc ? "#86efac" : "#94a3b8", fontSize:14, fontWeight:700, margin:0 }}>{label}</p>
-                      <p style={{ color:"#64748b", fontSize:11, margin:0 }}>{desc}</p>
+          {/* Card cliente */}
+          <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
+            <p style={{ color:"#64748b", fontSize:11, margin:"0 0 2px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Carteira Digital</p>
+            <h1 style={{ color:"#f1f5f9", fontSize:20, fontWeight:700, margin:0 }}>{primeiroNome(data.nome)}</h1>
+            <p style={{ color:"#94a3b8", fontSize:12, margin:"2px 0 0" }}>{data.nome}</p>
+          </div>
+
+          {/* Documentos */}
+          <div style={{ background:"#1e293b", borderRadius:16, padding:20, marginBottom:12, border:"1px solid #334155" }}>
+            <p style={{ color:"#64748b", fontSize:11, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.1em" }}>Seus Documentos</p>
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {TIPOS.map(({ key, label, desc, emoji }) => {
+                const doc = docsMap[key];
+                const url = doc ? publicUrl(doc.arquivo_path) : null;
+                return (
+                  <div key={key} style={{
+                    borderRadius:12, border:`1px solid ${doc ? "#22c55e33" : "#334155"}`,
+                    background: doc ? "#14291a" : "#0f172a", overflow:"hidden",
+                  }}>
+                    {/* Linha principal */}
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"14px 16px" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                        <span style={{ fontSize:20, flexShrink:0 }}>{emoji}</span>
+                        <div style={{ minWidth:0 }}>
+                          <p style={{ color: doc ? "#86efac" : "#94a3b8", fontSize:14, fontWeight:700, margin:0 }}>{label}</p>
+                          <p style={{ color:"#64748b", fontSize:11, margin:0 }}>{desc}</p>
+                        </div>
+                      </div>
+                      {doc && url ? (
+                        <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                          <button
+                            onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
+                            style={{ padding:"8px 12px", background:"#1e3a5f", color:"#93c5fd", borderRadius:8, border:"1px solid #3b82f633", fontSize:12, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap" }}>
+                            👁 Ver
+                          </button>
+                          <a href={url} download target="_blank" rel="noopener noreferrer"
+                            style={{ padding:"8px 12px", background:"#16a34a", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
+                            ⬇ Baixar
+                          </a>
+                        </div>
+                      ) : (
+                        <span style={{ flexShrink:0, padding:"8px 14px", background:"#1e293b", color:"#475569", borderRadius:8, fontSize:12, border:"1px solid #334155" }}>
+                          Pendente
+                        </span>
+                      )}
                     </div>
                   </div>
-                  {doc ? (
-                    <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
-                      style={{ flexShrink:0, padding:"8px 14px", background:"#16a34a", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:12, fontWeight:600, whiteSpace:"nowrap" }}>
-                      ⬇ Baixar
-                    </a>
-                  ) : (
-                    <span style={{ flexShrink:0, padding:"8px 14px", background:"#1e293b", color:"#475569", borderRadius:8, fontSize:12, border:"1px solid #334155" }}>
-                      Pendente
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
+
+          {/* Contato */}
+          <a href="https://wa.me/5592985032288" style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:"#14532d", borderRadius:16, textDecoration:"none", color:"#fff", border:"1px solid #16a34a44" }}>
+            <span style={{ fontSize:22 }}>📱</span>
+            <div>
+              <p style={{ margin:0, fontWeight:600, fontSize:14 }}>Dúvidas? WhatsApp</p>
+              <p style={{ margin:0, fontSize:11, opacity:0.7 }}>Passarinho Assessoria Bélica</p>
+            </div>
+          </a>
+
+          <p style={{ textAlign:"center", color:"#334155", fontSize:10, marginTop:20 }}>
+            rwinvestimentos.com.br
+          </p>
         </div>
-
-        {/* Contato */}
-        <a href="https://wa.me/5592985032288" style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:"#14532d", borderRadius:16, textDecoration:"none", color:"#fff", border:"1px solid #16a34a44" }}>
-          <span style={{ fontSize:22 }}>📱</span>
-          <div>
-            <p style={{ margin:0, fontWeight:600, fontSize:14 }}>Dúvidas? WhatsApp</p>
-            <p style={{ margin:0, fontSize:11, opacity:0.7 }}>Passarinho Assessoria Bélica</p>
-          </div>
-        </a>
-
-        <p style={{ textAlign:"center", color:"#334155", fontSize:10, marginTop:20 }}>
-          rwinvestimentos.com.br
-        </p>
       </div>
-    </div>
+    </>
   );
 }
