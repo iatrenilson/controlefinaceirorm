@@ -124,7 +124,7 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
     // Validade — detecta intervalo "DD/MM/YYYY [a|à] DD/MM/YYYY" primeiro (formato GT)
     const rangeMatch = fullText.match(/(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})\s+[aà]\s+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
     if (rangeMatch) {
-      val = `${norm(rangeMatch[1])} à ${norm(rangeMatch[2])}`;
+      val = norm(rangeMatch[2]); // só a data final
     } else {
       // Validade — data única com palavra-chave
       const VAL_REGEX = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,50}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i;
