@@ -235,9 +235,9 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Sinarm CAC */}
+            {/* Carteira CAC */}
             <SidebarGroup>
-              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Sinarm CAC</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Carteira CAC</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
@@ -248,6 +248,15 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Sinarm CAC */}
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Sinarm CAC</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Clientes">
                       <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
