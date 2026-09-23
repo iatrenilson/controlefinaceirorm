@@ -160,11 +160,12 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   );
 }
 
-function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas }: {
+function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas, showExpedicao = true }: {
   doc: CartDoc; index: number; total: number;
   onRemove: (doc: CartDoc) => void;
   onSaveDatas: (doc: CartDoc, exp: string, val: string) => void;
   showDatas: boolean;
+  showExpedicao?: boolean;
 }) {
   const [exp, setExp] = useState(doc.data_expedicao ?? "");
   const [val, setVal] = useState(doc.data_validade ?? "");
@@ -185,11 +186,13 @@ function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas }: {
       </div>
       {showDatas && (
         <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <label className="text-[10px] text-muted-foreground block mb-0.5">Expedição</label>
-            <input value={exp} onChange={e => setExp(e.target.value)} placeholder="dd/mm/aaaa"
-              className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </div>
+          {showExpedicao && (
+            <div className="flex-1">
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Expedição</label>
+              <input value={exp} onChange={e => setExp(e.target.value)} placeholder="dd/mm/aaaa"
+                className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
+            </div>
+          )}
           <div className="flex-1">
             <label className="text-[10px] text-muted-foreground block mb-0.5">Validade</label>
             <input value={val} onChange={e => setVal(e.target.value)} placeholder="dd/mm/aaaa"
@@ -265,7 +268,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
 
     let data_expedicao = "";
     let data_validade = "";
-    if ((tipo === "cr" || tipo === "craf") && file.type === "application/pdf") {
+    if (file.type === "application/pdf") {
       const datas = await extrairDatasDocPDF(file);
       data_expedicao = datas.exp;
       data_validade = datas.val;
@@ -399,7 +402,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                     ) : (
                       <div className="divide-y divide-border/30">
                         {tipoDocs.map((doc, i) => (
-                          <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} showDatas={key !== "gt"} />
+                          <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} showDatas={true} showExpedicao={key !== "gt"} />
                         ))}
                       </div>
                     )}
