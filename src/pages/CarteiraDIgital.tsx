@@ -119,19 +119,21 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
       if (eTxt) exp = txtToDate(eTxt[1], eTxt[2], eTxt[3]);
     }
 
-    // Validade — numérico
-    const vNum = fullText.match(/(?:V[AÁ]LIDO\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    // Validade — numérico (cobre VÁLIDO/VÁLIDA ATÉ, feminino e masculino)
+    const vNum = fullText.match(/(?:V[AÁ]LID[OA]\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
     if (vNum) val = norm(vNum[1]);
     else {
-      const vTxt = fullText.match(/(?:V[AÁ]LIDO\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,60}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+      const vTxt = fullText.match(/(?:V[AÁ]LID[OA]\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,60}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
       if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
     }
 
-    // Fallback: todas as datas no doc (primeira = expedição, última = validade)
-    if (!exp || !val) {
+    // Fallback: todas as datas únicas no doc (primeira = expedição, última = validade)
+    if (!val) {
       const all = [...new Set((fullText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g) ?? []).map(norm))];
       if (!exp && all.length > 0) exp = all[0];
-      if (!val && all.length > 1) val = all[all.length - 1];
+      // validade = última data distinta da expedição
+      const candidates = all.filter(d => d !== exp);
+      if (candidates.length > 0) val = candidates[candidates.length - 1];
     }
 
     return { exp, val };
