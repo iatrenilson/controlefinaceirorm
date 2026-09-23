@@ -121,14 +121,20 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
       if (eTxt) exp = txtToDate(eTxt[1], eTxt[2], eTxt[3]);
     }
 
-    // Validade — numérico (cobre várias formas: VÁLIDO/VÁLIDA ATÉ, VÁLIDA PARA ... ATÉ, PRAZO, etc.)
-    const VAL_REGEX = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,50}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i;
-    const vNum = fullText.match(VAL_REGEX);
-    if (vNum) val = norm(vNum[1]);
-    else {
-      const VAL_TXT = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,70}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i;
-      const vTxt = fullText.match(VAL_TXT);
-      if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
+    // Validade — detecta intervalo "DD/MM/YYYY [a|à] DD/MM/YYYY" primeiro (formato GT)
+    const rangeMatch = fullText.match(/(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})\s+[aà]\s+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    if (rangeMatch) {
+      val = `${norm(rangeMatch[1])} à ${norm(rangeMatch[2])}`;
+    } else {
+      // Validade — data única com palavra-chave
+      const VAL_REGEX = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,50}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i;
+      const vNum = fullText.match(VAL_REGEX);
+      if (vNum) val = norm(vNum[1]);
+      else {
+        const VAL_TXT = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,70}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i;
+        const vTxt = fullText.match(VAL_TXT);
+        if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
+      }
     }
 
     // Número de série da arma

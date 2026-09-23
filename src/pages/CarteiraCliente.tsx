@@ -203,11 +203,14 @@ export default function CarteiraCliente() {
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
                         {temDocs && docList.some(d => d.data_validade) && (() => {
                           const comVal = docList.filter(d => d.data_validade);
+                          // Extrai a última data DD/MM/YYYY de uma string (suporta intervalo "xx à xx")
+                          const ultimaData = (s: string) => (s.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? s;
                           return (
                             <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0", lineHeight:1.6 }}>
                               Validade:{" "}
                               {comVal.map((doc, i) => {
-                                const [dv, mv, yv] = (doc.data_validade as string).split("/").map(Number);
+                                const last = ultimaData(doc.data_validade as string);
+                                const [dv, mv, yv] = last.split("/").map(Number);
                                 const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : "#22c55e";
                                 return (
                                   <span key={doc.id ?? i}>
