@@ -11,7 +11,7 @@ const TIPOS = [
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                         emoji: "📋" },
 ] as const;
 
-interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; }
+interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; }
 interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
@@ -201,13 +201,22 @@ export default function CarteiraCliente() {
                       <div style={{ minWidth:0, flex:1 }}>
                         <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
-                        {temDocs && docList[0].data_validade && (() => {
-                          const valStr = docList[0].data_validade;
-                          const [d, m, y] = valStr.split("/").map(Number);
-                          const valColor = new Date(y, m - 1, d) < new Date() ? "#ef4444" : "#22c55e";
+                        {temDocs && docList.some(d => d.data_validade) && (() => {
+                          const comVal = docList.filter(d => d.data_validade);
                           return (
-                            <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0" }}>
-                              Validade: <span style={{ color: valColor, fontWeight: 700 }}>{valStr}</span>
+                            <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0", lineHeight:1.6 }}>
+                              Validade:{" "}
+                              {comVal.map((doc, i) => {
+                                const [dv, mv, yv] = (doc.data_validade as string).split("/").map(Number);
+                                const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : "#22c55e";
+                                return (
+                                  <span key={doc.id ?? i}>
+                                    {i > 0 && <span style={{ color:"#4a3f2a" }}>, </span>}
+                                    <span style={{ color: valColor, fontWeight: 700 }}>{doc.data_validade}</span>
+                                    {doc.numero_serie && <span style={{ color:"#7a6a48" }}> ({doc.numero_serie})</span>}
+                                  </span>
+                                );
+                              })}
                             </p>
                           );
                         })()}
