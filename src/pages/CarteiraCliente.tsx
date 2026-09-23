@@ -201,18 +201,13 @@ export default function CarteiraCliente() {
                       <div style={{ minWidth:0, flex:1 }}>
                         <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
-                        {temDocs && (docList[0].data_expedicao || docList[0].data_validade) && (() => {
+                        {temDocs && docList[0].data_validade && (() => {
                           const valStr = docList[0].data_validade;
-                          let valColor = "#22c55e";
-                          if (valStr) {
-                            const [d, m, y] = valStr.split("/").map(Number);
-                            if (new Date(y, m - 1, d) < new Date()) valColor = "#ef4444";
-                          }
+                          const [d, m, y] = valStr.split("/").map(Number);
+                          const valColor = new Date(y, m - 1, d) < new Date() ? "#ef4444" : "#22c55e";
                           return (
                             <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0" }}>
-                              {key !== "gt" && docList[0].data_expedicao && <>Expedição: <span style={{ color:"#8b7d5a" }}>{docList[0].data_expedicao}</span></>}
-                              {key !== "gt" && docList[0].data_expedicao && valStr && <> &nbsp;·&nbsp; </>}
-                              {valStr && <>Validade: <span style={{ color: valColor, fontWeight: 700 }}>{valStr}</span></>}
+                              Validade: <span style={{ color: valColor, fontWeight: 700 }}>{valStr}</span>
                             </p>
                           );
                         })()}
