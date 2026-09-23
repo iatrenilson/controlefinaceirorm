@@ -11,7 +11,7 @@ const TIPOS = [
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                         emoji: "📋" },
 ] as const;
 
-interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; }
+interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; }
 interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
@@ -201,6 +201,12 @@ export default function CarteiraCliente() {
                       <div style={{ minWidth:0, flex:1 }}>
                         <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
+                        {key !== "gt" && temDocs && docList[0].data_expedicao && (
+                          <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0" }}>
+                            Expedição: <span style={{ color:"#c9a227" }}>{docList[0].data_expedicao}</span>
+                            {docList[0].data_validade && <> &nbsp;·&nbsp; Validade: <span style={{ color:"#c9a227" }}>{docList[0].data_validade}</span></>}
+                          </p>
+                        )}
                       </div>
                       {!temDocs && (
                         <span style={{ flexShrink:0, padding:"6px 12px", background:"rgba(255,255,255,0.03)", color:"#3a3020", borderRadius:7, fontSize:11, border:"1px solid rgba(255,255,255,0.06)" }}>
