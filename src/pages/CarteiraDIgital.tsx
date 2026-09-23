@@ -14,7 +14,7 @@ const TIPOS = [
 
 type TipoKey = "cr" | "craf" | "gt";
 
-interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; }
+interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
 const MIGRATION_SQL = `
@@ -44,7 +44,7 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_del') THEN CREATE POLICY "cd_del" ON public.carteira_docs FOR DELETE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
   PERFORM pg_notify('pgrst','reload schema');
 END $$;
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
+CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade,'numero_serie',d.numero_serie) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -67,6 +67,7 @@ END $$;
 ALTER TABLE public.carteira_docs DROP CONSTRAINT IF EXISTS carteira_docs_carteira_cliente_id_tipo_key;
 ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_expedicao TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_validade TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS numero_serie TEXT NOT NULL DEFAULT '';
 `.trim();
 
 function publicUrl(path: string) {
@@ -88,7 +89,7 @@ const MESES_BR: Record<string, string> = {
   setembro: "09", outubro: "10", novembro: "11", dezembro: "12",
 };
 
-async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: string }> {
+async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: string; serie: string }> {
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
     const lib = (window as any).pdfjsLib;
@@ -110,6 +111,7 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
 
     let exp = "";
     let val = "";
+    let serie = "";
 
     // Expedição — numérico
     const eNum = fullText.match(/(?:EXPEDI[CÇ][AÃ]O|EXPEDIDA\s+EM|DATA\s+DE\s+EXPEDI[CÇ]|EMISS[AÃ]O|EMITID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
@@ -127,18 +129,28 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
       if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
     }
 
+    // Número de série da arma
+    const seriePatterns = [
+      /(?:N[UÚ]MERO\s+DE\s+S[EÉ]RIE|N[.ºo°]\s*DE\s+S[EÉ]RIE|S[EÉ]RIE)[:\s]+([A-Z]{0,3}\d{4,}[A-Z\d\-]*)/i,
+      /(?:N[.ºo°]\s*DA\s+ARMA|ARMA\s+N[.ºo°])[:\s]+([A-Z]{0,3}\d{4,}[A-Z\d\-]*)/i,
+      /(?:(?:CRAF|GT|GUIA|REGISTRO)\s*N[.ºo°]?)[:\s]+([A-Z]{0,3}\d{4,}[A-Z\d\-]*)/i,
+    ];
+    for (const pat of seriePatterns) {
+      const m = fullText.match(pat);
+      if (m) { serie = m[1].trim().replace(/\s+/g, ""); break; }
+    }
+
     // Fallback: todas as datas únicas no doc (primeira = expedição, última = validade)
     if (!val) {
       const all = [...new Set((fullText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g) ?? []).map(norm))];
       if (!exp && all.length > 0) exp = all[0];
-      // validade = última data distinta da expedição
       const candidates = all.filter(d => d !== exp);
       if (candidates.length > 0) val = candidates[candidates.length - 1];
     }
 
-    return { exp, val };
+    return { exp, val, serie };
   } catch {
-    return { exp: "", val: "" };
+    return { exp: "", val: "", serie: "" };
   }
 }
 
@@ -165,10 +177,11 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
 function DocItem({ doc, index, total, onRemove, onSaveDatas }: {
   doc: CartDoc; index: number; total: number;
   onRemove: (doc: CartDoc) => void;
-  onSaveDatas: (doc: CartDoc, exp: string, val: string) => void;
+  onSaveDatas: (doc: CartDoc, exp: string, val: string, serie: string) => void;
 }) {
   const [val, setVal] = useState(doc.data_validade ?? "");
-  const dirty = val !== (doc.data_validade ?? "");
+  const [serie, setSerie] = useState(doc.numero_serie ?? "");
+  const dirty = val !== (doc.data_validade ?? "") || serie !== (doc.numero_serie ?? "");
   return (
     <div className="px-3 py-2 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
@@ -189,7 +202,12 @@ function DocItem({ doc, index, total, onRemove, onSaveDatas }: {
           <input value={val} onChange={e => setVal(e.target.value)} placeholder="dd/mm/aaaa"
             className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
         </div>
-        <button onClick={() => onSaveDatas(doc, doc.data_expedicao ?? "", val)} disabled={!dirty}
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Nº Série</label>
+          <input value={serie} onChange={e => setSerie(e.target.value)} placeholder="Ex: AB123456"
+            className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
+        </div>
+        <button onClick={() => onSaveDatas(doc, doc.data_expedicao ?? "", val, serie)} disabled={!dirty}
           className="mt-4 px-2 py-1 text-xs rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-30 flex-shrink-0">
           Salvar
         </button>
@@ -258,20 +276,22 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
 
     let data_expedicao = "";
     let data_validade = "";
+    let numero_serie = "";
     if (file.type === "application/pdf") {
       const datas = await extrairDatasDocPDF(file);
       data_expedicao = datas.exp;
       data_validade = datas.val;
+      numero_serie = datas.serie;
     }
 
     const { data: newDoc } = await supabase.from("carteira_docs")
-      .insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade })
+      .insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade, numero_serie })
       .select().single();
     if (newDoc) setDocs(d => [...d, newDoc as CartDoc]);
     setUploading(null);
-    const msg = data_expedicao
-      ? `${tipo.toUpperCase()} enviado! Datas extraídas automaticamente.`
-      : `${tipo.toUpperCase()} enviado! Preencha as datas manualmente.`;
+    const msg = data_validade
+      ? `${tipo.toUpperCase()} enviado! Dados extraídos automaticamente.`
+      : `${tipo.toUpperCase()} enviado! Preencha a validade manualmente.`;
     toast.success(msg);
   };
 
@@ -283,10 +303,10 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     toast.success(`Documento removido.`);
   };
 
-  const handleSaveDatas = async (doc: CartDoc, exp: string, val: string) => {
-    await supabase.from("carteira_docs").update({ data_expedicao: exp, data_validade: val }).eq("id", doc.id);
-    setDocs(d => d.map(x => x.id === doc.id ? { ...x, data_expedicao: exp, data_validade: val } : x));
-    toast.success("Datas salvas.");
+  const handleSaveDatas = async (doc: CartDoc, exp: string, val: string, serie: string) => {
+    await supabase.from("carteira_docs").update({ data_expedicao: exp, data_validade: val, numero_serie: serie }).eq("id", doc.id);
+    setDocs(d => d.map(x => x.id === doc.id ? { ...x, data_expedicao: exp, data_validade: val, numero_serie: serie } : x));
+    toast.success("Salvo.");
   };
 
   const handleSave = async () => {
@@ -432,14 +452,14 @@ export default function CarteiraDIgital() {
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
     const { data: ds } = ids.length > 0
-      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade").in("carteira_cliente_id", ids)
+      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie").in("carteira_cliente_id", ids)
       : { data: [] };
     setClientes(cs.map(c => ({ ...c, docs: (ds ?? []).filter(d => d.carteira_cliente_id === c.id) as CartDoc[] })));
     setLoading(false);
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v5";
+    const FLAG = "carteira_migration_v6";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
         .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
