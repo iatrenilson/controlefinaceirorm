@@ -73,6 +73,73 @@ function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
 
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = src; s.onload = () => resolve(); s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+const MESES_BR: Record<string, string> = {
+  janeiro: "01", fevereiro: "02", março: "03", abril: "04",
+  maio: "05", junho: "06", julho: "07", agosto: "08",
+  setembro: "09", outubro: "10", novembro: "11", dezembro: "12",
+};
+
+async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: string }> {
+  try {
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+    const lib = (window as any).pdfjsLib;
+    lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const pdf = await lib.getDocument({ data: bytes }).promise;
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      fullText += content.items.map((item: any) => item.str).join(" ") + " ";
+    }
+
+    const norm = (d: string) => d.replace(/[\-\.]/g, "/");
+    const txtToDate = (day: string, mon: string, yr: string) => {
+      const m = MESES_BR[mon.toLowerCase()];
+      return m ? `${day.padStart(2, "0")}/${m}/${yr}` : "";
+    };
+
+    let exp = "";
+    let val = "";
+
+    // Expedição — numérico
+    const eNum = fullText.match(/(?:EXPEDI[CÇ][AÃ]O|EXPEDIDA\s+EM|DATA\s+DE\s+EXPEDI[CÇ]|EMISS[AÃ]O|EMITID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    if (eNum) exp = norm(eNum[1]);
+    else {
+      const eTxt = fullText.match(/(?:EXPEDI[CÇ][AÃ]O|EXPEDIDA\s+EM|DATA\s+DE\s+EXPEDI[CÇ]|EMISS[AÃ]O|EMITID)[^\d]{0,60}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+      if (eTxt) exp = txtToDate(eTxt[1], eTxt[2], eTxt[3]);
+    }
+
+    // Validade — numérico
+    const vNum = fullText.match(/(?:V[AÁ]LIDO\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    if (vNum) val = norm(vNum[1]);
+    else {
+      const vTxt = fullText.match(/(?:V[AÁ]LIDO\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,60}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+      if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
+    }
+
+    // Fallback: todas as datas no doc (primeira = expedição, última = validade)
+    if (!exp || !val) {
+      const all = [...new Set((fullText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g) ?? []).map(norm))];
+      if (!exp && all.length > 0) exp = all[0];
+      if (!val && all.length > 1) val = all[all.length - 1];
+    }
+
+    return { exp, val };
+  } catch {
+    return { exp: "", val: "" };
+  }
+}
+
 function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   const [copied, setCopied] = useState(false);
   const link = `${window.location.origin}${import.meta.env.BASE_URL}carteira/${clienteId}`;
@@ -195,10 +262,24 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     const path = `${cliente.id}/${tipo}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
     if (error) { toast.error("Erro ao enviar arquivo: " + error.message); setUploading(null); return; }
-    const { data: newDoc } = await supabase.from("carteira_docs").insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name }).select().single();
+
+    let data_expedicao = "";
+    let data_validade = "";
+    if ((tipo === "cr" || tipo === "craf") && file.type === "application/pdf") {
+      const datas = await extrairDatasDocPDF(file);
+      data_expedicao = datas.exp;
+      data_validade = datas.val;
+    }
+
+    const { data: newDoc } = await supabase.from("carteira_docs")
+      .insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade })
+      .select().single();
     if (newDoc) setDocs(d => [...d, newDoc as CartDoc]);
     setUploading(null);
-    toast.success(`${tipo.toUpperCase()} enviado!`);
+    const msg = data_expedicao
+      ? `${tipo.toUpperCase()} enviado! Datas extraídas automaticamente.`
+      : `${tipo.toUpperCase()} enviado! Preencha as datas manualmente.`;
+    toast.success(msg);
   };
 
   const handleRemoveDoc = async (doc: CartDoc) => {
