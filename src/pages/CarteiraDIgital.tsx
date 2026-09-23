@@ -160,16 +160,13 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   );
 }
 
-function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas, showExpedicao = true }: {
+function DocItem({ doc, index, total, onRemove, onSaveDatas }: {
   doc: CartDoc; index: number; total: number;
   onRemove: (doc: CartDoc) => void;
   onSaveDatas: (doc: CartDoc, exp: string, val: string) => void;
-  showDatas: boolean;
-  showExpedicao?: boolean;
 }) {
-  const [exp, setExp] = useState(doc.data_expedicao ?? "");
   const [val, setVal] = useState(doc.data_validade ?? "");
-  const dirty = exp !== (doc.data_expedicao ?? "") || val !== (doc.data_validade ?? "");
+  const dirty = val !== (doc.data_validade ?? "");
   return (
     <div className="px-3 py-2 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
@@ -184,26 +181,17 @@ function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas, showExpe
           </button>
         </div>
       </div>
-      {showDatas && (
-        <div className="flex items-center gap-2">
-          {showExpedicao && (
-            <div className="flex-1">
-              <label className="text-[10px] text-muted-foreground block mb-0.5">Expedição</label>
-              <input value={exp} onChange={e => setExp(e.target.value)} placeholder="dd/mm/aaaa"
-                className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
-            </div>
-          )}
-          <div className="flex-1">
-            <label className="text-[10px] text-muted-foreground block mb-0.5">Validade</label>
-            <input value={val} onChange={e => setVal(e.target.value)} placeholder="dd/mm/aaaa"
-              className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
-          </div>
-          <button onClick={() => onSaveDatas(doc, exp, val)} disabled={!dirty}
-            className="mt-4 px-2 py-1 text-xs rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-30 flex-shrink-0">
-            Salvar
-          </button>
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <label className="text-[10px] text-muted-foreground block mb-0.5">Validade</label>
+          <input value={val} onChange={e => setVal(e.target.value)} placeholder="dd/mm/aaaa"
+            className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
         </div>
-      )}
+        <button onClick={() => onSaveDatas(doc, doc.data_expedicao ?? "", val)} disabled={!dirty}
+          className="mt-4 px-2 py-1 text-xs rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-30 flex-shrink-0">
+          Salvar
+        </button>
+      </div>
     </div>
   );
 }
@@ -402,7 +390,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                     ) : (
                       <div className="divide-y divide-border/30">
                         {tipoDocs.map((doc, i) => (
-                          <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} showDatas={true} showExpedicao={key !== "gt"} />
+                          <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
                         ))}
                       </div>
                     )}
