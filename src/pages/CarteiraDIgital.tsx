@@ -121,11 +121,13 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
       if (eTxt) exp = txtToDate(eTxt[1], eTxt[2], eTxt[3]);
     }
 
-    // Validade — numérico (cobre VÁLIDO/VÁLIDA ATÉ, feminino e masculino)
-    const vNum = fullText.match(/(?:V[AÁ]LID[OA]\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,40}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+    // Validade — numérico (cobre várias formas: VÁLIDO/VÁLIDA ATÉ, VÁLIDA PARA ... ATÉ, PRAZO, etc.)
+    const VAL_REGEX = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,50}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i;
+    const vNum = fullText.match(VAL_REGEX);
     if (vNum) val = norm(vNum[1]);
     else {
-      const vTxt = fullText.match(/(?:V[AÁ]LID[OA]\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID)[^\d]{0,60}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i);
+      const VAL_TXT = /(?:V[AÁ]LID[OA](?:\s+\w+){0,5}\s+AT[EÉ]|VALIDADE|VENCIMENTO|PRAZO\s+DE\s+VALID|TRANSPORTE\s+AT[EÉ])[^\d]{0,70}(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/i;
+      const vTxt = fullText.match(VAL_TXT);
       if (vTxt) val = txtToDate(vTxt[1], vTxt[2], vTxt[3]);
     }
 
@@ -140,12 +142,16 @@ async function extrairDatasDocPDF(file: File): Promise<{ exp: string; val: strin
       if (m) { serie = m[1].trim().replace(/\s+/g, ""); break; }
     }
 
-    // Fallback: todas as datas únicas no doc (primeira = expedição, última = validade)
+    // Fallback: ordena datas cronologicamente — a mais antiga = expedição, a mais recente = validade
     if (!val) {
-      const all = [...new Set((fullText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g) ?? []).map(norm))];
-      if (!exp && all.length > 0) exp = all[0];
-      const candidates = all.filter(d => d !== exp);
-      if (candidates.length > 0) val = candidates[candidates.length - 1];
+      const rawDates = [...new Set((fullText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g) ?? []).map(norm))];
+      const parsed = rawDates
+        .map(s => { const [d, m, y] = s.split("/").map(Number); return { str: s, ts: new Date(y, m - 1, d).getTime() }; })
+        .filter(x => !isNaN(x.ts))
+        .sort((a, b) => a.ts - b.ts);
+      if (!exp && parsed.length > 0) exp = parsed[0].str;
+      const candidates = parsed.filter(x => x.str !== exp);
+      if (candidates.length > 0) val = candidates[candidates.length - 1].str;
     }
 
     return { exp, val, serie };
