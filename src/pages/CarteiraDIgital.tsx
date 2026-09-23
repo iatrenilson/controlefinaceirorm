@@ -14,7 +14,7 @@ const TIPOS = [
 
 type TipoKey = "cr" | "craf" | "gt";
 
-interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; }
+interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
 const MIGRATION_SQL = `
@@ -44,7 +44,7 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_del') THEN CREATE POLICY "cd_del" ON public.carteira_docs FOR DELETE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
   PERFORM pg_notify('pgrst','reload schema');
 END $$;
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
+CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -65,6 +65,8 @@ DO $$ BEGIN
   END IF;
 END $$;
 ALTER TABLE public.carteira_docs DROP CONSTRAINT IF EXISTS carteira_docs_carteira_cliente_id_tipo_key;
+ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_expedicao TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_validade TEXT NOT NULL DEFAULT '';
 `.trim();
 
 function publicUrl(path: string) {
@@ -87,6 +89,51 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
         className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Abrir carteira">
         <ExternalLink className="h-3.5 w-3.5" />
       </a>
+    </div>
+  );
+}
+
+function DocItem({ doc, index, total, onRemove, onSaveDatas, showDatas }: {
+  doc: CartDoc; index: number; total: number;
+  onRemove: (doc: CartDoc) => void;
+  onSaveDatas: (doc: CartDoc, exp: string, val: string) => void;
+  showDatas: boolean;
+}) {
+  const [exp, setExp] = useState(doc.data_expedicao ?? "");
+  const [val, setVal] = useState(doc.data_validade ?? "");
+  const dirty = exp !== (doc.data_expedicao ?? "") || val !== (doc.data_validade ?? "");
+  return (
+    <div className="px-3 py-2 space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground truncate min-w-0 flex-1">{total > 1 ? `${index + 1}. ` : ""}{doc.arquivo_nome}</p>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
+            className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver">
+            <ExternalLink className="h-3 w-3" />
+          </a>
+          <button onClick={() => onRemove(doc)} className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remover">
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+      {showDatas && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] text-muted-foreground block mb-0.5">Expedição</label>
+            <input value={exp} onChange={e => setExp(e.target.value)} placeholder="dd/mm/aaaa"
+              className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] text-muted-foreground block mb-0.5">Validade</label>
+            <input value={val} onChange={e => setVal(e.target.value)} placeholder="dd/mm/aaaa"
+              className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
+          </div>
+          <button onClick={() => onSaveDatas(doc, exp, val)} disabled={!dirty}
+            className="mt-4 px-2 py-1 text-xs rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-30 flex-shrink-0">
+            Salvar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -160,6 +207,12 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     await supabase.from("carteira_docs").delete().eq("id", doc.id);
     setDocs(d => d.filter(x => x.id !== doc.id));
     toast.success(`Documento removido.`);
+  };
+
+  const handleSaveDatas = async (doc: CartDoc, exp: string, val: string) => {
+    await supabase.from("carteira_docs").update({ data_expedicao: exp, data_validade: val }).eq("id", doc.id);
+    setDocs(d => d.map(x => x.id === doc.id ? { ...x, data_expedicao: exp, data_validade: val } : x));
+    toast.success("Datas salvas.");
   };
 
   const handleSave = async () => {
@@ -265,18 +318,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                     ) : (
                       <div className="divide-y divide-border/30">
                         {tipoDocs.map((doc, i) => (
-                          <div key={doc.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
-                            <p className="text-xs text-muted-foreground truncate min-w-0 flex-1">{i + 1}. {doc.arquivo_nome}</p>
-                            <div className="flex items-center gap-0.5 flex-shrink-0">
-                              <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
-                                className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver">
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                              <button onClick={() => handleRemoveDoc(doc)} className="p-1.5 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remover">
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
+                          <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} showDatas={key !== "gt"} />
                         ))}
                       </div>
                     )}
@@ -316,14 +358,14 @@ export default function CarteiraDIgital() {
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
     const { data: ds } = ids.length > 0
-      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome").in("carteira_cliente_id", ids)
+      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade").in("carteira_cliente_id", ids)
       : { data: [] };
     setClientes(cs.map(c => ({ ...c, docs: (ds ?? []).filter(d => d.carteira_cliente_id === c.id) as CartDoc[] })));
     setLoading(false);
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v4";
+    const FLAG = "carteira_migration_v5";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
         .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
