@@ -101,7 +101,7 @@ export default function CarteiraCliente() {
     let iconBlobUrl = "";
 
     const applyPWA = () => {
-      const iconUrl = `${window.location.origin}/carteira-icon.png`;
+      const iconUrl = `${window.location.origin}/carteira-icon2.png`;
       const manifest = {
         name: "Carteira CAC",
         short_name: "Carteira CAC",
