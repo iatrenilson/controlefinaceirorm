@@ -95,48 +95,58 @@ export default function CarteiraCliente() {
 
   useEffect(() => {
     if (!id) return;
-    const manifest = {
-      name: "Carteira CAC",
-      short_name: "Carteira CAC",
-      description: "Passarinho Assessoria Bélica",
-      start_url: `/carteira/${id}`,
-      display: "standalone",
-      background_color: "#0a0b0f",
-      theme_color: "#c9a227",
-      icons: [
-        { src: "https://rwinvestimentos.com.br/passarinho-logo.webp", sizes: "512x512", type: "image/webp", purpose: "any" }
-      ]
+    const addedEls: HTMLElement[] = [];
+    const addToHead = (el: HTMLElement) => { document.head.appendChild(el); addedEls.push(el); };
+    let manifestBlobUrl = "";
+    let iconBlobUrl = "";
+
+    const applyPWA = (iconDataUrl: string) => {
+      iconBlobUrl = iconDataUrl;
+      const manifest = {
+        name: "Carteira CAC",
+        short_name: "Carteira CAC",
+        description: "Passarinho Assessoria Bélica",
+        start_url: `/carteira/${id}`,
+        display: "standalone",
+        background_color: "#0a0b0f",
+        theme_color: "#c9a227",
+        icons: [{ src: iconDataUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
+      };
+      const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+      manifestBlobUrl = URL.createObjectURL(mBlob);
+      const linkEl = document.createElement("link"); linkEl.rel = "manifest"; linkEl.href = manifestBlobUrl;
+      addToHead(linkEl);
+      const appleIcon = document.createElement("link"); appleIcon.rel = "apple-touch-icon"; appleIcon.href = iconDataUrl;
+      addToHead(appleIcon);
+      const appleMeta = document.createElement("meta"); appleMeta.name = "apple-mobile-web-app-capable"; appleMeta.content = "yes";
+      addToHead(appleMeta);
+      const appleTitle = document.createElement("meta"); appleTitle.name = "apple-mobile-web-app-title"; appleTitle.content = "Carteira CAC";
+      addToHead(appleTitle);
+      const themeColor = document.createElement("meta"); themeColor.name = "theme-color"; themeColor.content = "#c9a227";
+      addToHead(themeColor);
+      document.title = "Carteira CAC";
     };
-    const blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
-    const blobUrl = URL.createObjectURL(blob);
-    const linkEl = document.createElement("link");
-    linkEl.rel = "manifest";
-    linkEl.href = blobUrl;
-    document.head.appendChild(linkEl);
-    const appleIcon = document.createElement("link");
-    appleIcon.rel = "apple-touch-icon";
-    appleIcon.href = "https://rwinvestimentos.com.br/passarinho-logo.webp";
-    document.head.appendChild(appleIcon);
-    const appleMeta = document.createElement("meta");
-    appleMeta.name = "apple-mobile-web-app-capable";
-    appleMeta.content = "yes";
-    document.head.appendChild(appleMeta);
-    const appleTitle = document.createElement("meta");
-    appleTitle.name = "apple-mobile-web-app-title";
-    appleTitle.content = "Carteira CAC";
-    document.head.appendChild(appleTitle);
-    const themeColor = document.createElement("meta");
-    themeColor.name = "theme-color";
-    themeColor.content = "#c9a227";
-    document.head.appendChild(themeColor);
-    document.title = "Carteira CAC";
+
+    // Gera ícone quadrado 512x512 com fundo escuro + logo centralizado proporcional via canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = 512; canvas.height = 512;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#0a0b0f";
+    ctx.fillRect(0, 0, 512, 512);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const scale = Math.min(512 / img.width, 512 / img.height) * 0.88;
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+      applyPWA(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => applyPWA("https://rwinvestimentos.com.br/passarinho-logo.webp");
+    img.src = "https://rwinvestimentos.com.br/passarinho-logo.webp";
+
     return () => {
-      document.head.removeChild(linkEl);
-      document.head.removeChild(appleIcon);
-      document.head.removeChild(appleMeta);
-      document.head.removeChild(appleTitle);
-      document.head.removeChild(themeColor);
-      URL.revokeObjectURL(blobUrl);
+      addedEls.forEach(el => { try { document.head.removeChild(el); } catch {} });
+      if (manifestBlobUrl) URL.revokeObjectURL(manifestBlobUrl);
       document.title = "RW Investimentos Financeiros";
     };
   }, [id]);
