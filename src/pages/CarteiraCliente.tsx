@@ -100,23 +100,23 @@ export default function CarteiraCliente() {
     let manifestBlobUrl = "";
     let iconBlobUrl = "";
 
-    const applyPWA = (iconDataUrl: string) => {
-      iconBlobUrl = iconDataUrl;
+    const applyPWA = () => {
+      const iconUrl = `${window.location.origin}/carteira-icon.png`;
       const manifest = {
         name: "Carteira CAC",
         short_name: "Carteira CAC",
         description: "Passarinho Assessoria Bélica",
-        start_url: `/carteira/${id}`,
+        start_url: `${window.location.origin}/carteira/${id}`,
         display: "standalone",
-        background_color: "#0a0b0f",
+        background_color: "#ffffff",
         theme_color: "#c9a227",
-        icons: [{ src: iconDataUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
+        icons: [{ src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
       };
       const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
       manifestBlobUrl = URL.createObjectURL(mBlob);
       const linkEl = document.createElement("link"); linkEl.rel = "manifest"; linkEl.href = manifestBlobUrl;
       addToHead(linkEl);
-      const appleIcon = document.createElement("link"); appleIcon.rel = "apple-touch-icon"; appleIcon.href = iconDataUrl;
+      const appleIcon = document.createElement("link"); appleIcon.rel = "apple-touch-icon"; appleIcon.href = iconUrl;
       addToHead(appleIcon);
       const appleMeta = document.createElement("meta"); appleMeta.name = "apple-mobile-web-app-capable"; appleMeta.content = "yes";
       addToHead(appleMeta);
@@ -127,7 +127,7 @@ export default function CarteiraCliente() {
       document.title = "Carteira CAC";
     };
 
-    applyPWA("/carteira-icon.png");
+    applyPWA();
 
     return () => {
       addedEls.forEach(el => { try { document.head.removeChild(el); } catch {} });
