@@ -1,0 +1,17 @@
+{
+  "name": "Carteira CAC",
+  "short_name": "Carteira CAC",
+  "description": "Passarinho Assessoria Bélica",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c9a227",
+  "icons": [
+    {
+      "src": "/carteira-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
