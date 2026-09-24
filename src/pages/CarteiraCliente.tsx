@@ -131,13 +131,12 @@ export default function CarteiraCliente() {
     const canvas = document.createElement("canvas");
     canvas.width = 512; canvas.height = 512;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#0a0b0f";
-    ctx.fillRect(0, 0, 512, 512);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const scale = Math.min(512 / img.width, 512 / img.height) * 0.88;
+      const scale = Math.min(512 / img.width, 512 / img.height);
       const w = img.width * scale, h = img.height * scale;
+      ctx.clearRect(0, 0, 512, 512);
       ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
       applyPWA(canvas.toDataURL("image/png"));
     };
