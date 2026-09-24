@@ -3,7 +3,7 @@
   "short_name": "Carteira CAC",
   "background_color": "#ffffff",
   "theme_color": "#c9a227",
-  "display": "standalone",
+  "display": "browser",
   "icons": [
     {
       "src": "/carteira-icon2.png",
