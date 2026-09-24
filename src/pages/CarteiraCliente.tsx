@@ -203,8 +203,13 @@ export default function CarteiraCliente() {
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
                         {temDocs && docList.some(d => d.data_validade) && (() => {
                           const comVal = docList.filter(d => d.data_validade);
-                          // Extrai a última data DD/MM/YYYY de uma string (suporta intervalo "xx à xx")
                           const ultimaData = (s: string) => (s.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? s;
+                          const diasRestantes = (dateStr: string): number => {
+                            const [dv, mv, yv] = dateStr.split("/").map(Number);
+                            const val = new Date(yv, mv - 1, dv);
+                            const hoje = new Date(); hoje.setHours(0,0,0,0);
+                            return Math.ceil((val.getTime() - hoje.getTime()) / 86400000);
+                          };
                           return (
                             <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0", lineHeight:1.6 }}>
                               Validade:{" "}
@@ -212,9 +217,12 @@ export default function CarteiraCliente() {
                                 const last = ultimaData(doc.data_validade as string);
                                 const [dv, mv, yv] = last.split("/").map(Number);
                                 const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : "#22c55e";
+                                const dias = diasRestantes(last);
+                                const diasLabel = dias < 0 ? `vencido há ${Math.abs(dias)}d` : `${dias}d`;
                                 return (
                                   <span key={doc.id ?? i}>
                                     {i > 0 && <span style={{ color:"#4a3f2a" }}>, </span>}
+                                    <span style={{ color: valColor, fontWeight: 400, fontSize: 9 }}>({diasLabel}) </span>
                                     <span style={{ color: valColor, fontWeight: 700 }}>{doc.data_validade}</span>
                                     {doc.numero_serie && <span style={{ color:"#7a6a48" }}> ({doc.numero_serie})</span>}
                                   </span>
