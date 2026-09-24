@@ -107,7 +107,7 @@ export default function CarteiraCliente() {
         short_name: "Carteira CAC",
         description: "Passarinho Assessoria Bélica",
         start_url: `${window.location.origin}/carteira/${id}`,
-        display: "standalone",
+        display: "browser",
         background_color: "#ffffff",
         theme_color: "#c9a227",
         icons: [{ src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
