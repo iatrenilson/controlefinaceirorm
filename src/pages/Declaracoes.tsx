@@ -955,8 +955,8 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
           }
         });
       } else {
-        // Outros PDFs (Autorização de Compra, etc.): renderiza como JPEG — ~70% menor
-        const pages = await renderPdfToJpegs(a.dataUrl, 750, 1060, 0.82);
+        // Outros PDFs (Autorização de Compra, etc.): renderiza como JPEG alta qualidade
+        const pages = await renderPdfToJpegs(a.dataUrl, 1400, 2000, 0.92);
         for (let i = 0; i < pages.length; i++) {
           const b64 = pages[i].split(",")[1];
           const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -968,8 +968,8 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
         }
       }
     } else if (a.dataUrl.startsWith("data:image")) {
-      // Imagem: 700px 65% — tamanho compacto, ainda legível para CNH e notas
-      const jpegDataUrl = await fitImageToPage(a.dataUrl, 700, 990, 0.65);
+      // Imagem: alta resolução para CNH e demais anexos
+      const jpegDataUrl = await fitImageToPage(a.dataUrl, 1300, 1840, 0.90);
       const b64 = jpegDataUrl.split(",")[1];
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const img = await merged.embedJpg(bytes);
