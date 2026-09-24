@@ -212,17 +212,15 @@ export default function CarteiraCliente() {
                           };
                           return (
                             <p style={{ color:"#8b7d5a", fontSize:10, margin:"3px 0 0", lineHeight:1.6 }}>
-                              Validade:{" "}
                               {comVal.map((doc, i) => {
                                 const last = ultimaData(doc.data_validade as string);
                                 const [dv, mv, yv] = last.split("/").map(Number);
                                 const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : "#22c55e";
                                 const dias = diasRestantes(last);
-                                const diasLabel = dias < 0 ? `vencido há ${Math.abs(dias)}d` : `${dias}d`;
+                                const diasLabel = dias < 0 ? `vencido há ${Math.abs(dias)}d` : `vence em (${dias}d)`;
                                 return (
-                                  <span key={doc.id ?? i}>
-                                    {i > 0 && <span style={{ color:"#4a3f2a" }}>, </span>}
-                                    <span style={{ color: valColor, fontWeight: 400, fontSize: 9 }}>({diasLabel}) </span>
+                                  <span key={doc.id ?? i} style={{ display:"block", marginTop: i === 0 ? 0 : 2 }}>
+                                    <span style={{ color:"#8b7d5a", fontWeight: 400 }}>{diasLabel} </span>
                                     <span style={{ color: valColor, fontWeight: 700 }}>{doc.data_validade}</span>
                                     {doc.numero_serie && <span style={{ color:"#7a6a48" }}> ({doc.numero_serie})</span>}
                                   </span>
