@@ -939,17 +939,33 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
 
   for (const a of anexosRaw) {
     if (a.dataUrl.startsWith("data:application/pdf")) {
-      // PDF: renderiza cada página como JPEG (compressão igual ao iLovePDF)
-      // maxW=750px, 82% qualidade — visual idêntico, arquivo ~70% menor
-      const pages = await renderPdfToJpegs(a.dataUrl, 750, 1060, 0.82);
-      for (let i = 0; i < pages.length; i++) {
-        const b64 = pages[i].split(",")[1];
+      const isNotaFiscal = a.label.toLowerCase().includes("nota");
+      if (isNotaFiscal) {
+        // Nota Fiscal: copia verbatim — mantém texto selecionável e copiável
+        const b64 = a.dataUrl.split(",")[1];
         const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        const img = await merged.embedJpg(bytes);
-        const pg = merged.addPage([A4W, A4H]);
-        if (i === 0) pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
-        const dims = img.scaleToFit(A4W - 20, A4H - 26);
-        pg.drawImage(img, { x: (A4W - dims.width) / 2, y: A4H - dims.height - 18, width: dims.width, height: dims.height });
+        const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+        const copied = await merged.copyPages(src, src.getPageIndices());
+        copied.forEach((pg: any, idx: number) => {
+          merged.addPage(pg);
+          if (idx === 0) {
+            const { width: pw, height: ph } = pg.getSize();
+            pg.drawRectangle({ x: 0, y: ph - 16, width: pw, height: 16, color: rgb(1, 1, 1) });
+            pg.drawText(`Anexo: ${a.label}`, { x: 8, y: ph - 12, size: 9, font, color: rgb(0, 0, 0) });
+          }
+        });
+      } else {
+        // Outros PDFs (Autorização de Compra, etc.): renderiza como JPEG — ~70% menor
+        const pages = await renderPdfToJpegs(a.dataUrl, 750, 1060, 0.82);
+        for (let i = 0; i < pages.length; i++) {
+          const b64 = pages[i].split(",")[1];
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          const img = await merged.embedJpg(bytes);
+          const pg = merged.addPage([A4W, A4H]);
+          if (i === 0) pg.drawText(`Anexo: ${a.label}`, { x: 8, y: A4H - 12, size: 9, font, color: rgb(0, 0, 0) });
+          const dims = img.scaleToFit(A4W - 20, A4H - 26);
+          pg.drawImage(img, { x: (A4W - dims.width) / 2, y: A4H - dims.height - 18, width: dims.width, height: dims.height });
+        }
       }
     } else if (a.dataUrl.startsWith("data:image")) {
       // Imagem: 700px 65% — tamanho compacto, ainda legível para CNH e notas
