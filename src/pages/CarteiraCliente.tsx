@@ -134,10 +134,20 @@ export default function CarteiraCliente() {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const scale = Math.min(512 / img.width, 512 / img.height);
+      const scale = Math.min(512 / img.width, 512 / img.height) * 0.82;
       const w = img.width * scale, h = img.height * scale;
-      ctx.clearRect(0, 0, 512, 512);
-      ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+      const x = (512 - w) / 2, y = (512 - h) / 2;
+      // Fundo dourado
+      ctx.fillStyle = "#c9a227";
+      ctx.fillRect(0, 0, 512, 512);
+      // Contorno branco via shadow
+      ctx.shadowColor = "rgba(255,255,255,0.95)";
+      ctx.shadowBlur = 18;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.shadowBlur = 10;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.shadowColor = "transparent";
+      ctx.drawImage(img, x, y, w, h);
       applyPWA(canvas.toDataURL("image/png"));
     };
     img.onerror = () => applyPWA("https://rwinvestimentos.com.br/passarinho-logo.webp");
