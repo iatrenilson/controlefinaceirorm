@@ -127,31 +127,7 @@ export default function CarteiraCliente() {
       document.title = "Carteira CAC";
     };
 
-    // Gera ícone quadrado 512x512 com fundo escuro + logo centralizado proporcional via canvas
-    const canvas = document.createElement("canvas");
-    canvas.width = 512; canvas.height = 512;
-    const ctx = canvas.getContext("2d")!;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const scale = Math.min(512 / img.width, 512 / img.height) * 0.82;
-      const w = img.width * scale, h = img.height * scale;
-      const x = (512 - w) / 2, y = (512 - h) / 2;
-      // Fundo dourado
-      ctx.fillStyle = "#c9a227";
-      ctx.fillRect(0, 0, 512, 512);
-      // Contorno branco via shadow
-      ctx.shadowColor = "rgba(255,255,255,0.95)";
-      ctx.shadowBlur = 18;
-      ctx.drawImage(img, x, y, w, h);
-      ctx.shadowBlur = 10;
-      ctx.drawImage(img, x, y, w, h);
-      ctx.shadowColor = "transparent";
-      ctx.drawImage(img, x, y, w, h);
-      applyPWA(canvas.toDataURL("image/png"));
-    };
-    img.onerror = () => applyPWA("https://rwinvestimentos.com.br/passarinho-logo.webp");
-    img.src = "https://rwinvestimentos.com.br/passarinho-logo.webp";
+    applyPWA("/carteira-icon.png");
 
     return () => {
       addedEls.forEach(el => { try { document.head.removeChild(el); } catch {} });
