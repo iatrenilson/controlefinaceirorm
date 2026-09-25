@@ -110,10 +110,7 @@ export default function CarteiraCliente() {
         display: "browser",
         background_color: "#ffffff",
         theme_color: "#c9a227",
-        icons: [
-          { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }
-        ]
+        icons: [{ src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
       };
       const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
       manifestBlobUrl = URL.createObjectURL(mBlob);
