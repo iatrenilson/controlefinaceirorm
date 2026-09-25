@@ -101,14 +101,14 @@ export default function CarteiraCliente() {
     let iconBlobUrl = "";
 
     const applyPWA = () => {
-      const iconUrl = `${window.location.origin}/carteira-icon4.png`;
+      const iconUrl = `${window.location.origin}/carteira-icon5.png`;
       const manifest = {
         name: "Carteira CAC",
         short_name: "Carteira CAC",
         description: "Passarinho Assessoria Bélica",
         start_url: `${window.location.origin}/carteira/${id}`,
         display: "standalone",
-        background_color: "#ffffff",
+        background_color: "#0f172a",
         theme_color: "#c9a227",
         icons: [{ src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
       };
