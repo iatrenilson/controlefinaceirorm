@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, Upload, FileText, Pencil, X } from "lucide-react";
+import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, FileText, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "carteira-docs";
@@ -245,8 +245,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
   // Arquivos pendentes para novo cliente (ref = não perde entre renders)
-  const pendingFilesRef = useRef<Partial<Record<TipoKey, File>>>({});
-  const [pendingNames, setPendingNames] = useState<Partial<Record<TipoKey, string>>>({});
+  const pendingFilesRef = useRef<Partial<Record<TipoKey, File[]>>>({});
+  const [pendingNames, setPendingNames] = useState<Partial<Record<TipoKey, string[]>>>({});
   // Refs para inputs de arquivo (edit mode)
   const refEditCr = useRef<HTMLInputElement>(null);
   const refEditCraf = useRef<HTMLInputElement>(null);
@@ -347,7 +347,10 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
       .select().single();
     if (error || !data) { toast.error("Erro ao salvar: " + error?.message); setSaving(false); return; }
     // Upload dos arquivos pendentes ANTES de recarregar a lista
-    const entries = Object.entries(pendingFilesRef.current) as [TipoKey, File][];
+    const entries: [TipoKey, File][] = [];
+    for (const [tipo, files] of Object.entries(pendingFilesRef.current) as [TipoKey, File[]][]) {
+      for (const file of files) entries.push([tipo, file]);
+    }
     for (const [tipo, file] of entries) {
       setUploading(tipo);
       await uploadFile(data.id, tipo, file);
@@ -414,37 +417,60 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
             </div>
           </div>
 
-          {/* Documentos — novo cliente: seletores simples */}
+          {/* Documentos — novo cliente */}
           {isNew && (
-            <div className="space-y-2 pt-2 border-t border-border">
+            <div className="space-y-3 pt-2 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documentos (opcional)</p>
-              {TIPOS.map(({ key, label }) => {
-                const fname = pendingNames[key];
+              {TIPOS.map(({ key, label, desc }) => {
+                const names = pendingNames[key] ?? [];
                 return (
-                  <div key={key} className="flex items-center gap-2">
-                    <input ref={pendingRefs[key]} type="file" accept="application/pdf,image/*" className="hidden"
-                      onChange={e => {
-                        const f = e.target.files?.[0];
-                        if (f) {
-                          pendingFilesRef.current = { ...pendingFilesRef.current, [key]: f };
-                          setPendingNames(p => ({ ...p, [key]: f.name }));
-                        }
-                        e.target.value = "";
-                      }} />
-                    <button type="button" onClick={() => pendingRefs[key].current?.click()}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors flex-shrink-0 ${fname ? "border-green-500/40 bg-green-500/10 text-green-400" : "border-border bg-background hover:bg-accent text-muted-foreground"}`}>
-                      {fname ? <Check className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
-                      {label}
-                    </button>
-                    {fname ? (
-                      <span className="text-xs text-muted-foreground truncate flex-1">{fname}
-                        <button type="button" onClick={() => {
-                          const n = { ...pendingFilesRef.current }; delete n[key]; pendingFilesRef.current = n;
-                          setPendingNames(p => { const np = { ...p }; delete np[key]; return np; });
-                        }} className="ml-1 text-muted-foreground/50 hover:text-red-400"><X className="h-3 w-3 inline" /></button>
-                      </span>
+                  <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${names.length > 0 ? "text-green-400" : "text-muted-foreground"}`} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{label}</p>
+                          <p className="text-[10px] text-muted-foreground">{desc}</p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <input ref={pendingRefs[key]} type="file" accept="application/pdf,image/*" className="hidden"
+                          onChange={e => {
+                            const f = e.target.files?.[0];
+                            if (f) {
+                              const prev = pendingFilesRef.current[key] ?? [];
+                              pendingFilesRef.current = { ...pendingFilesRef.current, [key]: [...prev, f] };
+                              setPendingNames(p => ({ ...p, [key]: [...(p[key] ?? []), f.name] }));
+                            }
+                            e.target.value = "";
+                          }} />
+                        <button type="button" onClick={() => pendingRefs[key].current?.click()}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors">
+                          <Plus className="h-3 w-3" />Adicionar
+                        </button>
+                      </div>
+                    </div>
+                    {names.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhum arquivo selecionado</p>
                     ) : (
-                      <span className="text-xs text-muted-foreground/40">Nenhum arquivo</span>
+                      <div className="divide-y divide-border/30">
+                        {names.map((name, idx) => (
+                          <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2">
+                            <p className="text-xs text-muted-foreground truncate flex-1">{names.length > 1 ? `${idx + 1}. ` : ""}{name}</p>
+                            <button type="button" onClick={() => {
+                              const newFiles = [...(pendingFilesRef.current[key] ?? [])];
+                              newFiles.splice(idx, 1);
+                              pendingFilesRef.current = { ...pendingFilesRef.current, [key]: newFiles.length > 0 ? newFiles : [] };
+                              setPendingNames(p => {
+                                const n = [...(p[key] ?? [])]; n.splice(idx, 1);
+                                return { ...p, [key]: n };
+                              });
+                            }} className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 );
