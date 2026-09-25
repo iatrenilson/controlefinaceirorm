@@ -243,6 +243,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [docs, setDocs] = useState<CartDoc[]>(cliente?.docs ?? []);
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
+  const [createdClienteId, setCreatedClienteId] = useState<string | null>(null);
   const refs = { cr: useRef<HTMLInputElement>(null), craf: useRef<HTMLInputElement>(null), gt: useRef<HTMLInputElement>(null) };
 
   // Sinarm CAC selector (only for new clients)
@@ -250,7 +251,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [sinarmBusca, setSinarmBusca] = useState("");
   const [sinarmOpen, setSinarmOpen] = useState(false);
   const sinarmRef = useRef<HTMLDivElement>(null);
-  const isNew = !cliente?.id;
+  const isNew = !cliente?.id && !createdClienteId;
+  const effectiveClienteId = cliente?.id ?? createdClienteId;
 
   useEffect(() => {
     if (!isNew) return;
@@ -279,10 +281,10 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   };
 
   const handleFile = async (tipo: TipoKey, file: File) => {
-    if (!cliente?.id) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
+    if (!effectiveClienteId) { toast.error("Salve o cliente primeiro antes de enviar documentos."); return; }
     setUploading(tipo);
     const ext = file.name.split('.').pop() || 'pdf';
-    const path = `${cliente.id}/${tipo}/${Date.now()}.${ext}`;
+    const path = `${effectiveClienteId}/${tipo}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
     if (error) { toast.error("Erro ao enviar arquivo: " + error.message); setUploading(null); return; }
 
@@ -297,9 +299,9 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     }
 
     const { data: newDoc } = await supabase.from("carteira_docs")
-      .insert({ carteira_cliente_id: cliente.id, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade, numero_serie })
+      .insert({ carteira_cliente_id: effectiveClienteId, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade, numero_serie })
       .select().single();
-    if (newDoc) setDocs(d => [...d, newDoc as CartDoc]);
+    if (newDoc) setDocs(d => [...d, { ...newDoc, carteira_cliente_id: effectiveClienteId! } as CartDoc]);
     setUploading(null);
     const msg = data_validade
       ? `${tipo.toUpperCase()} enviado! Dados extraídos automaticamente.`
@@ -308,7 +310,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   };
 
   const handleRemoveDoc = async (doc: CartDoc) => {
-    if (!cliente?.id) return;
+    if (!effectiveClienteId) return;
     await supabase.storage.from(BUCKET).remove([doc.arquivo_path]);
     await supabase.from("carteira_docs").delete().eq("id", doc.id);
     setDocs(d => d.filter(x => x.id !== doc.id));
@@ -325,31 +327,31 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     if (!nome.trim()) { toast.error("Informe o nome do cliente."); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (cliente?.id) {
-      await supabase.from("carteira_clientes").update({ nome: nome.trim(), telefone: telefone.trim() || null, cpf: cpf.trim() || null }).eq("id", cliente.id);
+    if (effectiveClienteId) {
+      await supabase.from("carteira_clientes").update({ nome: nome.trim(), telefone: telefone.trim() || null, cpf: cpf.trim() || null }).eq("id", effectiveClienteId);
+      setSaving(false);
+      onSaved();
+      onClose();
     } else {
       const { data, error } = await supabase.from("carteira_clientes").insert({ nome: nome.trim(), telefone: telefone.trim() || null, cpf: cpf.trim() || null, owner_id: user?.id }).select().single();
       if (error || !data) { toast.error("Erro ao salvar: " + error?.message); setSaving(false); return; }
       toast.success("Cliente cadastrado! Agora envie os documentos.");
       setSaving(false);
       onSaved();
-      return;
+      setCreatedClienteId(data.id);
     }
-    setSaving(false);
-    onSaved();
-    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="bg-card border border-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="font-semibold text-base">{isNew ? "Novo Cliente" : "Editar Cliente"}</h2>
+          <h2 className="font-semibold text-base">{isNew ? "Novo Cliente" : createdClienteId ? "Adicionar Documentos" : "Editar Cliente"}</h2>
           <button onClick={onClose} className="p-1 rounded text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
         </div>
         <div className="p-5 space-y-4">
           {/* Seleção Sinarm CAC */}
-          {isNew && sinarmList.length > 0 && (
+          {isNew && !createdClienteId && sinarmList.length > 0 && (
             <div ref={sinarmRef} className="relative">
               <label className="text-xs text-muted-foreground mb-1 block">Selecionar cliente cadastrado</label>
               <input
@@ -374,7 +376,12 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
           )}
 
           {/* Dados */}
-          <div className="space-y-3">
+          {!!createdClienteId && (
+            <p className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              ✓ {nome} cadastrado! Envie os documentos abaixo.
+            </p>
+          )}
+          <div className={`space-y-3${createdClienteId ? " hidden" : ""}`}>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Nome completo *</label>
               <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: João da Silva"
@@ -394,7 +401,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
             </div>
           </div>
 
-          {/* Documentos — só mostra após salvar */}
+          {/* Documentos */}
           {!isNew && (
             <div className="space-y-3 pt-2 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documentos</p>
@@ -434,18 +441,26 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
             </div>
           )}
 
-          {isNew && (
+          {isNew && !createdClienteId && (
             <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg p-3">
-              💡 Após salvar, você poderá enviar os documentos (CR, CRAF da Arma, GT).
+              💡 Após cadastrar, você poderá enviar os documentos (CR, CRAF da Arma, GT) aqui mesmo.
             </p>
           )}
         </div>
         <div className="p-5 pt-0 flex gap-2 justify-end border-t border-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-accent transition-colors">Cancelar</button>
-          <button onClick={handleSave} disabled={saving}
-            className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors disabled:opacity-60">
-            {saving ? "Salvando..." : isNew ? "Cadastrar" : "Salvar"}
-          </button>
+          {createdClienteId ? (
+            <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">
+              Fechar
+            </button>
+          ) : (
+            <>
+              <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-accent transition-colors">Cancelar</button>
+              <button onClick={handleSave} disabled={saving}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors disabled:opacity-60">
+                {saving ? "Salvando..." : isNew ? "Cadastrar" : "Salvar"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
