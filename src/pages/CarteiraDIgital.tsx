@@ -9,8 +9,8 @@ const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const TIPOS = [
   { key: "cr",   label: "CR",           desc: "Certificado de Registro" },
   { key: "craf", label: "CRAF da Arma", desc: "Certificado de Registro de Arma de Fogo" },
-  { key: "cert", label: "Certificados", desc: "Certificados diversos" },
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego" },
+  { key: "cert", label: "Certificados", desc: "Certificados" },
 ] as const;
 
 type TipoKey = "cr" | "craf" | "gt" | "cert";
