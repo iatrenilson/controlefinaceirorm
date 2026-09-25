@@ -9,6 +9,7 @@ const TIPOS = [
   { key: "cr",   label: "CR",           desc: "Certificado de Registro",                emoji: "📄" },
   { key: "craf", label: "CRAF da Arma", desc: "Certificado de Registro de Arma de Fogo", emoji: "🔫" },
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego",                         emoji: "📋" },
+  { key: "cert", label: "CERTIFICADOS", desc: "Certificados",                             emoji: "📜" },
 ] as const;
 
 interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; }
