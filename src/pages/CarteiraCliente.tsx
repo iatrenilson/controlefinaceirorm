@@ -108,8 +108,8 @@ export default function CarteiraCliente() {
         description: "Passarinho Assessoria Bélica",
         start_url: `${window.location.origin}/carteira/${id}`,
         display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0f172a",
+        background_color: "#ffffff",
+        theme_color: "#c9a227",
         icons: [{ src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any" }]
       };
       const mBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
