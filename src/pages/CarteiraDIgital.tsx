@@ -9,10 +9,11 @@ const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const TIPOS = [
   { key: "cr",   label: "CR",           desc: "Certificado de Registro" },
   { key: "craf", label: "CRAF da Arma", desc: "Certificado de Registro de Arma de Fogo" },
+  { key: "cert", label: "Certificados", desc: "Certificados diversos" },
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego" },
 ] as const;
 
-type TipoKey = "cr" | "craf" | "gt";
+type TipoKey = "cr" | "craf" | "gt" | "cert";
 
 interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
@@ -251,12 +252,14 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const refEditCr = useRef<HTMLInputElement>(null);
   const refEditCraf = useRef<HTMLInputElement>(null);
   const refEditGt = useRef<HTMLInputElement>(null);
-  const refs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refEditCr, craf: refEditCraf, gt: refEditGt };
+  const refEditCert = useRef<HTMLInputElement>(null);
+  const refs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refEditCr, craf: refEditCraf, gt: refEditGt, cert: refEditCert };
   // Refs para inputs de arquivo (new mode)
   const refNewCr = useRef<HTMLInputElement>(null);
   const refNewCraf = useRef<HTMLInputElement>(null);
   const refNewGt = useRef<HTMLInputElement>(null);
-  const pendingRefs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refNewCr, craf: refNewCraf, gt: refNewGt };
+  const refNewCert = useRef<HTMLInputElement>(null);
+  const pendingRefs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refNewCr, craf: refNewCraf, gt: refNewGt, cert: refNewCert };
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
