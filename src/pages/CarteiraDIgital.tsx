@@ -244,10 +244,19 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [docs, setDocs] = useState<CartDoc[]>(cliente?.docs ?? []);
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
-  // Arquivos pendentes (modo novo cliente — selecionados antes de criar)
-  const [pendingFiles, setPendingFiles] = useState<Partial<Record<TipoKey, File>>>({});
-  const refs = { cr: useRef<HTMLInputElement>(null), craf: useRef<HTMLInputElement>(null), gt: useRef<HTMLInputElement>(null) };
-  const pendingRefs = { cr: useRef<HTMLInputElement>(null), craf: useRef<HTMLInputElement>(null), gt: useRef<HTMLInputElement>(null) };
+  // Arquivos pendentes para novo cliente (ref = não perde entre renders)
+  const pendingFilesRef = useRef<Partial<Record<TipoKey, File>>>({});
+  const [pendingNames, setPendingNames] = useState<Partial<Record<TipoKey, string>>>({});
+  // Refs para inputs de arquivo (edit mode)
+  const refEditCr = useRef<HTMLInputElement>(null);
+  const refEditCraf = useRef<HTMLInputElement>(null);
+  const refEditGt = useRef<HTMLInputElement>(null);
+  const refs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refEditCr, craf: refEditCraf, gt: refEditGt };
+  // Refs para inputs de arquivo (new mode)
+  const refNewCr = useRef<HTMLInputElement>(null);
+  const refNewCraf = useRef<HTMLInputElement>(null);
+  const refNewGt = useRef<HTMLInputElement>(null);
+  const pendingRefs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refNewCr, craf: refNewCraf, gt: refNewGt };
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
@@ -337,17 +346,17 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
       .insert({ nome: nome.trim(), telefone: telefone.trim() || null, cpf: cpf.trim() || null, owner_id: user?.id })
       .select().single();
     if (error || !data) { toast.error("Erro ao salvar: " + error?.message); setSaving(false); return; }
-    onSaved();
-    // Fazer upload dos arquivos pendentes
-    const entries = Object.entries(pendingFiles) as [TipoKey, File][];
+    // Upload dos arquivos pendentes ANTES de recarregar a lista
+    const entries = Object.entries(pendingFilesRef.current) as [TipoKey, File][];
     for (const [tipo, file] of entries) {
       setUploading(tipo);
       await uploadFile(data.id, tipo, file);
     }
     setUploading(null);
+    setSaving(false);
     if (entries.length > 0) toast.success("Cliente e documentos cadastrados!");
     else toast.success("Cliente cadastrado!");
-    setSaving(false);
+    onSaved(); // Recarregar lista APÓS uploads
     onClose();
   };
 
@@ -410,20 +419,29 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
             <div className="space-y-2 pt-2 border-t border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documentos (opcional)</p>
               {TIPOS.map(({ key, label }) => {
-                const file = pendingFiles[key];
+                const fname = pendingNames[key];
                 return (
                   <div key={key} className="flex items-center gap-2">
                     <input ref={pendingRefs[key]} type="file" accept="application/pdf,image/*" className="hidden"
-                      onChange={e => { const f = e.target.files?.[0]; if (f) setPendingFiles(p => ({ ...p, [key]: f })); e.target.value = ""; }} />
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          pendingFilesRef.current = { ...pendingFilesRef.current, [key]: f };
+                          setPendingNames(p => ({ ...p, [key]: f.name }));
+                        }
+                        e.target.value = "";
+                      }} />
                     <button type="button" onClick={() => pendingRefs[key].current?.click()}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors flex-shrink-0 ${file ? "border-green-500/40 bg-green-500/10 text-green-400" : "border-border bg-background hover:bg-accent text-muted-foreground"}`}>
-                      {file ? <Check className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors flex-shrink-0 ${fname ? "border-green-500/40 bg-green-500/10 text-green-400" : "border-border bg-background hover:bg-accent text-muted-foreground"}`}>
+                      {fname ? <Check className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
                       {label}
                     </button>
-                    {file ? (
-                      <span className="text-xs text-muted-foreground truncate flex-1">{file.name}
-                        <button type="button" onClick={() => setPendingFiles(p => { const n = { ...p }; delete n[key]; return n; })}
-                          className="ml-1 text-muted-foreground/50 hover:text-red-400"><X className="h-3 w-3 inline" /></button>
+                    {fname ? (
+                      <span className="text-xs text-muted-foreground truncate flex-1">{fname}
+                        <button type="button" onClick={() => {
+                          const n = { ...pendingFilesRef.current }; delete n[key]; pendingFilesRef.current = n;
+                          setPendingNames(p => { const np = { ...p }; delete np[key]; return np; });
+                        }} className="ml-1 text-muted-foreground/50 hover:text-red-400"><X className="h-3 w-3 inline" /></button>
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground/40">Nenhum arquivo</span>
