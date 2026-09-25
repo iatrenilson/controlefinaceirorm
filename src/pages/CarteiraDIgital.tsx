@@ -10,7 +10,7 @@ const TIPOS = [
   { key: "cr",   label: "CR",           desc: "Certificado de Registro" },
   { key: "craf", label: "CRAF da Arma", desc: "Certificado de Registro de Arma de Fogo" },
   { key: "gt",   label: "GT",           desc: "Guia de Tráfego" },
-  { key: "cert", label: "Certificados", desc: "Certificados" },
+  { key: "cert", label: "CERTIFICADO",  desc: "Certificados" },
 ] as const;
 
 type TipoKey = "cr" | "craf" | "gt" | "cert";
