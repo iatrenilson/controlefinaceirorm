@@ -85,8 +85,12 @@ export default function CadastroPublico() {
     setTipos([]); setArmas([]);
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
-    // Salva no Supabase em segundo plano (silencioso)
-    migrated().then(() => supabase.from("cac_cadastros").insert(snap));
+    // Salva no Supabase em segundo plano
+    migrated().then(() =>
+      supabase.from("cac_cadastros").insert(snap).then(({ error }) => {
+        if (error) toast.error("Erro ao salvar cadastro: " + error.message);
+      })
+    );
   };
 
   const gold = "#c9a227";
