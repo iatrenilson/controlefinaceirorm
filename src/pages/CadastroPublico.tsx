@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
 
 const MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS public.cac_cadastros (
@@ -33,7 +32,6 @@ export default function CadastroPublico() {
   const [complemento, setComplemento] = useState("");
   const [bairro, setBairro] = useState("");
   const [saving, setSaving] = useState(false);
-  const [enviado, setEnviado] = useState(false);
 
   const migrated = () => {
     const FLAG = "cac_cadastros_migration_v1";
@@ -58,7 +56,6 @@ export default function CadastroPublico() {
     });
     setSaving(false);
     if (error) { toast.error("Erro ao enviar: " + error.message); return; }
-    setEnviado(true);
 
     // Abre WhatsApp com confirmação do cadastro
     const linhas = [
@@ -74,6 +71,10 @@ export default function CadastroPublico() {
 
     const url = `https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`;
     window.open(url, "_blank");
+
+    // Reseta formulário para novo cadastro
+    setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
+    toast.success("Cadastro enviado! Formulário pronto para novo cliente.");
   };
 
   const gold = "#c9a227";
@@ -81,14 +82,7 @@ export default function CadastroPublico() {
   return (
     <div className="bg-background" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,162,39,0.2)", borderRadius: 20, padding: "28px 24px" }}>
-        {enviado ? (
-          <div style={{ textAlign: "center", padding: "20px 0" }}>
-            <CheckCircle2 style={{ color: "#4ade80", width: 48, height: 48, margin: "0 auto 16px" }} />
-            <p style={{ color: "#e8d5a0", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Cadastro enviado!</p>
-            <p style={{ color: "#7a6a48", fontSize: 14, margin: 0 }}>Seus dados foram recebidos com sucesso. Em breve entraremos em contato.</p>
-          </div>
-        ) : (
-          <>
+        <>
             <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 20px" }}>✦ Cadastro</p>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
@@ -129,7 +123,6 @@ export default function CadastroPublico() {
               </button>
             </form>
           </>
-        )}
       </div>
 
       <p style={{ color: "#3a3020", fontSize: 11, marginTop: 20 }}>rwinvestimentos.com.br</p>
