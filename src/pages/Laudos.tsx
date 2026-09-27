@@ -679,7 +679,7 @@ const Laudos = () => {
       novoSinarmPorte  = false;
     } else if (tipoRaw.includes("SINARM PORTE")) {
       novoLaudoTipo    = "sinarm";
-      novaFinalidade   = ["porte"];
+      novaFinalidade   = ["aquisicao", "porte"];
       novaCategoria    = ["defesa"];
       novoSinarmPorte  = true;
     } else if (tipoRaw.includes("SINARM POSSE")) {
