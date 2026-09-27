@@ -979,7 +979,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         {/* Data Declaração */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
+            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Data da Declaração (Avaliado)
             </CardTitle>
           </CardHeader>
@@ -1016,7 +1016,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         {/* Local */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
+            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Local da Prova Prática (Estande)
             </CardTitle>
           </CardHeader>
@@ -1077,7 +1077,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         {/* Notas */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
+            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Notas
             </CardTitle>
           </CardHeader>
