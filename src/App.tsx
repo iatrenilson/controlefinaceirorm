@@ -28,6 +28,7 @@ import DelayAddClient from "./pages/DelayAddClient";
 import DelayViewer from "./pages/DelayViewer";
 import Declaracoes from "./pages/Declaracoes";
 import Laudos from "./pages/Laudos";
+import CadastroPublico from "./pages/CadastroPublico";
 import CarteiraCliente from "./pages/CarteiraCliente";
 import CarteiraDIgital from "./pages/CarteiraDIgital";
 
@@ -106,6 +107,7 @@ const ProtectedLayout = () => {
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
             <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
             <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
+            <Route path="/cadastro" element={<CadastroPublico />} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
