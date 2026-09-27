@@ -1206,7 +1206,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         {/* Conclusão */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
+            <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Conclusão
             </CardTitle>
           </CardHeader>
