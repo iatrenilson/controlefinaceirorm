@@ -68,8 +68,6 @@ export default function CadastroPublico() {
       bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
       tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
       armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
-      "",
-      "Passarinho Assessoria Bélica — rwinvestimentos.com.br",
     ].filter(l => l !== null).join("\n");
     window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
 
