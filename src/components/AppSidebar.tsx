@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -229,6 +229,14 @@ export function AppSidebar() {
                         <ClipboardList className="h-[18px] w-[18px]" />
                         <span>Laudos</span>
                       </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Cadastro">
+                      <a href="/cadastro" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors">
+                        <UserPlus className="h-[18px] w-[18px]" />
+                        <span>Cadastro</span>
+                      </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
