@@ -26,6 +26,16 @@ DO $$ BEGIN
 END $$;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
+INSERT INTO storage.buckets (id, name, public) VALUES ('psicologicos', 'psicologicos', true) ON CONFLICT (id) DO NOTHING;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='psico_select') THEN
+    CREATE POLICY "psico_select" ON storage.objects FOR SELECT USING (bucket_id = 'psicologicos');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='psico_insert') THEN
+    CREATE POLICY "psico_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'psicologicos');
+  END IF;
+END $$;
 `.trim();
 
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"] as const;
@@ -41,6 +51,10 @@ export default function CadastroPublico() {
   const [tipos, setTipos] = useState<string[]>([]);
   const [armas, setArmas] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"dados" | "psicologico">("dados");
+  const [psicoFile, setPsicoFile] = useState<File | null>(null);
+  const [psicoUrl, setPsicoUrl] = useState<string | null>(null);
+  const [uploadingPsico, setUploadingPsico] = useState(false);
 
   const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
@@ -55,11 +69,31 @@ export default function CadastroPublico() {
   };
 
   const migrated = () => {
-    const FLAG = "cac_cadastros_migration_v2";
+    const FLAG = "cac_cadastros_migration_v3";
     if (localStorage.getItem(FLAG)) return Promise.resolve();
     return supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
       .then(() => localStorage.setItem(FLAG, "1"))
       .catch(() => {});
+  };
+
+  const handlePsicoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPsicoFile(file);
+    setPsicoUrl(null);
+    setUploadingPsico(true);
+    await migrated();
+    const ext = file.name.split(".").pop() || "bin";
+    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from("psicologicos").getPublicUrl(path);
+      setPsicoUrl(publicUrl);
+    } else {
+      toast.error("Erro ao enviar arquivo: " + error.message);
+      setPsicoFile(null);
+    }
+    setUploadingPsico(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,6 +112,7 @@ export default function CadastroPublico() {
       bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
       tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
       armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
+      psicoUrl        ? `*Psicológico:* ${psicoUrl}` : null,
     ].filter(l => l !== null).join("\n");
     window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
 
@@ -88,11 +123,12 @@ export default function CadastroPublico() {
       complemento: complemento.trim() || null, bairro: bairro.trim() || null,
       tipo_sinarm: tipos.length ? tipos.join(", ") : null,
       armas: armas.length ? armas.join(", ") : null,
+      psicologico_url: psicoUrl || null,
     };
 
     // Reseta imediatamente — independente do WhatsApp ser enviado ou não
     setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
-    setTipos([]); setArmas([]);
+    setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null); setActiveTab("dados");
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
     // Salva no Supabase em segundo plano
@@ -108,8 +144,27 @@ export default function CadastroPublico() {
   return (
     <div className="bg-background" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,162,39,0.2)", borderRadius: 20, padding: "28px 24px" }}>
-        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 20px" }}>✦ Cadastro</p>
+        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 16px" }}>✦ Cadastro</p>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 4 }}>
+          {(["dados", "psicologico"] as const).map(tab => (
+            <button key={tab} type="button" onClick={() => setActiveTab(tab)} style={{
+              flex: 1, padding: "7px 0", borderRadius: 7, border: "none", cursor: "pointer",
+              background: activeTab === tab ? gold : "transparent",
+              color: activeTab === tab ? "#0f172a" : "#7a6a48",
+              fontWeight: activeTab === tab ? 700 : 500, fontSize: 12,
+              transition: "all .15s",
+            }}>
+              {tab === "dados" ? "Dados" : "Psicológico"}
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+          {/* ── ABA DADOS ── */}
+          <div style={{ display: activeTab === "dados" ? "contents" : "none" }}>
 
           {/* Nome */}
           <div>
@@ -205,9 +260,52 @@ export default function CadastroPublico() {
             </div>
           </div>
 
-          <button type="submit" disabled={saving}
+          </div>{/* fim aba dados */}
+
+          {/* ── ABA PSICOLÓGICO ── */}
+          {activeTab === "psicologico" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <p style={{ color: "#7a6a48", fontSize: 12, margin: 0 }}>
+                Adicione o exame psicológico em PDF ou imagem. O arquivo será enviado junto com a confirmação pelo WhatsApp e ficará disponível para download no painel administrativo.
+              </p>
+
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12,
+                border: `2px dashed ${psicoUrl ? gold : "rgba(201,162,39,0.3)"}`,
+                borderRadius: 12, padding: "28px 16px", cursor: "pointer",
+                background: psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
+                transition: "all .2s",
+              }}>
+                <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display: "none" }} />
+                {uploadingPsico ? (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span style={{ color: gold, fontSize: 13, fontWeight: 600 }}>Enviando...</span>
+                  </>
+                ) : psicoUrl ? (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={gold} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span style={{ color: "#e8d5a0", fontSize: 13, fontWeight: 600 }}>✓ {psicoFile?.name}</span>
+                    <span style={{ color: "#7a6a48", fontSize: 11 }}>Toque para trocar o arquivo</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span style={{ color: "#7a6a48", fontSize: 13 }}>Toque para selecionar PDF ou imagem</span>
+                  </>
+                )}
+              </label>
+            </div>
+          )}
+
+          <button type="submit" disabled={saving || uploadingPsico}
             style={{ marginTop: 6, padding: "12px", borderRadius: 10, background: gold, color: "#0f172a", fontWeight: 700, fontSize: 14, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, transition: "opacity .2s" }}>
-            {saving ? "Enviando..." : "Enviar Cadastro"}
+            {uploadingPsico ? "Aguardando upload..." : saving ? "Enviando..." : "Enviar Cadastro"}
           </button>
         </form>
       </div>
