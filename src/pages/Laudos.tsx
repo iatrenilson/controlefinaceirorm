@@ -528,7 +528,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // ── Nome do arquivo ──────────────────────────────────────────────────────
   const _ano2 = new Date().getFullYear().toString().slice(-2);
   const _nr   = f.numero ? `${f.numero}.${_ano2}` : "";
-  const _nome = (f.nome || "Laudo").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  const _nome = (f.nome || "Laudo").toLowerCase().split(/\s+/).map(w => w.replace(/^./u, c => c.toUpperCase())).join(" ");
 
   let _armasLabel: string;
   if (tipo === "cr_cac") {
