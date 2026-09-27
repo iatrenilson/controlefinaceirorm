@@ -46,6 +46,14 @@ export default function CadastroPublico() {
     setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
   };
 
+  const maskCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+    return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+  };
+
   const migrated = () => {
     const FLAG = "cac_cadastros_migration_v2";
     if (localStorage.getItem(FLAG)) return Promise.resolve();
@@ -56,7 +64,9 @@ export default function CadastroPublico() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim()) { toast.error("Informe o nome completo."); return; }
+    if (!nome.trim())    { toast.error("Informe o nome completo."); return; }
+    if (!tipos.length)   { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
+    if (!armas.length)   { toast.error("Selecione ao menos uma Arma."); return; }
 
     // Monta e abre WhatsApp ANTES de qualquer await (evita bloqueio do navegador)
     const linhas = [
@@ -110,7 +120,7 @@ export default function CadastroPublico() {
           {/* CPF */}
           <div>
             <label style={labelStyle}>CPF</label>
-            <input value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" style={inputStyle} />
+            <input value={cpf} onChange={e => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" style={inputStyle} inputMode="numeric" />
           </div>
 
           {/* Endereço */}
@@ -139,7 +149,7 @@ export default function CadastroPublico() {
 
           {/* Tipo de Serviço */}
           <div>
-            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Tipo de Serviço</label>
+            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Tipo de Serviço <span style={{ color: "#ef4444" }}>*</span></label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {TIPOS_SINARM.map(t => (
                 <label key={t} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
@@ -168,7 +178,7 @@ export default function CadastroPublico() {
 
           {/* Armas */}
           <div>
-            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Armas</label>
+            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Armas <span style={{ color: "#ef4444" }}>*</span></label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {ARMAS_OPTS.map(a => (
                 <label key={a} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
