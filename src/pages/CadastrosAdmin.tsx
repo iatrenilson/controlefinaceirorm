@@ -226,12 +226,16 @@ export default function CadastrosAdmin() {
                       </div>
                       <div className="flex flex-wrap items-center gap-2 pt-0.5">
                         <p className="text-[10px] text-muted-foreground">{fmtData(c.created_at)}</p>
-                        {c.psicologico_url && (
-                          <a href={c.psicologico_url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                            <FileDown className="h-3 w-3" />Psicológico
-                          </a>
-                        )}
+                        {c.psicologico_url && (() => {
+                          const ext = c.psicologico_url.split(".").pop()?.split("?")[0] || "pdf";
+                          const dlUrl = `${c.psicologico_url}?download=${encodeURIComponent(`${c.nome} - Psicológico.${ext}`)}`;
+                          return (
+                            <a href={dlUrl} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                              <FileDown className="h-3 w-3" />Psicológico
+                            </a>
+                          );
+                        })()}
                       </div>
                     </div>
 

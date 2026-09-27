@@ -53,6 +53,7 @@ export default function CadastroPublico() {
   const [saving, setSaving] = useState(false);
   const [psicoFile, setPsicoFile] = useState<File | null>(null);
   const [psicoUrl, setPsicoUrl] = useState<string | null>(null);
+  const [psicoExt, setPsicoExt] = useState<string>("pdf");
   const [uploadingPsico, setUploadingPsico] = useState(false);
 
   const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
@@ -78,11 +79,12 @@ export default function CadastroPublico() {
   const handlePsicoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const ext = file.name.split(".").pop() || "pdf";
     setPsicoFile(file);
     setPsicoUrl(null);
+    setPsicoExt(ext);
     setUploadingPsico(true);
     await migrated();
-    const ext = file.name.split(".").pop() || "bin";
     const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
     if (!error) {
@@ -111,7 +113,7 @@ export default function CadastroPublico() {
       bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
       tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
       armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
-      psicoUrl        ? `*Psicológico:* ${psicoUrl}` : null,
+      psicoUrl        ? `*Psicológico:* ${psicoUrl}?download=${encodeURIComponent(`${nome.trim()} - Psicológico.${psicoExt}`)}` : null,
     ].filter(l => l !== null).join("\n");
     window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
 
@@ -127,7 +129,7 @@ export default function CadastroPublico() {
 
     // Reseta imediatamente — independente do WhatsApp ser enviado ou não
     setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
-    setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null);
+    setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null); setPsicoExt("pdf");
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
     // Salva no Supabase em segundo plano
