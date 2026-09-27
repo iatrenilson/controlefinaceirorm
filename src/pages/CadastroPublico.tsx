@@ -71,26 +71,22 @@ export default function CadastroPublico() {
     ].filter(l => l !== null).join("\n");
     window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
 
-    // Salva no Supabase em segundo plano
-    setSaving(true);
-    await migrated();
-    const { error } = await supabase.from("cac_cadastros").insert({
-      nome: nome.trim(),
-      cpf: cpf.trim() || null,
-      endereco: endereco.trim() || null,
-      numero: numero.trim() || null,
-      complemento: complemento.trim() || null,
-      bairro: bairro.trim() || null,
+    // Captura snapshot antes de resetar
+    const snap = {
+      nome: nome.trim(), cpf: cpf.trim() || null,
+      endereco: endereco.trim() || null, numero: numero.trim() || null,
+      complemento: complemento.trim() || null, bairro: bairro.trim() || null,
       tipo_sinarm: tipos.length ? tipos.join(", ") : null,
       armas: armas.length ? armas.join(", ") : null,
-    });
-    setSaving(false);
-    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    };
 
-    // Reseta formulário
+    // Reseta imediatamente — independente do WhatsApp ser enviado ou não
     setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
     setTipos([]); setArmas([]);
-    toast.success("Cadastro enviado! Formulário pronto para novo cliente.");
+    toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
+
+    // Salva no Supabase em segundo plano (silencioso)
+    migrated().then(() => supabase.from("cac_cadastros").insert(snap));
   };
 
   const gold = "#c9a227";
