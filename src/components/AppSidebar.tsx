@@ -235,17 +235,17 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Cadastro Público */}
+            {/* Cadastro */}
             <SidebarGroup>
               <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-[0.15em] text-primary/80">Cadastro</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Cadastro">
-                      <a href="/cadastro" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-accent transition-colors">
+                    <SidebarMenuButton asChild tooltip="Cadastros">
+                      <NavLink to="/cadastros" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                         <UserPlus className="h-[18px] w-[18px]" />
-                        <span>Cadastro</span>
-                      </a>
+                        <span>Cadastros</span>
+                      </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>

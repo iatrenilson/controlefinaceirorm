@@ -31,6 +31,7 @@ import Laudos from "./pages/Laudos";
 import CadastroPublico from "./pages/CadastroPublico";
 import CarteiraCliente from "./pages/CarteiraCliente";
 import CarteiraDIgital from "./pages/CarteiraDIgital";
+import CadastrosAdmin from "./pages/CadastrosAdmin";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -107,6 +108,7 @@ const ProtectedLayout = () => {
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
             <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
             <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
+            <Route path="/cadastros" element={<DelayRoute><CadastrosAdmin /></DelayRoute>} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
