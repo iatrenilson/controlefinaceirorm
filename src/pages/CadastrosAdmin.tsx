@@ -61,6 +61,7 @@ export default function CadastrosAdmin() {
 
   // Delete confirm
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
+  const [deletandoTodos, setDeletandoTodos] = useState(false);
 
   const carregar = () =>
     supabase.from("cac_cadastros").select("*").order("created_at", { ascending: false })
@@ -120,6 +121,14 @@ export default function CadastrosAdmin() {
     carregar();
   };
 
+  const excluirTodos = async () => {
+    const { error } = await supabase.from("cac_cadastros").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+    toast.success("Todos os cadastros excluídos.");
+    setDeletandoTodos(false);
+    carregar();
+  };
+
   const filtrados = busca.trim()
     ? cadastros.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cpf || "").includes(busca))
     : cadastros;
@@ -136,6 +145,22 @@ export default function CadastrosAdmin() {
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Cadastros</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">Clientes cadastrados pelo link externo</p>
           </div>
+          {deletandoTodos ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-destructive font-medium">Excluir todos?</span>
+              <Button size="sm" variant="destructive" onClick={excluirTodos} className="gap-1.5">
+                <Check className="h-3.5 w-3.5" />Confirmar
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(true)} className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+              Excluir todos
+            </Button>
+          )}
           <Button onClick={copiarLink} size="sm" variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
             <Link className="h-4 w-4" />
             Copiar link
