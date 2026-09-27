@@ -414,8 +414,8 @@ const DelayAddClient = () => {
                         </Badge>
                       )}
                       {!(c.deposito_pendente > 0 && c.depositos === 0) && !(c.saques > 0) && c.status !== "saque_pendente" && (
-                        <Badge className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 shrink-0 capitalize">
-                          {c.operacao}
+                        <Badge className="text-[10px] px-1.5 py-0 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 shrink-0">
+                          {c.operacao ? c.operacao.replace(/^./u, ch => ch.toUpperCase()) : ""}
                         </Badge>
                       )}
                       <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-foreground shrink-0" onClick={() => openEdit(c)} title="Editar">
