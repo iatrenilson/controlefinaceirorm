@@ -223,14 +223,6 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Laudos">
-                      <NavLink to="/laudos" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                        <ClipboardList className="h-[18px] w-[18px]" />
-                        <span>Laudos</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -245,6 +237,14 @@ export function AppSidebar() {
                       <NavLink to="/cadastros" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                         <UserPlus className="h-[18px] w-[18px]" />
                         <span>Cadastros</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Laudos">
+                      <NavLink to="/laudos" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <ClipboardList className="h-[18px] w-[18px]" />
+                        <span>Laudos</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
