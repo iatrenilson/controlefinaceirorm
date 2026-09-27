@@ -231,13 +231,16 @@ export default function CadastrosAdmin() {
                         <Pencil className="h-4 w-4" />
                       </button>
                       {deletandoId === c.id ? (
-                        <div className="flex gap-1">
-                          <button onClick={() => excluir(c.id)} className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors" title="Confirmar exclusão">
-                            <Check className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => setDeletandoId(null)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground transition-colors" title="Cancelar">
-                            <X className="h-4 w-4" />
-                          </button>
+                        <div className="flex flex-col items-end gap-1 mt-1">
+                          <span className="text-[10px] text-destructive font-medium whitespace-nowrap">Excluir?</span>
+                          <div className="flex gap-1">
+                            <button onClick={() => excluir(c.id)} className="flex items-center gap-1 px-2 py-1 rounded-md bg-destructive text-white text-[10px] font-semibold hover:opacity-90 transition-opacity">
+                              <Check className="h-3 w-3" />Sim
+                            </button>
+                            <button onClick={() => setDeletandoId(null)} className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[10px] font-semibold hover:bg-accent transition-colors">
+                              <X className="h-3 w-3" />Não
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <button onClick={() => setDeletandoId(c.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Excluir">
