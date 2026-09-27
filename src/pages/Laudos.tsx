@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ClipboardList, Download, CalendarIcon, RotateCcw } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ClipboardList, Download, CalendarIcon, RotateCcw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,16 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
+interface CacCadastro {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+}
+
 type SistReg = "" | "SINARM" | "SIGMA";
 
 type Finalidade = "aquisicao" | "porte" | "cr";
@@ -620,6 +630,10 @@ const Laudos = () => {
   const [revolOpen, setRevolOpen] = useState(false);
   const [coloridoOpen, setColoridoOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const [cadastros, setCadastros] = useState<CacCadastro[]>([]);
+  const [cadSearch, setCadSearch] = useState("");
+  const [cadOpen, setCadOpen] = useState(false);
+  const cadRef = useRef<HTMLDivElement>(null);
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
@@ -631,6 +645,41 @@ const Laudos = () => {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Carrega cadastros do link público
+  useEffect(() => {
+    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro").order("nome")
+      .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
+  }, []);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    if (!cadOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (cadRef.current && !cadRef.current.contains(e.target as Node)) setCadOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [cadOpen]);
+
+  const selecionarCadastro = (c: CacCadastro) => {
+    setForm(p => ({
+      ...p,
+      nome: c.nome.toUpperCase(),
+      cpf: c.cpf ? maskCpf(c.cpf) : p.cpf,
+      endereco: c.endereco ? c.endereco.toUpperCase() : p.endereco,
+      endNumero: c.numero || p.endNumero,
+      endCompl: c.complemento ? c.complemento.toUpperCase() : p.endCompl,
+      endBairro: c.bairro ? c.bairro.toUpperCase() : p.endBairro,
+    }));
+    setCadSearch("");
+    setCadOpen(false);
+    toast.success(`Dados de ${c.nome} preenchidos.`);
+  };
+
+  const cadFiltrados = cadSearch.trim()
+    ? cadastros.filter(c => c.nome.toLowerCase().includes(cadSearch.toLowerCase()) || (c.cpf || "").includes(cadSearch))
+    : cadastros;
 
   // Seleciona registro SINARM/SIGMA — sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
@@ -710,6 +759,41 @@ const Laudos = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Seletor de cadastrado */}
+            <div ref={cadRef} className="relative space-y-1">
+              <Label className="text-xs text-muted-foreground">Preencher a partir de cadastro</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  className="h-9 text-sm pl-8"
+                  placeholder="Buscar por nome ou CPF..."
+                  value={cadSearch}
+                  onFocus={() => setCadOpen(true)}
+                  onChange={e => { setCadSearch(e.target.value); setCadOpen(true); }}
+                />
+              </div>
+              {cadOpen && cadFiltrados.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md max-h-52 overflow-y-auto">
+                  {cadFiltrados.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onMouseDown={e => { e.preventDefault(); selecionarCadastro(c); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex flex-col gap-0.5"
+                    >
+                      <span className="font-medium">{c.nome}</span>
+                      {c.cpf && <span className="text-xs text-muted-foreground">{c.cpf}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {cadOpen && cadSearch.trim() && cadFiltrados.length === 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-md px-3 py-2 text-sm text-muted-foreground">
+                  Nenhum cadastro encontrado.
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2 space-y-1">
                 <Label className="text-xs">Nome Completo</Label>
