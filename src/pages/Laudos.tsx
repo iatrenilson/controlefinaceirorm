@@ -648,10 +648,33 @@ const Laudos = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Carrega cadastros do link público
+  // Garante tabela e carrega cadastros do link público
   useEffect(() => {
-    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
-      .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
+    const MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS public.cac_cadastros (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
+  cpf TEXT, endereco TEXT, numero TEXT, complemento TEXT, bairro TEXT,
+  tipo_sinarm TEXT, armas TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.cac_cadastros ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_insert') THEN
+    CREATE POLICY "cac_cad_insert" ON public.cac_cadastros FOR INSERT TO anon, authenticated WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_select') THEN
+    CREATE POLICY "cac_cad_select" ON public.cac_cadastros FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
+  END IF;
+END $$;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
+`.trim();
+    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
+      .finally(() => {
+        supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
+          .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
+      });
   }, []);
 
   // Fecha dropdown ao clicar fora
