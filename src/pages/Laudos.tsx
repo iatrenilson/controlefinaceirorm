@@ -648,7 +648,7 @@ const Laudos = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Garante tabela e carrega cadastros do link público
+  // Garante tabela, carrega e mantém cadastros atualizados em tempo real
   useEffect(() => {
     const MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS public.cac_cadastros (
@@ -670,11 +670,19 @@ END $$;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
 `.trim();
-    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
-      .finally(() => {
-        supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
-          .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
-      });
+
+    const carregar = () =>
+      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
+        .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
+
+    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(carregar);
+
+    // Atualiza automaticamente quando chega novo cadastro
+    const channel = supabase.channel("cac_cadastros_laudos")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "cac_cadastros" }, carregar)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // Fecha dropdown ao clicar fora
