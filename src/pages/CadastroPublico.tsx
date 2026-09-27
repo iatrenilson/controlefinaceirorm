@@ -157,26 +157,26 @@ export default function CadastroPublico() {
 
           {/* Nome */}
           <div>
-            <label style={labelStyle}>Nome completo *</label>
+            <label style={labelStyle}>Nome completo {!nome.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: João da Silva" style={inputStyle} />
           </div>
 
           {/* CPF */}
           <div>
-            <label style={labelStyle}>CPF <span style={{ color: "#ef4444" }}>*</span></label>
+            <label style={labelStyle}>CPF {!cpf.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <input value={cpf} onChange={e => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" style={inputStyle} inputMode="numeric" />
           </div>
 
           {/* Endereço */}
           <div>
-            <label style={labelStyle}>Endereço <span style={{ color: "#ef4444" }}>*</span></label>
+            <label style={labelStyle}>Endereço {!endereco.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, Av..." style={inputStyle} />
           </div>
 
           {/* Nº + Complemento */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={labelStyle}>Nº <span style={{ color: "#ef4444" }}>*</span></label>
+              <label style={labelStyle}>Nº {!numero.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
               <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="123" style={inputStyle} />
             </div>
             <div>
@@ -187,13 +187,13 @@ export default function CadastroPublico() {
 
           {/* Bairro */}
           <div>
-            <label style={labelStyle}>Bairro <span style={{ color: "#ef4444" }}>*</span></label>
+            <label style={labelStyle}>Bairro {!bairro.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Ex: Centro" style={inputStyle} />
           </div>
 
           {/* Tipo de Serviço */}
           <div>
-            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Tipo de Serviço <span style={{ color: "#ef4444" }}>*</span></label>
+            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Tipo de Serviço {!tipos.length && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {TIPOS_SINARM.map(t => (
                 <label key={t} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
@@ -222,7 +222,7 @@ export default function CadastroPublico() {
 
           {/* Armas */}
           <div>
-            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Armas <span style={{ color: "#ef4444" }}>*</span></label>
+            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Armas {!armas.length && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {ARMAS_OPTS.map(a => (
                 <label key={a} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
