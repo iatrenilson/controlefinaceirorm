@@ -59,6 +59,21 @@ export default function CadastroPublico() {
     setSaving(false);
     if (error) { toast.error("Erro ao enviar: " + error.message); return; }
     setEnviado(true);
+
+    // Abre WhatsApp com confirmação do cadastro
+    const linhas = [
+      "✅ *Confirmação de Cadastro*",
+      "",
+      `*Nome:* ${nome.trim()}`,
+      cpf.trim()         ? `*CPF:* ${cpf.trim()}`                : null,
+      endereco.trim()    ? `*Endereço:* ${endereco.trim()}${numero.trim() ? `, Nº ${numero.trim()}` : ""}${complemento.trim() ? ` - ${complemento.trim()}` : ""}` : null,
+      bairro.trim()      ? `*Bairro:* ${bairro.trim()}`           : null,
+      "",
+      "Passarinho Assessoria Bélica — rwinvestimentos.com.br",
+    ].filter(l => l !== null).join("\n");
+
+    const url = `https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`;
+    window.open(url, "_blank");
   };
 
   const gold = "#c9a227";
