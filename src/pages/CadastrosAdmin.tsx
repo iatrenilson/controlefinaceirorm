@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X } from "lucide-react";
+import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,14 @@ interface CacCadastro {
   bairro: string | null;
   tipo_sinarm: string | null;
   armas: string | null;
+  psicologico_url: string | null;
   created_at: string;
 }
 
 const MIGRATION_SQL = `
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_update') THEN
     CREATE POLICY "cac_cad_update" ON public.cac_cadastros FOR UPDATE TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator')) WITH CHECK (true);
@@ -222,7 +224,15 @@ export default function CadastrosAdmin() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{fmtData(c.created_at)}</p>
+                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <p className="text-[10px] text-muted-foreground">{fmtData(c.created_at)}</p>
+                        {c.psicologico_url && (
+                          <a href={c.psicologico_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                            <FileDown className="h-3 w-3" />Psicológico
+                          </a>
+                        )}
+                      </div>
                     </div>
 
                     {/* Ações */}
