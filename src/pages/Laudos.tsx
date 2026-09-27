@@ -23,6 +23,7 @@ interface CacCadastro {
   numero: string | null;
   complemento: string | null;
   bairro: string | null;
+  tipo_sinarm: string | null;
 }
 
 type SistReg = "" | "SINARM" | "SIGMA";
@@ -648,7 +649,7 @@ const Laudos = () => {
 
   // Carrega cadastros do link público
   useEffect(() => {
-    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro").order("nome")
+    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm").order("nome")
       .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
   }, []);
 
@@ -663,6 +664,31 @@ const Laudos = () => {
   }, [cadOpen]);
 
   const selecionarCadastro = (c: CacCadastro) => {
+    const tipoRaw = (c.tipo_sinarm || "").toUpperCase();
+
+    // Mapeamento de tipo_sinarm → laudoTipo, finalidade, categoria, sinarmPorte
+    let novoLaudoTipo: "cr_cac" | "sinarm" = laudoTipo;
+    let novaFinalidade: Finalidade[] = [];
+    let novaCategoria: Categoria[] = [];
+    let novoSinarmPorte = sinarmPorte;
+
+    if (tipoRaw.includes("SINARM CAC")) {
+      novoLaudoTipo    = "cr_cac";
+      novaFinalidade   = ["aquisicao", "cr"];
+      novaCategoria    = ["cac"];
+      novoSinarmPorte  = false;
+    } else if (tipoRaw.includes("SINARM PORTE")) {
+      novoLaudoTipo    = "sinarm";
+      novaFinalidade   = ["porte"];
+      novaCategoria    = ["defesa"];
+      novoSinarmPorte  = true;
+    } else if (tipoRaw.includes("SINARM POSSE")) {
+      novoLaudoTipo    = "sinarm";
+      novaFinalidade   = ["aquisicao"];
+      novaCategoria    = ["defesa"];
+      novoSinarmPorte  = false;
+    }
+
     setForm(p => ({
       ...p,
       nome: c.nome.toUpperCase(),
@@ -671,7 +697,13 @@ const Laudos = () => {
       endNumero: c.numero || p.endNumero,
       endCompl: c.complemento ? c.complemento.toUpperCase() : p.endCompl,
       endBairro: c.bairro ? c.bairro.toUpperCase() : p.endBairro,
+      ...(novaFinalidade.length ? { finalidade: novaFinalidade } : {}),
+      ...(novaCategoria.length  ? { categoria:  novaCategoria  } : {}),
     }));
+
+    if (novoLaudoTipo !== laudoTipo)     setLaudoTipo(novoLaudoTipo);
+    if (novoSinarmPorte !== sinarmPorte) setSinarmPorte(novoSinarmPorte);
+
     setCadSearch("");
     setCadOpen(false);
     toast.success(`Dados de ${c.nome} preenchidos.`);
