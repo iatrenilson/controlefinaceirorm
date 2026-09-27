@@ -64,15 +64,7 @@ export default function CadastroPublico() {
   const gold = "#c9a227";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>
-      {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <img src="/passarinho-logo.webp" alt="Passarinho" style={{ width: 110, height: "auto", marginBottom: 8 }} />
-        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: 0 }}>
-          Passarinho Assessoria Bélica
-        </p>
-      </div>
-
+    <div className="bg-background" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,162,39,0.2)", borderRadius: 20, padding: "28px 24px" }}>
         {enviado ? (
           <div style={{ textAlign: "center", padding: "20px 0" }}>
