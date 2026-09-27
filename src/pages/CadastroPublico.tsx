@@ -51,7 +51,6 @@ export default function CadastroPublico() {
   const [tipos, setTipos] = useState<string[]>([]);
   const [armas, setArmas] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dados" | "psicologico">("dados");
   const [psicoFile, setPsicoFile] = useState<File | null>(null);
   const [psicoUrl, setPsicoUrl] = useState<string | null>(null);
   const [uploadingPsico, setUploadingPsico] = useState(false);
@@ -128,7 +127,7 @@ export default function CadastroPublico() {
 
     // Reseta imediatamente — independente do WhatsApp ser enviado ou não
     setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
-    setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null); setActiveTab("dados");
+    setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null);
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
     // Salva no Supabase em segundo plano
@@ -144,27 +143,11 @@ export default function CadastroPublico() {
   return (
     <div className="bg-background" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 440, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(201,162,39,0.2)", borderRadius: 20, padding: "28px 24px" }}>
-        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 16px" }}>✦ Cadastro</p>
-
-        {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 4 }}>
-          {(["dados", "psicologico"] as const).map(tab => (
-            <button key={tab} type="button" onClick={() => setActiveTab(tab)} style={{
-              flex: 1, padding: "7px 0", borderRadius: 7, border: "none", cursor: "pointer",
-              background: activeTab === tab ? gold : "transparent",
-              color: activeTab === tab ? "#0f172a" : "#7a6a48",
-              fontWeight: activeTab === tab ? 700 : 500, fontSize: 12,
-              transition: "all .15s",
-            }}>
-              {tab === "dados" ? "Dados" : "Psicológico"}
-            </button>
-          ))}
-        </div>
+        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 20px" }}>✦ Cadastro</p>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {/* ── ABA DADOS ── */}
-          <div style={{ display: activeTab === "dados" ? "contents" : "none" }}>
+          <div>
 
           {/* Nome */}
           <div>
@@ -260,14 +243,12 @@ export default function CadastroPublico() {
             </div>
           </div>
 
-          </div>{/* fim aba dados */}
+          </div>{/* fim campos */}
 
-          {/* ── ABA PSICOLÓGICO ── */}
-          {activeTab === "psicologico" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <p style={{ color: "#7a6a48", fontSize: 12, margin: 0 }}>
-                Adicione o exame psicológico em PDF ou imagem. O arquivo será enviado junto com a confirmação pelo WhatsApp e ficará disponível para download no painel administrativo.
-              </p>
+          {/* ── PSICOLÓGICO ── */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom: 8, display: "block" }}>Psicológico</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12,
                 border: `2px dashed ${psicoUrl ? gold : "rgba(201,162,39,0.3)"}`,
@@ -301,7 +282,7 @@ export default function CadastroPublico() {
                 )}
               </label>
             </div>
-          )}
+          </div>
 
           <button type="submit" disabled={saving || uploadingPsico}
             style={{ marginTop: 6, padding: "12px", borderRadius: 10, background: gold, color: "#0f172a", fontWeight: 700, fontSize: 14, border: "none", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, transition: "opacity .2s" }}>
