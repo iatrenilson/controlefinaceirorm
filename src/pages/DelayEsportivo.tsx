@@ -2582,7 +2582,7 @@ const DelayEsportivo = () => {
 
 
           {(["diario", "semanal", "mensal"] as Periodo[]).map(p => (
-            <Button key={p} size="sm" variant={periodo === p ? "secondary" : "ghost"} className="text-xs capitalize"
+            <Button key={p} size="sm" variant={periodo === p ? "secondary" : "ghost"} className="text-xs"
               onClick={() => setPeriodo(p)}>
               {p === "diario" ? "Diário" : p === "semanal" ? "Semanal" : "Mensal"}
             </Button>
@@ -3626,7 +3626,7 @@ const DelayEsportivo = () => {
                       <ArrowUpCircle className="h-4 w-4 text-yellow-500 shrink-0" />
                     )}
                     <div className="min-w-0">
-                      <p className="text-xs font-bold capitalize">{t.tipo}</p>
+                      <p className="text-xs font-bold">{t.tipo ? t.tipo.replace(/^./u, c => c.toUpperCase()) : ""}</p>
                       <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
                         {new Date(t.data_transacao + "T12:00:00").toLocaleDateString("pt-BR")}

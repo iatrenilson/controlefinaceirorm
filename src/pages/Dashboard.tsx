@@ -194,7 +194,7 @@ const Dashboard = () => {
               <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight">
                 Olá, bem-vindo de volta! 👋
               </h1>
-              <p className="text-sm text-muted-foreground capitalize">{currentMonth}</p>
+              <p className="text-sm text-muted-foreground">{currentMonth.replace(/^./u, c => c.toUpperCase())}</p>
             </div>
             <Select value={categoria} onValueChange={setCategoria}>
               <SelectTrigger className="h-9 w-full sm:w-52 border-primary/30 text-primary glass-card">

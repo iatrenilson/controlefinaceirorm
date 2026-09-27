@@ -350,7 +350,7 @@ const DelayAddClient = () => {
               <div className="rounded-lg border bg-background/60 px-4 py-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center justify-center gap-1">Lucro Total <CalendarIcon className="h-3 w-3" /></p>
                 <p className={`text-base font-bold font-mono ${lucroMesTotal >= 0 ? "text-emerald-500" : "text-destructive"}`}>{fmt(lucroMesTotal)}</p>
-                <p className="text-[9px] text-muted-foreground capitalize mt-0.5">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR })}</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR }).replace(/^./u, c => c.toUpperCase())}</p>
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-3 z-50" align="center">
@@ -358,7 +358,7 @@ const DelayAddClient = () => {
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLucroMesDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm font-medium capitalize">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR })}</span>
+                <span className="text-sm font-medium">{format(lucroMesDate, "MMMM yyyy", { locale: ptBR }).replace(/^./u, c => c.toUpperCase())}</span>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setLucroMesDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
