@@ -57,6 +57,23 @@ export default function CadastroPublico() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim()) { toast.error("Informe o nome completo."); return; }
+
+    // Monta e abre WhatsApp ANTES de qualquer await (evita bloqueio do navegador)
+    const linhas = [
+      "✅ *Confirmação de Cadastro*",
+      "",
+      `*Nome:* ${nome.trim()}`,
+      cpf.trim()      ? `*CPF:* ${cpf.trim()}` : null,
+      endereco.trim() ? `*Endereço:* ${endereco.trim()}${numero.trim() ? `, Nº ${numero.trim()}` : ""}${complemento.trim() ? ` - ${complemento.trim()}` : ""}` : null,
+      bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
+      tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
+      armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
+      "",
+      "Passarinho Assessoria Bélica — rwinvestimentos.com.br",
+    ].filter(l => l !== null).join("\n");
+    window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
+
+    // Salva no Supabase em segundo plano
     setSaving(true);
     await migrated();
     const { error } = await supabase.from("cac_cadastros").insert({
@@ -70,23 +87,7 @@ export default function CadastroPublico() {
       armas: armas.length ? armas.join(", ") : null,
     });
     setSaving(false);
-    if (error) { toast.error("Erro ao enviar: " + error.message); return; }
-
-    // Monta mensagem WhatsApp
-    const linhas = [
-      "✅ *Confirmação de Cadastro*",
-      "",
-      `*Nome:* ${nome.trim()}`,
-      cpf.trim()      ? `*CPF:* ${cpf.trim()}` : null,
-      endereco.trim() ? `*Endereço:* ${endereco.trim()}${numero.trim() ? `, Nº ${numero.trim()}` : ""}${complemento.trim() ? ` - ${complemento.trim()}` : ""}` : null,
-      bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
-      tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
-      armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
-      "",
-      "Passarinho Assessoria Bélica — rwinvestimentos.com.br",
-    ].filter(l => l !== null).join("\n");
-
-    window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
 
     // Reseta formulário
     setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
