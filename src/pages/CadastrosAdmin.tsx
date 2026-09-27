@@ -27,15 +27,17 @@ export default function CadastrosAdmin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    supabase
-      .from("cac_cadastros")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setCadastros(data as CacCadastro[]);
-        setLoading(false);
-      });
+    const carregar = () =>
+      supabase.from("cac_cadastros").select("*").order("created_at", { ascending: false })
+        .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); setLoading(false); });
+
+    carregar();
+
+    const channel = supabase.channel("cac_cadastros_admin")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "cac_cadastros" }, carregar)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const copiarLink = () => {
