@@ -303,7 +303,7 @@ export default function CadastroPublico() {
 }
 
 const labelStyle: React.CSSProperties = {
-  color: "#7a6a48", fontSize: 11, display: "block", marginBottom: 4,
+  color: "#7a6a48", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4,
 };
 
 const inputStyle: React.CSSProperties = {
