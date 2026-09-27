@@ -99,9 +99,13 @@ export default function CadastroPublico() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim())    { toast.error("Informe o nome completo."); return; }
-    if (!tipos.length)   { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
-    if (!armas.length)   { toast.error("Selecione ao menos uma Arma."); return; }
+    if (!nome.trim())     { toast.error("Informe o nome completo."); return; }
+    if (!cpf.trim())      { toast.error("Informe o CPF."); return; }
+    if (!endereco.trim()) { toast.error("Informe o endereço."); return; }
+    if (!numero.trim())   { toast.error("Informe o número."); return; }
+    if (!bairro.trim())   { toast.error("Informe o bairro."); return; }
+    if (!tipos.length)    { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
+    if (!armas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
 
     // Monta e abre WhatsApp ANTES de qualquer await (evita bloqueio do navegador)
     const linhas = [
@@ -159,20 +163,20 @@ export default function CadastroPublico() {
 
           {/* CPF */}
           <div>
-            <label style={labelStyle}>CPF</label>
+            <label style={labelStyle}>CPF <span style={{ color: "#ef4444" }}>*</span></label>
             <input value={cpf} onChange={e => setCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" style={inputStyle} inputMode="numeric" />
           </div>
 
           {/* Endereço */}
           <div>
-            <label style={labelStyle}>Endereço</label>
+            <label style={labelStyle}>Endereço <span style={{ color: "#ef4444" }}>*</span></label>
             <input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, Av..." style={inputStyle} />
           </div>
 
           {/* Nº + Complemento */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={labelStyle}>Nº</label>
+              <label style={labelStyle}>Nº <span style={{ color: "#ef4444" }}>*</span></label>
               <input value={numero} onChange={e => setNumero(e.target.value)} placeholder="123" style={inputStyle} />
             </div>
             <div>
@@ -183,7 +187,7 @@ export default function CadastroPublico() {
 
           {/* Bairro */}
           <div>
-            <label style={labelStyle}>Bairro</label>
+            <label style={labelStyle}>Bairro <span style={{ color: "#ef4444" }}>*</span></label>
             <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Ex: Centro" style={inputStyle} />
           </div>
 
