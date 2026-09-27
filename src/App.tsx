@@ -107,7 +107,6 @@ const ProtectedLayout = () => {
             <Route path="/delay-dashboard" element={<DelayRoute><DelayDashboard /></DelayRoute>} />
             <Route path="/declaracoes" element={<DelayRoute><Declaracoes /></DelayRoute>} />
             <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
-            <Route path="/cadastro" element={<CadastroPublico />} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -132,6 +131,7 @@ const AppRoutes = () => {
       <Route path="/adicionar-cliente" element={<DelayAddClient />} />
       <Route path="/visualizar-delay" element={<DelayViewer />} />
       <Route path="/carteira/:id" element={<CarteiraCliente />} />
+      <Route path="/cadastro" element={<CadastroPublico />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );
