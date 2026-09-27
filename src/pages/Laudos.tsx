@@ -24,6 +24,7 @@ interface CacCadastro {
   complemento: string | null;
   bairro: string | null;
   tipo_sinarm: string | null;
+  armas: string | null;
 }
 
 type SistReg = "" | "SINARM" | "SIGMA";
@@ -649,7 +650,7 @@ const Laudos = () => {
 
   // Carrega cadastros do link público
   useEffect(() => {
-    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm").order("nome")
+    supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
       .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
   }, []);
 
@@ -689,6 +690,30 @@ const Laudos = () => {
       novoSinarmPorte  = false;
     }
 
+    // Mapeia armas do cadastro → campos do laudo
+    const armasStr = (c.armas || "").toLowerCase();
+    const temPistola    = armasStr.includes("pistola");
+    const temRevolver   = armasStr.includes("rev");
+    const temRifle      = armasStr.includes("rifle");
+    const temEspingarda = armasStr.includes("espingarda");
+
+    // CR/CAC: seta SINARM nas armas selecionadas
+    const armasCrCac: Partial<LaudoForm> = novoLaudoTipo === "cr_cac" ? {
+      pistola:    temPistola    ? "SINARM" : "",
+      revolver:   temRevolver   ? "SINARM" : "",
+      rifle:      temRifle      ? "SINARM" : "",
+      espingarda: temEspingarda ? "SINARM" : "",
+    } : {};
+
+    // SINARM POSSE/PORTE: seleciona armas pré-definidas por tipo
+    // (gx4 = pistola, rt85 = revólver, puma = rifle, boito = espingarda)
+    const armasSinarmIds: ArmaSinarmId[] = novoLaudoTipo === "sinarm" ? ([
+      temPistola    ? "gx4"   : null,
+      temRevolver   ? "rt85"  : null,
+      temRifle      ? "puma"  : null,
+      temEspingarda ? "boito" : null,
+    ].filter(Boolean) as ArmaSinarmId[]) : [];
+
     setForm(p => ({
       ...p,
       nome: c.nome.toUpperCase(),
@@ -699,6 +724,8 @@ const Laudos = () => {
       endBairro: c.bairro ? c.bairro.toUpperCase() : p.endBairro,
       ...(novaFinalidade.length ? { finalidade: novaFinalidade } : {}),
       ...(novaCategoria.length  ? { categoria:  novaCategoria  } : {}),
+      ...armasCrCac,
+      ...(armasSinarmIds.length ? { armasSinarm: armasSinarmIds } : {}),
     }));
 
     if (novoLaudoTipo !== laudoTipo)     setLaudoTipo(novoLaudoTipo);
