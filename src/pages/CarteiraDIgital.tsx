@@ -188,19 +188,22 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   );
 }
 
-function DocItem({ doc, index, total, onRemove, onSaveDatas }: {
-  doc: CartDoc; index: number; total: number;
+function DocItem({ doc, index, total, onRemove, onSaveDatas, hideArma }: {
+  doc: CartDoc; index: number; total: number; hideArma?: boolean;
   onRemove: (doc: CartDoc) => void;
   onSaveDatas: (doc: CartDoc, exp: string, val: string, serie: string, nomeArma: string) => void;
 }) {
   const [val, setVal] = useState(doc.data_validade ?? "");
   const [serie, setSerie] = useState(doc.numero_serie ?? "");
-  const [nomeArma, setNomeArma] = useState(doc.nome_arma ?? "");
-  const dirty = val !== (doc.data_validade ?? "") || serie !== (doc.numero_serie ?? "") || nomeArma !== (doc.nome_arma ?? "");
+  const nomeArma = doc.nome_arma ?? "";
+  const dirty = val !== (doc.data_validade ?? "") || serie !== (doc.numero_serie ?? "");
   return (
     <div className="px-3 py-2 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground truncate min-w-0 flex-1">{total > 1 ? `${index + 1}. ` : ""}{doc.arquivo_nome}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-muted-foreground truncate">{total > 1 ? `${index + 1}. ` : ""}{doc.arquivo_nome}</p>
+          {doc.data_validade && <p className="text-[10px] text-amber-500 mt-0.5">Val: {doc.data_validade}</p>}
+        </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
           <a href={publicUrl(doc.arquivo_path)} target="_blank" rel="noopener noreferrer"
             className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Ver">
@@ -211,13 +214,6 @@ function DocItem({ doc, index, total, onRemove, onSaveDatas }: {
           </button>
         </div>
       </div>
-      {doc.tipo === "gt" && (
-        <div>
-          <label className="text-[10px] text-muted-foreground block mb-0.5">Arma</label>
-          <input value={nomeArma} onChange={e => setNomeArma(e.target.value)} placeholder="Ex: Pistola, Revólver..."
-            className="w-full px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
-        </div>
-      )}
       <div className="flex items-center gap-2">
         <div className="flex-1">
           <label className="text-[10px] text-muted-foreground block mb-0.5">Validade</label>
@@ -276,6 +272,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const [newArmaInput, setNewArmaInput] = useState("");
   const [uploadingForArma, setUploadingForArma] = useState<string | null>(null);
   const refGtUpload = useRef<HTMLInputElement>(null);
+  const [renamingArma, setRenamingArma] = useState<string | null>(null);
+  const [renameInput, setRenameInput] = useState("");
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
@@ -344,6 +342,19 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     await supabase.from("carteira_docs").delete().eq("id", doc.id);
     setDocs(d => d.filter(x => x.id !== doc.id));
     toast.success(`Documento removido.`);
+  };
+
+  const handleRenameArma = async (oldName: string, newName: string, gtDocs: CartDoc[]) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) { setRenamingArma(null); return; }
+    for (const doc of gtDocs) {
+      await supabase.from("carteira_docs").update({ nome_arma: trimmed }).eq("id", doc.id);
+    }
+    setDocs(d => d.map(x => gtDocs.some(g => g.id === x.id) ? { ...x, nome_arma: trimmed } : x));
+    setExpandedArmas(p => { const n = { ...p }; n[trimmed] = n[oldName] ?? true; delete n[oldName]; return n; });
+    setPendingArmas(p => p.map(a => a === oldName ? trimmed : a));
+    setRenamingArma(null);
+    toast.success("Arma renomeada.");
   };
 
   const handleSaveDatas = async (doc: CartDoc, exp: string, val: string, serie: string, nomeArma: string) => {
@@ -546,16 +557,38 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                                 const expanded = expandedArmas[arma] ?? true;
                                 return (
                                   <div key={arma}>
-                                    <button
-                                      onClick={() => setExpandedArmas(p => ({ ...p, [arma]: !expanded }))}
-                                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/30 transition-colors text-left">
-                                      <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
-                                      <span className="text-[10px] text-muted-foreground">{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length !== 1 ? "s" : ""}</span>
-                                    </button>
+                                    <div className="flex items-center">
+                                      {renamingArma === arma ? (
+                                        <input
+                                          value={renameInput}
+                                          onChange={e => setRenameInput(e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === "Enter") handleRenameArma(arma, renameInput, gtDocs);
+                                            if (e.key === "Escape") setRenamingArma(null);
+                                          }}
+                                          onBlur={() => handleRenameArma(arma, renameInput, gtDocs)}
+                                          autoFocus
+                                          className="flex-1 px-3 py-2 text-xs font-semibold bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/30 rounded"
+                                          placeholder="Nome da arma..."
+                                        />
+                                      ) : (
+                                        <button
+                                          onClick={() => setExpandedArmas(p => ({ ...p, [arma]: !expanded }))}
+                                          className="flex-1 flex items-center gap-2 px-3 py-2 hover:bg-accent/30 transition-colors text-left">
+                                          <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
+                                          <span className="text-[10px] text-muted-foreground ml-auto">{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length !== 1 ? "s" : ""}</span>
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => { setRenamingArma(arma); setRenameInput(arma === "Sem arma" ? "" : arma); }}
+                                        className="p-2 text-muted-foreground hover:text-primary transition-colors flex-shrink-0" title="Renomear arma">
+                                        <Pencil className="h-3 w-3" />
+                                      </button>
+                                    </div>
                                     {expanded && (
                                       <div className="divide-y divide-border/20 bg-muted/20">
                                         {gtDocs.map((doc, i) => (
-                                          <DocItem key={doc.id} doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
+                                          <DocItem key={doc.id} doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} hideArma />
                                         ))}
                                         <div className="px-4 py-2">
                                           <button
