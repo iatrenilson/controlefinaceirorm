@@ -32,7 +32,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null);
   const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState<string | null>(null);
   const [planName, setPlanName] = useState<string | null>(null);
-  const [dataLoading, setDataLoading] = useState(false);
+  // Start as true to prevent paywall flash before roles are fetched
+  const [dataLoading, setDataLoading] = useState(true);
 
   // Auth listener
   useEffect(() => {
@@ -92,7 +93,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         // Admins/moderators always have access — skip subscription check
-        if (userIsAdmin || userIsModerator) {
+        // Also bypass for the system owner email in case role query fails
+        if (userIsAdmin || userIsModerator || user.email === "iat.renilson.martins@gmail.com") {
+          setIsAdmin(true);
           setSubscriptionExpiresAt(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
           setPlanName("admin");
           setDataLoading(false);
