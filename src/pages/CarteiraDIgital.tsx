@@ -271,6 +271,11 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const pendingRefs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refNewCr, craf: refNewCraf, gt: refNewGt, cert: refNewCert };
 
   const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
+  const [pendingArmas, setPendingArmas] = useState<string[]>([]);
+  const [addingArma, setAddingArma] = useState(false);
+  const [newArmaInput, setNewArmaInput] = useState("");
+  const [uploadingForArma, setUploadingForArma] = useState<string | null>(null);
+  const refGtUpload = useRef<HTMLInputElement>(null);
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
@@ -304,7 +309,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     setSinarmOpen(false);
   };
 
-  const uploadFile = async (clienteId: string, tipo: TipoKey, file: File): Promise<CartDoc | null> => {
+  const uploadFile = async (clienteId: string, tipo: TipoKey, file: File, nomeArma?: string): Promise<CartDoc | null> => {
     const ext = file.name.split('.').pop() || 'pdf';
     const path = `${clienteId}/${tipo}/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
@@ -315,15 +320,15 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
       data_expedicao = datas.exp; data_validade = datas.val; numero_serie = datas.serie;
     }
     const { data: newDoc } = await supabase.from("carteira_docs")
-      .insert({ carteira_cliente_id: clienteId, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade, numero_serie })
+      .insert({ carteira_cliente_id: clienteId, tipo, arquivo_path: path, arquivo_nome: file.name, data_expedicao, data_validade, numero_serie, nome_arma: nomeArma ?? "" })
       .select().single();
     return newDoc as CartDoc | null;
   };
 
-  const handleFile = async (tipo: TipoKey, file: File) => {
+  const handleFile = async (tipo: TipoKey, file: File, nomeArma?: string) => {
     if (!cliente?.id) return;
     setUploading(tipo);
-    const doc = await uploadFile(cliente.id, tipo, file);
+    const doc = await uploadFile(cliente.id, tipo, file, nomeArma);
     if (doc) {
       setDocs(d => [...d, doc]);
       const msg = (doc as CartDoc).data_validade
@@ -508,53 +513,98 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                           <p className="text-[10px] text-muted-foreground">{desc}</p>
                         </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <input ref={refs[key]} type="file" accept="application/pdf,image/*" className="hidden"
-                          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(key, f); e.target.value = ""; }} />
-                        <button onClick={() => refs[key].current?.click()} disabled={uploading === key}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50">
-                          {uploading === key ? "..." : <><Plus className="h-3 w-3" />Adicionar</>}
-                        </button>
-                      </div>
+                      {key !== "gt" && (
+                        <div className="flex-shrink-0">
+                          <input ref={refs[key]} type="file" accept="application/pdf,image/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(key, f); e.target.value = ""; }} />
+                          <button onClick={() => refs[key].current?.click()} disabled={uploading === key}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors disabled:opacity-50">
+                            {uploading === key ? "..." : <><Plus className="h-3 w-3" />Adicionar</>}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    {tipoDocs.length === 0 ? (
-                      <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhum arquivo enviado</p>
-                    ) : key === "gt" ? (() => {
+                    {key === "gt" ? (() => {
                       const grupos: Record<string, CartDoc[]> = {};
                       tipoDocs.forEach(d => { const g = d.nome_arma?.trim() || "Sem arma"; (grupos[g] ??= []).push(d); });
+                      pendingArmas.forEach(a => { if (!grupos[a]) grupos[a] = []; });
+                      const grupoEntries = Object.entries(grupos);
                       return (
-                        <div className="divide-y divide-border/30">
-                          {Object.entries(grupos).map(([arma, gtDocs]) => {
-                            const expanded = expandedArmas[arma] ?? false;
-                            return (
-                              <div key={arma}>
-                                <button
-                                  onClick={() => setExpandedArmas(p => ({ ...p, [arma]: !expanded }))}
-                                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/30 transition-colors text-left">
-                                  <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
-                                  <span className="text-[10px] text-muted-foreground">{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length > 1 ? "s" : ""}</span>
-                                </button>
-                                {expanded && (
-                                  <div className="divide-y divide-border/20 bg-muted/20">
-                                    {gtDocs.map((doc, i) => (
-                                      <div key={doc.id}>
-                                        <div className="flex items-center gap-2 px-4 py-1.5">
-                                          <span className="text-[11px] text-muted-foreground truncate flex-1">{gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}</span>
-                                          {doc.data_validade && (
-                                            <span className="text-[10px] font-medium text-amber-500 flex-shrink-0">Val: {doc.data_validade}</span>
-                                          )}
+                        <>
+                          {/* input oculto para upload de GT */}
+                          <input ref={refGtUpload} type="file" accept="application/pdf,image/*" className="hidden"
+                            onChange={e => {
+                              const f = e.target.files?.[0];
+                              if (f && uploadingForArma) handleFile("gt", f, uploadingForArma);
+                              e.target.value = "";
+                            }} />
+                          {grupoEntries.length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhuma arma cadastrada</p>
+                          ) : (
+                            <div className="divide-y divide-border/30">
+                              {grupoEntries.map(([arma, gtDocs]) => {
+                                const expanded = expandedArmas[arma] ?? true;
+                                return (
+                                  <div key={arma}>
+                                    <button
+                                      onClick={() => setExpandedArmas(p => ({ ...p, [arma]: !expanded }))}
+                                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/30 transition-colors text-left">
+                                      <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
+                                      <span className="text-[10px] text-muted-foreground">{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length !== 1 ? "s" : ""}</span>
+                                    </button>
+                                    {expanded && (
+                                      <div className="divide-y divide-border/20 bg-muted/20">
+                                        {gtDocs.map((doc, i) => (
+                                          <DocItem key={doc.id} doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
+                                        ))}
+                                        <div className="px-4 py-2">
+                                          <button
+                                            onClick={() => { setUploadingForArma(arma); refGtUpload.current?.click(); }}
+                                            disabled={uploading === "gt"}
+                                            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50">
+                                            <Plus className="h-3 w-3" />{uploading === "gt" && uploadingForArma === arma ? "Enviando..." : "Adicionar GT"}
+                                          </button>
                                         </div>
-                                        <DocItem doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
                                       </div>
-                                    ))}
+                                    )}
                                   </div>
-                                )}
+                                );
+                              })}
+                            </div>
+                          )}
+                          {/* Nova Arma */}
+                          <div className="px-3 py-2 border-t border-border/30">
+                            {addingArma ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  value={newArmaInput}
+                                  onChange={e => setNewArmaInput(e.target.value)}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter" && newArmaInput.trim()) {
+                                      const name = newArmaInput.trim();
+                                      setPendingArmas(p => [...p, name]);
+                                      setExpandedArmas(p => ({ ...p, [name]: true }));
+                                      setNewArmaInput(""); setAddingArma(false);
+                                    }
+                                    if (e.key === "Escape") { setNewArmaInput(""); setAddingArma(false); }
+                                  }}
+                                  placeholder="Nome da arma (Enter para confirmar)"
+                                  autoFocus
+                                  className="flex-1 px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                />
+                                <button onClick={() => { setNewArmaInput(""); setAddingArma(false); }} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
                               </div>
-                            );
-                          })}
-                        </div>
+                            ) : (
+                              <button onClick={() => setAddingArma(true)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
+                                <Plus className="h-3 w-3" />Nova Arma
+                              </button>
+                            )}
+                          </div>
+                        </>
                       );
-                    })() : (
+                    })() : tipoDocs.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhum arquivo enviado</p>
+                    ) : (
                       <div className="divide-y divide-border/30">
                         {tipoDocs.map((doc, i) => (
                           <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
