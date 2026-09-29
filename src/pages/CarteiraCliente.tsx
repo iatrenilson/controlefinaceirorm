@@ -102,6 +102,12 @@ export default function CarteiraCliente() {
     let manifestBlobUrl = "";
     let iconBlobUrl = "";
 
+    // Space Grotesk font — igual ao site principal
+    const fontLink = document.createElement("link");
+    fontLink.rel = "stylesheet";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap";
+    addToHead(fontLink);
+
     const applyPWA = () => {
       const iconUrl = `${window.location.origin}/carteira-icon5.png`;
       const manifest = {
@@ -161,29 +167,39 @@ export default function CarteiraCliente() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const BG = "linear-gradient(160deg, #0a0b0f 0%, #111318 60%, #0d0e13 100%)";
-  const GOLD = "#c9a227";
-  const GOLD_DIM = "rgba(201,162,39,0.18)";
-  const GOLD_BORDER = "rgba(201,162,39,0.28)";
-  const CARD_BG = "rgba(255,255,255,0.03)";
+  // Cores idênticas ao site principal (index.css .dark)
+  const BG = "#0b0908";          // hsl(20 12% 4%)
+  const GOLD = "#d4a730";        // hsl(42 82% 52%)
+  const GOLD_DIM = "rgba(212,167,48,0.12)";
+  const GOLD_BORDER = "rgba(212,167,48,0.22)";
+  const CARD_BG = "#131110";     // hsl(20 10% 7%)
+  const FONT = "'Space Grotesk', system-ui, sans-serif";
+  const FG = "#ede7d9";          // hsl(45 18% 90%)
+  const FG_MUTED = "#807060";    // hsl(40 6% 50%)
+
+  const FULL_BG = {
+    background: `radial-gradient(ellipse at 10% 0%, rgba(212,167,48,0.08) 0%, transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(212,167,48,0.05) 0%, transparent 50%), ${BG}`,
+    minHeight: "100vh",
+    fontFamily: FONT,
+  };
 
   if (loading) return (
-    <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <div style={{ textAlign:"center", color:"#8b7d5a" }}>
+    <div style={{ ...FULL_BG, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center", color:FG_MUTED }}>
         <div style={{ width:40, height:40, border:`3px solid ${GOLD_BORDER}`, borderTopColor:GOLD, borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 16px" }} />
-        <p style={{ fontSize:14 }}>Carregando carteira...</p>
+        <p style={{ fontSize:14, fontFamily:FONT }}>Carregando carteira...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   );
 
   if (erro || !data) return (
-    <div style={{ minHeight:"100vh", background:BG, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-      <div style={{ textAlign:"center", color:"#8b7d5a", maxWidth:320 }}>
+    <div style={{ ...FULL_BG, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <div style={{ textAlign:"center", color:FG_MUTED, maxWidth:320 }}>
         <div style={{ fontSize:48, marginBottom:16 }}>🔍</div>
-        <h2 style={{ color:"#e8d5a0", fontSize:18, marginBottom:8 }}>Carteira não encontrada</h2>
-        <p style={{ fontSize:14 }}>Este link pode estar incorreto ou expirado.</p>
-        <a href="https://wa.me/5592993161828" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600 }}>
+        <h2 style={{ color:FG, fontSize:18, marginBottom:8, fontFamily:FONT }}>Carteira não encontrada</h2>
+        <p style={{ fontSize:14, fontFamily:FONT }}>Este link pode estar incorreto ou expirado.</p>
+        <a href="https://wa.me/5592993161828" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600, fontFamily:FONT }}>
           📱 Falar com a Assessoria
         </a>
       </div>
@@ -199,39 +215,39 @@ export default function CarteiraCliente() {
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
 
-      <div style={{ minHeight:"100vh", background:BG, padding:"0 0 32px", fontFamily:"system-ui, sans-serif" }}>
+      <div style={{ ...FULL_BG, padding:"0 0 40px" }}>
 
         {/* Header com glow dourado */}
         <div style={{
-          background:"linear-gradient(180deg, rgba(201,162,39,0.10) 0%, transparent 100%)",
+          background:"linear-gradient(180deg, rgba(212,167,48,0.10) 0%, transparent 100%)",
           borderBottom:`1px solid ${GOLD_BORDER}`,
           padding:"28px 16px 24px",
           textAlign:"center",
           marginBottom:20,
         }}>
           <img
-            src="https://rwinvestimentos.com.br/passarinho-logo.webp"
+            src="https://rwinvestimentos.com.br/logo-passarinho.png"
             alt="Passarinho Assessoria Bélica"
-            style={{ height:130, objectFit:"contain", display:"block", margin:"0 auto 8px", filter:"drop-shadow(0 4px 16px rgba(201,162,39,0.35))" }}
+            style={{ height:140, objectFit:"contain", display:"block", margin:"0 auto 10px", filter:"drop-shadow(0 4px 20px rgba(212,167,48,0.40))" }}
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
-          <p style={{ color:GOLD, fontSize:10, margin:0, letterSpacing:"0.18em", fontWeight:600 }}>PASSARINHO ASSESSORIA BÉLICA</p>
+          <p style={{ color:GOLD, fontSize:10, margin:0, letterSpacing:"0.20em", fontWeight:700, fontFamily:FONT }}>PASSARINHO ASSESSORIA BÉLICA</p>
         </div>
 
         <div style={{ maxWidth:440, margin:"0 auto", padding:"0 14px" }}>
 
           {/* Card cliente */}
-          <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(8px)" }}>
-            <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:600 }}>✦ Carteira Digital</p>
-            <h1 style={{ color:"#f0e6c8", fontSize:22, fontWeight:800, margin:0 }}>{primeiroNome(data.nome)}</h1>
-            <p style={{ color:"#7a6a48", fontSize:12, margin:"3px 0 0" }}>{data.nome}</p>
+          <div style={{ background:CARD_BG, borderRadius:16, padding:"18px 20px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(12px)" }}>
+            <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Carteira Digital</p>
+            <h1 style={{ color:FG, fontSize:24, fontWeight:800, margin:0, fontFamily:FONT }}>{primeiroNome(data.nome)}</h1>
+            <p style={{ color:FG_MUTED, fontSize:12, margin:"4px 0 0", fontFamily:FONT }}>{data.nome}</p>
           </div>
 
           {/* Documentos */}
           <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}` }}>
-            <p style={{ color:GOLD, fontSize:10, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:600 }}>✦ Seus Documentos</p>
+            <p style={{ color:GOLD, fontSize:10, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Seus Documentos</p>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {TIPOS.map(({ key, label, desc, emoji }) => {
                 const docList = docsMap[key] ?? [];
@@ -244,11 +260,11 @@ export default function CarteiraCliente() {
                     overflow:"hidden",
                   }}>
                     {/* Cabeçalho do tipo */}
-                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 14px", borderBottom: temDocs ? `1px solid rgba(201,162,39,0.15)` : "none" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 14px", borderBottom: temDocs ? `1px solid ${GOLD_BORDER}` : "none" }}>
                       <span style={{ fontSize:18, flexShrink:0 }}>{emoji}</span>
                       <div style={{ minWidth:0, flex:1 }}>
-                        <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
-                        <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
+                        <p style={{ color: temDocs ? FG : FG_MUTED, fontSize:13, fontWeight:700, margin:0, fontFamily:FONT }}>{label}</p>
+                        <p style={{ color:"#50412d", fontSize:10, margin:0, fontFamily:FONT }}>{desc}</p>
                         {temDocs && key !== "gt" && docList.some(d => d.data_validade) && (() => {
                           const comVal = docList.filter(d => d.data_validade);
                           const ultimaData = (s: string) => (s.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? s;
@@ -263,14 +279,14 @@ export default function CarteiraCliente() {
                               {comVal.map((doc, i) => {
                                 const last = ultimaData(doc.data_validade as string);
                                 const [dv, mv, yv] = last.split("/").map(Number);
-                                const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : "#22c55e";
+                                const valColor = new Date(yv, mv - 1, dv) < new Date() ? "#ef4444" : GOLD;
                                 const dias = diasRestantes(last);
                                 const diasLabel = dias < 0 ? `vencido há ${Math.abs(dias)}d` : `vence em (${dias}d)`;
                                 return (
-                                  <span key={doc.id ?? i} style={{ display:"block", marginTop: i === 0 ? 0 : 2 }}>
-                                    <span style={{ color:"#8b7d5a", fontWeight: 400 }}>{diasLabel} </span>
+                                  <span key={doc.id ?? i} style={{ display:"block", marginTop: i === 0 ? 0 : 2, fontFamily:FONT }}>
+                                    <span style={{ color:FG_MUTED, fontWeight: 400 }}>{diasLabel} </span>
                                     <span style={{ color: valColor, fontWeight: 700 }}>{doc.data_validade}</span>
-                                    {doc.numero_serie && <span style={{ color:"#7a6a48" }}> ({doc.numero_serie})</span>}
+                                    {doc.numero_serie && <span style={{ color:FG_MUTED }}> ({doc.numero_serie})</span>}
                                   </span>
                                 );
                               })}
@@ -279,7 +295,7 @@ export default function CarteiraCliente() {
                         })()}
                       </div>
                       {!temDocs && (
-                        <span style={{ flexShrink:0, padding:"6px 12px", background:"rgba(255,255,255,0.03)", color:"#3a3020", borderRadius:7, fontSize:11, border:"1px solid rgba(255,255,255,0.06)" }}>
+                        <span style={{ flexShrink:0, padding:"5px 12px", background:"rgba(255,255,255,0.03)", color:"#3d3020", borderRadius:8, fontSize:11, border:"1px solid rgba(255,255,255,0.07)", fontFamily:FONT }}>
                           Pendente
                         </span>
                       )}
@@ -299,9 +315,9 @@ export default function CarteiraCliente() {
                             {/* Cabeçalho da arma — clicável */}
                             <button
                               onClick={() => setExpandedArmas(prev => ({ ...prev, [arma]: !expanded }))}
-                              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", textAlign:"left" }}>
-                              <span style={{ color:"#e8d5a0", fontSize:12, fontWeight:700 }}>🔫 {arma}</span>
-                              <span style={{ color:GOLD, fontSize:12 }}>{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length > 1 ? "s" : ""}</span>
+                              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", textAlign:"left", fontFamily:FONT }}>
+                              <span style={{ color:FG, fontSize:13, fontWeight:700 }}>🔫 {arma}</span>
+                              <span style={{ color:GOLD, fontSize:12, fontWeight:600 }}>{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length > 1 ? "s" : ""}</span>
                             </button>
                             {/* GTs desta arma */}
                             {expanded && gtDocs.map((doc, i) => {
@@ -309,7 +325,7 @@ export default function CarteiraCliente() {
                               return (
                                 <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"8px 14px 8px 24px", borderTop:"1px solid rgba(201,162,39,0.06)" }}>
                                   <div style={{ minWidth:0, flex:1 }}>
-                                    <p style={{ color:"#a89060", fontSize:11, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                    <p style={{ color:FG, fontSize:12, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:FONT }}>
                                       {gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
                                     </p>
                                     {doc.data_validade && (() => {
@@ -317,9 +333,9 @@ export default function CarteiraCliente() {
                                       const dias = Math.round((new Date(yv, mv-1, dv).getTime() - Date.now()) / 86400000);
                                       const vencido = dias < 0;
                                       return (
-                                        <p style={{ margin:"2px 0 0", fontSize:10 }}>
-                                          <span style={{ color:"#7a6a48" }}>{vencido ? `vencido há ${Math.abs(dias)}d` : `vence em (${dias}d)`} </span>
-                                          <span style={{ color: vencido ? "#ef4444" : "#22c55e", fontWeight:700 }}>{doc.data_validade}</span>
+                                        <p style={{ margin:"2px 0 0", fontSize:10, fontFamily:FONT }}>
+                                          <span style={{ color:FG_MUTED }}>{vencido ? `vencido há ${Math.abs(dias)}d` : `vence em (${dias}d)`} </span>
+                                          <span style={{ color: vencido ? "#ef4444" : GOLD, fontWeight:700 }}>{doc.data_validade}</span>
                                         </p>
                                       );
                                     })()}
@@ -344,7 +360,7 @@ export default function CarteiraCliente() {
                       const url = publicUrl(doc.arquivo_path);
                       return (
                         <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
-                          <p style={{ color:"#a89060", fontSize:11, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                          <p style={{ color:FG, fontSize:12, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, fontFamily:FONT }}>
                             {docList.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
                           </p>
                           <div style={{ display:"flex", gap:6, flexShrink:0 }}>
@@ -379,7 +395,7 @@ export default function CarteiraCliente() {
             </div>
           </a>
 
-          <p style={{ textAlign:"center", color:"#334155", fontSize:10, marginTop:20 }}>
+          <p style={{ textAlign:"center", color:"#3d3020", fontSize:10, marginTop:20, fontFamily:FONT, letterSpacing:"0.1em" }}>
             rwinvestimentos.com.br
           </p>
         </div>
