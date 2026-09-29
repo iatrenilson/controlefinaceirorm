@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldAlert, Eye, EyeOff } from "lucide-react";
-const rwLogo = "/rw-logo.png";
+const rwLogo = "/logo-passarinho.png";
 import { checkLeakedPassword } from "@/lib/check-leaked-password";
 
 const Auth = () => {

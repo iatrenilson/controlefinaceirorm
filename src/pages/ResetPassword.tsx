@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { checkLeakedPassword } from "@/lib/check-leaked-password";
-const rwLogo = "/rw-logo.png";
+const rwLogo = "/logo-passarinho.png";
 
 // Check hash IMMEDIATELY at module load time, before Supabase can consume it
 const hashAtLoad = window.location.hash;
