@@ -178,7 +178,7 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   return (
     <div className="flex items-center gap-1">
       <button onClick={copy} title="Copiar link" className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
-        {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copiado!" : "Link"}
       </button>
       <a href={`${window.location.origin}${import.meta.env.BASE_URL}carteira/${clienteId}`} target="_blank" rel="noopener noreferrer"
@@ -477,7 +477,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                   <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText className={`h-4 w-4 flex-shrink-0 ${names.length > 0 ? "text-green-400" : "text-muted-foreground"}`} />
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${names.length > 0 ? "text-primary" : "text-muted-foreground"}`} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold">{label}</p>
                           <p className="text-[10px] text-muted-foreground">{desc}</p>
@@ -538,7 +538,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                   <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
                       <div className="flex items-center gap-2 min-w-0">
-                        <FileText className={`h-4 w-4 flex-shrink-0 ${tipoDocs.length > 0 ? "text-green-400" : "text-muted-foreground"}`} />
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${tipoDocs.length > 0 ? "text-primary" : "text-muted-foreground"}`} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold">{label}</p>
                           <p className="text-[10px] text-muted-foreground">{desc}</p>
@@ -789,7 +789,7 @@ export default function CarteiraDIgital() {
                       {TIPOS.map(t => {
                         const ok = c.docs?.some(d => d.tipo === t.key);
                         return (
-                          <span key={t.key} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${ok ? "text-green-400 bg-green-500/10 border-green-500/30" : "text-muted-foreground/50 bg-muted/20 border-muted/20"}`}>
+                          <span key={t.key} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${ok ? "text-primary bg-primary/10 border-primary/30" : "text-muted-foreground/50 bg-muted/20 border-muted/20"}`}>
                             {t.label}
                           </span>
                         );
