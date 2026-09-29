@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-const rwLogo = "/rw-logo.png";
+const rwLogo = "/logo-passarinho.png";
 
 interface ClienteExterno {
   id: string;

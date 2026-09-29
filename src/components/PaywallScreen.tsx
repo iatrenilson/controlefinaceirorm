@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, LogOut, MessageCircle, ShieldCheck, Clock, Loader2, Copy, Check, CheckCircle2 } from "lucide-react";
 import { WHATSAPP_LINK } from "@/lib/constants";
 
-const rwLogo = "/rw-logo.png";
+const rwLogo = "/logo-passarinho.png";
 
 interface PaywallScreenProps {
   hoursLeft?: number;

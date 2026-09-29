@@ -9,7 +9,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-const rwLogo = "/rw-logo.png";
+const rwLogo = "/logo-passarinho.png";
 import {
   Sidebar,
   SidebarContent,
