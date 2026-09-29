@@ -12,7 +12,7 @@ const TIPOS = [
   { key: "cert", label: "CERTIFICADOS", desc: "Certificados",                             emoji: "📜" },
 ] as const;
 
-interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; }
+interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; }
 interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
@@ -93,6 +93,7 @@ export default function CarteiraCliente() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
   const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -280,8 +281,49 @@ export default function CarteiraCliente() {
                         </span>
                       )}
                     </div>
-                    {/* Lista de arquivos */}
-                    {docList.map((doc, i) => {
+                    {/* Lista de arquivos — GT agrupado por arma */}
+                    {key === "gt" && docList.length > 0 ? (() => {
+                      const grupos: Record<string, CartDoc[]> = {};
+                      docList.forEach(d => {
+                        const g = d.nome_arma?.trim() || "Sem arma";
+                        (grupos[g] ??= []).push(d);
+                      });
+                      return Object.entries(grupos).map(([arma, gtDocs], gi) => {
+                        const expanded = expandedArmas[arma] ?? false;
+                        return (
+                          <div key={arma} style={{ borderTop: gi > 0 ? "1px solid rgba(201,162,39,0.10)" : undefined }}>
+                            {/* Cabeçalho da arma — clicável */}
+                            <button
+                              onClick={() => setExpandedArmas(prev => ({ ...prev, [arma]: !expanded }))}
+                              style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", textAlign:"left" }}>
+                              <span style={{ color:"#e8d5a0", fontSize:12, fontWeight:700 }}>🔫 {arma}</span>
+                              <span style={{ color:GOLD, fontSize:12 }}>{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length > 1 ? "s" : ""}</span>
+                            </button>
+                            {/* GTs desta arma */}
+                            {expanded && gtDocs.map((doc, i) => {
+                              const url = publicUrl(doc.arquivo_path);
+                              return (
+                                <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"8px 14px 8px 24px", borderTop:"1px solid rgba(201,162,39,0.06)" }}>
+                                  <p style={{ color:"#a89060", fontSize:11, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
+                                    {gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
+                                  </p>
+                                  <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                                    <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
+                                      style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
+                                      ⛶ Expandir
+                                    </button>
+                                    <button onClick={() => baixarArquivo(url, doc.arquivo_nome || "GT.pdf")}
+                                      style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                                      ⬇ Baixar
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      });
+                    })() : docList.map((doc, i) => {
                       const url = publicUrl(doc.arquivo_path);
                       return (
                         <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
@@ -289,8 +331,7 @@ export default function CarteiraCliente() {
                             {docList.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
                           </p>
                           <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                            <button
-                              onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
+                            <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
                               style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
                               ⛶ Expandir
                             </button>
