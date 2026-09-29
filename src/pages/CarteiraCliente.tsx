@@ -246,7 +246,7 @@ export default function CarteiraCliente() {
                       <div style={{ minWidth:0, flex:1 }}>
                         <p style={{ color: temDocs ? "#e8d5a0" : "#6b5f45", fontSize:13, fontWeight:700, margin:0 }}>{label}</p>
                         <p style={{ color:"#4a3f2a", fontSize:10, margin:0 }}>{desc}</p>
-                        {temDocs && docList.some(d => d.data_validade) && (() => {
+                        {temDocs && key !== "gt" && docList.some(d => d.data_validade) && (() => {
                           const comVal = docList.filter(d => d.data_validade);
                           const ultimaData = (s: string) => (s.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? s;
                           const diasRestantes = (dateStr: string): number => {
@@ -304,9 +304,22 @@ export default function CarteiraCliente() {
                               const url = publicUrl(doc.arquivo_path);
                               return (
                                 <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"8px 14px 8px 24px", borderTop:"1px solid rgba(201,162,39,0.06)" }}>
-                                  <p style={{ color:"#a89060", fontSize:11, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1 }}>
-                                    {gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
-                                  </p>
+                                  <div style={{ minWidth:0, flex:1 }}>
+                                    <p style={{ color:"#a89060", fontSize:11, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                      {gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
+                                    </p>
+                                    {doc.data_validade && (() => {
+                                      const [dv, mv, yv] = doc.data_validade.split("/").map(Number);
+                                      const dias = Math.round((new Date(yv, mv-1, dv).getTime() - Date.now()) / 86400000);
+                                      const vencido = dias < 0;
+                                      return (
+                                        <p style={{ margin:"2px 0 0", fontSize:10 }}>
+                                          <span style={{ color:"#7a6a48" }}>{vencido ? `vencido há ${Math.abs(dias)}d` : `vence em (${dias}d)`} </span>
+                                          <span style={{ color: vencido ? "#ef4444" : "#22c55e", fontWeight:700 }}>{doc.data_validade}</span>
+                                        </p>
+                                      );
+                                    })()}
+                                  </div>
                                   <div style={{ display:"flex", gap:6, flexShrink:0 }}>
                                     <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
                                       style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
