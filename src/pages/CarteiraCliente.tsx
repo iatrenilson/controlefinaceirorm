@@ -191,7 +191,10 @@ export default function CarteiraCliente() {
   );
 
   const docsMap: Record<string, CartDoc[]> = {};
-  (data.docs ?? []).forEach(d => { (docsMap[d.tipo] ??= []).push(d); });
+  (data.docs ?? [])
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .forEach(d => { (docsMap[d.tipo] ??= []).push(d); });
 
   return (
     <>
