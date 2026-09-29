@@ -270,6 +270,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const refNewCert = useRef<HTMLInputElement>(null);
   const pendingRefs: Record<TipoKey, React.RefObject<HTMLInputElement>> = { cr: refNewCr, craf: refNewCraf, gt: refNewGt, cert: refNewCert };
 
+  const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
+
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
   const [sinarmBusca, setSinarmBusca] = useState("");
@@ -517,7 +519,42 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                     </div>
                     {tipoDocs.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhum arquivo enviado</p>
-                    ) : (
+                    ) : key === "gt" ? (() => {
+                      const grupos: Record<string, CartDoc[]> = {};
+                      tipoDocs.forEach(d => { const g = d.nome_arma?.trim() || "Sem arma"; (grupos[g] ??= []).push(d); });
+                      return (
+                        <div className="divide-y divide-border/30">
+                          {Object.entries(grupos).map(([arma, gtDocs]) => {
+                            const expanded = expandedArmas[arma] ?? false;
+                            return (
+                              <div key={arma}>
+                                <button
+                                  onClick={() => setExpandedArmas(p => ({ ...p, [arma]: !expanded }))}
+                                  className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/30 transition-colors text-left">
+                                  <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
+                                  <span className="text-[10px] text-muted-foreground">{expanded ? "▲" : "▼"} {gtDocs.length} GT{gtDocs.length > 1 ? "s" : ""}</span>
+                                </button>
+                                {expanded && (
+                                  <div className="divide-y divide-border/20 bg-muted/20">
+                                    {gtDocs.map((doc, i) => (
+                                      <div key={doc.id}>
+                                        <div className="flex items-center gap-2 px-4 py-1.5">
+                                          <span className="text-[11px] text-muted-foreground truncate flex-1">{gtDocs.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}</span>
+                                          {doc.data_validade && (
+                                            <span className="text-[10px] font-medium text-amber-500 flex-shrink-0">Val: {doc.data_validade}</span>
+                                          )}
+                                        </div>
+                                        <DocItem doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })() : (
                       <div className="divide-y divide-border/30">
                         {tipoDocs.map((doc, i) => (
                           <DocItem key={doc.id} doc={doc} index={i} total={tipoDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} />
@@ -554,7 +591,7 @@ export default function CarteiraDIgital() {
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
     const { data: ds } = ids.length > 0
-      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie").in("carteira_cliente_id", ids)
+      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie, nome_arma").in("carteira_cliente_id", ids)
       : { data: [] };
     setClientes(cs.map(c => ({ ...c, docs: (ds ?? []).filter(d => d.carteira_cliente_id === c.id) as CartDoc[] })));
     setLoading(false);
