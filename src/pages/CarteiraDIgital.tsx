@@ -648,7 +648,7 @@ export default function CarteiraDIgital() {
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v6";
+    const FLAG = "carteira_migration_v7";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
         .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
