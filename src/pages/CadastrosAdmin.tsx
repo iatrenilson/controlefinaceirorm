@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,16 @@ const maskCpf = (v: string) => {
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"];
 const ARMAS_OPTS   = ["Pistola", "Revólver", "Rifle", "Espingarda"];
 
+const GOLD = "#d4a730";
+
+const checkboxStyle = (checked: boolean): React.CSSProperties => ({
+  width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+  border: `2px solid ${checked ? GOLD : "rgba(212,167,48,0.3)"}`,
+  background: checked ? GOLD : "transparent",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  transition: "all .15s", cursor: "pointer",
+});
+
 export default function CadastrosAdmin() {
   const [cadastros, setCadastros] = useState<CacCadastro[]>([]);
   const [busca, setBusca] = useState("");
@@ -64,6 +74,22 @@ export default function CadastrosAdmin() {
   // Delete confirm
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
   const [deletandoTodos, setDeletandoTodos] = useState(false);
+
+  // Cadastro manual
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoCpf, setNovoCpf] = useState("");
+  const [novoEndereco, setNovoEndereco] = useState("");
+  const [novoNumero, setNovoNumero] = useState("");
+  const [novoComplemento, setNovoComplemento] = useState("");
+  const [novoBairro, setNovoBairro] = useState("");
+  const [novoTipos, setNovoTipos] = useState<string[]>([]);
+  const [novoArmas, setNovoArmas] = useState<string[]>([]);
+  const [novoPsicoFile, setNovoPsicoFile] = useState<File | null>(null);
+  const [novoPsicoUrl, setNovoPsicoUrl] = useState<string | null>(null);
+  const [uploadingPsico, setUploadingPsico] = useState(false);
+  const [novoSaving, setNovoSaving] = useState(false);
+  const psicoInputRef = useRef<HTMLInputElement>(null);
 
   const carregar = () =>
     supabase.from("cac_cadastros").select("*").order("created_at", { ascending: false })
@@ -123,6 +149,64 @@ export default function CadastrosAdmin() {
     carregar();
   };
 
+  const toggleNovo = (list: string[], setList: (v: string[]) => void, item: string) =>
+    setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
+
+  const resetNovo = () => {
+    setNovoNome(""); setNovoCpf(""); setNovoEndereco(""); setNovoNumero("");
+    setNovoComplemento(""); setNovoBairro(""); setNovoTipos([]); setNovoArmas([]);
+    setNovoPsicoFile(null); setNovoPsicoUrl(null);
+  };
+
+  const handleNovoPsico = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop() || "pdf";
+    setNovoPsicoFile(file);
+    setNovoPsicoUrl(null);
+    setUploadingPsico(true);
+    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from("psicologicos").getPublicUrl(path);
+      setNovoPsicoUrl(publicUrl);
+    } else {
+      toast.error("Erro ao enviar psicológico: " + error.message);
+      setNovoPsicoFile(null);
+    }
+    setUploadingPsico(false);
+  };
+
+  const salvarNovo = async () => {
+    if (!novoNome.trim())     { toast.error("Informe o nome completo."); return; }
+    if (!novoCpf.trim())      { toast.error("Informe o CPF."); return; }
+    if (!novoEndereco.trim()) { toast.error("Informe o endereço."); return; }
+    if (!novoNumero.trim())   { toast.error("Informe o número."); return; }
+    if (!novoBairro.trim())   { toast.error("Informe o bairro."); return; }
+    if (!novoTipos.length)    { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
+    if (!novoArmas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
+    if (uploadingPsico)       { toast.error("Aguarde o upload do psicológico."); return; }
+
+    setNovoSaving(true);
+    const { error } = await supabase.from("cac_cadastros").insert({
+      nome: novoNome.trim(),
+      cpf: novoCpf.trim() || null,
+      endereco: novoEndereco.trim() || null,
+      numero: novoNumero.trim() || null,
+      complemento: novoComplemento.trim() || null,
+      bairro: novoBairro.trim() || null,
+      tipo_sinarm: novoTipos.length ? novoTipos.join(", ") : null,
+      armas: novoArmas.length ? novoArmas.join(", ") : null,
+      psicologico_url: novoPsicoUrl || null,
+    });
+    setNovoSaving(false);
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    toast.success("Cadastro criado com sucesso.");
+    resetNovo();
+    setNovoOpen(false);
+    carregar();
+  };
+
   const excluirTodos = async () => {
     const { error } = await supabase.from("cac_cadastros").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
@@ -163,6 +247,10 @@ export default function CadastrosAdmin() {
               Excluir todos
             </Button>
           )}
+          <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
+            <ClipboardPen className="h-4 w-4" />
+            Cadastro Manual
+          </Button>
           <Button onClick={copiarLink} size="sm" variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
             <Link className="h-4 w-4" />
             Copiar link
@@ -269,6 +357,107 @@ export default function CadastrosAdmin() {
           </div>
         )}
       </main>
+
+      {/* Dialog de cadastro manual */}
+      <Dialog open={novoOpen} onOpenChange={v => { setNovoOpen(v); if (!v) resetNovo(); }}>
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardPen className="h-4 w-4 text-primary" />
+              Cadastro Manual
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome completo {!novoNome.trim() && <span className="text-destructive">*</span>}</Label>
+              <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: João da Silva" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">CPF {!novoCpf.trim() && <span className="text-destructive">*</span>}</Label>
+              <Input value={novoCpf} onChange={e => setNovoCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Endereço {!novoEndereco.trim() && <span className="text-destructive">*</span>}</Label>
+              <Input value={novoEndereco} onChange={e => setNovoEndereco(e.target.value)} placeholder="Rua, Av..." />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nº {!novoNumero.trim() && <span className="text-destructive">*</span>}</Label>
+                <Input value={novoNumero} onChange={e => setNovoNumero(e.target.value)} placeholder="123" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <Input value={novoComplemento} onChange={e => setNovoComplemento(e.target.value)} placeholder="Apto, Bloco..." />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Bairro {!novoBairro.trim() && <span className="text-destructive">*</span>}</Label>
+              <Input value={novoBairro} onChange={e => setNovoBairro(e.target.value)} placeholder="Ex: Centro" />
+            </div>
+
+            {/* Tipo de Serviço */}
+            <div className="space-y-2">
+              <Label className="text-xs">Tipo de Serviço {!novoTipos.length && <span className="text-destructive">*</span>}</Label>
+              {TIPOS_SINARM.map(t => (
+                <label key={t} className="flex items-center gap-2.5 cursor-pointer">
+                  <div style={checkboxStyle(novoTipos.includes(t))} onClick={() => toggleNovo(novoTipos, setNovoTipos, t)}>
+                    {novoTipos.includes(t) && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <span className={`text-sm ${novoTipos.includes(t) ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{t}</span>
+                </label>
+              ))}
+            </div>
+
+            {/* Armas */}
+            <div className="space-y-2">
+              <Label className="text-xs">Armas {!novoArmas.length && <span className="text-destructive">*</span>}</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {ARMAS_OPTS.map(a => (
+                  <label key={a} className="flex items-center gap-2.5 cursor-pointer">
+                    <div style={checkboxStyle(novoArmas.includes(a))} onClick={() => toggleNovo(novoArmas, setNovoArmas, a)}>
+                      {novoArmas.includes(a) && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                    <span className={`text-sm ${novoArmas.includes(a) ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{a}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Psicológico */}
+            <div className="space-y-2">
+              <Label className="text-xs">Psicológico (opcional)</Label>
+              <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
+              <button type="button" onClick={() => psicoInputRef.current?.click()}
+                className={`w-full flex flex-col items-center gap-2 py-5 rounded-xl border-2 border-dashed transition-colors ${novoPsicoUrl ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                {uploadingPsico ? (
+                  <>
+                    <Upload className="h-6 w-6 text-primary animate-pulse" />
+                    <span className="text-xs text-primary font-semibold">Enviando...</span>
+                  </>
+                ) : novoPsicoUrl ? (
+                  <>
+                    <Check className="h-6 w-6 text-primary" />
+                    <span className="text-xs text-foreground font-semibold">{novoPsicoFile?.name}</span>
+                    <span className="text-[10px] text-muted-foreground">Clique para trocar</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Clique para selecionar PDF ou imagem</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => { setNovoOpen(false); resetNovo(); }}>Cancelar</Button>
+            <Button onClick={salvarNovo} disabled={novoSaving || uploadingPsico} className="gap-2">
+              <Check className="h-3.5 w-3.5" />
+              {novoSaving ? "Salvando..." : "Salvar Cadastro"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de edição */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
