@@ -12,7 +12,7 @@ const TIPOS = [
   { key: "cert", label: "CERTIFICADOS", desc: "Certificados",                             emoji: "📜" },
 ] as const;
 
-interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; }
+interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
 interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
@@ -288,7 +288,8 @@ export default function CarteiraCliente() {
                         const g = d.nome_arma?.trim() || "Sem arma";
                         (grupos[g] ??= []).push(d);
                       });
-                      return Object.entries(grupos).map(([arma, gtDocs], gi) => {
+                      return Object.entries(grupos).map(([arma, rawGtDocs], gi) => {
+                        const gtDocs = [...rawGtDocs].sort((a,b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
                         const expanded = expandedArmas[arma] ?? false;
                         return (
                           <div key={arma} style={{ borderTop: gi > 0 ? "1px solid rgba(201,162,39,0.10)" : undefined }}>

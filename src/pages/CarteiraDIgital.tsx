@@ -15,7 +15,7 @@ const TIPOS = [
 
 type TipoKey = "cr" | "craf" | "gt" | "cert";
 
-interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; }
+interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
 const MIGRATION_SQL = `
@@ -45,7 +45,7 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_del') THEN CREATE POLICY "cd_del" ON public.carteira_docs FOR DELETE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
   PERFORM pg_notify('pgrst','reload schema');
 END $$;
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade,'numero_serie',d.numero_serie,'nome_arma',d.nome_arma) ORDER BY d.tipo,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
+CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade,'numero_serie',d.numero_serie,'nome_arma',d.nome_arma,'sort_order',d.sort_order) ORDER BY d.tipo,d.sort_order,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
 GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -70,6 +70,7 @@ ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_expedicao TEXT NO
 ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_validade TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS numero_serie TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS nome_arma TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0;
 `.trim();
 
 function publicUrl(path: string) {
@@ -274,6 +275,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   const refGtUpload = useRef<HTMLInputElement>(null);
   const [renamingArma, setRenamingArma] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
+  const dragDocRef = useRef<string | null>(null);
+  const [dragOverDocId, setDragOverDocId] = useState<string | null>(null);
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
@@ -342,6 +345,23 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     await supabase.from("carteira_docs").delete().eq("id", doc.id);
     setDocs(d => d.filter(x => x.id !== doc.id));
     toast.success(`Documento removido.`);
+  };
+
+  const handleReorderGt = async (gtDocs: CartDoc[], fromId: string, toId: string) => {
+    const fromIdx = gtDocs.findIndex(d => d.id === fromId);
+    const toIdx = gtDocs.findIndex(d => d.id === toId);
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+    const reordered = [...gtDocs];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    const updates = reordered.map((doc, i) => ({ id: doc.id, sort_order: i + 1 }));
+    setDocs(d => d.map(x => {
+      const u = updates.find(u => u.id === x.id);
+      return u ? { ...x, sort_order: u.sort_order } : x;
+    }));
+    for (const u of updates) {
+      await supabase.from("carteira_docs").update({ sort_order: u.sort_order }).eq("id", u.id);
+    }
   };
 
   const handleRenameArma = async (oldName: string, newName: string, gtDocs: CartDoc[]) => {
@@ -587,8 +607,20 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                                     </div>
                                     {expanded && (
                                       <div className="divide-y divide-border/20 bg-muted/20">
-                                        {gtDocs.map((doc, i) => (
-                                          <DocItem key={doc.id} doc={doc} index={i} total={gtDocs.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} hideArma />
+                                        {[...gtDocs].sort((a,b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map((doc, i, sorted) => (
+                                          <div key={doc.id}
+                                            draggable
+                                            onDragStart={() => { dragDocRef.current = doc.id; }}
+                                            onDragOver={e => { e.preventDefault(); setDragOverDocId(doc.id); }}
+                                            onDragLeave={() => setDragOverDocId(null)}
+                                            onDrop={e => { e.preventDefault(); if (dragDocRef.current && dragDocRef.current !== doc.id) handleReorderGt(sorted, dragDocRef.current, doc.id); dragDocRef.current = null; setDragOverDocId(null); }}
+                                            onDragEnd={() => { dragDocRef.current = null; setDragOverDocId(null); }}
+                                            className={`flex items-start gap-1 ${dragOverDocId === doc.id ? "border-t-2 border-primary" : ""}`}>
+                                            <span className="text-muted-foreground cursor-grab active:cursor-grabbing px-1 pt-3 select-none text-base leading-none" title="Arrastar para reordenar">⠿</span>
+                                            <div className="flex-1 min-w-0">
+                                              <DocItem doc={doc} index={i} total={sorted.length} onRemove={handleRemoveDoc} onSaveDatas={handleSaveDatas} hideArma />
+                                            </div>
+                                          </div>
                                         ))}
                                         <div className="px-4 py-2">
                                           <button
@@ -676,7 +708,7 @@ export default function CarteiraDIgital() {
     let ds: CartDoc[] | null = null;
     if (ids.length > 0) {
       const { data, error } = await supabase.from("carteira_docs")
-        .select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie, nome_arma")
+        .select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie, nome_arma, sort_order")
         .in("carteira_cliente_id", ids);
       if (error) {
         // fallback sem nome_arma caso a coluna ainda não exista no banco
@@ -695,7 +727,7 @@ export default function CarteiraDIgital() {
   };
 
   useEffect(() => {
-    const FLAG = "carteira_migration_v7";
+    const FLAG = "carteira_migration_v8";
     if (!localStorage.getItem(FLAG)) {
       supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
         .then(() => { localStorage.setItem(FLAG, "1"); setMigrated(true); })
