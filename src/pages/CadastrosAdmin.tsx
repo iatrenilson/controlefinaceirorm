@@ -370,7 +370,7 @@ export default function CadastrosAdmin() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome completo {!novoNome.trim() && <span className="text-destructive">*</span>}</Label>
-              <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: João da Silva" />
+              <Input value={novoNome} onChange={e => setNovoNome(e.target.value.toUpperCase())} placeholder="EX: JOÃO DA SILVA" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">CPF {!novoCpf.trim() && <span className="text-destructive">*</span>}</Label>
@@ -378,7 +378,7 @@ export default function CadastrosAdmin() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Endereço {!novoEndereco.trim() && <span className="text-destructive">*</span>}</Label>
-              <Input value={novoEndereco} onChange={e => setNovoEndereco(e.target.value)} placeholder="Rua, Av..." />
+              <Input value={novoEndereco} onChange={e => setNovoEndereco(e.target.value.toUpperCase())} placeholder="RUA, AV..." />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
@@ -387,12 +387,12 @@ export default function CadastrosAdmin() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Complemento</Label>
-                <Input value={novoComplemento} onChange={e => setNovoComplemento(e.target.value)} placeholder="Apto, Bloco..." />
+                <Input value={novoComplemento} onChange={e => setNovoComplemento(e.target.value.toUpperCase())} placeholder="APTO, BLOCO..." />
               </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Bairro {!novoBairro.trim() && <span className="text-destructive">*</span>}</Label>
-              <Input value={novoBairro} onChange={e => setNovoBairro(e.target.value)} placeholder="Ex: Centro" />
+              <Input value={novoBairro} onChange={e => setNovoBairro(e.target.value.toUpperCase())} placeholder="EX: CENTRO" />
             </div>
 
             {/* Tipo de Serviço */}
@@ -469,7 +469,7 @@ export default function CadastrosAdmin() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <Label className="text-xs">Nome completo *</Label>
-                <Input value={editData.nome} onChange={e => setEditData(p => p && ({ ...p, nome: e.target.value }))} />
+                <Input value={editData.nome} onChange={e => setEditData(p => p && ({ ...p, nome: e.target.value.toUpperCase() }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
@@ -477,7 +477,7 @@ export default function CadastrosAdmin() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Endereço</Label>
-                <Input value={editData.endereco || ""} onChange={e => setEditData(p => p && ({ ...p, endereco: e.target.value }))} />
+                <Input value={editData.endereco || ""} onChange={e => setEditData(p => p && ({ ...p, endereco: e.target.value.toUpperCase() }))} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
@@ -486,12 +486,12 @@ export default function CadastrosAdmin() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Complemento</Label>
-                  <Input value={editData.complemento || ""} onChange={e => setEditData(p => p && ({ ...p, complemento: e.target.value }))} />
+                  <Input value={editData.complemento || ""} onChange={e => setEditData(p => p && ({ ...p, complemento: e.target.value.toUpperCase() }))} />
                 </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
-                <Input value={editData.bairro || ""} onChange={e => setEditData(p => p && ({ ...p, bairro: e.target.value }))} />
+                <Input value={editData.bairro || ""} onChange={e => setEditData(p => p && ({ ...p, bairro: e.target.value.toUpperCase() }))} />
               </div>
 
               {/* Tipo */}

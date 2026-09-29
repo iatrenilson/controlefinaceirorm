@@ -158,7 +158,7 @@ export default function CadastroPublico() {
           {/* Nome */}
           <div>
             <label style={labelStyle}>Nome completo {!nome.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: João da Silva" style={inputStyle} />
+            <input value={nome} onChange={e => setNome(e.target.value.toUpperCase())} placeholder="Ex: JOÃO DA SILVA" style={inputStyle} />
           </div>
 
           {/* CPF */}
@@ -170,7 +170,7 @@ export default function CadastroPublico() {
           {/* Endereço */}
           <div>
             <label style={labelStyle}>Endereço {!endereco.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
-            <input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, Av..." style={inputStyle} />
+            <input value={endereco} onChange={e => setEndereco(e.target.value.toUpperCase())} placeholder="RUA, AV..." style={inputStyle} />
           </div>
 
           {/* Nº + Complemento */}
@@ -181,14 +181,14 @@ export default function CadastroPublico() {
             </div>
             <div>
               <label style={labelStyle}>Complemento</label>
-              <input value={complemento} onChange={e => setComplemento(e.target.value)} placeholder="Apto, Bloco..." style={inputStyle} />
+              <input value={complemento} onChange={e => setComplemento(e.target.value.toUpperCase())} placeholder="APTO, BLOCO..." style={inputStyle} />
             </div>
           </div>
 
           {/* Bairro */}
           <div>
             <label style={labelStyle}>Bairro {!bairro.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
-            <input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Ex: Centro" style={inputStyle} />
+            <input value={bairro} onChange={e => setBairro(e.target.value.toUpperCase())} placeholder="EX: CENTRO" style={inputStyle} />
           </div>
 
           {/* Tipo de Serviço */}
