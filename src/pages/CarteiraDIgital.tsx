@@ -640,10 +640,24 @@ export default function CarteiraDIgital() {
     const { data: cs } = await supabase.from("carteira_clientes").select("id, nome, telefone, cpf").order("nome");
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
-    const { data: ds } = ids.length > 0
-      ? await supabase.from("carteira_docs").select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie, nome_arma").in("carteira_cliente_id", ids)
-      : { data: [] };
-    setClientes(cs.map(c => ({ ...c, docs: (ds ?? []).filter(d => d.carteira_cliente_id === c.id) as CartDoc[] })));
+    let ds: CartDoc[] | null = null;
+    if (ids.length > 0) {
+      const { data, error } = await supabase.from("carteira_docs")
+        .select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie, nome_arma")
+        .in("carteira_cliente_id", ids);
+      if (error) {
+        // fallback sem nome_arma caso a coluna ainda não exista no banco
+        const { data: data2 } = await supabase.from("carteira_docs")
+          .select("id, carteira_cliente_id, tipo, arquivo_path, arquivo_nome, data_expedicao, data_validade, numero_serie")
+          .in("carteira_cliente_id", ids);
+        ds = (data2 ?? []) as CartDoc[];
+      } else {
+        ds = (data ?? []) as CartDoc[];
+      }
+    } else {
+      ds = [];
+    }
+    setClientes(cs.map(c => ({ ...c, docs: ds!.filter(d => d.carteira_cliente_id === c.id) })));
     setLoading(false);
   };
 
