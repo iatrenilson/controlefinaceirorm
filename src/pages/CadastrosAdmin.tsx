@@ -294,7 +294,7 @@ export default function CadastrosAdmin() {
                 <CardContent className="py-3 px-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0 space-y-1">
-                      <p className="font-semibold text-sm truncate">{c.nome}</p>
+                      <p className="font-semibold text-sm truncate">{c.nome.toUpperCase()}</p>
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                         {c.cpf      && <span>CPF: {c.cpf}</span>}
                         {c.endereco && <span>{c.endereco}{c.numero ? `, Nº ${c.numero}` : ""}{c.complemento ? ` - ${c.complemento}` : ""}</span>}
