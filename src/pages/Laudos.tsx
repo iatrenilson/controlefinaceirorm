@@ -871,7 +871,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       onMouseDown={e => { e.preventDefault(); selecionarCadastro(c); }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex flex-col gap-0.5"
                     >
-                      <span className="font-medium">{c.nome}</span>
+                      <span className="font-medium">{c.nome.toUpperCase()}</span>
                       {c.cpf && <span className="text-xs text-muted-foreground">{c.cpf}</span>}
                     </button>
                   ))}
