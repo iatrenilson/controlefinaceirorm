@@ -28,3 +28,6 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Expõe o cliente para a extensão Chrome Passarinho CAC
+(window as any).__passarinho_supabase = supabase;
