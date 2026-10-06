@@ -1187,6 +1187,7 @@ END $$;`
   const [mostrarClientes, setMostrarClientes] = useState(true);
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [buscaCliente, setBuscaCliente] = useState("");
+  const [filtroStatusBadge, setFiltroStatusBadge] = useState<ClienteStatus | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
     (localStorage.getItem("decl_view_mode") as "grid" | "list") || "list"
   );
@@ -2132,7 +2133,12 @@ END $$;`
                         return `${c.nome} (${dias}d)`;
                       }).join("\n");
                       return (
-                        <span key={val} title={nomes} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-default ${STATUS_COLORS[val]}`}>
+                        <span
+                          key={val}
+                          title={nomes}
+                          onClick={() => setFiltroStatusBadge(prev => prev === val ? null : val)}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold cursor-pointer select-none transition-all ${STATUS_COLORS[val]} ${filtroStatusBadge === val ? "ring-2 ring-white/50 brightness-125" : "opacity-80 hover:opacity-100"}`}
+                        >
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[val]}`} />
                           {label}: {grupo.length}
                         </span>
@@ -2149,7 +2155,7 @@ END $$;`
                 </p>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
+                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
@@ -2297,7 +2303,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
-                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => {
+                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
