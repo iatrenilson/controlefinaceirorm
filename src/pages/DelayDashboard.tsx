@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,7 +89,7 @@ const DelayDashboard = () => {
         return;
       }
       if (e1 && attempt >= 3) toast({ title: "Erro ao carregar clientes", description: getSafeErrorMessage(e1), variant: "destructive" });
-      if (e2 && attempt >= 3) toast({ title: "Erro ao carregar transações", description: getSafeErrorMessage(e2), variant: "destructive" });
+      if (e2 && attempt >= 3) toast({ title: "Erro ao carregar transaÃ§Ãµes", description: getSafeErrorMessage(e2), variant: "destructive" });
 
       const c = (clientesData as unknown as DelayCliente[]) || [];
       const t = (transData as unknown as DelayTransacao[]) || [];
@@ -183,7 +183,7 @@ const DelayDashboard = () => {
       }));
   }, [transacoesFiltradas]);
 
-  // Distribuição por casa (pie)
+  // DistribuiÃ§Ã£o por casa (pie)
   const distribuicaoCasa = useMemo(() => {
     const map = new Map<string, number>();
     clientes.forEach(c => {
@@ -214,7 +214,7 @@ const DelayDashboard = () => {
     return [...clientes]
       .filter(c => c.depositos > 0)
       .map(c => ({
-        nome: c.nome.length > 12 ? c.nome.substring(0, 12) + "…" : c.nome,
+        nome: c.nome.length > 12 ? c.nome.substring(0, 12) + "â€¦" : c.nome,
         nomeCompleto: c.nome,
         casa: c.casa,
         roi: (c.lucro / c.depositos) * 100,
@@ -242,7 +242,7 @@ const DelayDashboard = () => {
     });
   }, [lucroPorDia]);
 
-  // Transações por mês
+  // TransaÃ§Ãµes por mÃªs
   const transacoesPorMes = useMemo(() => {
     const map = new Map<string, { depositos: number; saques: number; lucro: number; count: number }>();
     transacoesFiltradas.forEach(t => {
@@ -277,7 +277,7 @@ const DelayDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-12 z-10">
         <div className="px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -290,7 +290,7 @@ const DelayDashboard = () => {
                   <Badge variant="outline" className="text-xs border-amber-500 text-amber-500">DELAY ESPORTIVO</Badge>
                 </div>
                 <h1 className="text-lg font-bold tracking-tight">Dashboard - Delay Esportivo</h1>
-                <p className="text-xs text-muted-foreground">Análise completa das operações de delay</p>
+                <p className="text-xs text-muted-foreground">AnÃ¡lise completa das operaÃ§Ãµes de delay</p>
               </div>
             </div>
             <Select value={periodoFiltro} onValueChange={setPeriodoFiltro}>
@@ -298,10 +298,10 @@ const DelayDashboard = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todo período</SelectItem>
-                <SelectItem value="1m">Último mês</SelectItem>
-                <SelectItem value="3m">Últimos 3 meses</SelectItem>
-                <SelectItem value="6m">Últimos 6 meses</SelectItem>
+                <SelectItem value="todos">Todo perÃ­odo</SelectItem>
+                <SelectItem value="1m">Ãšltimo mÃªs</SelectItem>
+                <SelectItem value="3m">Ãšltimos 3 meses</SelectItem>
+                <SelectItem value="6m">Ãšltimos 6 meses</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -317,7 +317,7 @@ const DelayDashboard = () => {
               <div className="rounded-lg bg-primary/10 p-2 mb-2"><Users className="h-4 w-4 text-primary" /></div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Contas</p>
               <p className="text-xl font-bold font-mono">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">{stats.ativos} ativos • {stats.concluidos} concl.</p>
+              <p className="text-[10px] text-muted-foreground">{stats.ativos} ativos â€¢ {stats.concluidos} concl.</p>
             </CardContent>
           </Card>
           {/* 2 - Lucro do Dia */}
@@ -466,11 +466,11 @@ const DelayDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Transações por mês */}
+          {/* TransaÃ§Ãµes por mÃªs */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-primary" /> Movimentações Mensais
+                <CalendarDays className="h-4 w-4 text-primary" /> MovimentaÃ§Ãµes Mensais
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -484,9 +484,9 @@ const DelayDashboard = () => {
                     <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${v}`} />
                     <Tooltip
                       contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                      formatter={(value: number, name: string) => [fmt(value), name === "depositos" ? "Depósitos" : name === "saques" ? "Saques" : "Lucro"]}
+                      formatter={(value: number, name: string) => [fmt(value), name === "depositos" ? "DepÃ³sitos" : name === "saques" ? "Saques" : "Lucro"]}
                     />
-                    <Legend formatter={(v) => v === "depositos" ? "Depósitos" : v === "saques" ? "Saques" : "Lucro"} />
+                    <Legend formatter={(v) => v === "depositos" ? "DepÃ³sitos" : v === "saques" ? "Saques" : "Lucro"} />
                     <Bar dataKey="depositos" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="saques" fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="lucro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -499,11 +499,11 @@ const DelayDashboard = () => {
 
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Distribuição por casa */}
+          {/* DistribuiÃ§Ã£o por casa */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <PieChart className="h-4 w-4 text-primary" /> Distribuição por Casa
+                <PieChart className="h-4 w-4 text-primary" /> DistribuiÃ§Ã£o por Casa
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -563,9 +563,9 @@ const DelayDashboard = () => {
                     <YAxis type="category" dataKey="casa" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={80} />
                     <Tooltip
                       contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                      formatter={(value: number, name: string) => [fmt(value), name === "lucro" ? "Lucro" : name === "depositos" ? "Depósitos" : "Saques"]}
+                      formatter={(value: number, name: string) => [fmt(value), name === "lucro" ? "Lucro" : name === "depositos" ? "DepÃ³sitos" : "Saques"]}
                     />
-                    <Legend formatter={(v) => v === "lucro" ? "Lucro" : v === "depositos" ? "Depósitos" : "Saques"} />
+                    <Legend formatter={(v) => v === "lucro" ? "Lucro" : v === "depositos" ? "DepÃ³sitos" : "Saques"} />
                     <Bar dataKey="depositos" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="saques" fill="#10b981" radius={[0, 4, 4, 0]} />
                     <Bar dataKey="lucro" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
@@ -650,11 +650,11 @@ const DelayDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Lucro diário detalhado */}
+        {/* Lucro diÃ¡rio detalhado */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" /> Lucro Diário
+              <Activity className="h-4 w-4 text-primary" /> Lucro DiÃ¡rio
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -668,9 +668,9 @@ const DelayDashboard = () => {
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${v}`} />
                   <Tooltip
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    formatter={(value: number, name: string) => [fmt(value), name === "lucro" ? "Lucro" : name === "saques" ? "Saques" : "Depósitos"]}
+                    formatter={(value: number, name: string) => [fmt(value), name === "lucro" ? "Lucro" : name === "saques" ? "Saques" : "DepÃ³sitos"]}
                   />
-                  <Legend formatter={(v) => v === "lucro" ? "Lucro" : v === "saques" ? "Saques" : "Depósitos"} />
+                  <Legend formatter={(v) => v === "lucro" ? "Lucro" : v === "saques" ? "Saques" : "DepÃ³sitos"} />
                   <Line type="monotone" dataKey="depositos" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
                   <Line type="monotone" dataKey="saques" stroke="#10b981" strokeWidth={1.5} dot={false} />
                   <Line type="monotone" dataKey="lucro" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
@@ -685,3 +685,4 @@ const DelayDashboard = () => {
 };
 
 export default DelayDashboard;
+

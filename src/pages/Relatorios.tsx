@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { format, parseISO, isPast, isWithinInterval, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ interface Cliente {
   dataEmprestimo: string;
   dataPagamento: string;
   status?: "ativo" | "pago" | "removido";
-  lastPaymentAt?: string; // quando o usuário clicou para receber (% ou valor completo)
+  lastPaymentAt?: string; // quando o usuÃ¡rio clicou para receber (% ou valor completo)
 }
 
 const CHART_COLORS = [
@@ -53,7 +53,7 @@ const Relatorios = () => {
   const fetchClientes = async () => {
     if (!user) return;
 
-    // Busca transações de pagamento para saber quando cada recebimento ocorreu
+    // Busca transaÃ§Ãµes de pagamento para saber quando cada recebimento ocorreu
     const { data: txData } = await supabase
       .from("wallet_transactions")
       .select("created_at, descricao, tipo")
@@ -61,11 +61,11 @@ const Relatorios = () => {
       .in("tipo", ["pagamento_juros", "pagamento"])
       .order("created_at", { ascending: false });
 
-    // Monta mapa: nome do cliente → data/hora do recebimento mais recente
+    // Monta mapa: nome do cliente â†’ data/hora do recebimento mais recente
     const txMap = new Map<string, string>();
     for (const tx of txData || []) {
       if (!tx.descricao) continue;
-      // Descrições: "Juros recebidos de NOME" | "Parcela X/Y recebida de NOME" | "Pagamento final recebido de NOME (...)"
+      // DescriÃ§Ãµes: "Juros recebidos de NOME" | "Parcela X/Y recebida de NOME" | "Pagamento final recebido de NOME (...)"
       const match = tx.descricao.match(/(?:de )([\w\s\-]+?)(?:\s*\(|$)/i);
       if (match) {
         const nome = match[1].trim();
@@ -178,7 +178,7 @@ const Relatorios = () => {
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 8)
       .map((c) => ({
-        nome: c.nome.length > 12 ? c.nome.slice(0, 12) + "…" : c.nome,
+        nome: c.nome.length > 12 ? c.nome.slice(0, 12) + "â€¦" : c.nome,
         valor: c.valor,
         juros: c.valor * (c.juros / 100),
       }));
@@ -210,11 +210,11 @@ const Relatorios = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-12 z-10">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
           <div className="min-w-0">
-            <h1 className="text-base sm:text-lg font-bold tracking-tight">Relatórios</h1>
-            <p className="text-xs text-muted-foreground truncate">Análise detalhada dos empréstimos</p>
+            <h1 className="text-base sm:text-lg font-bold tracking-tight">RelatÃ³rios</h1>
+            <p className="text-xs text-muted-foreground truncate">AnÃ¡lise detalhada dos emprÃ©stimos</p>
           </div>
           <BarChart3 className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -294,15 +294,15 @@ const Relatorios = () => {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Período</Label>
+                <Label className="text-xs">PerÃ­odo</Label>
                 <Select value={periodo} onValueChange={(v) => setPeriodo(v as any)}>
                   <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="mes_atual">Mês atual</SelectItem>
-                    <SelectItem value="ultimo_mes">Último mês</SelectItem>
+                    <SelectItem value="mes_atual">MÃªs atual</SelectItem>
+                    <SelectItem value="ultimo_mes">Ãšltimo mÃªs</SelectItem>
                     <SelectItem value="personalizado">Personalizado</SelectItem>
                   </SelectContent>
                 </Select>
@@ -332,7 +332,7 @@ const Relatorios = () => {
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm" className={cn("flex-1 justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
                           <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
-                          {dataInicio ? format(dataInicio, "dd/MM/yy") : "Início"}
+                          {dataInicio ? format(dataInicio, "dd/MM/yy") : "InÃ­cio"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -405,7 +405,7 @@ const Relatorios = () => {
               <Card>
                 <CardHeader className="pb-1">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <PieChart className="h-4 w-4 text-muted-foreground" /> Distribuição por Juros
+                    <PieChart className="h-4 w-4 text-muted-foreground" /> DistribuiÃ§Ã£o por Juros
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -440,9 +440,9 @@ const Relatorios = () => {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar todo o histórico?</AlertDialogTitle>
+                    <AlertDialogTitle>Limpar todo o histÃ³rico?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Todos os registros arquivados (pagos e removidos) serão excluídos permanentemente.
+                      Esta aÃ§Ã£o nÃ£o pode ser desfeita. Todos os registros arquivados (pagos e removidos) serÃ£o excluÃ­dos permanentemente.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -456,9 +456,9 @@ const Relatorios = () => {
                           .delete()
                           .eq("user_id", user.id);
                         if (error) {
-                          toast.error("Erro ao limpar histórico");
+                          toast.error("Erro ao limpar histÃ³rico");
                         } else {
-                          toast.success("Histórico limpo com sucesso");
+                          toast.success("HistÃ³rico limpo com sucesso");
                           fetchClientes();
                         }
                       }}
@@ -472,7 +472,7 @@ const Relatorios = () => {
           </CardHeader>
           <CardContent className="pt-0">
             {filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum empréstimo encontrado com os filtros selecionados.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">Nenhum emprÃ©stimo encontrado com os filtros selecionados.</p>
             ) : (
               <div className="overflow-auto">
                 <Table>
@@ -483,7 +483,7 @@ const Relatorios = () => {
                       <TableHead>Juros</TableHead>
                       <TableHead>Valor Juros</TableHead>
                       <TableHead>Total a Receber</TableHead>
-                      <TableHead>Data Empréstimo</TableHead>
+                      <TableHead>Data EmprÃ©stimo</TableHead>
                       <TableHead>Data Pagamento</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="w-10"></TableHead>
@@ -523,7 +523,7 @@ const Relatorios = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      O registro de "{c.nome}" será excluído permanentemente do histórico.
+                                      O registro de "{c.nome}" serÃ¡ excluÃ­do permanentemente do histÃ³rico.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -538,7 +538,7 @@ const Relatorios = () => {
                                         if (error) {
                                           toast.error("Erro ao excluir registro");
                                         } else {
-                                          toast.success("Registro excluído");
+                                          toast.success("Registro excluÃ­do");
                                           fetchClientes();
                                         }
                                       }}
@@ -571,3 +571,4 @@ const Relatorios = () => {
 };
 
 export default Relatorios;
+

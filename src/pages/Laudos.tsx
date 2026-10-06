@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { ClipboardList, Download, CalendarIcon, RotateCcw, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// ─── Types ──────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface CacCadastro {
   id: string;
   nome: string;
@@ -32,7 +32,7 @@ type SistReg = "" | "SINARM" | "SIGMA";
 type Finalidade = "aquisicao" | "porte" | "cr";
 type Categoria  = "defesa" | "institucional" | "cac";
 
-// Armas pré-definidas do Laudo SINARM Posse/Porte
+// Armas prÃ©-definidas do Laudo SINARM Posse/Porte
 const ARMAS_SINARM = [
   { id: "g25",   label: "PISTOLA 380 GLOCK G25 PYM 777" },
   { id: "ack",   label: "REVOLVER 357 TAURUS ACK 359643" },
@@ -59,14 +59,14 @@ interface LaudoForm {
   espingarda: SistReg;
   dataDecl: string;
   local: "" | "juliet" | "texas" | "cta";
-  finalidade: Finalidade[];   // múltipla seleção
-  categoria: Categoria[];     // múltipla seleção
+  finalidade: Finalidade[];   // mÃºltipla seleÃ§Ã£o
+  categoria: Categoria[];     // mÃºltipla seleÃ§Ã£o
   notaTeorica: string;
   notaPistola: string;
   notaRevolver: string;
   notaRifle: string;
   notaEspingarda: string;
-  notaMulticolorido: string;  // SINARM: pontuação alvo multicolorido
+  notaMulticolorido: string;  // SINARM: pontuaÃ§Ã£o alvo multicolorido
   armasSinarm: ArmaSinarmId[]; // SINARM: armas selecionadas
   conclusao: "" | "apto" | "inapto";
   dataFinal: string;
@@ -108,7 +108,7 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// ─── PDF idêntico ao original ────────────────────────────────────────────────────
+// â”€â”€â”€ PDF idÃªntico ao original â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPorte = false) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
@@ -118,32 +118,32 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   const ML = 10, CW = 190; // content width
   const HDR = 6.5; // section header height
 
-  // Font helpers — mesma família (helvetica = Arial) e tamanhos do documento original
+  // Font helpers â€” mesma famÃ­lia (helvetica = Arial) e tamanhos do documento original
   const B = (sz: number) => { doc.setFont("helvetica", "bold");   doc.setFontSize(sz); doc.setTextColor(0); };
   const N = (sz: number) => { doc.setFont("helvetica", "normal"); doc.setFontSize(sz); doc.setTextColor(0); };
   // Tamanhos usados no original:
-  //   ANEXO II heading   → 16
-  //   Title / sec header → 10
-  //   Body labels/vals   → 9
-  //   Legal / small      → 7.5
-  //   Weapon rows body   → 8.5 / 8
-  //   APTO / INAPTO      → 12
+  //   ANEXO II heading   â†’ 16
+  //   Title / sec header â†’ 10
+  //   Body labels/vals   â†’ 9
+  //   Legal / small      â†’ 7.5
+  //   Weapon rows body   â†’ 8.5 / 8
+  //   APTO / INAPTO      â†’ 12
 
-  // Horizontal line — sempre preto
+  // Horizontal line â€” sempre preto
   const hl = (y: number, x1 = ML, x2 = ML + CW, w = 0.2) => { doc.setDrawColor(0); doc.setLineWidth(w); doc.line(x1, y, x2, y); };
-  // Vertical line — sempre preto
+  // Vertical line â€” sempre preto
   const vl = (x: number, y1: number, y2: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y1, x, y2); };
-  // Underline field — sempre preto
+  // Underline field â€” sempre preto
   const ul = (x: number, y: number, w: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y, x + w, y); };
 
-  // Checkbox quadrado — reset completo de cores antes de desenhar
+  // Checkbox quadrado â€” reset completo de cores antes de desenhar
   const sqBox = (x: number, y: number, marked: boolean, sz = 3.5) => {
     doc.setDrawColor(0); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.25);
     doc.rect(x, y - sz + 0.3, sz, sz, "S");
     if (marked) { B(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
-  // Parenthesis checkbox — X em negrito quando marcado
+  // Parenthesis checkbox â€” X em negrito quando marcado
   const pc = (ok: boolean) => ok ? "(  X  )" : "(      )";
   const renderPc = (ok: boolean, x: number, y: number): number => {
     const str = pc(ok);
@@ -171,11 +171,11 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     return x + w + doc.getTextWidth(val);
   };
 
-  // Draw section: outer rect + header row (sem fill, só borda inferior)
+  // Draw section: outer rect + header row (sem fill, sÃ³ borda inferior)
   const section = (y: number, h: number, title: string) => {
     doc.setLineWidth(0.35); doc.setDrawColor(0);
     doc.rect(ML, y, CW, h);
-    // linha separando o cabeçalho do conteúdo
+    // linha separando o cabeÃ§alho do conteÃºdo
     doc.setLineWidth(0.2);
     doc.line(ML, y + HDR, ML + CW, y + HDR);
     B(10); doc.text(title, PW / 2, y + 4.7, { align: "center" });
@@ -183,21 +183,21 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 
   let y = 5;
 
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // ANEXO II  (fora da caixa, centrado em cima)
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   B(16); doc.text("ANEXO II", PW / 2, y + 4, { align: "center" });
   y += 8;
 
-  // ════════════════════════════════════════════
-  // CAIXA DO TÍTULO + TEXTO LEGAL
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // CAIXA DO TÃTULO + TEXTO LEGAL
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   N(7.5);
-  const legalTxt = "O comprovante de capacidade técnica de arma de fogo deverá ser expedido por instrutor de armamento e tiro credenciado pela Polícia Federal e deverá atestar, necessariamente: (a) conhecimento da conceituação e normas de segurança pertinentes à arma de fogo; (b) conhecimento básico dos componentes e partes da arma de fogo e (c) habilidade do uso da arma de fogo demonstrada, pelo interessado, em estande de tiro (artigo 4°, inciso III e artigo 12, inciso VI e § 3°, da Lei nº 10.826/03; e artigo 36 do Decreto nº 5.123/04).";
+  const legalTxt = "O comprovante de capacidade tÃ©cnica de arma de fogo deverÃ¡ ser expedido por instrutor de armamento e tiro credenciado pela PolÃ­cia Federal e deverÃ¡ atestar, necessariamente: (a) conhecimento da conceituaÃ§Ã£o e normas de seguranÃ§a pertinentes Ã  arma de fogo; (b) conhecimento bÃ¡sico dos componentes e partes da arma de fogo e (c) habilidade do uso da arma de fogo demonstrada, pelo interessado, em estande de tiro (artigo 4Â°, inciso III e artigo 12, inciso VI e Â§ 3Â°, da Lei nÂº 10.826/03; e artigo 36 do Decreto nÂº 5.123/04).";
   const legalLines = doc.splitTextToSize(legalTxt, CW - 4);
 
   B(10);
-  const titleTxt = `COMPROVANTE DE CAPACIDADE TÉCNICA PARA O MANUSEIO DE ARMA DE FOGO N°${f.numero || "______"}/2026`;
+  const titleTxt = `COMPROVANTE DE CAPACIDADE TÃ‰CNICA PARA O MANUSEIO DE ARMA DE FOGO NÂ°${f.numero || "______"}/2026`;
   const titleLines = doc.splitTextToSize(titleTxt, CW - 6);
   const titleH = titleLines.length * 5;
   const legalH = legalLines.length * 3.2;
@@ -208,9 +208,9 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   N(7.5);  doc.text(legalLines, ML + 2, y + 3.5 + titleH + 0.5);
   y += box1H + 0.8;
 
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // DADOS DO AVALIADO
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const dadosH = HDR + 14;
   section(y, dadosH, "DADOS DO AVALIADO");
 
@@ -229,13 +229,13 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   const cpfX = ML + 2 + cpfLblW + 2;
   N(9); doc.text(f.cpf, cpfX, dy + 7);
 
-  // ENDEREÇO (compõe: rua, Nº, complemento, bairro)
-  B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
-  const endLblW = doc.getTextWidth("ENDEREÇO:");
+  // ENDEREÃ‡O (compÃµe: rua, NÂº, complemento, bairro)
+  B(9); doc.text("ENDEREÃ‡O:", ML + 2, dy + 11);
+  const endLblW = doc.getTextWidth("ENDEREÃ‡O:");
   const endX = ML + 2 + endLblW + 2;
   const _endBase = [
     f.endereco,
-    f.endNumero ? `Nº ${f.endNumero}` : "",
+    f.endNumero ? `NÂº ${f.endNumero}` : "",
     f.endCompl  || "",
   ].filter(Boolean).join(", ");
   const endVal = (f.endBairro
@@ -246,14 +246,14 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 
   y += dadosH + 0.8;
 
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // DADOS DA ARMA DE FOGO
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (tipo === "sinarm") {
-    // SINARM: lista de 8 armas pré-definidas com checkboxes em 2 colunas
-    // sRowH=9: baseline em +5.5 → topo visual=3.2mm, base visual=3.5mm ✓
+    // SINARM: lista de 8 armas prÃ©-definidas com checkboxes em 2 colunas
+    // sRowH=9: baseline em +5.5 â†’ topo visual=3.2mm, base visual=3.5mm âœ“
     const sRowH = 9;
-    const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas × 2 colunas = 8 armas
+    const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas Ã— 2 colunas = 8 armas
     const midColX = ML + CW / 2;
     section(y, sinarmArmasH, "DADOS DA ARMA DE FOGO UTILIZADA");
     vl(midColX, y + HDR, y + sinarmArmasH);
@@ -262,7 +262,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
       const col = i % 2;
       const row = Math.floor(i / 2);
       const ax = col === 0 ? ML + 3 : midColX + 3;
-      const ay = y + HDR + row * sRowH + 5.5; // baseline 5.5mm → topo visual ~3.2mm
+      const ay = y + HDR + row * sRowH + 5.5; // baseline 5.5mm â†’ topo visual ~3.2mm
       const checked = f.armasSinarm.includes(arma.id);
       N(9);
       const pcW2 = renderPc(checked, ax, ay);
@@ -272,7 +272,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     y += sinarmArmasH + 0.8;
   } else {
     // CR/CAC: tabela com tipo, marca, calibre, registro SINARM/SIGMA
-    // aRowH=10: linhas em +3.5 e +7 → margens topo≈3.5mm, base=3mm ✓
+    // aRowH=10: linhas em +3.5 e +7 â†’ margens topoâ‰ˆ3.5mm, base=3mm âœ“
     const ARMAS = [
       { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", cal: "9 MM",    sist: f.pistola },
       { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", cal: "38",      sist: f.revolver },
@@ -290,11 +290,11 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     ARMAS.forEach((a, i) => {
       const ry = y + HDR + i * aRowH;
       B(8.5); doc.text(`TIPO: ${a.tipo}`,      ML + 3, ry + 3.5);
-      N(8);   doc.text(`Nº SÉRIE: ${a.serie}`, ML + 3, ry + 7);
+      N(8);   doc.text(`NÂº SÃ‰RIE: ${a.serie}`, ML + 3, ry + 7);
       B(8.5); doc.text(`MARCA: ${a.marca}`,       c1 + 3, ry + 3.5);
-      N(8);   doc.text(`REGISTRO Nº: ${a.reg}`,    c1 + 3, ry + 7);
+      N(8);   doc.text(`REGISTRO NÂº: ${a.reg}`,    c1 + 3, ry + 7);
       const col3Center = c2 + (ML + CW - c2) / 2;
-      // Calcula rx (início do grupo SINARM/SIGMA) antes de renderizar CALIBRE
+      // Calcula rx (inÃ­cio do grupo SINARM/SIGMA) antes de renderizar CALIBRE
       N(8);
       const pcStr = "(      )";
       const pcW = doc.getTextWidth(pcStr);
@@ -302,7 +302,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
       const gap2 = 2;
       const row2W = pcW + doc.getTextWidth(sinarmLbl) + gap2 + pcW + doc.getTextWidth(sigmaLbl);
       let rx = col3Center - row2W / 2;
-      // CALIBRE alinha à esquerda com o "(" da linha abaixo
+      // CALIBRE alinha Ã  esquerda com o "(" da linha abaixo
       B(8.5); doc.text(`CALIBRE: ${a.cal}`, rx, ry + 3.5);
       rx += renderPc(a.sist === "SINARM", rx, ry + 7);
       doc.text(sinarmLbl, rx, ry + 7); rx += doc.getTextWidth(sinarmLbl) + gap2;
@@ -313,23 +313,23 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     y += armasH + 0.8;
   }
 
-  // ════════════════════════════════════════════
-  // DECLARAÇÃO
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // DECLARAÃ‡ÃƒO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const declH = HDR + 38;
-  section(y, declH, "DECLARAÇÃO");
+  section(y, declH, "DECLARAÃ‡ÃƒO");
 
   const decY = y + HDR + 1;
 
-  // Texto corrido com DECLARO e NÃO ME SUBMETI em negrito
+  // Texto corrido com DECLARO e NÃƒO ME SUBMETI em negrito
   const nomeDecl = (f.nome || "___________________________________").toUpperCase();
   type DRun = { txt: string; b: boolean };
   const declRuns: DRun[] = [
     { txt: `Eu ${nomeDecl} acima identificado, `,  b: false },
     { txt: "DECLARO",                               b: true  },
     { txt: ", sob as penas da lei, que ",           b: false },
-    { txt: "NÃO ME SUBMETI ",                       b: true  },
-    { txt: `a testes para a aferição de capacidade técnica para o manuseio de armas de fogo nos últimos 30 dias. Manaus/AM, ${fmtDate(f.dataDecl)}`, b: false },
+    { txt: "NÃƒO ME SUBMETI ",                       b: true  },
+    { txt: `a testes para a aferiÃ§Ã£o de capacidade tÃ©cnica para o manuseio de armas de fogo nos Ãºltimos 30 dias. Manaus/AM, ${fmtDate(f.dataDecl)}`, b: false },
   ];
   const decMaxW = CW - 4, decStartX = ML + 2;
   let dcx = decStartX, dcy = decY + 5;
@@ -347,7 +347,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     }
   }
 
-  // Linha de assinatura — canto direito, dentro da caixa
+  // Linha de assinatura â€” canto direito, dentro da caixa
   const sigLineX = PW / 2 + 5;
   const sigLineW = ML + CW - sigLineX - 2;
   ul(sigLineX, decY + 32, sigLineW);
@@ -355,48 +355,48 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 
   y += declH + 0.8;
 
-  // ════════════════════════════════════════════
-  // LOCAL DE APLICAÇÃO PROVA PRATICA
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // LOCAL DE APLICAÃ‡ÃƒO PROVA PRATICA
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const LOCAIS = [
     { id: "juliet", nome: "Clube de Tiro Juliet Papa", end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
     { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04 - Iranduba/AM." },
   ];
-  // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm → visual igual ✓
+  // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm â†’ visual igual âœ“
   const lRowH = 12;
   const localH = HDR + LOCAIS.length * lRowH;
-  section(y, localH, "LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)");
+  section(y, localH, "LOCAL DE APLICAÃ‡ÃƒO PROVA PRATICA (ESTANDE)");
 
   LOCAIS.forEach((loc, i) => {
     const ly = y + HDR + i * lRowH;
     if (i > 0) hl(ly);
     sqBox(ML + 2.5, ly + 6, f.local === loc.id);
     B(9); doc.text(`NOME: ${loc.nome}`, ML + 8, ly + 5);
-    N(9); doc.text(`ENDEREÇO: ${loc.end}`, ML + 8, ly + 9);
+    N(9); doc.text(`ENDEREÃ‡O: ${loc.end}`, ML + 8, ly + 9);
   });
 
   y += localH + 0.8;
 
-  // ════════════════════════════════════════════
-  // FUNDAMENTAÇÃO
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // FUNDAMENTAÃ‡ÃƒO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // Margem visual igual ~3mm topo e base.
   // doc.text() posiciona no baseline; letras sobem ~2.3mm (ascender Helvetica 9pt).
-  // → topo visual = baseline_from_divider - 2.3mm; base visual = content_h - last_baseline_from_divider
-  // fndY = divider + 1; offset = 4.5 → baseline a 5.5mm da divisória → topo visual = 3.2mm ✓
-  // CR/CAC: 4 linhas a 4.5mm → last_offset=18 → content=22 → base visual=22-19=3mm ✓
-  // SINARM: 5 linhas → last_offset=22.5 → content=27 → base visual=27-23.5=3.5mm ✓
+  // â†’ topo visual = baseline_from_divider - 2.3mm; base visual = content_h - last_baseline_from_divider
+  // fndY = divider + 1; offset = 4.5 â†’ baseline a 5.5mm da divisÃ³ria â†’ topo visual = 3.2mm âœ“
+  // CR/CAC: 4 linhas a 4.5mm â†’ last_offset=18 â†’ content=22 â†’ base visual=22-19=3mm âœ“
+  // SINARM: 5 linhas â†’ last_offset=22.5 â†’ content=27 â†’ base visual=27-23.5=3.5mm âœ“
   const fundH = tipo === "sinarm" ? HDR + 27 : HDR + 22;
-  section(y, fundH, "FUNDAMENTAÇÃO");
+  section(y, fundH, "FUNDAMENTAÃ‡ÃƒO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE  (offset +4.5 → baseline 5.5mm da divisória → topo visual ~3.2mm)
+  // FINALIDADE  (offset +4.5 â†’ baseline 5.5mm da divisÃ³ria â†’ topo visual ~3.2mm)
   N(9); doc.text("FINALIDADE:", ML + 2, fndY + 4.5);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 4.5);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ", fx, fndY + 4.5);
-  fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÊNCIA  ");
+  doc.text(" AQUISIÃ‡ÃƒO, REGISTRO OU TRANSFERÃŠNCIA  ", fx, fndY + 4.5);
+  fx += doc.getTextWidth(" AQUISIÃ‡ÃƒO, REGISTRO OU TRANSFERÃŠNCIA  ");
   fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 4.5);
   doc.text(" PORTE  ", fx, fndY + 4.5);
   fx += doc.getTextWidth(" PORTE  ");
@@ -419,50 +419,50 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     N(9); doc.text(" CAC", fx, fndY + 9);
   }
 
-  // NOTA — label normal, valor em negrito  (offset +13.5)
-  N(9); doc.text("NOTA DA PROVA TEÓRICA:", ML + 2, fndY + 13.5);
-  const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÓRICA:") + 2;
-  B(9); doc.text(f.notaTeorica || "–", notaX, fndY + 13.5);
+  // NOTA â€” label normal, valor em negrito  (offset +13.5)
+  N(9); doc.text("NOTA DA PROVA TEÃ“RICA:", ML + 2, fndY + 13.5);
+  const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÃ“RICA:") + 2;
+  B(9); doc.text(f.notaTeorica || "â€“", notaX, fndY + 13.5);
 
-  // PONTUAÇÃO SILHUETA — label normal, valores em negrito  (offset +18)
-  N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 18);
-  let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
+  // PONTUAÃ‡ÃƒO SILHUETA â€” label normal, valores em negrito  (offset +18)
+  N(9); doc.text("PONTUAÃ‡ÃƒO NO ALVO SILHUETA:", ML + 2, fndY + 18);
+  let px = ML + 2 + doc.getTextWidth("PONTUAÃ‡ÃƒO NO ALVO SILHUETA:") + 2;
   const armas2 = [
-    { lbl: "PISTOLA: ",      val: f.notaPistola    || "–" },
-    { lbl: "  REVOLVER: ",   val: f.notaRevolver   || "–" },
-    { lbl: "  RIFLE: ",      val: f.notaRifle      || "–" },
-    { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "–" },
+    { lbl: "PISTOLA: ",      val: f.notaPistola    || "â€“" },
+    { lbl: "  REVOLVER: ",   val: f.notaRevolver   || "â€“" },
+    { lbl: "  RIFLE: ",      val: f.notaRifle      || "â€“" },
+    { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "â€“" },
   ];
   armas2.forEach(({ lbl, val }) => {
     N(9); doc.text(lbl, px, fndY + 18); px += doc.getTextWidth(lbl);
     B(9); doc.text(val, px, fndY + 18); px += doc.getTextWidth(val);
   });
 
-  // PONTUAÇÃO ALVO MULTICOLORIDO — apenas SINARM  (offset +22.5)
+  // PONTUAÃ‡ÃƒO ALVO MULTICOLORIDO â€” apenas SINARM  (offset +22.5)
   if (tipo === "sinarm") {
-    N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
-    const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(f.notaMulticolorido || "–", multiX, fndY + 22.5);
+    N(9); doc.text("PONTUAÃ‡ÃƒO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
+    const multiX = ML + 2 + doc.getTextWidth("PONTUAÃ‡ÃƒO NO ALVO MULTICOLORIDO:") + 2;
+    B(9); doc.text(f.notaMulticolorido || "â€“", multiX, fndY + 22.5);
   }
 
   y += fundH + 0.8;
 
-  // ════════════════════════════════════════════
-  // CONCLUSÃO
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // CONCLUSÃƒO
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const concH = HDR + 7;
-  section(y, concH, "CONCLUSÃO");
+  section(y, concH, "CONCLUSÃƒO");
 
   // Caixas menores, X centralizado, centralizado na largura da caixa
   const bsz = 3.2;
-  // ccY calculado para centralizar o box (bsz=3.2) na área de conteúdo (concH-HDR=7mm)
-  // box_top = ccY - bsz + 0.3 ; para box_top = 1.9mm → ccY = 1.9 + 3.2 - 0.3 = 4.8
+  // ccY calculado para centralizar o box (bsz=3.2) na Ã¡rea de conteÃºdo (concH-HDR=7mm)
+  // box_top = ccY - bsz + 0.3 ; para box_top = 1.9mm â†’ ccY = 1.9 + 3.2 - 0.3 = 4.8
   const ccY = y + HDR + 4.8;
   // Calcula largura total e centraliza dinamicamente
   N(9);
   const _aptoW  = doc.getTextWidth("APTO");
   const _inaptW = doc.getTextWidth("INAPTO");
-  const _gapGrp = 14; // espaço entre grupos
+  const _gapGrp = 14; // espaÃ§o entre grupos
   const _totalConc = bsz + 1 + _aptoW + _gapGrp + bsz + 1 + _inaptW;
   const bx1 = ML + (CW - _totalConc) / 2;
   const bx2 = bx1 + bsz + 1 + _aptoW + _gapGrp;
@@ -486,46 +486,46 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 
   y += concH + 0.8;
 
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // AVALIADOR
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const avalH = HDR + 13;
   section(y, avalH, "AVALIADOR");
 
   const avY = y + HDR + 1;
-  // Linha 1 — fluxo natural, sem posição fixa de coluna
+  // Linha 1 â€” fluxo natural, sem posiÃ§Ã£o fixa de coluna
   let ax = ML + 2;
   N(9); doc.text("NOME: William Bruno Toyoda Hitotuzi", ax, avY + 4.5);
   ax += doc.getTextWidth("NOME: William Bruno Toyoda Hitotuzi") + 3;
   doc.text("CPF: 733.633.592-68", ax, avY + 4.5);
 
-  // Linha 2 — fluxo natural
+  // Linha 2 â€” fluxo natural
   ax = ML + 2;
-  N(9); doc.text("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 9.5);
-  ax += doc.getTextWidth("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025") + 3;
+  N(9); doc.text("PORTARIA: DREX/SR/PF/AM - NÂ° 01/2025, 14/11/2025", ax, avY + 9.5);
+  ax += doc.getTextWidth("PORTARIA: DREX/SR/PF/AM - NÂ° 01/2025, 14/11/2025") + 3;
   doc.text("VALIDADE: 31/10/2029", ax, avY + 9.5);
 
   y += avalH + 6;
 
-  // ════════════════════════════════════════════
-  // DATA FINAL + ASSINATURA DO AVALIADOR (data só no CR/CAC)
-  // ════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // DATA FINAL + ASSINATURA DO AVALIADOR (data sÃ³ no CR/CAC)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   N(10);
   if (tipo === "cr_cac") {
     doc.text(`Manaus/AM. ${fmtDate(f.dataFinal)}`, ML + CW, y, { align: "right" });
   }
 
-  y += 20;   // espaço para assinatura digital GOV.BR
+  y += 20;   // espaÃ§o para assinatura digital GOV.BR
   ul(PW / 2 - 43, y, 86);
   y += 5;
   B(10); doc.text("William Bruno Toyoda Hitotuzi", PW / 2, y, { align: "center" });
   y += 5;
   B(10); doc.text("IAT", PW / 2, y, { align: "center" });
 
-  // ─── Download ───
+  // â”€â”€â”€ Download â”€â”€â”€
   const blob = doc.output("blob");
 
-  // ── Nome do arquivo ──────────────────────────────────────────────────────
+  // â”€â”€ Nome do arquivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const _ano2 = new Date().getFullYear().toString().slice(-2);
   const _nr   = f.numero ? `${f.numero}.${_ano2}` : "";
   const _nome = (f.nome || "Laudo").toLowerCase().split(/\s+/).map(w => w.replace(/^./u, c => c.toUpperCase())).join(" ");
@@ -559,8 +559,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   const _parts = [_tipoLabel, _armasLabel, _nr, _nome].filter(Boolean);
   const fileName = `Laudo ${_parts.join(" ")}.pdf`;
 
-  // Abre diálogo "Salvar como" nativo no desktop (Chrome/Edge)
-  // No celular e outros browsers cai no download direto automático
+  // Abre diÃ¡logo "Salvar como" nativo no desktop (Chrome/Edge)
+  // No celular e outros browsers cai no download direto automÃ¡tico
   if ("showSaveFilePicker" in window) {
     try {
       const handle = await (window as unknown as { showSaveFilePicker: (o: object) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
@@ -572,11 +572,11 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
       await writable.close();
       return;
     } catch (e) {
-      if ((e as Error).name === "AbortError") return; // usuário cancelou
+      if ((e as Error).name === "AbortError") return; // usuÃ¡rio cancelou
     }
   }
 
-  // Fallback mobile: abre em nova aba (iOS: botão compartilhar→Arquivos; Android: menu download do browser)
+  // Fallback mobile: abre em nova aba (iOS: botÃ£o compartilharâ†’Arquivos; Android: menu download do browser)
   const url = URL.createObjectURL(blob);
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (isMobile) {
@@ -590,8 +590,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   }
 }
 
-// ─── UI helpers ──────────────────────────────────────────────────────────────────
-// Seleção única (radio) — círculo
+// â”€â”€â”€ UI helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// SeleÃ§Ã£o Ãºnica (radio) â€” cÃ­rculo
 function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -607,7 +607,7 @@ function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
   );
 }
 
-// Seleção múltipla (checkbox) — quadrado com ✓
+// SeleÃ§Ã£o mÃºltipla (checkbox) â€” quadrado com âœ“
 function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -616,14 +616,14 @@ function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
     >
       <span className={`w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center flex-shrink-0
         ${checked ? "border-primary-foreground" : "border-current"}`}>
-        {checked && <span className="text-[9px] leading-none font-black">✓</span>}
+        {checked && <span className="text-[9px] leading-none font-black">âœ“</span>}
       </span>
       {label}
     </button>
   );
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Laudos = () => {
   const [form, setForm] = useState<LaudoForm>(EMPTY);
   const [laudoTipo, setLaudoTipo] = useState<"cr_cac" | "sinarm">("cr_cac");
@@ -639,7 +639,7 @@ const Laudos = () => {
   const set = <K extends keyof LaudoForm>(k: K, v: LaudoForm[K]) =>
     setForm(p => ({ ...p, [k]: v }));
 
-  // Carrega o último número usado (compartilhado entre todos os usuários)
+  // Carrega o Ãºltimo nÃºmero usado (compartilhado entre todos os usuÃ¡rios)
   useEffect(() => {
     supabase.rpc("get_laudo_ultimo_numero").then(({ data, error }) => {
       if (error) { console.error("[laudo] get_ultimo_numero:", error); return; }
@@ -648,7 +648,7 @@ const Laudos = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Garante tabela, carrega e mantém cadastros atualizados em tempo real
+  // Garante tabela, carrega e mantÃ©m cadastros atualizados em tempo real
   useEffect(() => {
     const MIGRATION_SQL = `
 CREATE TABLE IF NOT EXISTS public.cac_cadastros (
@@ -698,7 +698,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
   const selecionarCadastro = (c: CacCadastro) => {
     const tipoRaw = (c.tipo_sinarm || "").toUpperCase();
 
-    // Mapeamento de tipo_sinarm → laudoTipo, finalidade, categoria, sinarmPorte
+    // Mapeamento de tipo_sinarm â†’ laudoTipo, finalidade, categoria, sinarmPorte
     let novoLaudoTipo: "cr_cac" | "sinarm" = laudoTipo;
     let novaFinalidade: Finalidade[] = [];
     let novaCategoria: Categoria[] = [];
@@ -721,7 +721,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
       novoSinarmPorte  = false;
     }
 
-    // Mapeia armas do cadastro → campos do laudo
+    // Mapeia armas do cadastro â†’ campos do laudo
     const armasStr = (c.armas || "").toLowerCase();
     const temPistola    = armasStr.includes("pistola");
     const temRevolver   = armasStr.includes("rev");
@@ -736,8 +736,8 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
       espingarda: temEspingarda ? "SINARM" : "",
     } : {};
 
-    // SINARM POSSE/PORTE: seleciona armas pré-definidas por tipo
-    // (gx4 = pistola, rt85 = revólver, puma = rifle, boito = espingarda)
+    // SINARM POSSE/PORTE: seleciona armas prÃ©-definidas por tipo
+    // (gx4 = pistola, rt85 = revÃ³lver, puma = rifle, boito = espingarda)
     const armasSinarmIds: ArmaSinarmId[] = novoLaudoTipo === "sinarm" ? ([
       temPistola    ? "gx4"   : null,
       temRevolver   ? "rt85"  : null,
@@ -771,32 +771,32 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
     ? cadastros.filter(c => c.nome.toLowerCase().includes(cadSearch.toLowerCase()) || (c.cpf || "").includes(cadSearch))
     : cadastros;
 
-  // Seleciona registro SINARM/SIGMA — sem auto-preencher notas
+  // Seleciona registro SINARM/SIGMA â€” sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
     setForm(p => ({ ...p, [key]: val }));
   };
 
   const armaRows: Array<{ label: string; key: "pistola" | "revolver" | "rifle" | "espingarda" }> = [
     { label: "Pistola",    key: "pistola" },
-    { label: "Revólver",   key: "revolver" },
+    { label: "RevÃ³lver",   key: "revolver" },
     { label: "Rifle",      key: "rifle" },
     { label: "Espingarda", key: "espingarda" },
   ];
 
-  // Silhueta: 60-100 (41 opções, grid 7×6)
+  // Silhueta: 60-100 (41 opÃ§Ãµes, grid 7Ã—6)
   const PONT_SILHUETA = Array.from({ length: 41 }, (_, i) => String(60 + i));
-  // Multicolorido: 72-120 (49 opções, grid 7×7)
+  // Multicolorido: 72-120 (49 opÃ§Ãµes, grid 7Ã—7)
   const PONT_COLORIDO = Array.from({ length: 49 }, (_, i) => String(72 + i));
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-12 z-10">
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           <ClipboardList className="h-5 w-5 text-primary flex-shrink-0" />
           <div className="flex-1">
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Laudos</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">
-              Comprovante de Capacidade Técnica — Arma de Fogo
+              Comprovante de Capacidade TÃ©cnica â€” Arma de Fogo
             </p>
           </div>
         </div>
@@ -811,10 +811,10 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
                 Dados do Avaliado
               </CardTitle>
-              {/* Tipo de Laudo — radio pill + Limpar */}
+              {/* Tipo de Laudo â€” radio pill + Limpar */}
               <div className="flex items-center gap-2 text-xs font-medium">
                 <button type="button"
-                  onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); toast.info("Formulário limpo."); }}
+                  onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); toast.info("FormulÃ¡rio limpo."); }}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-all">
                   <RotateCcw className="h-3 w-3" />
                   Limpar
@@ -891,7 +891,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                   onChange={e => set("nome", e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">N° Comprovante</Label>
+                <Label className="text-xs">NÂ° Comprovante</Label>
                 <Input className="h-9 text-sm"
                   value={form.numero}
                   onChange={e => set("numero", e.target.value)}
@@ -911,12 +911,12 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             </div>
             <div className="grid grid-cols-4 gap-3">
               <div className="col-span-3 space-y-1">
-                <Label className="text-xs">Endereço</Label>
+                <Label className="text-xs">EndereÃ§o</Label>
                 <Input className="h-9 text-sm uppercase" value={form.endereco}
                   onChange={e => set("endereco", e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Nº</Label>
+                <Label className="text-xs">NÂº</Label>
                 <Input className="h-9 text-sm" value={form.endNumero}
                   onChange={e => set("endNumero", e.target.value)} />
               </div>
@@ -936,16 +936,16 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Armas — conteúdo muda por tipo de laudo */}
+        {/* Armas â€” conteÃºdo muda por tipo de laudo */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              {laudoTipo === "sinarm" ? "Dados da Arma de Fogo Utilizada" : "Armas de Fogo — SINARM / SIGMA"}
+              {laudoTipo === "sinarm" ? "Dados da Arma de Fogo Utilizada" : "Armas de Fogo â€” SINARM / SIGMA"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {laudoTipo === "sinarm" ? (
-              /* SINARM: lista de armas pré-definidas com toggle */
+              /* SINARM: lista de armas prÃ©-definidas com toggle */
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {ARMAS_SINARM.map(arma => {
                   const checked = form.armasSinarm.includes(arma.id);
@@ -976,11 +976,11 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Data Declaração */}
+        {/* Data DeclaraÃ§Ã£o */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
-              Data da Declaração (Avaliado)
+              Data da DeclaraÃ§Ã£o (Avaliado)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1017,7 +1017,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
-              Local da Prova Prática (Estande)
+              Local da Prova PrÃ¡tica (Estande)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -1031,11 +1031,11 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Fundamentação */}
+        {/* FundamentaÃ§Ã£o */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              Fundamentação
+              FundamentaÃ§Ã£o
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1044,7 +1044,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
               <div className="flex flex-wrap gap-2">
                 <CheckBtn checked={form.finalidade.includes("aquisicao")}
                   onClick={() => set("finalidade", toggle(form.finalidade, "aquisicao"))}
-                  label="Aquisição / Registro / Transferência" />
+                  label="AquisiÃ§Ã£o / Registro / TransferÃªncia" />
                 <CheckBtn checked={form.finalidade.includes("porte")}
                   onClick={() => set("finalidade", toggle(form.finalidade, "porte"))}
                   label="Porte" />
@@ -1082,19 +1082,19 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Nota Teórica — sempre 20 */}
+            {/* Nota TeÃ³rica â€” sempre 20 */}
             <div className="space-y-1">
-              <Label className="text-xs">Nota da Prova Teórica</Label>
+              <Label className="text-xs">Nota da Prova TeÃ³rica</Label>
               <div className="h-9 px-3 flex items-center rounded-md border bg-muted text-sm font-semibold w-28">
                 20
               </div>
             </div>
             <div>
               <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
-                Pontuação no Alvo Silhueta
+                PontuaÃ§Ã£o no Alvo Silhueta
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Pistola — Popover grade 72-120 */}
+                {/* Pistola â€” Popover grade 72-120 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Pistola</Label>
                   <Popover open={pistOpen} onOpenChange={setPistOpen}>
@@ -1105,7 +1105,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
-                      {/* Grade 7×6 = 42 slots para 41 opções (60-100), sem rolagem */}
+                      {/* Grade 7Ã—6 = 42 slots para 41 opÃ§Ãµes (60-100), sem rolagem */}
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
@@ -1119,9 +1119,9 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Revólver — Popover grade 72-120 sem rolagem */}
+                {/* RevÃ³lver â€” Popover grade 72-120 sem rolagem */}
                 <div className="space-y-1">
-                  <Label className="text-xs">Revólver</Label>
+                  <Label className="text-xs">RevÃ³lver</Label>
                   <Popover open={revolOpen} onOpenChange={setRevolOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("h-9 w-full justify-start text-sm font-normal",
@@ -1143,7 +1143,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Rifle — toggle manual: marcado = 50 */}
+                {/* Rifle â€” toggle manual: marcado = 50 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Rifle</Label>
                   <button type="button"
@@ -1152,10 +1152,10 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       form.notaRifle
                         ? "bg-primary text-primary-foreground border-primary font-semibold"
                         : "border-border text-muted-foreground hover:border-primary/50")}>
-                    <span>{form.notaRifle ? `50 ✓` : "- (clique p/ marcar)"}</span>
+                    <span>{form.notaRifle ? `50 âœ“` : "- (clique p/ marcar)"}</span>
                   </button>
                 </div>
-                {/* Espingarda — toggle manual: marcada = APTO */}
+                {/* Espingarda â€” toggle manual: marcada = APTO */}
                 <div className="space-y-1">
                   <Label className="text-xs">Espingarda</Label>
                   <button type="button"
@@ -1164,16 +1164,16 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       form.notaEspingarda
                         ? "bg-primary text-primary-foreground border-primary font-semibold"
                         : "border-border text-muted-foreground hover:border-primary/50")}>
-                    <span>{form.notaEspingarda ? `APTO ✓` : "- (clique p/ marcar)"}</span>
+                    <span>{form.notaEspingarda ? `APTO âœ“` : "- (clique p/ marcar)"}</span>
                   </button>
                 </div>
               </div>
             </div>
-            {/* Alvo Multicolorido — apenas SINARM Posse/Porte */}
+            {/* Alvo Multicolorido â€” apenas SINARM Posse/Porte */}
             {laudoTipo === "sinarm" && (
               <div>
                 <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
-                  Pontuação no Alvo Multicolorido
+                  PontuaÃ§Ã£o no Alvo Multicolorido
                 </p>
                 <div className="w-full sm:w-48">
                   <Popover open={coloridoOpen} onOpenChange={setColoridoOpen}>
@@ -1184,7 +1184,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
-                      {/* Grade 7×7 = 49 opções (72-120), estilo calendário */}
+                      {/* Grade 7Ã—7 = 49 opÃ§Ãµes (72-120), estilo calendÃ¡rio */}
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_COLORIDO.map(n => (
                           <button key={n} type="button"
@@ -1203,11 +1203,11 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Conclusão */}
+        {/* ConclusÃ£o */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-orange-400">
-              Conclusão
+              ConclusÃ£o
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1222,14 +1222,14 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Botão */}
+        {/* BotÃ£o */}
         <Button size="lg" className="w-full gap-2 h-12"
           onClick={async () => {
             if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
               await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
-              // Salva o último número usado para todos os usuários
+              // Salva o Ãºltimo nÃºmero usado para todos os usuÃ¡rios
               if (form.numero) {
                 supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero })
                   .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
@@ -1252,3 +1252,4 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
 };
 
 export default Laudos;
+
