@@ -18,7 +18,7 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "completo";
+type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "doccraf" | "completo";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc. CR",
@@ -27,6 +27,7 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
   analise:  "CR Analise",
   autor:    "Aut. Analise",
   craf:     "Craf. Analise",
+  doccraf:  "Doc Craf",
   completo: "Concluído",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
@@ -36,6 +37,7 @@ const STATUS_COLORS: Record<ClienteStatus, string> = {
   analise:  "text-yellow-300/80 border-yellow-400/40 bg-yellow-400/10",
   autor:    "text-orange-400 border-orange-500/50 bg-orange-500/10",
   craf:     "text-cyan-400 border-cyan-500/50 bg-cyan-500/10",
+  doccraf:  "text-teal-300 border-teal-400/50 bg-teal-500/10",
   completo: "text-purple-300 border-purple-400/50 bg-purple-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
@@ -45,6 +47,7 @@ const STATUS_DOT: Record<ClienteStatus, string> = {
   analise:  "bg-yellow-300/80",
   autor:    "bg-orange-400",
   craf:     "bg-cyan-400",
+  doccraf:  "bg-teal-300",
   completo: "bg-purple-300",
 };
 
@@ -1583,7 +1586,7 @@ END $$;`
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise", completo: "Concluído" }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise", doccraf: "Doc Craf", completo: "Concluído" }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
