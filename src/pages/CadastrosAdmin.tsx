@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,7 @@ const maskCpf = (v: string) => {
 };
 
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"];
-const ARMAS_OPTS   = ["Pistola", "Revólver", "Rifle", "Espingarda"];
+const ARMAS_OPTS   = ["Pistola", "RevÃ³lver", "Rifle", "Espingarda"];
 
 const GOLD = "#d4a730";
 
@@ -144,7 +144,7 @@ export default function CadastrosAdmin() {
   const excluir = async (id: string) => {
     const { error } = await supabase.from("cac_cadastros").delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
-    toast.success("Cadastro excluído.");
+    toast.success("Cadastro excluÃ­do.");
     setDeletandoId(null);
     carregar();
   };
@@ -171,7 +171,7 @@ export default function CadastrosAdmin() {
       const { data: { publicUrl } } = supabase.storage.from("psicologicos").getPublicUrl(path);
       setNovoPsicoUrl(publicUrl);
     } else {
-      toast.error("Erro ao enviar psicológico: " + error.message);
+      toast.error("Erro ao enviar psicolÃ³gico: " + error.message);
       setNovoPsicoFile(null);
     }
     setUploadingPsico(false);
@@ -180,12 +180,12 @@ export default function CadastrosAdmin() {
   const salvarNovo = async () => {
     if (!novoNome.trim())     { toast.error("Informe o nome completo."); return; }
     if (!novoCpf.trim())      { toast.error("Informe o CPF."); return; }
-    if (!novoEndereco.trim()) { toast.error("Informe o endereço."); return; }
-    if (!novoNumero.trim())   { toast.error("Informe o número."); return; }
+    if (!novoEndereco.trim()) { toast.error("Informe o endereÃ§o."); return; }
+    if (!novoNumero.trim())   { toast.error("Informe o nÃºmero."); return; }
     if (!novoBairro.trim())   { toast.error("Informe o bairro."); return; }
-    if (!novoTipos.length)    { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
+    if (!novoTipos.length)    { toast.error("Selecione ao menos um Tipo de ServiÃ§o."); return; }
     if (!novoArmas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
-    if (uploadingPsico)       { toast.error("Aguarde o upload do psicológico."); return; }
+    if (uploadingPsico)       { toast.error("Aguarde o upload do psicolÃ³gico."); return; }
 
     setNovoSaving(true);
     const { error } = await supabase.from("cac_cadastros").insert({
@@ -210,7 +210,7 @@ export default function CadastrosAdmin() {
   const excluirTodos = async () => {
     const { error } = await supabase.from("cac_cadastros").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
-    toast.success("Todos os cadastros excluídos.");
+    toast.success("Todos os cadastros excluÃ­dos.");
     setDeletandoTodos(false);
     carregar();
   };
@@ -224,7 +224,7 @@ export default function CadastrosAdmin() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-12 z-10">
         <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           <Users className="h-5 w-5 text-primary flex-shrink-0" />
           <div className="flex-1">
@@ -297,7 +297,7 @@ export default function CadastrosAdmin() {
                       <p className="font-semibold text-sm truncate">{c.nome.toUpperCase()}</p>
                       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                         {c.cpf      && <span>CPF: {c.cpf}</span>}
-                        {c.endereco && <span>{c.endereco}{c.numero ? `, Nº ${c.numero}` : ""}{c.complemento ? ` - ${c.complemento}` : ""}</span>}
+                        {c.endereco && <span>{c.endereco}{c.numero ? `, NÂº ${c.numero}` : ""}{c.complemento ? ` - ${c.complemento}` : ""}</span>}
                         {c.bairro   && <span>Bairro: {c.bairro}</span>}
                       </div>
                       <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -316,18 +316,18 @@ export default function CadastrosAdmin() {
                         <p className="text-[10px] text-muted-foreground">{fmtData(c.created_at)}</p>
                         {c.psicologico_url && (() => {
                           const ext = c.psicologico_url.split(".").pop()?.split("?")[0] || "pdf";
-                          const dlUrl = `${c.psicologico_url}?download=${encodeURIComponent(`${c.nome.toUpperCase()} - Psicológico.${ext}`)}`;
+                          const dlUrl = `${c.psicologico_url}?download=${encodeURIComponent(`${c.nome.toUpperCase()} - PsicolÃ³gico.${ext}`)}`;
                           return (
                             <a href={dlUrl} target="_blank" rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                              <FileDown className="h-3 w-3" />Psicológico
+                              <FileDown className="h-3 w-3" />PsicolÃ³gico
                             </a>
                           );
                         })()}
                       </div>
                     </div>
 
-                    {/* Ações */}
+                    {/* AÃ§Ãµes */}
                     <div className="flex flex-col gap-1.5 flex-shrink-0">
                       <button onClick={() => abrirEdicao(c)} className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors" title="Editar">
                         <Pencil className="h-4 w-4" />
@@ -340,7 +340,7 @@ export default function CadastrosAdmin() {
                               <Check className="h-3 w-3" />Sim
                             </button>
                             <button onClick={() => setDeletandoId(null)} className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[10px] font-semibold hover:bg-accent transition-colors">
-                              <X className="h-3 w-3" />Não
+                              <X className="h-3 w-3" />NÃ£o
                             </button>
                           </div>
                         </div>
@@ -370,19 +370,19 @@ export default function CadastrosAdmin() {
           <div className="space-y-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome completo {!novoNome.trim() && <span className="text-destructive">*</span>}</Label>
-              <Input value={novoNome} onChange={e => setNovoNome(e.target.value.toUpperCase())} placeholder="EX: JOÃO DA SILVA" />
+              <Input value={novoNome} onChange={e => setNovoNome(e.target.value.toUpperCase())} placeholder="EX: JOÃƒO DA SILVA" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">CPF {!novoCpf.trim() && <span className="text-destructive">*</span>}</Label>
               <Input value={novoCpf} onChange={e => setNovoCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Endereço {!novoEndereco.trim() && <span className="text-destructive">*</span>}</Label>
+              <Label className="text-xs">EndereÃ§o {!novoEndereco.trim() && <span className="text-destructive">*</span>}</Label>
               <Input value={novoEndereco} onChange={e => setNovoEndereco(e.target.value.toUpperCase())} placeholder="RUA, AV..." />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Nº {!novoNumero.trim() && <span className="text-destructive">*</span>}</Label>
+                <Label className="text-xs">NÂº {!novoNumero.trim() && <span className="text-destructive">*</span>}</Label>
                 <Input value={novoNumero} onChange={e => setNovoNumero(e.target.value)} placeholder="123" />
               </div>
               <div className="space-y-1">
@@ -395,9 +395,9 @@ export default function CadastrosAdmin() {
               <Input value={novoBairro} onChange={e => setNovoBairro(e.target.value.toUpperCase())} placeholder="EX: CENTRO" />
             </div>
 
-            {/* Tipo de Serviço */}
+            {/* Tipo de ServiÃ§o */}
             <div className="space-y-2">
-              <Label className="text-xs">Tipo de Serviço {!novoTipos.length && <span className="text-destructive">*</span>}</Label>
+              <Label className="text-xs">Tipo de ServiÃ§o {!novoTipos.length && <span className="text-destructive">*</span>}</Label>
               {TIPOS_SINARM.map(t => (
                 <label key={t} className="flex items-center gap-2.5 cursor-pointer">
                   <div style={checkboxStyle(novoTipos.includes(t))} onClick={() => toggleNovo(novoTipos, setNovoTipos, t)}>
@@ -423,9 +423,9 @@ export default function CadastrosAdmin() {
               </div>
             </div>
 
-            {/* Psicológico */}
+            {/* PsicolÃ³gico */}
             <div className="space-y-2">
-              <Label className="text-xs">Psicológico (opcional)</Label>
+              <Label className="text-xs">PsicolÃ³gico (opcional)</Label>
               <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
               <button type="button" onClick={() => psicoInputRef.current?.click()}
                 className={`w-full flex flex-col items-center gap-2 py-5 rounded-xl border-2 border-dashed transition-colors ${novoPsicoUrl ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40"}`}>
@@ -459,7 +459,7 @@ export default function CadastrosAdmin() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de edição */}
+      {/* Dialog de ediÃ§Ã£o */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -476,12 +476,12 @@ export default function CadastrosAdmin() {
                 <Input value={editData.cpf || ""} onChange={e => setEditData(p => p && ({ ...p, cpf: maskCpf(e.target.value) }))} placeholder="000.000.000-00" inputMode="numeric" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Endereço</Label>
+                <Label className="text-xs">EndereÃ§o</Label>
                 <Input value={editData.endereco || ""} onChange={e => setEditData(p => p && ({ ...p, endereco: e.target.value.toUpperCase() }))} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Nº</Label>
+                  <Label className="text-xs">NÂº</Label>
                   <Input value={editData.numero || ""} onChange={e => setEditData(p => p && ({ ...p, numero: e.target.value }))} />
                 </div>
                 <div className="space-y-1">
@@ -496,7 +496,7 @@ export default function CadastrosAdmin() {
 
               {/* Tipo */}
               <div className="space-y-2">
-                <Label className="text-xs">Tipo de Serviço</Label>
+                <Label className="text-xs">Tipo de ServiÃ§o</Label>
                 {TIPOS_SINARM.map(t => (
                   <label key={t} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={editTipos.includes(t)} onChange={() => toggleEdit(editTipos, setEditTipos, t)} className="accent-primary" />
@@ -528,3 +528,4 @@ export default function CadastrosAdmin() {
     </div>
   );
 }
+

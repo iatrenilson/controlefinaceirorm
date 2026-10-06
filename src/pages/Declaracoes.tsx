@@ -1188,9 +1188,11 @@ END $$;`
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [buscaCliente, setBuscaCliente] = useState("");
   const [filtroStatusBadge, setFiltroStatusBadge] = useState<ClienteStatus | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
-    (localStorage.getItem("decl_view_mode") as "grid" | "list") || "list"
-  );
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    const saved = localStorage.getItem("decl_view_mode") as "grid" | "list";
+    if (saved) return saved;
+    return window.innerWidth < 640 ? "grid" : "list";
+  });
   const toggleViewMode = () => {
     setViewMode(prev => {
       const next = prev === "grid" ? "list" : "grid";
@@ -2294,7 +2296,8 @@ END $$;`
                 </div>
               ) : (
                 /* ── Modo Lista ── */
-                <div className="rounded-xl border border-border overflow-hidden divide-y divide-border">
+                <div className="overflow-x-auto rounded-xl border border-border">
+                <div className="min-w-[640px] divide-y divide-border">
                   {/* Cabeçalho da tabela */}
                   <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-3 items-center px-3 py-1.5 bg-muted/40">
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Nome</span>
@@ -2422,6 +2425,7 @@ END $$;`
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
             </CardContent>

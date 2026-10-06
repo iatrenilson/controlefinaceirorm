@@ -586,7 +586,7 @@ const DelayViewer = () => {
         </div>
 
         {/* Stats row - fixed below filters */}
-        <div className="max-w-6xl mx-auto grid grid-cols-4 gap-3">
+        <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Popover open={lucroMesCalendarOpen} onOpenChange={setLucroMesCalendarOpen}>
             <PopoverTrigger asChild>
               <div className="rounded-lg border bg-background/60 px-4 py-3 text-center cursor-pointer hover:ring-1 hover:ring-primary/50 transition-all">
