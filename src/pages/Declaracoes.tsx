@@ -71,6 +71,8 @@ interface Cliente {
   cep: string;
   cidade: string;
   estado: string;
+  email: string;
+  telefone: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -88,6 +90,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
+  email: "", telefone: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1073,6 +1076,8 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     cep: (row.cep as string) ?? "",
     cidade: (row.cidade as string) ?? "Manaus",
     estado: (row.estado as string) ?? "AM",
+    email: (row.email as string) ?? "",
+    telefone: (row.telefone as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -1556,6 +1561,8 @@ END $$;`
         cep: c.cep,
         cidade: c.cidade,
         estado: c.estado,
+        email: c.email || null,
+        telefone: c.telefone || null,
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -1771,6 +1778,8 @@ END $$;`
           cep: r.cep,
           cidade: r.cidade,
           estado: r.estado,
+          email: r.email ?? "",
+          telefone: r.telefone ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
@@ -1837,8 +1846,14 @@ END $$;`
           body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
         }).catch(() => {});
         localStorage.setItem("dc_migration_v4", "1");
-        // Aguarda PostgREST recarregar o schema antes de buscar
         await new Promise(r => setTimeout(r, 2000));
+      }
+      const mig5Done = localStorage.getItem("dc_migration_v5");
+      if (!mig5Done) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS email TEXT; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS telefone TEXT;" },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_v5", "1");
       }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
@@ -2454,6 +2469,25 @@ END $$;`
                 <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
                   value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
                 <CopyButton value={formCliente.nome} />
+              </div>
+            </div>
+            {/* Email + Telefone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">E-mail</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="exemplo@email.com"
+                    value={formCliente.email} onChange={e => setC("email", e.target.value)} />
+                  <CopyButton value={formCliente.email} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Telefone</Label>
+                <div className="flex gap-1.5">
+                  <Input className="h-9 text-sm" placeholder="(92) 9 0000-0000"
+                    value={formCliente.telefone} onChange={e => setC("telefone", e.target.value)} />
+                  <CopyButton value={formCliente.telefone} />
+                </div>
               </div>
             </div>
             {/* CPF + RG */}
