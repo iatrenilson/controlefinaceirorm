@@ -1644,7 +1644,10 @@ END $$;`
         return new Map(prev).set(clienteId, cur);
       });
       sonnerToast.success("Documento enviado!");
-    } catch { sonnerToast.error("Erro ao enviar documento."); }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err);
+      sonnerToast.error(`Erro ao enviar: ${msg}`);
+    }
     finally { setUploadingDocTipo(null); }
   }, []);
 
@@ -1996,6 +1999,13 @@ END $$;`
           body: { sql: `CREATE TABLE IF NOT EXISTS declaracao_docs_cr (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, cliente_id TEXT NOT NULL, tipo TEXT NOT NULL, file_name TEXT NOT NULL, storage_path TEXT NOT NULL, file_url TEXT NOT NULL DEFAULT '', uploaded_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(cliente_id, tipo)); ALTER TABLE declaracao_docs_cr ENABLE ROW LEVEL SECURITY; DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='auth_all_docs_cr' AND tablename='declaracao_docs_cr') THEN CREATE POLICY auth_all_docs_cr ON declaracao_docs_cr TO authenticated USING (true) WITH CHECK (true); END IF; END $$; INSERT INTO storage.buckets (id, name, public, file_size_limit) VALUES ('cac-docs', 'cac-docs', true, 52428800) ON CONFLICT DO NOTHING;` },
         }).catch(() => {});
         localStorage.setItem("dc_migration_docs_cr", "1");
+      }
+      const migDocsCRv2 = localStorage.getItem("dc_migration_docs_cr_v2");
+      if (!migDocsCRv2) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_insert' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_insert ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_select' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_update' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_update ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_delete' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_delete ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'cac-docs'); END IF; END $$;` },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_docs_cr_v2", "1");
       }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
