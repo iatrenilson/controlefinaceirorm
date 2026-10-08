@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import { norm } from "@/lib/utils";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -255,7 +256,7 @@ export default function CadastrosAdmin() {
   };
 
   const filtrados = busca.trim()
-    ? cadastros.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cpf || "").includes(busca))
+    ? cadastros.filter(c => norm(c.nome).includes(norm(busca)) || (c.cpf || "").includes(busca))
     : cadastros;
 
   const fmtData = (d: string) =>
@@ -427,9 +428,8 @@ export default function CadastrosAdmin() {
                   <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
                     {cacClientes
                       .filter(c => {
-                        const q = cacBusca.toLowerCase();
                         const cpfDigits = cacBusca.replace(/\D/g, "");
-                        return (c.nome || "").toLowerCase().includes(q) ||
+                        return norm(c.nome || "").includes(norm(cacBusca)) ||
                           (cpfDigits.length > 0 && (c.cpf || "").replace(/\D/g, "").includes(cpfDigits));
                       })
                       .slice(0, 8)
@@ -455,9 +455,8 @@ export default function CadastrosAdmin() {
                         </button>
                       ))}
                     {cacClientes.filter(c => {
-                      const q = cacBusca.toLowerCase();
                       const cpfDigits = cacBusca.replace(/\D/g, "");
-                      return (c.nome || "").toLowerCase().includes(q) ||
+                      return norm(c.nome || "").includes(norm(cacBusca)) ||
                         (cpfDigits.length > 0 && (c.cpf || "").replace(/\D/g, "").includes(cpfDigits));
                     }).length === 0 && (
                       <div className="px-3 py-2.5 text-sm text-muted-foreground">Nenhum cliente encontrado.</div>

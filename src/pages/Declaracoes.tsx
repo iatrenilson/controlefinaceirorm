@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { cn, norm } from "@/lib/utils";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -2373,7 +2373,7 @@ END $$;`
                       </tr>
                     </thead>
                     <tbody>
-                      {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
+                      {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente))).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
                         const docs = docsCliente.get(c.id) ?? [];
                         const ok = docs.length;
                         const cor = ok === DOCS_CR.length ? "text-green-400" : ok > 0 ? "text-yellow-400" : "text-muted-foreground";
@@ -2406,7 +2406,7 @@ END $$;`
                 </div>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
+                  {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente)) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
@@ -2612,7 +2612,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
-                  {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
+                  {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente)) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
