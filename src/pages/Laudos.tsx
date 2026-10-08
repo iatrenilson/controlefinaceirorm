@@ -1241,7 +1241,6 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
         {/* Botão */}
         <Button size="lg" className="w-full gap-2 h-12"
           onClick={async () => {
-            if (!form.nome || !form.cpf) { toast.error("Preencha Nome e CPF do avaliado."); return; }
             if (!form.dataDecl) { toast.error("Selecione a Data da Declaração."); return; }
             if (!form.local) { toast.error("Selecione o Local da Prova Prática (Estande)."); return; }
             if (laudoTipo === "cr_cac" && !form.pistola && !form.revolver && !form.rifle && !form.espingarda) {
@@ -1252,6 +1251,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             }
             if (!form.finalidade.length) { toast.error("Selecione ao menos uma Finalidade."); return; }
             if (!form.categoria.length) { toast.error("Selecione ao menos uma Categoria."); return; }
+            if (!form.notaTeorica) { toast.error("Preencha a Nota da Prova Teórica."); return; }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
               await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
