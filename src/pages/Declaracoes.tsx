@@ -1249,7 +1249,8 @@ END $$;`
   // Documentos CR
   const [docsCliente, setDocsCliente] = useState<Map<string, DocCRItem[]>>(new Map());
   const [uploadingDocTipo, setUploadingDocTipo] = useState<string | null>(null);
-  const [abaDocs, setAbaDocs] = useState(false);
+  const [abaDashboard, setAbaDashboard] = useState(false);
+  const [abaDocsForm, setAbaDocsForm] = useState(false);
   const docUploadRef = useRef<HTMLInputElement>(null);
   const [docUploadTipo, setDocUploadTipo] = useState<string>("");
 
@@ -2010,7 +2011,21 @@ END $$;`
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
       if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
-      fetchClientes();
+      await fetchClientes();
+      // Carrega docs de todos os clientes para exibir nos cards
+      const { data: { user: me2 } } = await supabase.auth.getUser();
+      if (me2?.id) {
+        const { data: allDocs } = await supabase.from("declaracao_docs_cr").select("*");
+        if (allDocs && allDocs.length > 0) {
+          const map = new Map<string, DocCRItem[]>();
+          for (const d of allDocs as DocCRItem[]) {
+            const arr = map.get(d.cliente_id) ?? [];
+            arr.push(d);
+            map.set(d.cliente_id, arr);
+          }
+          setDocsCliente(map);
+        }
+      }
     };
     init();
   }, [fetchClientes, restoreKey]);
@@ -2272,14 +2287,14 @@ END $$;`
                     {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                   </Button>
                   <Button
-                    size="icon" variant={abaDocs ? "default" : "ghost"}
+                    size="icon" variant={abaDashboard ? "default" : "ghost"}
                     className="h-8 w-8"
                     title="Dashboard de Documentos CR"
                     onClick={async () => {
-                      if (!abaDocs) {
+                      if (!abaDashboard) {
                         for (const c of clientes) { fetchDocsCR(c.id); }
                       }
-                      setAbaDocs(o => !o);
+                      setAbaDashboard(o => !o);
                     }}
                   >
                     <BarChart2 className="h-4 w-4" />
@@ -2342,7 +2357,7 @@ END $$;`
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
                 </p>
-              ) : abaDocs ? (
+              ) : abaDashboard ? (
                 /* ── Dashboard Documentos CR ── */
                 <div className="overflow-x-auto rounded-xl border border-border/40">
                   <table className="w-full text-xs">
@@ -2548,15 +2563,36 @@ END $$;`
                         )}
                         {(() => {
                           const docs = docsCliente.get(c.id) ?? [];
-                          const total = DOCS_CR.length;
                           const ok = docs.length;
-                          if (ok === 0) return null;
-                          const pct = Math.round((ok / total) * 100);
-                          const cor = ok === total ? "text-green-400" : ok >= total * 0.6 ? "text-yellow-400" : "text-red-400";
+                          const total = DOCS_CR.length;
+                          const cor = ok === total ? "border-green-500/40 text-green-400" : ok > 0 ? "border-yellow-500/40 text-yellow-400" : "border-border/30 text-muted-foreground";
                           return (
-                            <div className="flex items-center gap-1.5 border-t border-white/5 pt-1 mt-0.5">
-                              <FileCheck2 className={`h-3 w-3 flex-shrink-0 ${cor}`} />
-                              <span className={`text-[9px] font-semibold ${cor}`}>Docs CR: {ok}/{total} ({pct}%)</span>
+                            <div className="border-t border-white/5 pt-1 mt-0.5">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button type="button" className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold hover:opacity-100 opacity-80 transition-opacity ${cor}`}>
+                                    <FileText className="h-2.5 w-2.5" />
+                                    Docs CR {ok}/{total}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent side="right" align="start" className="w-72 p-2">
+                                  <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Documentos CR — {c.nome}</p>
+                                  <div className="space-y-0.5">
+                                    {DOCS_CR.map((d, i) => {
+                                      const item = docs.find(x => x.tipo === d.id);
+                                      return (
+                                        <div key={d.id} className="flex items-center gap-1.5">
+                                          <span className="text-[9px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
+                                          {item
+                                            ? <FileCheck2 className="h-3 w-3 text-green-400 flex-shrink-0" />
+                                            : <FileX2 className="h-3 w-3 text-red-400/50 flex-shrink-0" />}
+                                          <span className={`text-[10px] leading-tight ${item ? "text-green-300" : "text-foreground/60"}`}>{d.label}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           );
                         })()}
@@ -3110,7 +3146,7 @@ END $$;`
                 }} />
               <button type="button"
                 className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
-                onClick={() => setAbaDocs(o => !o)}>
+                onClick={() => setAbaDocsForm(o => !o)}>
                 <span className="flex items-center gap-1.5 font-semibold">
                   <FileText className="h-3.5 w-3.5" />
                   Documentos CR
@@ -3119,9 +3155,9 @@ END $$;`
                     return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
                   })()}
                 </span>
-                {abaDocs ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {abaDocsForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               </button>
-              {abaDocs && (
+              {abaDocsForm && (
                 <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
                   {DOCS_CR.map((doc, i) => {
                     const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
@@ -3163,7 +3199,7 @@ END $$;`
           )}
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setDialogClienteOpen(false); setAbaDocsForm(false); }}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente} disabled={savingCliente}>
               <UserPlus className="h-3.5 w-3.5" />{savingCliente ? "Salvando..." : editandoId ? "Salvar Alterações" : "Cadastrar"}
             </Button>
