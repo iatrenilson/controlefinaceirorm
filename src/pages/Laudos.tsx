@@ -121,7 +121,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   const ML = 10, CW = 190; // content width
   const HDR = 6.5; // section header height
 
-  // Font helpers â€" mesma família (helvetica = Arial) e tamanhos do documento original
+  // Font helpers - mesma família (helvetica = Arial) e tamanhos do documento original
   const B = (sz: number) => { doc.setFont("helvetica", "bold");   doc.setFontSize(sz); doc.setTextColor(0); };
   const N = (sz: number) => { doc.setFont("helvetica", "normal"); doc.setFontSize(sz); doc.setTextColor(0); };
   // Tamanhos usados no original:
@@ -132,21 +132,21 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   //   Weapon rows body   â†’ 8.5 / 8
   //   APTO / INAPTO      â†’ 12
 
-  // Horizontal line â€" sempre preto
+  // Horizontal line - sempre preto
   const hl = (y: number, x1 = ML, x2 = ML + CW, w = 0.2) => { doc.setDrawColor(0); doc.setLineWidth(w); doc.line(x1, y, x2, y); };
-  // Vertical line â€" sempre preto
+  // Vertical line - sempre preto
   const vl = (x: number, y1: number, y2: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y1, x, y2); };
-  // Underline field â€" sempre preto
+  // Underline field - sempre preto
   const ul = (x: number, y: number, w: number) => { doc.setDrawColor(0); doc.setLineWidth(0.2); doc.line(x, y, x + w, y); };
 
-  // Checkbox quadrado â€" reset completo de cores antes de desenhar
+  // Checkbox quadrado - reset completo de cores antes de desenhar
   const sqBox = (x: number, y: number, marked: boolean, sz = 3.5) => {
     doc.setDrawColor(0); doc.setFillColor(255, 255, 255); doc.setLineWidth(0.25);
     doc.rect(x, y - sz + 0.3, sz, sz, "S");
     if (marked) { B(9); doc.setTextColor(0); doc.text("X", x + sz / 2, y - 0.1, { align: "center" }); }
   };
 
-  // Parenthesis checkbox â€" X em negrito quando marcado
+  // Parenthesis checkbox - X em negrito quando marcado
   const pc = (ok: boolean) => ok ? "(  X  )" : "(      )";
   const renderPc = (ok: boolean, x: number, y: number): number => {
     const str = pc(ok);
@@ -349,7 +349,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     }
   }
 
-  // Linha de assinatura â€" canto direito, dentro da caixa
+  // Linha de assinatura - canto direito, dentro da caixa
   const sigLineX = PW / 2 + 5;
   const sigLineW = ML + CW - sigLineX - 2;
   ul(sigLineX, decY + 32, sigLineW);
@@ -421,12 +421,12 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     N(9); doc.text(" CAC", fx, fndY + 9);
   }
 
-  // NOTA â€" label normal, valor em negrito  (offset +13.5)
+  // NOTA - label normal, valor em negrito  (offset +13.5)
   N(9); doc.text("NOTA DA PROVA TEORICA:", ML + 2, fndY + 13.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEORICA:") + 2;
   B(9); doc.text(f.notaTeorica || "-", notaX, fndY + 13.5);
 
-  // PONTUAÇÃO SILHUETA â€" label normal, valores em negrito  (offset +18)
+  // PONTUAÇÃO SILHUETA - label normal, valores em negrito  (offset +18)
   N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 18);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
@@ -440,7 +440,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     B(9); doc.text(val, px, fndY + 18); px += doc.getTextWidth(val);
   });
 
-  // PONTUAÇÃO ALVO MULTICOLORIDO â€" apenas SINARM  (offset +22.5)
+  // PONTUAÇÃO ALVO MULTICOLORIDO - apenas SINARM  (offset +22.5)
   if (tipo === "sinarm") {
     N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
@@ -495,13 +495,13 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   section(y, avalH, "AVALIADOR");
 
   const avY = y + HDR + 1;
-  // Linha 1 â€" fluxo natural, sem posição fixa de coluna
+  // Linha 1 - fluxo natural, sem posição fixa de coluna
   let ax = ML + 2;
   N(9); doc.text("NOME: William Bruno Toyoda Hitotuzi", ax, avY + 4.5);
   ax += doc.getTextWidth("NOME: William Bruno Toyoda Hitotuzi") + 3;
   doc.text("CPF: 733.633.592-68", ax, avY + 4.5);
 
-  // Linha 2 â€" fluxo natural
+  // Linha 2 - fluxo natural
   ax = ML + 2;
   N(9); doc.text("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025", ax, avY + 9.5);
   ax += doc.getTextWidth("PORTARIA: DREX/SR/PF/AM - N° 01/2025, 14/11/2025") + 3;
@@ -593,7 +593,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 }
 
 // â"€â"€â"€ UI helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-// Seleção única (radio) â€" círculo
+// Seleção única (radio) - círculo
 function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -609,7 +609,7 @@ function RadioBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
   );
 }
 
-// Seleção múltipla (checkbox) â€" quadrado com âœ"
+// Seleção múltipla (checkbox) - quadrado com âœ"
 function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
@@ -775,7 +775,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
     ? cadastros.filter(c => norm(c.nome).includes(norm(cadSearch)) || (c.cpf || "").includes(cadSearch))
     : cadastros;
 
-  // Seleciona registro SINARM/SIGMA â€" sem auto-preencher notas
+  // Seleciona registro SINARM/SIGMA - sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {
     setForm(p => ({ ...p, [key]: val }));
   };
@@ -800,7 +800,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           <div className="flex-1">
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Laudos</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">
-              Comprovante de Capacidade Técnica â€" Arma de Fogo
+              Comprovante de Capacidade Técnica - Arma de Fogo
             </p>
           </div>
         </div>
@@ -815,7 +815,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
               <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
                 Dados do Avaliado
               </CardTitle>
-              {/* Tipo de Laudo â€" radio pill + Limpar */}
+              {/* Tipo de Laudo - radio pill + Limpar */}
               <div className="flex items-center gap-2 text-xs font-medium">
                 <button type="button"
                   onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); toast.info("Formulário limpo."); }}
@@ -952,11 +952,11 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
           </CardContent>
         </Card>
 
-        {/* Armas â€" conteúdo muda por tipo de laudo */}
+        {/* Armas - conteúdo muda por tipo de laudo */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-xs font-semibold uppercase tracking-widest text-primary">
-              {laudoTipo === "sinarm" ? "Dados da Arma de Fogo Utilizada" : "Armas de Fogo â€" SINARM / SIGMA"}
+              {laudoTipo === "sinarm" ? "Dados da Arma de Fogo Utilizada" : "Armas de Fogo - SINARM / SIGMA"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1098,7 +1098,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Nota Teórica â€" sempre 20 */}
+            {/* Nota Teórica - sempre 20 */}
             <div className="space-y-1">
               <Label className="text-xs">Nota da Prova Teórica</Label>
               <div className="h-9 px-3 flex items-center rounded-md border bg-muted text-sm font-semibold w-28">
@@ -1110,7 +1110,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                 Pontuação no Alvo Silhueta
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Pistola â€" Popover grade 72-120 */}
+                {/* Pistola - Popover grade 72-120 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Pistola</Label>
                   <Popover open={pistOpen} onOpenChange={setPistOpen}>
@@ -1135,7 +1135,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Revólver â€" Popover grade 72-120 sem rolagem */}
+                {/* Revólver - Popover grade 72-120 sem rolagem */}
                 <div className="space-y-1">
                   <Label className="text-xs">Revólver</Label>
                   <Popover open={revolOpen} onOpenChange={setRevolOpen}>
@@ -1159,7 +1159,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                     </PopoverContent>
                   </Popover>
                 </div>
-                {/* Rifle â€" toggle manual: marcado = 50 */}
+                {/* Rifle - toggle manual: marcado = 50 */}
                 <div className="space-y-1">
                   <Label className="text-xs">Rifle</Label>
                   <button type="button"
@@ -1171,7 +1171,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                     <span>{form.notaRifle ? `50 âœ"` : "- (clique p/ marcar)"}</span>
                   </button>
                 </div>
-                {/* Espingarda â€" toggle manual: marcada = APTO */}
+                {/* Espingarda - toggle manual: marcada = APTO */}
                 <div className="space-y-1">
                   <Label className="text-xs">Espingarda</Label>
                   <button type="button"
@@ -1185,7 +1185,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                 </div>
               </div>
             </div>
-            {/* Alvo Multicolorido â€" apenas SINARM Posse/Porte */}
+            {/* Alvo Multicolorido - apenas SINARM Posse/Porte */}
             {laudoTipo === "sinarm" && (
               <div>
                 <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
