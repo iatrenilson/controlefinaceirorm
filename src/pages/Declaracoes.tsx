@@ -1552,10 +1552,25 @@ END $$;`
       const ab = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
       let fullText = "";
+      type TItem = { str: string; transform: number[]; hasEOL?: boolean };
       for (let p = 1; p <= pdf.numPages; p++) {
         const page = await pdf.getPage(p);
         const tc = await page.getTextContent();
-        fullText += (tc.items as Array<{ str?: string }>).map(it => it.str ?? "").join(" ") + "\n";
+        const items = (tc.items as TItem[]).filter(it => it.str && it.str.trim());
+        // Agrupa por posição Y (tolerância ±2px) para reconstruir linhas reais
+        const lineMap = new Map<number, TItem[]>();
+        for (const item of items) {
+          const y = Math.round(item.transform[5] / 2) * 2;
+          if (!lineMap.has(y)) lineMap.set(y, []);
+          lineMap.get(y)!.push(item);
+        }
+        // Ordena linhas de cima para baixo (Y maior = mais acima em coords PDF)
+        const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a);
+        for (const y of sortedYs) {
+          const lineItems = lineMap.get(y)!.sort((a, b) => a.transform[4] - b.transform[4]);
+          const lineText = lineItems.map(it => it.str).join(" ").trim();
+          if (lineText) fullText += lineText + "\n";
+        }
       }
       const parsed = _parsearTexto(fullText);
       const defaults = new Set(["", "SSP-AM", "Solteiro(a)", "AM", "Manaus", "doc"]);
