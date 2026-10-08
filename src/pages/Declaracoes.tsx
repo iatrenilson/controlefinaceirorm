@@ -3122,7 +3122,6 @@ END $$;`
                         {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
-                          {doc.tag && <span className="text-[9px] text-amber-400/70 font-semibold">{doc.tag}</span>}
                           {item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
