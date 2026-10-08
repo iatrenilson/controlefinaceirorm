@@ -1626,17 +1626,21 @@ END $$;`
     setUploadingDocTipo(tipo);
     try {
       const ext = file.name.split(".").pop() ?? "pdf";
+      const docDef = DOCS_CR.find(d => d.id === tipo);
+      const displayName = docDef
+        ? `${docDef.label.replace(/[/\\?%*:|"<>]/g, "-")}.${ext}`
+        : file.name;
       const path = `${clienteId}/${tipo}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("cac-docs").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
       const { data: { publicUrl } } = supabase.storage.from("cac-docs").getPublicUrl(path);
       await supabase.from("declaracao_docs_cr").upsert(
-        { cliente_id: clienteId, tipo, file_name: file.name, storage_path: path, file_url: publicUrl },
+        { cliente_id: clienteId, tipo, file_name: displayName, storage_path: path, file_url: publicUrl },
         { onConflict: "cliente_id,tipo" }
       );
       setDocsCliente(prev => {
         const cur = (prev.get(clienteId) ?? []).filter(d => d.tipo !== tipo);
-        cur.push({ id: "", tipo: tipo as DocCRTipo, fileName: file.name, storagePath: path, fileUrl: publicUrl });
+        cur.push({ id: "", tipo: tipo as DocCRTipo, fileName: displayName, storagePath: path, fileUrl: publicUrl });
         return new Map(prev).set(clienteId, cur);
       });
       sonnerToast.success("Documento enviado!");
