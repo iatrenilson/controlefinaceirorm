@@ -407,8 +407,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   N(9); doc.text("FINALIDADE:", ML + 2, fndY + 4.5);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 4.5);
-  doc.text(" AQUISIÇÃO, REGISTRO OU TRANSFERÃŠNCIA  ", fx, fndY + 4.5);
-  fx += doc.getTextWidth(" AQUISIÇÃO, REGISTRO OU TRANSFERÃŠNCIA  ");
+  doc.text(" AQUISICAO, REGISTRO OU TRANSFERENCIA  ", fx, fndY + 4.5);
+  fx += doc.getTextWidth(" AQUISICAO, REGISTRO OU TRANSFERENCIA  ");
   fx += renderPc(f.finalidade.includes("porte"), fx, fndY + 4.5);
   doc.text(" PORTE  ", fx, fndY + 4.5);
   fx += doc.getTextWidth(" PORTE  ");
@@ -432,8 +432,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   }
 
   // NOTA â€” label normal, valor em negrito  (offset +13.5)
-  N(9); doc.text("NOTA DA PROVA TEÃ“RICA:", ML + 2, fndY + 13.5);
-  const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÃ“RICA:") + 2;
+  N(9); doc.text(“NOTA DA PROVA TEORICA:”, ML + 2, fndY + 13.5);
+  const notaX = ML + 2 + doc.getTextWidth(“NOTA DA PROVA TEORICA:”) + 2;
   B(9); doc.text(sp(f.notaTeorica) || “-”, notaX, fndY + 13.5);
 
   // PONTUAÇÃO SILHUETA â€” label normal, valores em negrito  (offset +18)
