@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -2222,6 +2222,22 @@ END $$;`
                             </Select>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
+                              const fmtEnd = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", ");
+                              const linhas = [
+                                `*Nome:* ${c.nome}`,
+                                c.cpf              ? `*CPF:* ${c.cpf}` : null,
+                                c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
+                                c.telefone         ? `*WhatsApp:* ${c.telefone}` : null,
+                                c.email            ? `*E-mail:* ${c.email}` : null,
+                                c.cep              ? `*CEP:* ${c.cep}` : null,
+                                fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
+                              ].filter(Boolean).join("\n");
+                              navigator.clipboard.writeText(linhas);
+                              sonnerToast.success("Dados copiados!");
+                            }}>
+                              <Share2 className="h-3.5 w-3.5" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -2433,7 +2449,23 @@ END $$;`
                       </div>
 
                       {/* Ações */}
-                      <div className="w-14 flex items-center gap-0.5 justify-center">
+                      <div className="w-20 flex items-center gap-0.5 justify-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
+                          const fmtEnd = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", ");
+                          const linhas = [
+                            `*Nome:* ${c.nome}`,
+                            c.cpf              ? `*CPF:* ${c.cpf}` : null,
+                            c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
+                            c.telefone         ? `*WhatsApp:* ${c.telefone}` : null,
+                            c.email            ? `*E-mail:* ${c.email}` : null,
+                            c.cep              ? `*CEP:* ${c.cep}` : null,
+                            fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
+                          ].filter(Boolean).join("\n");
+                          navigator.clipboard.writeText(linhas);
+                          sonnerToast.success("Dados copiados!");
+                        }}>
+                          <Share2 className="h-3 w-3" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
