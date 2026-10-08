@@ -243,7 +243,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   ].filter(Boolean).join(", ");
   const _endWithBairro = f.endBairro ? `${_endBase} - ${f.endBairro}` : _endBase;
   const _endCidUF = [f.endCidade, f.endEstado].filter(Boolean).join("/");
-  const endVal = _endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase();
+  const endVal = (_endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase();
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
