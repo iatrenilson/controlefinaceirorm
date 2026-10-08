@@ -2293,22 +2293,22 @@ END $$;`
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
-                              const endBase = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento].filter(Boolean).join(", ");
-                              const fmtEnd = c.bairro ? `${endBase} - ${c.bairro}` : endBase;
+                              const endParts = [c.endereco ? c.endereco.toUpperCase() : "", c.numero ? `Nº ${c.numero}` : "", c.complemento ? c.complemento.toUpperCase() : ""].filter(Boolean).join(", ");
+                              const fmtEnd = c.bairro ? `${endParts} - ${c.bairro.toUpperCase()}` : endParts;
                               const linhas = [
-                                `*Nome:* ${c.nome}`,
-                                c.cpf              ? `*CPF:* ${c.cpf}` : null,
-                                c.rg               ? `*RG:* ${c.rg}` : null,
-                                c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
-                                c.telefone         ? `*Tel:* ${c.telefone}` : null,
-                                c.email            ? `*E-mail:* ${c.email}` : null,
-                                c.cep              ? `*CEP:* ${c.cep}` : null,
-                                fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
-                                c.estadoCivil      ? `*Estado Civil:* ${c.estadoCivil}` : null,
-                                c.profissao        ? `*Profissão:* ${c.profissao}` : null,
-                                c.nomePai          ? `*Pai:* ${c.nomePai}` : null,
-                                c.nomeMae          ? `*Mãe:* ${c.nomeMae}` : null,
-                              ].filter(Boolean).join("\n");
+                                `Nome: ${c.nome}`,
+                                c.cpf              ? `CPF: ${c.cpf}` : null,
+                                c.rg               ? `RG: ${c.rg}` : null,
+                                c.dataNascimento   ? `Nascimento: ${formatDate(c.dataNascimento)}` : null,
+                                c.telefone         ? `Tel: ${c.telefone}` : null,
+                                c.email            ? `E-mail: ${c.email}` : null,
+                                c.cep              ? `CEP: ${c.cep}` : null,
+                                fmtEnd             ? `Endereço: ${fmtEnd}` : null,
+                                c.estadoCivil      ? `Estado Civil: ${c.estadoCivil}` : null,
+                                c.profissao        ? `Profissão: ${c.profissao.toUpperCase()}` : null,
+                                c.nomePai          ? `Pai: ${c.nomePai}` : null,
+                                c.nomeMae          ? `Mãe: ${c.nomeMae}` : null,
+                              ].filter(Boolean).join("\n\n");
                               navigator.clipboard.writeText(linhas);
                               sonnerToast.success("Dados copiados!");
                             }}>
@@ -2527,22 +2527,22 @@ END $$;`
                       {/* Ações */}
                       <div className="w-20 flex items-center gap-0.5 justify-center">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
-                          const endBase = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento].filter(Boolean).join(", ");
-                          const fmtEnd = c.bairro ? `${endBase} - ${c.bairro}` : endBase;
+                          const endParts = [c.endereco ? c.endereco.toUpperCase() : "", c.numero ? `Nº ${c.numero}` : "", c.complemento ? c.complemento.toUpperCase() : ""].filter(Boolean).join(", ");
+                          const fmtEnd = c.bairro ? `${endParts} - ${c.bairro.toUpperCase()}` : endParts;
                           const linhas = [
-                            `*Nome:* ${c.nome}`,
-                            c.cpf              ? `*CPF:* ${c.cpf}` : null,
-                            c.rg               ? `*RG:* ${c.rg}` : null,
-                            c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
-                            c.telefone         ? `*Tel:* ${c.telefone}` : null,
-                            c.email            ? `*E-mail:* ${c.email}` : null,
-                            c.cep              ? `*CEP:* ${c.cep}` : null,
-                            fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
-                            c.estadoCivil      ? `*Estado Civil:* ${c.estadoCivil}` : null,
-                            c.profissao        ? `*Profissão:* ${c.profissao}` : null,
-                            c.nomePai          ? `*Pai:* ${c.nomePai}` : null,
-                            c.nomeMae          ? `*Mãe:* ${c.nomeMae}` : null,
-                          ].filter(Boolean).join("\n");
+                            `Nome: ${c.nome}`,
+                            c.cpf              ? `CPF: ${c.cpf}` : null,
+                            c.rg               ? `RG: ${c.rg}` : null,
+                            c.dataNascimento   ? `Nascimento: ${formatDate(c.dataNascimento)}` : null,
+                            c.telefone         ? `Tel: ${c.telefone}` : null,
+                            c.email            ? `E-mail: ${c.email}` : null,
+                            c.cep              ? `CEP: ${c.cep}` : null,
+                            fmtEnd             ? `Endereço: ${fmtEnd}` : null,
+                            c.estadoCivil      ? `Estado Civil: ${c.estadoCivil}` : null,
+                            c.profissao        ? `Profissão: ${c.profissao.toUpperCase()}` : null,
+                            c.nomePai          ? `Pai: ${c.nomePai}` : null,
+                            c.nomeMae          ? `Mãe: ${c.nomeMae}` : null,
+                          ].filter(Boolean).join("\n\n");
                           navigator.clipboard.writeText(linhas);
                           sonnerToast.success("Dados copiados!");
                         }}>
