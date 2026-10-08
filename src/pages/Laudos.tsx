@@ -112,14 +112,19 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// Sanitiza strings para jsPDF (fontes WinAnsi nao suportam Unicode acima de U+00FF)
 function sp(s: string): string {
-  return (s || “”)
-    .replace(/[—–]/g, “-”)   // em dash, en dash
-    .replace(/[“”]/g, '”')   // aspas tipograficas
-    .replace(/[‘’]/g, “'”)   // apostrofos tipograficos
-    .replace(/…/g, “...”)          // reticencias
-    .replace(/[^\x00-\xFF]/g, “?”);    // qualquer outro nao-Latin1
+  if (!s) return “”;
+  let r = “”;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c === 0x2014 || c === 0x2013) r += “-”;
+    else if (c === 0x201C || c === 0x201D) r += ‘”’;
+    else if (c === 0x2018 || c === 0x2019) r += “’”;
+    else if (c === 0x2026) r += “...”;
+    else if (c > 0xFF) r += “?”;
+    else r += s[i];
+  }
+  return r;
 }
 
 async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, sinarmPorte = false) {
