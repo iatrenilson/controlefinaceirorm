@@ -2764,7 +2764,11 @@ END $$;`
 
       {/* ── Dialog: Cadastro de Cliente ── */}
       <Dialog open={dialogClienteOpen} onOpenChange={setDialogClienteOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={e => e.preventDefault()}
+          onEscapeKeyDown={e => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <UserPlus className="h-4 w-4 text-primary" />
