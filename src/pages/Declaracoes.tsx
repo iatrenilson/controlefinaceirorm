@@ -2297,11 +2297,16 @@ END $$;`
                               const linhas = [
                                 `*Nome:* ${c.nome}`,
                                 c.cpf              ? `*CPF:* ${c.cpf}` : null,
+                                c.rg               ? `*RG:* ${c.rg}` : null,
                                 c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
-                                c.telefone         ? `*WhatsApp:* ${c.telefone}` : null,
+                                c.telefone         ? `*Tel:* ${c.telefone}` : null,
                                 c.email            ? `*E-mail:* ${c.email}` : null,
                                 c.cep              ? `*CEP:* ${c.cep}` : null,
                                 fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
+                                c.estadoCivil      ? `*Estado Civil:* ${c.estadoCivil}` : null,
+                                c.profissao        ? `*Profissão:* ${c.profissao}` : null,
+                                c.nomePai          ? `*Pai:* ${c.nomePai}` : null,
+                                c.nomeMae          ? `*Mãe:* ${c.nomeMae}` : null,
                               ].filter(Boolean).join("\n");
                               navigator.clipboard.writeText(linhas);
                               sonnerToast.success("Dados copiados!");
@@ -2525,11 +2530,16 @@ END $$;`
                           const linhas = [
                             `*Nome:* ${c.nome}`,
                             c.cpf              ? `*CPF:* ${c.cpf}` : null,
+                            c.rg               ? `*RG:* ${c.rg}` : null,
                             c.dataNascimento   ? `*Nascimento:* ${formatDate(c.dataNascimento)}` : null,
-                            c.telefone         ? `*WhatsApp:* ${c.telefone}` : null,
+                            c.telefone         ? `*Tel:* ${c.telefone}` : null,
                             c.email            ? `*E-mail:* ${c.email}` : null,
                             c.cep              ? `*CEP:* ${c.cep}` : null,
                             fmtEnd             ? `*Endereço:* ${fmtEnd}` : null,
+                            c.estadoCivil      ? `*Estado Civil:* ${c.estadoCivil}` : null,
+                            c.profissao        ? `*Profissão:* ${c.profissao}` : null,
+                            c.nomePai          ? `*Pai:* ${c.nomePai}` : null,
+                            c.nomeMae          ? `*Mãe:* ${c.nomeMae}` : null,
                           ].filter(Boolean).join("\n");
                           navigator.clipboard.writeText(linhas);
                           sonnerToast.success("Dados copiados!");
