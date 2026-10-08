@@ -101,6 +101,7 @@ export default function CadastrosAdmin() {
   const [cacClientes, setCacClientes] = useState<{id:string;nome:string;cpf:string|null;endereco:string|null;numero:string|null;complemento:string|null;bairro:string|null;cidade:string|null;estado:string|null}[]>([]);
   const [cacBusca, setCacBusca] = useState("");
   const [cacDropOpen, setCacDropOpen] = useState(false);
+  const [cacSelecionado, setCacSelecionado] = useState<string | null>(null);
   const cacWrapRef = useRef<HTMLDivElement>(null);
 
   const carregar = () =>
@@ -190,7 +191,7 @@ export default function CadastrosAdmin() {
     setNovoComplemento(""); setNovoBairro(""); setNovoCidade(""); setNovoEstado("");
     setNovoTipos([]); setNovoArmas([]);
     setNovoPsicoFile(null); setNovoPsicoUrl(null);
-    setCacBusca(""); setCacDropOpen(false);
+    setCacBusca(""); setCacDropOpen(false); setCacSelecionado(null);
   };
 
   const handleNovoPsico = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -443,6 +444,7 @@ export default function CadastrosAdmin() {
                             setNovoBairro((c.bairro || "").toUpperCase());
                             setNovoCidade((c.cidade || "").toUpperCase());
                             setNovoEstado((c.estado || "").toUpperCase());
+                            setCacSelecionado(c.nome);
                             setCacBusca("");
                             setCacDropOpen(false);
                           }}>
@@ -460,6 +462,18 @@ export default function CadastrosAdmin() {
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground">Selecione para preencher automaticamente os dados abaixo</p>
+              {cacSelecionado && (
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs text-primary">✓ {cacSelecionado}</span>
+                  <button type="button" onClick={() => {
+                    setNovoNome(""); setNovoCpf(""); setNovoEndereco("");
+                    setNovoNumero(""); setNovoComplemento(""); setNovoBairro("");
+                    setNovoCidade(""); setNovoEstado(""); setCacSelecionado(null);
+                  }} className="text-xs text-destructive border border-destructive/30 rounded px-2 py-0.5 hover:bg-destructive/10">
+                    ✕ Limpar
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* divider */}
