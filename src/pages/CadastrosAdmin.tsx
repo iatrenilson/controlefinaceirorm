@@ -97,9 +97,34 @@ export default function CadastrosAdmin() {
   const [novoSaving, setNovoSaving] = useState(false);
   const psicoInputRef = useRef<HTMLInputElement>(null);
 
+  // Busca cliente SINARM CAC
+  const [cacClientes, setCacClientes] = useState<{id:string;nome:string;cpf:string|null;endereco:string|null;numero:string|null;complemento:string|null;bairro:string|null;cidade:string|null;estado:string|null}[]>([]);
+  const [cacBusca, setCacBusca] = useState("");
+  const [cacDropOpen, setCacDropOpen] = useState(false);
+  const cacWrapRef = useRef<HTMLDivElement>(null);
+
   const carregar = () =>
     supabase.from("cac_cadastros").select("*").order("created_at", { ascending: false })
       .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); setLoading(false); });
+
+  // Carrega clientes SINARM CAC ao abrir o dialog
+  useEffect(() => {
+    if (!novoOpen) { setCacBusca(""); setCacDropOpen(false); return; }
+    supabase.from("declaracao_clientes")
+      .select("id, nome, cpf, endereco, numero, complemento, bairro, cidade, estado")
+      .order("nome")
+      .then(({ data }) => { if (data) setCacClientes(data as typeof cacClientes); });
+  }, [novoOpen]);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (cacWrapRef.current && !cacWrapRef.current.contains(e.target as Node))
+        setCacDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(carregar);
@@ -165,6 +190,7 @@ export default function CadastrosAdmin() {
     setNovoComplemento(""); setNovoBairro(""); setNovoCidade(""); setNovoEstado("");
     setNovoTipos([]); setNovoArmas([]);
     setNovoPsicoFile(null); setNovoPsicoUrl(null);
+    setCacBusca(""); setCacDropOpen(false);
   };
 
   const handleNovoPsico = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -381,6 +407,68 @@ export default function CadastrosAdmin() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* ── Buscar cliente SINARM CAC ── */}
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <Label className="text-xs text-primary font-semibold flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Buscar cliente SINARM CAC
+              </Label>
+              <div className="relative" ref={cacWrapRef}>
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={cacBusca}
+                  onChange={e => { setCacBusca(e.target.value); setCacDropOpen(true); }}
+                  onFocus={() => { if (cacBusca) setCacDropOpen(true); }}
+                  placeholder="Nome ou CPF..."
+                  className="pl-8 h-9 text-sm border-primary/30 focus-visible:ring-primary/30"
+                />
+                {cacDropOpen && cacBusca.trim() && (
+                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
+                    {cacClientes
+                      .filter(c =>
+                        (c.nome || "").toLowerCase().includes(cacBusca.toLowerCase()) ||
+                        (c.cpf || "").replace(/\D/g, "").includes(cacBusca.replace(/\D/g, ""))
+                      )
+                      .slice(0, 8)
+                      .map(c => (
+                        <button key={c.id} type="button"
+                          className="w-full text-left px-3 py-2.5 hover:bg-muted text-sm border-b border-border/50 last:border-0 transition-colors"
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            setNovoNome(c.nome || "");
+                            setNovoCpf(maskCpf(c.cpf || ""));
+                            setNovoEndereco((c.endereco || "").toUpperCase());
+                            setNovoNumero(c.numero || "");
+                            setNovoComplemento((c.complemento || "").toUpperCase());
+                            setNovoBairro((c.bairro || "").toUpperCase());
+                            setNovoCidade((c.cidade || "").toUpperCase());
+                            setNovoEstado((c.estado || "").toUpperCase());
+                            setCacBusca("");
+                            setCacDropOpen(false);
+                          }}>
+                          <div className="font-semibold truncate">{c.nome}</div>
+                          <div className="text-xs text-muted-foreground">{c.cpf || "Sem CPF"}</div>
+                        </button>
+                      ))}
+                    {cacClientes.filter(c =>
+                      (c.nome || "").toLowerCase().includes(cacBusca.toLowerCase()) ||
+                      (c.cpf || "").replace(/\D/g, "").includes(cacBusca.replace(/\D/g, ""))
+                    ).length === 0 && (
+                      <div className="px-3 py-2.5 text-sm text-muted-foreground">Nenhum cliente encontrado.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">Selecione para preencher automaticamente os dados abaixo</p>
+            </div>
+
+            {/* divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-border/40" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">ou preencher manualmente</span>
+              <div className="flex-1 border-t border-border/40" />
+            </div>
+
             <div className="space-y-1">
               <Label className="text-xs">Nome completo {!novoNome.trim() && <span className="text-destructive">*</span>}</Label>
               <Input value={novoNome} onChange={e => setNovoNome(e.target.value.toUpperCase())} placeholder="EX: JOÃO DA SILVA" />
