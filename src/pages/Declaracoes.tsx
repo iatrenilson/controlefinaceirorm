@@ -219,6 +219,15 @@ function maskCep(raw: string): string {
   if (d.length > 2) return d.replace(/(\d{2})(\d{1,3})/, "$1.$2");
   return d;
 }
+function maskTelefone(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+  if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+  if (d.length > 6)   return d.replace(/(\d{2})(\d{4,5})(\d*)/, "($1) $2-$3");
+  if (d.length > 2)   return d.replace(/(\d{2})(\d+)/, "($1) $2");
+  if (d.length > 0)   return `(${d}`;
+  return d;
+}
 function titleCase(s: string) { return s.replace(/(^|\s)(\S)/g, (_, sp, c) => sp + c.toUpperCase()); }
 async function buscarCep(cepMasked: string): Promise<{ logradouro: string; bairro: string; localidade: string; uf: string } | null> {
   const d = cepMasked.replace(/\D/g, "");
@@ -2567,7 +2576,7 @@ END $$;`
                 <Label className="text-xs">Telefone</Label>
                 <div className="flex gap-1.5">
                   <Input className="h-9 text-sm" placeholder="(92) 9 0000-0000"
-                    value={formCliente.telefone} onChange={e => setC("telefone", e.target.value)} />
+                    value={formCliente.telefone} onChange={e => setC("telefone", maskTelefone(e.target.value))} />
                   <CopyButton value={formCliente.telefone} />
                 </div>
               </div>
