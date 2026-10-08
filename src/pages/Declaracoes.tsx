@@ -1937,6 +1937,8 @@ END $$;`
       cep: formCliente.cep,
       cidade: formCliente.cidade,
       estado: formCliente.estado,
+      email: formCliente.email || null,
+      telefone: formCliente.telefone || null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -1985,10 +1987,10 @@ END $$;`
     } catch (e: unknown) {
       const errMsg: string = (e as any)?.message ?? "";
       // Column missing — apply migration + reload schema cache then retry
-      if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || errMsg.includes("nome_clube") || errMsg.includes("login_clube") || errMsg.includes("senha_clube") || (e as any)?.code === "42703") {
+      if (errMsg.includes("complemento") || errMsg.includes("local_nascimento") || errMsg.includes("uf_nascimento") || errMsg.includes("nome_clube") || errMsg.includes("login_clube") || errMsg.includes("senha_clube") || errMsg.includes("email") || errMsg.includes("telefone") || (e as any)?.code === "42703") {
         try {
           await supabase.functions.invoke("run-migration", {
-            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
+            body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS complemento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS email TEXT; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS telefone TEXT; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
           });
           // Wait for PostgREST schema cache to reload
           await new Promise(r => setTimeout(r, 2500));
