@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2 } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,26 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+// ─── Documentos CR ─────────────────────────────────────────────────────────
+const DOCS_CR = [
+  { id: "cap_tecnica",      label: "Comprovante de Capacidade Técnica",                            tag: "" },
+  { id: "ant_federal",      label: "Certidão de Antecedente Criminal - Justiça Federal",            tag: "" },
+  { id: "decl_inquerito",   label: "Declaração de não estar respondendo a inquérito policial",      tag: "DESPACHANTE" },
+  { id: "doc_ident",        label: "Documento de Identificação Pessoal",                            tag: "" },
+  { id: "laudo_psico",      label: "Laudo de Aptidão Psicológica",                                 tag: "" },
+  { id: "comp_residencia",  label: "Comprovante de Residência Fixa",                               tag: "DESPACHANTE*" },
+  { id: "comp_ocupacao",    label: "Comprovante de Ocupação Lícita",                               tag: "" },
+  { id: "comp_2_end",       label: "Comprovante de 2º Endereço de Guarda do Acervo",               tag: "DESPACHANTE" },
+  { id: "ant_estadual",     label: "Certidão de Antecedente Criminal - Justiça Estadual",          tag: "" },
+  { id: "anexo_a",          label: "Anexo A / Declaração de Segurança do Acervo",                  tag: "CLUBE" },
+  { id: "decl_habitualidade", label: "Declaração de Habitualidade na Forma da Norma Vigente",      tag: "CLUBE" },
+  { id: "comp_filiacao",    label: "Comprovante de Filiação a Entidade de Tiro Desportivo",        tag: "CLUBE" },
+  { id: "ant_militar",      label: "Certidão de Antecedente Criminal - Justiça Militar",           tag: "" },
+  { id: "ant_eleitoral",    label: "Certidão de Antecedente Criminal - Justiça Eleitoral",         tag: "" },
+] as const;
+type DocCRTipo = typeof DOCS_CR[number]["id"];
+interface DocCRItem { id: string; tipo: DocCRTipo; fileName: string; storagePath: string; fileUrl: string; }
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
 type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "doccraf" | "completo";
@@ -1226,6 +1246,12 @@ END $$;`
   const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
   const [parsendoCNH, setParsendoCNH] = useState(false);
   const cNHFileRef = useRef<HTMLInputElement>(null);
+  // Documentos CR
+  const [docsCliente, setDocsCliente] = useState<Map<string, DocCRItem[]>>(new Map());
+  const [uploadingDocTipo, setUploadingDocTipo] = useState<string | null>(null);
+  const [abaDocs, setAbaDocs] = useState(false);
+  const docUploadRef = useRef<HTMLInputElement>(null);
+  const [docUploadTipo, setDocUploadTipo] = useState<string>("");
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1590,6 +1616,44 @@ END $$;`
     }
   }, [_parsearTexto]);
 
+  // ─── Documentos CR ────────────────────────────────────────────────────────
+  const fetchDocsCR = useCallback(async (clienteId: string) => {
+    const { data } = await supabase.from("declaracao_docs_cr").select("*").eq("cliente_id", clienteId);
+    if (data) setDocsCliente(prev => new Map(prev).set(clienteId, data as DocCRItem[]));
+  }, []);
+
+  const uploadDocCR = useCallback(async (clienteId: string, tipo: string, file: File) => {
+    setUploadingDocTipo(tipo);
+    try {
+      const ext = file.name.split(".").pop() ?? "pdf";
+      const path = `${clienteId}/${tipo}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("cac-docs").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from("cac-docs").getPublicUrl(path);
+      await supabase.from("declaracao_docs_cr").upsert(
+        { cliente_id: clienteId, tipo, file_name: file.name, storage_path: path, file_url: publicUrl },
+        { onConflict: "cliente_id,tipo" }
+      );
+      setDocsCliente(prev => {
+        const cur = (prev.get(clienteId) ?? []).filter(d => d.tipo !== tipo);
+        cur.push({ id: "", tipo: tipo as DocCRTipo, fileName: file.name, storagePath: path, fileUrl: publicUrl });
+        return new Map(prev).set(clienteId, cur);
+      });
+      sonnerToast.success("Documento enviado!");
+    } catch { sonnerToast.error("Erro ao enviar documento."); }
+    finally { setUploadingDocTipo(null); }
+  }, []);
+
+  const deleteDocCR = useCallback(async (clienteId: string, tipo: string, storagePath: string) => {
+    await supabase.storage.from("cac-docs").remove([storagePath]);
+    await supabase.from("declaracao_docs_cr").delete().eq("cliente_id", clienteId).eq("tipo", tipo);
+    setDocsCliente(prev => {
+      const cur = (prev.get(clienteId) ?? []).filter(d => d.tipo !== tipo);
+      return new Map(prev).set(clienteId, cur);
+    });
+    sonnerToast.success("Documento removido.");
+  }, []);
+
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   // Retorna true se salvou com sucesso, false caso contrário
   const saveClientesToCloud = useCallback(async (list: Cliente[]): Promise<boolean> => {
@@ -1922,6 +1986,13 @@ END $$;`
         }).catch(() => {});
         localStorage.setItem("dc_migration_v6", "1");
       }
+      const migDocsCR = localStorage.getItem("dc_migration_docs_cr");
+      if (!migDocsCR) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: `CREATE TABLE IF NOT EXISTS declaracao_docs_cr (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, cliente_id TEXT NOT NULL, tipo TEXT NOT NULL, file_name TEXT NOT NULL, storage_path TEXT NOT NULL, file_url TEXT NOT NULL DEFAULT '', uploaded_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(cliente_id, tipo)); ALTER TABLE declaracao_docs_cr ENABLE ROW LEVEL SECURITY; DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='auth_all_docs_cr' AND tablename='declaracao_docs_cr') THEN CREATE POLICY auth_all_docs_cr ON declaracao_docs_cr TO authenticated USING (true) WITH CHECK (true); END IF; END $$; INSERT INTO storage.buckets (id, name, public, file_size_limit) VALUES ('cac-docs', 'cac-docs', true, 52428800) ON CONFLICT DO NOTHING;` },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_docs_cr", "1");
+      }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
       if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
@@ -1949,6 +2020,7 @@ END $$;`
     if (temClube && !c.loginClube && c.cpf) rest.loginClube = c.cpf;
     setMostrarSenhaClubeForm(false);
     setDialogClienteOpen(true);
+    fetchDocsCR(c.id);
   };
   const salvarCliente = async () => {
     if (!formCliente.nome) { toast({ title: "Preencha o Nome.", variant: "destructive" }); return; }
@@ -2185,6 +2257,19 @@ END $$;`
                   >
                     {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                   </Button>
+                  <Button
+                    size="icon" variant={abaDocs ? "default" : "ghost"}
+                    className="h-8 w-8"
+                    title="Dashboard de Documentos CR"
+                    onClick={async () => {
+                      if (!abaDocs) {
+                        for (const c of clientes) { fetchDocsCR(c.id); }
+                      }
+                      setAbaDocs(o => !o);
+                    }}
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                  </Button>
                 </>
               )}
               {clientes.length > 0 && (
@@ -2243,6 +2328,53 @@ END $$;`
                 <p className="text-sm text-muted-foreground py-4 text-center">
                   Nenhum cliente cadastrado. Cadastre clientes para preencher declarações automaticamente.
                 </p>
+              ) : abaDocs ? (
+                /* ── Dashboard Documentos CR ── */
+                <div className="overflow-x-auto rounded-xl border border-border/40">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/30">
+                        <th className="text-left px-3 py-2 font-semibold text-muted-foreground min-w-[160px] sticky left-0 bg-muted/30">Cliente</th>
+                        <th className="px-2 py-2 font-semibold text-center text-muted-foreground min-w-[40px]">OK</th>
+                        {DOCS_CR.map((d, i) => (
+                          <th key={d.id} className="px-1 py-2 text-center min-w-[28px]" title={d.label}>
+                            <span className="text-[10px] text-muted-foreground font-bold">{i + 1}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
+                        const docs = docsCliente.get(c.id) ?? [];
+                        const ok = docs.length;
+                        const cor = ok === DOCS_CR.length ? "text-green-400" : ok > 0 ? "text-yellow-400" : "text-muted-foreground";
+                        return (
+                          <tr key={c.id} className="border-b border-border/20 hover:bg-muted/10">
+                            <td className="px-3 py-2 font-semibold truncate max-w-[200px] sticky left-0 bg-card">{c.nome}</td>
+                            <td className={`px-2 py-2 text-center font-bold ${cor}`}>{ok}/{DOCS_CR.length}</td>
+                            {DOCS_CR.map(d => {
+                              const item = docs.find(x => x.tipo === d.id);
+                              return (
+                                <td key={d.id} className="px-1 py-2 text-center">
+                                  {item
+                                    ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" title={`${d.label} — ${item.fileName}`}><FileCheck2 className="h-3.5 w-3.5 text-green-400 mx-auto" /></a>
+                                    : <FileX2 className="h-3.5 w-3.5 text-red-400/40 mx-auto" />}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div className="px-3 py-2 border-t border-border/20 bg-muted/10">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {DOCS_CR.map((d, i) => (
+                        <span key={d.id} className="text-[10px] text-muted-foreground"><span className="font-bold text-foreground">{i + 1}</span> — {d.label}{d.tag ? <span className="text-amber-400/70 ml-1">({d.tag})</span> : ""}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[...clientes].filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
@@ -2400,6 +2532,20 @@ END $$;`
                             <span className="text-[9px] font-semibold text-yellow-400/80 uppercase tracking-wide truncate">{c.nomeClube}</span>
                           </div>
                         )}
+                        {(() => {
+                          const docs = docsCliente.get(c.id) ?? [];
+                          const total = DOCS_CR.length;
+                          const ok = docs.length;
+                          if (ok === 0) return null;
+                          const pct = Math.round((ok / total) * 100);
+                          const cor = ok === total ? "text-green-400" : ok >= total * 0.6 ? "text-yellow-400" : "text-red-400";
+                          return (
+                            <div className="flex items-center gap-1.5 border-t border-white/5 pt-1 mt-0.5">
+                              <FileCheck2 className={`h-3 w-3 flex-shrink-0 ${cor}`} />
+                              <span className={`text-[9px] font-semibold ${cor}`}>Docs CR: {ok}/{total} ({pct}%)</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -2939,6 +3085,70 @@ END $$;`
               )}
             </div>
           </div>
+          {/* ── Documentos CR ── */}
+          {editandoId && (
+            <div className="mt-1">
+              <input ref={docUploadRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f);
+                  e.target.value = "";
+                }} />
+              <button type="button"
+                className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
+                onClick={() => setAbaDocs(o => !o)}>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <FileText className="h-3.5 w-3.5" />
+                  Documentos CR
+                  {(() => {
+                    const ok = (docsCliente.get(editandoId) ?? []).length;
+                    return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
+                  })()}
+                </span>
+                {abaDocs ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {abaDocs && (
+                <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
+                  {DOCS_CR.map((doc, i) => {
+                    const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
+                    const uploading = uploadingDocTipo === doc.id;
+                    return (
+                      <div key={doc.id} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}>
+                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
+                        {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
+                          {doc.tag && <span className="text-[9px] text-amber-400/70 font-semibold">{doc.tag}</span>}
+                          {item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {item && (
+                            <>
+                              <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
+                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar">
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </a>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
+                                onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary/80" title="Enviar documento"
+                            disabled={uploading}
+                            onClick={() => { setDocUploadTipo(doc.id); setTimeout(() => docUploadRef.current?.click(), 0); }}>
+                            {uploading ? <span className="text-[9px]">...</span> : <Upload className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogClienteOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente} disabled={savingCliente}>
