@@ -73,6 +73,7 @@ interface Cliente {
   estado: string;
   email: string;
   telefone: string;
+  profissao: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -90,7 +91,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  email: "", telefone: "",
+  email: "", telefone: "", profissao: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1087,6 +1088,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     estado: (row.estado as string) ?? "AM",
     email: (row.email as string) ?? "",
     telefone: (row.telefone as string) ?? "",
+    profissao: (row.profissao as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -1619,6 +1621,7 @@ END $$;`
         estado: c.estado,
         email: c.email || null,
         telefone: c.telefone || null,
+        profissao: c.profissao || null,
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -1836,6 +1839,7 @@ END $$;`
           estado: r.estado,
           email: r.email ?? "",
           telefone: r.telefone ?? "",
+          profissao: r.profissao ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
@@ -1911,6 +1915,13 @@ END $$;`
         }).catch(() => {});
         localStorage.setItem("dc_migration_v5", "1");
       }
+      const mig6Done = localStorage.getItem("dc_migration_v6");
+      if (!mig6Done) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS profissao TEXT;" },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_v6", "1");
+      }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
       if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
@@ -1963,6 +1974,7 @@ END $$;`
       estado: formCliente.estado,
       email: formCliente.email || null,
       telefone: formCliente.telefone || null,
+      profissao: formCliente.profissao || null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -2577,7 +2589,7 @@ END $$;`
                 <CopyButton value={formCliente.nome} />
               </div>
             </div>
-            {/* Email + Telefone */}
+            {/* Email + Telefone + Profissão */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">E-mail</Label>
@@ -2594,6 +2606,14 @@ END $$;`
                     value={formCliente.telefone} onChange={e => setC("telefone", maskTelefone(e.target.value))} />
                   <CopyButton value={formCliente.telefone} />
                 </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Profissão</Label>
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm" placeholder="Ex: Servidor Público, Comerciante..."
+                  value={formCliente.profissao} onChange={e => setC("profissao", e.target.value)} />
+                <CopyButton value={formCliente.profissao} />
               </div>
             </div>
             {/* CPF + RG */}
