@@ -1073,8 +1073,8 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     orgaoEmissor: (row.orgao_emissor as string) ?? "SSP-AM",
     dataExpedicao: (row.data_expedicao as string) ?? "",
     cpf: (row.cpf as string) ?? "",
-    nomePai: (row.nome_pai as string) ?? "",
-    nomeMae: (row.nome_mae as string) ?? "",
+    nomePai: ((row.nome_pai as string) ?? "").toUpperCase(),
+    nomeMae: ((row.nome_mae as string) ?? "").toUpperCase(),
     estadoCivil: (row.estado_civil as string) ?? "Solteiro(a)",
     dataNascimento: (row.data_nascimento as string) ?? "",
     localNascimento: (row.local_nascimento as string) ?? "",
@@ -1087,7 +1087,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     cidade: (row.cidade as string) ?? "Manaus",
     estado: (row.estado as string) ?? "AM",
     email: (row.email as string) ?? "",
-    telefone: (row.telefone as string) ?? "",
+    telefone: maskTelefone((row.telefone as string) ?? ""),
     profissao: (row.profissao as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
@@ -1824,8 +1824,8 @@ END $$;`
           orgaoEmissor: r.orgao_emissor,
           dataExpedicao: r.data_expedicao,
           cpf: r.cpf,
-          nomePai: r.nome_pai,
-          nomeMae: r.nome_mae,
+          nomePai: (r.nome_pai ?? "").toUpperCase(),
+          nomeMae: (r.nome_mae ?? "").toUpperCase(),
           estadoCivil: r.estado_civil,
           dataNascimento: r.data_nascimento,
           localNascimento: r.local_nascimento ?? "",
@@ -1838,7 +1838,7 @@ END $$;`
           cidade: r.cidade,
           estado: r.estado,
           email: r.email ?? "",
-          telefone: r.telefone ?? "",
+          telefone: maskTelefone(r.telefone ?? ""),
           profissao: r.profissao ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
@@ -2293,7 +2293,8 @@ END $$;`
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
-                              const fmtEnd = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", ");
+                              const endBase = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento].filter(Boolean).join(", ");
+                              const fmtEnd = c.bairro ? `${endBase} - ${c.bairro}` : endBase;
                               const linhas = [
                                 `*Nome:* ${c.nome}`,
                                 c.cpf              ? `*CPF:* ${c.cpf}` : null,
@@ -2526,7 +2527,8 @@ END $$;`
                       {/* Ações */}
                       <div className="w-20 flex items-center gap-0.5 justify-center">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
-                          const fmtEnd = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", ");
+                          const endBase = [c.endereco, c.numero ? `Nº ${c.numero}` : "", c.complemento].filter(Boolean).join(", ");
+                          const fmtEnd = c.bairro ? `${endBase} - ${c.bairro}` : endBase;
                           const linhas = [
                             `*Nome:* ${c.nome}`,
                             c.cpf              ? `*CPF:* ${c.cpf}` : null,
