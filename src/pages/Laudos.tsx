@@ -112,8 +112,17 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// â”€â”€â”€ PDF idêntico ao original â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPorte = false) {
+// Sanitiza strings para jsPDF (fontes WinAnsi nao suportam Unicode acima de U+00FF)
+function sp(s: string): string {
+  return (s || “”)
+    .replace(/[—–]/g, “-”)   // em dash, en dash
+    .replace(/[“”]/g, '”')   // aspas tipograficas
+    .replace(/[‘’]/g, “'”)   // apostrofos tipograficos
+    .replace(/…/g, “...”)          // reticencias
+    .replace(/[^\x00-\xFF]/g, “?”);    // qualquer outro nao-Latin1
+}
+
+async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, sinarmPorte = false) {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
@@ -223,7 +232,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // NOME
   B(9); doc.text("NOME:", ML + 2, dy + 3);
   const nomeLblW = doc.getTextWidth("NOME:");
-  const nomeVal = f.nome.toUpperCase();
+  const nomeVal = sp(f.nome.toUpperCase());
   const nomeX = ML + 2 + nomeLblW + 2;
   N(9); doc.text(nomeVal, nomeX, dy + 3);
 
@@ -231,7 +240,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   B(9); doc.text("CPF:", ML + 2, dy + 7);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
-  N(9); doc.text(f.cpf, cpfX, dy + 7);
+  N(9); doc.text(sp(f.cpf), cpfX, dy + 7);
 
   // ENDEREÇO (compõe: rua, Nº, complemento, bairro)
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
@@ -244,7 +253,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   ].filter(Boolean).join(", ");
   const _endWithBairro = f.endBairro ? `${_endBase} - ${f.endBairro}` : _endBase;
   const _endCidUF = [f.endCidade, f.endEstado].filter(Boolean).join("/");
-  const endVal = (_endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase();
+  const endVal = sp((_endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase());
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
@@ -425,16 +434,16 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // NOTA â€” label normal, valor em negrito  (offset +13.5)
   N(9); doc.text("NOTA DA PROVA TEÃ“RICA:", ML + 2, fndY + 13.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEÃ“RICA:") + 2;
-  B(9); doc.text(f.notaTeorica || “-”, notaX, fndY + 13.5);
+  B(9); doc.text(sp(f.notaTeorica) || “-”, notaX, fndY + 13.5);
 
   // PONTUAÇÃO SILHUETA â€” label normal, valores em negrito  (offset +18)
   N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 18);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
-    { lbl: “PISTOLA: “,      val: f.notaPistola    || “-” },
-    { lbl: “  REVOLVER: “,   val: f.notaRevolver   || “-” },
-    { lbl: “  RIFLE: “,      val: f.notaRifle      || “-” },
-    { lbl: “  ESPINGARDA: “, val: f.notaEspingarda || “-” },
+    { lbl: “PISTOLA: “,      val: sp(f.notaPistola)    || “-” },
+    { lbl: “  REVOLVER: “,   val: sp(f.notaRevolver)   || “-” },
+    { lbl: “  RIFLE: “,      val: sp(f.notaRifle)      || “-” },
+    { lbl: “  ESPINGARDA: “, val: sp(f.notaEspingarda) || “-” },
   ];
   armas2.forEach(({ lbl, val }) => {
     N(9); doc.text(lbl, px, fndY + 18); px += doc.getTextWidth(lbl);
@@ -445,7 +454,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   if (tipo === "sinarm") {
     N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(f.notaMulticolorido || “-”, multiX, fndY + 22.5);
+    B(9); doc.text(sp(f.notaMulticolorido) || “-”, multiX, fndY + 22.5);
   }
 
   y += fundH + 0.8;
