@@ -424,16 +424,16 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // NOTA - label normal, valor em negrito  (offset +13.5)
   N(9); doc.text("NOTA DA PROVA TEORICA:", ML + 2, fndY + 13.5);
   const notaX = ML + 2 + doc.getTextWidth("NOTA DA PROVA TEORICA:") + 2;
-  B(9); doc.text(f.notaTeorica || "-", notaX, fndY + 13.5);
+  B(9); doc.text(f.notaTeorica || "\u2013", notaX, fndY + 13.5);
 
   // PONTUAÇÃO SILHUETA - label normal, valores em negrito  (offset +18)
   N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 18);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
-    { lbl: "PISTOLA: ",      val: f.notaPistola    || "-" },
-    { lbl: "  REVOLVER: ",   val: f.notaRevolver   || "-" },
-    { lbl: "  RIFLE: ",      val: f.notaRifle      || "-" },
-    { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "-" },
+    { lbl: "PISTOLA: ",      val: f.notaPistola    || "\u2013" },
+    { lbl: "  REVOLVER: ",   val: f.notaRevolver   || "\u2013" },
+    { lbl: "  RIFLE: ",      val: f.notaRifle      || "\u2013" },
+    { lbl: "  ESPINGARDA: ", val: f.notaEspingarda || "\u2013" },
   ];
   armas2.forEach(({ lbl, val }) => {
     N(9); doc.text(lbl, px, fndY + 18); px += doc.getTextWidth(lbl);
@@ -444,7 +444,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   if (tipo === "sinarm") {
     N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(f.notaMulticolorido || "-", multiX, fndY + 22.5);
+    B(9); doc.text(f.notaMulticolorido || "\u2013", multiX, fndY + 22.5);
   }
 
   y += fundH + 0.8;
