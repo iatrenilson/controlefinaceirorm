@@ -23,6 +23,8 @@ interface CacCadastro {
   numero: string | null;
   complemento: string | null;
   bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
   tipo_sinarm: string | null;
   armas: string | null;
 }
@@ -53,6 +55,8 @@ interface LaudoForm {
   endNumero: string;
   endCompl: string;
   endBairro: string;
+  endCidade: string;
+  endEstado: string;
   pistola: SistReg;
   revolver: SistReg;
   rifle: SistReg;
@@ -73,7 +77,7 @@ interface LaudoForm {
 }
 
 const EMPTY: LaudoForm = {
-  numero: "", nome: "", cpf: "", endereco: "", endNumero: "", endCompl: "", endBairro: "",
+  numero: "", nome: "", cpf: "", endereco: "", endNumero: "", endCompl: "", endBairro: "", endCidade: "", endEstado: "",
   pistola: "", revolver: "", rifle: "", espingarda: "",
   dataDecl: "", local: "",
   finalidade: [], categoria: [],
@@ -238,10 +242,9 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     f.endNumero ? `Nº ${f.endNumero}` : "",
     f.endCompl  || "",
   ].filter(Boolean).join(", ");
-  const endVal = (f.endBairro
-    ? `${_endBase} - ${f.endBairro}`
-    : _endBase
-  ).toUpperCase();
+  const _endWithBairro = f.endBairro ? `${_endBase} - ${f.endBairro}` : _endBase;
+  const _endCidUF = [f.endCidade, f.endEstado].filter(Boolean).join("/");
+  const endVal = (_endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase();
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
@@ -672,7 +675,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
 `.trim();
 
     const carregar = () =>
-      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,tipo_sinarm,armas").order("nome")
+      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("nome")
         .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
 
     supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(carregar);
@@ -753,6 +756,8 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
       endNumero: c.numero || p.endNumero,
       endCompl: c.complemento ? c.complemento.toUpperCase() : p.endCompl,
       endBairro: c.bairro ? c.bairro.toUpperCase() : p.endBairro,
+      endCidade: c.cidade ? c.cidade.toUpperCase() : p.endCidade,
+      endEstado: c.estado ? c.estado.toUpperCase() : p.endEstado,
       ...(novaFinalidade.length ? { finalidade: novaFinalidade } : {}),
       ...(novaCategoria.length  ? { categoria:  novaCategoria  } : {}),
       ...armasCrCac,
@@ -931,6 +936,18 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                 <Label className="text-xs">Bairro</Label>
                 <Input className="h-9 text-sm uppercase" value={form.endBairro}
                   onChange={e => set("endBairro", e.target.value)} />
+              </div>
+              <div className="col-span-2 grid grid-cols-[1fr_70px] gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Cidade</Label>
+                  <Input className="h-9 text-sm uppercase" value={form.endCidade}
+                    onChange={e => set("endCidade", e.target.value)} placeholder="EX: MANAUS" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">UF</Label>
+                  <Input className="h-9 text-sm uppercase" value={form.endEstado}
+                    onChange={e => set("endEstado", e.target.value)} placeholder="AM" maxLength={2} />
+                </div>
               </div>
             </div>
           </CardContent>
