@@ -112,18 +112,6 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-function sp(s: string): string {
-  if (!s) return “”;
-  let r = “”;
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c === 0x2014 || c === 0x2013) r += “-”;
-    else if (c === 0x201C || c === 0x201D) r += ‘”’;
-    else if (c === 0x2018 || c === 0x2019) r += “’”;
-    else if (c === 0x2026) r += “...”;
-    else if (c > 0xFF) r += “?”;
-    else r += s[i];
-  }
   return r;
 }
 
@@ -237,7 +225,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   // NOME
   B(9); doc.text("NOME:", ML + 2, dy + 3);
   const nomeLblW = doc.getTextWidth("NOME:");
-  const nomeVal = sp(f.nome.toUpperCase());
+  const nomeVal = f.nome.toUpperCase();
   const nomeX = ML + 2 + nomeLblW + 2;
   N(9); doc.text(nomeVal, nomeX, dy + 3);
 
@@ -245,7 +233,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   B(9); doc.text("CPF:", ML + 2, dy + 7);
   const cpfLblW = doc.getTextWidth("CPF:");
   const cpfX = ML + 2 + cpfLblW + 2;
-  N(9); doc.text(sp(f.cpf), cpfX, dy + 7);
+  N(9); doc.text(f.cpf, cpfX, dy + 7);
 
   // ENDEREÇO (compõe: rua, Nº, complemento, bairro)
   B(9); doc.text("ENDEREÇO:", ML + 2, dy + 11);
@@ -258,7 +246,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   ].filter(Boolean).join(", ");
   const _endWithBairro = f.endBairro ? `${_endBase} - ${f.endBairro}` : _endBase;
   const _endCidUF = [f.endCidade, f.endEstado].filter(Boolean).join("/");
-  const endVal = sp((_endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase());
+  const endVal = _endCidUF ? `${_endWithBairro} - ${_endCidUF}` : _endWithBairro).toUpperCase();
   N(9); doc.text(endVal, endX, dy + 11);
 
   y += dadosH + 0.8;
@@ -439,16 +427,16 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   // NOTA â€” label normal, valor em negrito  (offset +13.5)
   N(9); doc.text(“NOTA DA PROVA TEORICA:”, ML + 2, fndY + 13.5);
   const notaX = ML + 2 + doc.getTextWidth(“NOTA DA PROVA TEORICA:”) + 2;
-  B(9); doc.text(sp(f.notaTeorica) || “-”, notaX, fndY + 13.5);
+  B(9); doc.text(f.notaTeorica || “-”, notaX, fndY + 13.5);
 
   // PONTUAÇÃO SILHUETA â€” label normal, valores em negrito  (offset +18)
   N(9); doc.text("PONTUAÇÃO NO ALVO SILHUETA:", ML + 2, fndY + 18);
   let px = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO SILHUETA:") + 2;
   const armas2 = [
-    { lbl: “PISTOLA: “,      val: sp(f.notaPistola)    || “-” },
-    { lbl: “  REVOLVER: “,   val: sp(f.notaRevolver)   || “-” },
-    { lbl: “  RIFLE: “,      val: sp(f.notaRifle)      || “-” },
-    { lbl: “  ESPINGARDA: “, val: sp(f.notaEspingarda) || “-” },
+    { lbl: “PISTOLA: “,      val: f.notaPistola    || “-” },
+    { lbl: “  REVOLVER: “,   val: f.notaRevolver   || “-” },
+    { lbl: “  RIFLE: “,      val: f.notaRifle      || “-” },
+    { lbl: “  ESPINGARDA: “, val: f.notaEspingarda || “-” },
   ];
   armas2.forEach(({ lbl, val }) => {
     N(9); doc.text(lbl, px, fndY + 18); px += doc.getTextWidth(lbl);
@@ -459,7 +447,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: “cr_cac” | “sinarm”, si
   if (tipo === "sinarm") {
     N(9); doc.text("PONTUAÇÃO NO ALVO MULTICOLORIDO:", ML + 2, fndY + 22.5);
     const multiX = ML + 2 + doc.getTextWidth("PONTUAÇÃO NO ALVO MULTICOLORIDO:") + 2;
-    B(9); doc.text(sp(f.notaMulticolorido) || “-”, multiX, fndY + 22.5);
+    B(9); doc.text(f.notaMulticolorido || “-”, multiX, fndY + 22.5);
   }
 
   y += fundH + 0.8;
