@@ -2717,7 +2717,7 @@ END $$;`
                 <Label className="text-xs">Nome do Pai</Label>
                 <div className="flex gap-1.5">
                   <Input className="h-9 text-sm uppercase" placeholder="Nome do pai"
-                    value={formCliente.nomePai} onChange={e => setC("nomePai", e.target.value)} />
+                    value={formCliente.nomePai} onChange={e => setC("nomePai", e.target.value.toUpperCase())} />
                   <CopyButton value={formCliente.nomePai} />
                 </div>
               </div>
@@ -2725,7 +2725,7 @@ END $$;`
                 <Label className="text-xs">Nome da Mãe</Label>
                 <div className="flex gap-1.5">
                   <Input className="h-9 text-sm uppercase" placeholder="Nome da mãe"
-                    value={formCliente.nomeMae} onChange={e => setC("nomeMae", e.target.value)} />
+                    value={formCliente.nomeMae} onChange={e => setC("nomeMae", e.target.value.toUpperCase())} />
                   <CopyButton value={formCliente.nomeMae} />
                 </div>
               </div>
