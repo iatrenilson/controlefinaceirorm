@@ -1213,6 +1213,8 @@ END $$;`
   const [savingCliente, setSavingCliente] = useState(false);
   const [mostrarClubeSection, setMostrarClubeSection] = useState(false);
   const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
+  const [parsendoCNH, setParsendoCNH] = useState(false);
+  const cNHFileRef = useRef<HTMLInputElement>(null);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1531,6 +1533,36 @@ END $$;`
 
     return r;
   }, []);
+
+  const importarCNHPDF = useCallback(async (file: File) => {
+    setParsendoCNH(true);
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      const ab = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+      let fullText = "";
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        fullText += (tc.items as Array<{ str?: string }>).map(it => it.str ?? "").join(" ") + "\n";
+      }
+      const parsed = _parsearTexto(fullText);
+      const defaults = new Set(["", "SSP-AM", "Solteiro(a)", "AM", "Manaus", "doc"]);
+      const count = Object.values(parsed).filter(v => v && !defaults.has(v as string)).length;
+      if (count > 0) {
+        setFormCliente(prev => ({ ...prev, ...parsed }));
+        sonnerToast.success(`✓ ${count} campo(s) preenchido(s) automaticamente!`);
+      } else {
+        sonnerToast.warning("Não foi possível extrair dados deste PDF.");
+      }
+    } catch {
+      sonnerToast.error("Erro ao ler o PDF. Verifique se é uma CNH digital válida.");
+    } finally {
+      setParsendoCNH(false);
+    }
+  }, [_parsearTexto]);
 
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   // Retorna true se salvou com sucesso, false caso contrário
@@ -2494,6 +2526,22 @@ END $$;`
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Importar CNH */}
+            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5">
+              <div>
+                <p className="text-xs font-semibold text-primary">Importar CNH (PDF)</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Preenche nome, CPF, RG, nascimento, endereço e mais</p>
+              </div>
+              <Button type="button" size="sm" variant="outline"
+                className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                onClick={() => cNHFileRef.current?.click()}
+                disabled={parsendoCNH}>
+                <Paperclip className="h-3.5 w-3.5" />
+                {parsendoCNH ? "Lendo PDF..." : "Selecionar PDF"}
+              </Button>
+              <input ref={cNHFileRef} type="file" accept=".pdf" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) importarCNHPDF(f); e.target.value = ""; }} />
+            </div>
             {/* Nome */}
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo *</Label>
