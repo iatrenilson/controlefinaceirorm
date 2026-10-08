@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS public.cac_cadastros (
   numero TEXT,
   complemento TEXT,
   bairro TEXT,
+  cidade TEXT,
+  estado TEXT,
   tipo_sinarm TEXT,
   armas TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -27,6 +29,8 @@ END $$;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS cidade TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS estado TEXT;
 INSERT INTO storage.buckets (id, name, public) VALUES ('psicologicos', 'psicologicos', true) ON CONFLICT (id) DO NOTHING;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='psico_select') THEN
@@ -48,6 +52,8 @@ export default function CadastroPublico() {
   const [numero, setNumero] = useState("");
   const [complemento, setComplemento] = useState("");
   const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [estado, setEstado] = useState("");
   const [tipos, setTipos] = useState<string[]>([]);
   const [armas, setArmas] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -69,7 +75,7 @@ export default function CadastroPublico() {
   };
 
   const migrated = () => {
-    const FLAG = "cac_cadastros_migration_v3";
+    const FLAG = "cac_cadastros_migration_v4";
     if (localStorage.getItem(FLAG)) return Promise.resolve();
     return supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
       .then(() => localStorage.setItem(FLAG, "1"))
@@ -104,6 +110,7 @@ export default function CadastroPublico() {
     if (!endereco.trim()) { toast.error("Informe o endereço."); return; }
     if (!numero.trim())   { toast.error("Informe o número."); return; }
     if (!bairro.trim())   { toast.error("Informe o bairro."); return; }
+    if (!cidade.trim())   { toast.error("Informe a cidade."); return; }
     if (!tipos.length)    { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
     if (!armas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
 
@@ -115,6 +122,7 @@ export default function CadastroPublico() {
       cpf.trim()      ? `*CPF:* ${cpf.trim()}` : null,
       endereco.trim() ? `*Endereço:* ${endereco.trim()}${numero.trim() ? `, Nº ${numero.trim()}` : ""}${complemento.trim() ? ` - ${complemento.trim()}` : ""}` : null,
       bairro.trim()   ? `*Bairro:* ${bairro.trim()}` : null,
+      (cidade.trim() || estado.trim()) ? `*Cidade/UF:* ${cidade.trim()}${cidade.trim() && estado.trim() ? " - " : ""}${estado.trim()}` : null,
       tipos.length    ? `*Tipo:* ${tipos.join(", ")}` : null,
       armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
       psicoUrl        ? `*Psicológico:* ${psicoUrl}?download=${encodeURIComponent(`${nome.trim().toUpperCase()} - Psicológico.${psicoExt}`)}` : null,
@@ -126,13 +134,14 @@ export default function CadastroPublico() {
       nome: nome.trim(), cpf: cpf.trim() || null,
       endereco: endereco.trim() || null, numero: numero.trim() || null,
       complemento: complemento.trim() || null, bairro: bairro.trim() || null,
+      cidade: cidade.trim() || null, estado: estado.trim() || null,
       tipo_sinarm: tipos.length ? tipos.join(", ") : null,
       armas: armas.length ? armas.join(", ") : null,
       psicologico_url: psicoUrl || null,
     };
 
     // Reseta imediatamente — independente do WhatsApp ser enviado ou não
-    setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro("");
+    setNome(""); setCpf(""); setEndereco(""); setNumero(""); setComplemento(""); setBairro(""); setCidade(""); setEstado("");
     setTipos([]); setArmas([]); setPsicoFile(null); setPsicoUrl(null); setPsicoExt("pdf");
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
@@ -189,6 +198,18 @@ export default function CadastroPublico() {
           <div>
             <label style={labelStyle}>Bairro {!bairro.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
             <input value={bairro} onChange={e => setBairro(e.target.value.toUpperCase())} placeholder="EX: CENTRO" style={inputStyle} />
+          </div>
+
+          {/* Cidade + Estado */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Cidade {!cidade.trim() && <span style={{ color: "#ef4444" }}>*</span>}</label>
+              <input value={cidade} onChange={e => setCidade(e.target.value.toUpperCase())} placeholder="EX: MANAUS" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>UF</label>
+              <input value={estado} onChange={e => setEstado(e.target.value.toUpperCase())} placeholder="AM" style={inputStyle} maxLength={2} />
+            </div>
           </div>
 
           {/* Tipo de Serviço */}
