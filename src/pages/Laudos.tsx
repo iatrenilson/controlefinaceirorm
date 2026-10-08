@@ -1246,12 +1246,17 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
               await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
-              // Salva o último número usado para todos os usuários
-              if (form.numero) {
-                supabase.rpc("set_laudo_ultimo_numero", { p_numero: form.numero })
+              toast.success("Laudo gerado com sucesso!");
+              // Incrementa o número e limpa o formulário
+              const proximoNumero = form.numero && /^\d+$/.test(form.numero.trim())
+                ? String(parseInt(form.numero.trim()) + 1)
+                : form.numero;
+              setForm({ ...EMPTY, numero: proximoNumero });
+              setSinarmPorte(false);
+              if (proximoNumero) {
+                supabase.rpc("set_laudo_ultimo_numero", { p_numero: proximoNumero })
                   .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
               }
-              toast.success("Laudo gerado com sucesso!");
             } catch (e) {
               console.error(e);
               toast.error("Erro ao gerar PDF.");
