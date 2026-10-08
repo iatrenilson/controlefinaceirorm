@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useMemo } from "react";
+import { norm } from "@/lib/utils";
 import { format, isPast, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -423,23 +424,22 @@ const Admin = () => {
   }, [emprestimos, profiles]);
 
   const filteredEmprestimos = emprestimos.filter((e) => {
-    const matchBusca = e.nome.toLowerCase().includes(buscaEmprestimo.toLowerCase()) ||
-      (e.user_email || "").toLowerCase().includes(buscaEmprestimo.toLowerCase());
+    const matchBusca = norm(e.nome).includes(norm(buscaEmprestimo)) ||
+      norm(e.user_email || "").includes(norm(buscaEmprestimo));
     const atrasado = isPast(parseISO(e.data_pagamento));
     const matchStatus = filtroStatus === "todos" || (filtroStatus === "atrasado" && atrasado) || (filtroStatus === "em_dia" && !atrasado);
     return matchBusca && matchStatus;
   });
 
   const filteredProfiles = profiles.filter((p) => {
-    const search = buscaUser.toLowerCase();
-    return (p.email || "").toLowerCase().includes(search) || (p.nome || "").toLowerCase().includes(search);
+    return norm(p.email || "").includes(norm(buscaUser)) || norm(p.nome || "").includes(norm(buscaUser));
   });
 
   const clientDetails = useMemo(() => {
     const now = new Date();
     return emprestimos.filter((e) => {
-      const matchBusca = e.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
-        (e.user_email || "").toLowerCase().includes(buscaCliente.toLowerCase());
+      const matchBusca = norm(e.nome).includes(norm(buscaCliente)) ||
+        norm(e.user_email || "").includes(norm(buscaCliente));
 
       const atrasado = isPast(parseISO(e.data_pagamento));
       const matchStatus = filtroStatusCliente === "todos" ||

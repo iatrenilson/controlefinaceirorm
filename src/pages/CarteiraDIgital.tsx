@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { norm } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, FileText, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
@@ -300,7 +301,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
   }, []);
 
   const sinarmFiltrados = sinarmBusca.trim()
-    ? sinarmList.filter(c => c.nome.toLowerCase().includes(sinarmBusca.toLowerCase()) || (c.cpf ?? "").includes(sinarmBusca))
+    ? sinarmList.filter(c => norm(c.nome).includes(norm(sinarmBusca)) || (c.cpf ?? "").includes(sinarmBusca))
     : sinarmList;
 
   const selecionarSinarm = (c: SinarmCliente) => {
@@ -746,7 +747,7 @@ export default function CarteiraDIgital() {
     toast.success("Cliente removido.");
   };
 
-  const filtrados = clientes.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()));
+  const filtrados = clientes.filter(c => norm(c.nome).includes(norm(busca)));
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto">

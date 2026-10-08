@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { cn, norm } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -782,7 +782,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
   };
 
   const cadFiltrados = cadSearch.trim()
-    ? cadastros.filter(c => c.nome.toLowerCase().includes(cadSearch.toLowerCase()) || (c.cpf || "").includes(cadSearch))
+    ? cadastros.filter(c => norm(c.nome).includes(norm(cadSearch)) || (c.cpf || "").includes(cadSearch))
     : cadastros;
 
   // Seleciona registro SINARM/SIGMA â€” sem auto-preencher notas
