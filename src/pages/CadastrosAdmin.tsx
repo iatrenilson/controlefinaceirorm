@@ -426,10 +426,12 @@ export default function CadastrosAdmin() {
                 {cacDropOpen && cacBusca.trim() && (
                   <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-52 overflow-y-auto">
                     {cacClientes
-                      .filter(c =>
-                        (c.nome || "").toLowerCase().includes(cacBusca.toLowerCase()) ||
-                        (c.cpf || "").replace(/\D/g, "").includes(cacBusca.replace(/\D/g, ""))
-                      )
+                      .filter(c => {
+                        const q = cacBusca.toLowerCase();
+                        const cpfDigits = cacBusca.replace(/\D/g, "");
+                        return (c.nome || "").toLowerCase().includes(q) ||
+                          (cpfDigits.length > 0 && (c.cpf || "").replace(/\D/g, "").includes(cpfDigits));
+                      })
                       .slice(0, 8)
                       .map(c => (
                         <button key={c.id} type="button"
@@ -452,10 +454,12 @@ export default function CadastrosAdmin() {
                           <div className="text-xs text-muted-foreground">{c.cpf || "Sem CPF"}</div>
                         </button>
                       ))}
-                    {cacClientes.filter(c =>
-                      (c.nome || "").toLowerCase().includes(cacBusca.toLowerCase()) ||
-                      (c.cpf || "").replace(/\D/g, "").includes(cacBusca.replace(/\D/g, ""))
-                    ).length === 0 && (
+                    {cacClientes.filter(c => {
+                      const q = cacBusca.toLowerCase();
+                      const cpfDigits = cacBusca.replace(/\D/g, "");
+                      return (c.nome || "").toLowerCase().includes(q) ||
+                        (cpfDigits.length > 0 && (c.cpf || "").replace(/\D/g, "").includes(cpfDigits));
+                    }).length === 0 && (
                       <div className="px-3 py-2.5 text-sm text-muted-foreground">Nenhum cliente encontrado.</div>
                     )}
                   </div>
