@@ -122,7 +122,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
   const handleClearHistory = async () => {
     if (activeTab === "clientes") {
       await supabase.from("delay_transacoes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      // Ao limpar histÃ³rico de clientes, zera os acumulados derivados de saque/custo/lucro
+      // Ao limpar histórico de clientes, zera os acumulados derivados de saque/custo/lucro
       await supabase
         .from("delay_clientes")
         .update({ saques: 0, custos: 0, lucro: 0 })
@@ -133,7 +133,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
       setWalletTrans([]);
     }
     setConfirmClear(false);
-    toast({ title: "HistÃ³rico limpo!" });
+    toast({ title: "Histórico limpo!" });
   };
 
   return (
@@ -141,9 +141,9 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
       <DialogContent className="w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" /> HistÃ³rico de MovimentaÃ§Ãµes
+            <History className="h-5 w-5 text-primary" /> Histórico de Movimentações
           </DialogTitle>
-          <DialogDescription className="sr-only">HistÃ³rico de todas as transaÃ§Ãµes do delay esportivo</DialogDescription>
+          <DialogDescription className="sr-only">Histórico de todas as transações do delay esportivo</DialogDescription>
         </DialogHeader>
 
         {/* Tabs */}
@@ -169,7 +169,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
               <div className="flex items-center gap-2">
                 <Select value={filtroMes} onValueChange={setFiltroMes}>
                   <SelectTrigger className="h-8 w-[170px] text-xs">
-                    <SelectValue placeholder="Filtrar mÃªs" />
+                    <SelectValue placeholder="Filtrar mês" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os meses</SelectItem>
@@ -193,8 +193,8 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Limpar histÃ³rico de clientes?</AlertDialogTitle>
-                      <AlertDialogDescription>Todos os registros serÃ£o removidos permanentemente.</AlertDialogDescription>
+                      <AlertDialogTitle>Limpar histórico de clientes?</AlertDialogTitle>
+                      <AlertDialogDescription>Todos os registros serão removidos permanentemente.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -208,7 +208,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-lg border bg-card p-3 text-center space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">DepÃ³sitos</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Depósitos</p>
                 <p className="text-sm font-bold font-mono text-primary">{fmt(resumo.depositos)}</p>
               </div>
               <div className="rounded-lg border bg-card p-3 text-center space-y-1">
@@ -226,13 +226,13 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
             {/* Transaction List */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">MovimentaÃ§Ãµes</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Movimentações</p>
                 <span className="text-xs text-muted-foreground">{transacoesFiltradas.length} registro(s)</span>
               </div>
               {loading ? (
                 <p className="text-xs text-muted-foreground text-center py-4">Carregando...</p>
               ) : transacoesFiltradas.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma transaÃ§Ã£o no perÃ­odo.</p>
+                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma transação no período.</p>
               ) : (
                 <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
                   {transacoesFiltradas.map(t => (
@@ -247,7 +247,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold">{t.tipo === "deposito" ? "DepÃ³sito" : t.tipo === "devolucao" ? "DevoluÃ§Ã£o" : "Saque"}</p>
+                        <p className="text-sm font-semibold">{t.tipo === "deposito" ? "Depósito" : t.tipo === "devolucao" ? "Devolução" : "Saque"}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <CalendarDays className="h-3 w-3" />
                           {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM/yyyy")} â€¢ {t.casa}
@@ -284,8 +284,8 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Limpar histÃ³rico da caixa?</AlertDialogTitle>
-                      <AlertDialogDescription>Todos os registros de depÃ³sitos e retiradas da caixa serÃ£o removidos.</AlertDialogDescription>
+                      <AlertDialogTitle>Limpar histórico da caixa?</AlertDialogTitle>
+                      <AlertDialogDescription>Todos os registros de depósitos e retiradas da caixa serão removidos.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -298,13 +298,13 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">DepÃ³sitos e Retiradas</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Depósitos e Retiradas</p>
                 <span className="text-xs text-muted-foreground">{walletTrans.length} registro(s)</span>
               </div>
               {loading ? (
                 <p className="text-xs text-muted-foreground text-center py-4">Carregando...</p>
               ) : walletTrans.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma transaÃ§Ã£o na caixa.</p>
+                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma transação na caixa.</p>
               ) : (
                 <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
                   {walletTrans.map((t: any) => (
@@ -317,10 +317,10 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold">{t.tipo === "deposito" ? "DepÃ³sito" : "Retirada"}</p>
+                        <p className="text-sm font-semibold">{t.tipo === "deposito" ? "Depósito" : "Retirada"}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <CalendarDays className="h-3 w-3" />
-                          {format(new Date(t.created_at), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
+                          {format(new Date(t.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -549,7 +549,7 @@ const DelayEsportivo = () => {
     setBankDialog(null);
     setBankValor("");
     await fetchClientes();
-    toast({ title: tipo === "depositar" ? "DepÃ³sito realizado!" : "Retirada realizada!", description: `${banco === "santander" ? "Santander" : "Carteira Pessoal"}: ${fmt(newBalance)}` });
+    toast({ title: tipo === "depositar" ? "Depósito realizado!" : "Retirada realizada!", description: `${banco === "santander" ? "Santander" : "Carteira Pessoal"}: ${fmt(newBalance)}` });
   };
 
   const fetchClientes = useCallback(async (attempt = 1) => {
@@ -664,7 +664,7 @@ const DelayEsportivo = () => {
       .eq("id", cliente.id);
 
     if (updateError) {
-      toast({ title: "Erro ao aprovar depÃ³sito", description: getSafeErrorMessage(updateError), variant: "destructive" });
+      toast({ title: "Erro ao aprovar depósito", description: getSafeErrorMessage(updateError), variant: "destructive" });
       return;
     }
 
@@ -684,7 +684,7 @@ const DelayEsportivo = () => {
       setBankBalances(prev => ({ ...prev, [banco]: -depositoVal }));
     }
 
-    toast({ title: "DepÃ³sito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "Carteira Pessoal"}` });
+    toast({ title: "Depósito aprovado!", description: `R$ ${depositoVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} debitado de ${banco === "santander" ? "Santander" : "Carteira Pessoal"}` });
     fetchClientes();
     fetchBankBalances();
   };
@@ -699,7 +699,7 @@ const DelayEsportivo = () => {
       toast({ title: "Erro ao rejeitar", description: getSafeErrorMessage(error), variant: "destructive" });
       return;
     }
-    toast({ title: "DepÃ³sito rejeitado", description: "O valor pendente foi removido." });
+    toast({ title: "Depósito rejeitado", description: "O valor pendente foi removido." });
     fetchClientes();
   };
 
@@ -735,7 +735,7 @@ const DelayEsportivo = () => {
 
   const mesesDisponiveisLucro = useMemo(() => {
     const set = new Set<string>();
-    set.add(format(new Date(), "yyyy-MM")); // sempre inclui mÃªs atual mesmo sem transaÃ§Ãµes
+    set.add(format(new Date(), "yyyy-MM")); // sempre inclui mês atual mesmo sem transações
     allTransacoes.forEach(t => { if (t.data_transacao) set.add(t.data_transacao.slice(0, 7)); });
     return Array.from(set).sort().reverse();
   }, [allTransacoes]);
@@ -811,7 +811,7 @@ const DelayEsportivo = () => {
       await recalcClientFromTransactions(t.cliente_id);
     }
 
-    toast({ title: "TransaÃ§Ã£o removida!" });
+    toast({ title: "Transação removida!" });
     setDeleteTransacao(null);
     fetchTransacoes(historicoCliente.id);
     await fetchClientes();
@@ -866,7 +866,7 @@ const DelayEsportivo = () => {
       }
     }
 
-    toast({ title: "TransaÃ§Ã£o atualizada!" });
+    toast({ title: "Transação atualizada!" });
     setEditTransacao(null);
     fetchTransacoes(historicoCliente.id);
     await fetchClientes();
@@ -946,15 +946,15 @@ const DelayEsportivo = () => {
     const totalLucro = visibleClientes.reduce((a, c) => a + (c.lucro > 0 ? c.lucro : 0), 0);
     const totalCustos = visibleClientes.reduce((a, c) => a + c.custos, 0);
     
-    // Saldo = dinheiro disponÃ­vel na carteira
-    // Para cada cliente: o depÃ³sito saiu da carteira, o saque voltou, custos sÃ£o gastos, e lucro 50/50 Ã© deduzido
-    // FÃ³rmula: saques - depositos - custos - deduÃ§Ã£o_50_50
-    // System client (Caixa): depÃ³sitos/retiradas manuais diretos, saldo = saques (jÃ¡ representa valor lÃ­quido)
+    // Saldo = dinheiro disponível na carteira
+    // Para cada cliente: o depósito saiu da carteira, o saque voltou, custos são gastos, e lucro 50/50 é deduzido
+    // Fórmula: saques - depositos - custos - dedução_50_50
+    // System client (Caixa): depósitos/retiradas manuais diretos, saldo = saques (já representa valor líquido)
     const saldo = clientes.reduce((acc, c) => {
       if (c.status === "system") {
         return acc + c.saques;
       }
-      // DevoluÃ§Ã£o: saques === depositos && lucro === 0 â†’ deposit still subtracted, Caixa holds the refund
+      // Devolução: saques === depositos && lucro === 0 â†’ deposit still subtracted, Caixa holds the refund
       if (c.saques > 0 && c.saques === c.depositos && c.lucro === 0) {
         return acc - c.depositos;
       }
@@ -999,7 +999,7 @@ const DelayEsportivo = () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Clientes");
 
-    const headers = ["CASAS", "FORNECEDOR", "LOGIN BET", "SENHA BET", "DEPOSITO", "CUSTO", "SAQUE", "LUCRO REAL", "LUCRO PRA 2", "DATA DEP.", "DATA SAQUE", "RESULTADO", "OBSERVAÃ‡ÃƒO"];
+    const headers = ["CASAS", "FORNECEDOR", "LOGIN BET", "SENHA BET", "DEPOSITO", "CUSTO", "SAQUE", "LUCRO REAL", "LUCRO PRA 2", "DATA DEP.", "DATA SAQUE", "RESULTADO", "OBSERVAÇÃO"];
     const thinBorder = { style: "thin" as const, color: { argb: "FF000000" } };
     const allBorders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
     const headerRow = ws.addRow(headers);
@@ -1049,7 +1049,7 @@ const DelayEsportivo = () => {
 
       let resultado = "";
       if (saques === 0) resultado = "";
-      else if (saques === depositos) resultado = "DEVOLUÃ‡ÃƒO";
+      else if (saques === depositos) resultado = "DEVOLUÇÃO";
       else if (lucroReal > 0) resultado = "GREEN";
       else if (lucroReal < 0) resultado = "RED";
       else resultado = "SACADA";
@@ -1438,7 +1438,7 @@ const DelayEsportivo = () => {
         }
         setBankBalances(prev => ({ ...prev, [banco]: newBalance }));
 
-        toast({ title: "DepÃ³sito registrado!" });
+        toast({ title: "Depósito registrado!" });
       } else {
         const isDevolucao = valor === cliente.depositos;
 
@@ -1448,7 +1448,7 @@ const DelayEsportivo = () => {
           }).eq("id", cliente.id);
           if (error) { toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" }); return; }
 
-          toast({ title: "DevoluÃ§Ã£o registrada!", description: `${fmt(valor)} creditado no banco.` });
+          toast({ title: "Devolução registrada!", description: `${fmt(valor)} creditado no banco.` });
         } else {
           custo = parseFloat(transCusto) || 0;
           const isGlauberClient = cliente.operator_link_id === 'f42962e0-2355-4546-8a62-27207117e34a';
@@ -1503,7 +1503,7 @@ const DelayEsportivo = () => {
         setBankBalances(prev => ({ ...prev, [banco]: newBalance }));
       }
 
-      // Ao confirmar saque, mover conta para concluÃ­do ou devolvido automaticamente
+      // Ao confirmar saque, mover conta para concluído ou devolvido automaticamente
       if (type === "saque") {
         const isDevolucaoStatus = Math.abs(valor - cliente.depositos) < 0.01;
         await supabase.from("delay_clientes").update({ status: isDevolucaoStatus ? "devolvido" : "concluido" }).eq("id", cliente.id);
@@ -1550,7 +1550,7 @@ const DelayEsportivo = () => {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Selecionados");
 
-    const headers = ["CASAS", "FORNECEDOR", "LOGIN BET", "SENHA BET", "DEPOSITO", "CUSTO", "SAQUE", "LUCRO REAL", "LUCRO PRA 2", "DATA DEP.", "DATA SAQUE", "RESULTADO", "OBSERVAÃ‡ÃƒO"];
+    const headers = ["CASAS", "FORNECEDOR", "LOGIN BET", "SENHA BET", "DEPOSITO", "CUSTO", "SAQUE", "LUCRO REAL", "LUCRO PRA 2", "DATA DEP.", "DATA SAQUE", "RESULTADO", "OBSERVAÇÃO"];
     const thinBorder = { style: "thin" as const, color: { argb: "FF000000" } };
     const allBorders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
     const headerRow = ws.addRow(headers);
@@ -1594,7 +1594,7 @@ const DelayEsportivo = () => {
 
       let resultado = "";
       if (c.saques === 0) resultado = "";
-      else if (c.saques === c.depositos) resultado = "DEVOLUÃ‡ÃƒO";
+      else if (c.saques === c.depositos) resultado = "DEVOLUÇÃO";
       else if (lucroReal > 0) resultado = "GREEN";
       else if (lucroReal < 0) resultado = "RED";
       else resultado = "SACADA";
@@ -1702,17 +1702,17 @@ const DelayEsportivo = () => {
       valor,
       saldo_anterior: saldoAnterior,
       saldo_posterior: novoSaldo,
-      descricao: walletDialog === "depositar" ? "DepÃ³sito na Caixa" : "Retirada da Caixa",
+      descricao: walletDialog === "depositar" ? "Depósito na Caixa" : "Retirada da Caixa",
       origem: "delay",
     });
 
     if (walletDialog === "depositar" && saldoAnterior < 0) {
       toast({
-        title: "DepÃ³sito realizado!",
-        description: `Saldo anterior: ${fmt(saldoAnterior)} | DepÃ³sito: +${fmt(valor)} | Novo saldo: ${fmt(novoSaldo)}`,
+        title: "Depósito realizado!",
+        description: `Saldo anterior: ${fmt(saldoAnterior)} | Depósito: +${fmt(valor)} | Novo saldo: ${fmt(novoSaldo)}`,
       });
     } else {
-      toast({ title: walletDialog === "depositar" ? "DepÃ³sito realizado!" : "Retirada realizada!", description: `Novo saldo: ${fmt(novoSaldo)}` });
+      toast({ title: walletDialog === "depositar" ? "Depósito realizado!" : "Retirada realizada!", description: `Novo saldo: ${fmt(novoSaldo)}` });
     }
     setWalletDialog(null);
     setWalletValor("");
@@ -1723,7 +1723,7 @@ const DelayEsportivo = () => {
   const handleConcluir = async (cliente: DelayCliente) => {
     const { error } = await supabase.from("delay_clientes").update({ status: "concluido" }).eq("id", cliente.id);
     if (error) toast({ title: "Erro", description: getSafeErrorMessage(error), variant: "destructive" });
-    else toast({ title: "Cliente concluÃ­do!", description: `${cliente.nome} foi movido para ConcluÃ­dos.` });
+    else toast({ title: "Cliente concluído!", description: `${cliente.nome} foi movido para Concluídos.` });
     await fetchClientes();
   };
 
@@ -1780,7 +1780,7 @@ const DelayEsportivo = () => {
       setBankBalances(prev => ({ ...prev, [banco]: newBalance }));
     }
 
-    toast({ title: "DepÃ³sito pendente!", description: `R$ ${valorDeposito.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} devolvido ao ${banco === "santander" ? "Santander" : "Carteira Pessoal"}.` });
+    toast({ title: "Depósito pendente!", description: `R$ ${valorDeposito.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} devolvido ao ${banco === "santander" ? "Santander" : "Carteira Pessoal"}.` });
     await fetchClientes();
     await fetchBankBalances();
   };
@@ -1826,7 +1826,7 @@ const DelayEsportivo = () => {
       await supabase.from("bank_balances").insert({ user_id: user.id, banco: "santander", saldo: currentBalance + creditAmount });
     }
     setBankBalances(prev => ({ ...prev, santander: currentBalance + creditAmount }));
-    toast({ title: "Saque confirmado!", description: `${cliente.nome} concluÃ­do com lucro de ${fmt(lucroFinal)}` });
+    toast({ title: "Saque confirmado!", description: `${cliente.nome} concluído com lucro de ${fmt(lucroFinal)}` });
     await fetchClientes();
   };
 
@@ -1870,7 +1870,7 @@ const DelayEsportivo = () => {
             <div>
               <Badge variant="outline" className="mb-1 text-xs border-primary text-primary">DELAY ESPORTIVO</Badge>
               <h1 className="text-lg font-bold tracking-tight">Delay Esportivo</h1>
-              <p className="text-xs text-muted-foreground">Gerencie clientes e operaÃ§Ãµes de delay esportivo</p>
+              <p className="text-xs text-muted-foreground">Gerencie clientes e operações de delay esportivo</p>
             </div>
           </div>
         </div>
@@ -1889,7 +1889,7 @@ const DelayEsportivo = () => {
           </Button>
           <Button size="sm" variant="ghost" className="text-xs"
             onClick={() => setShowHistorico(!showHistorico)}>
-            <TrendingUp className="h-3.5 w-3.5 mr-1" /> HistÃ³rico
+            <TrendingUp className="h-3.5 w-3.5 mr-1" /> Histórico
           </Button>
           <Button size="sm" variant="ghost" className="text-xs text-destructive hover:text-destructive"
             onClick={() => setConfirmZerar(true)}>
@@ -1913,7 +1913,7 @@ const DelayEsportivo = () => {
               </p>
               <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-muted-foreground">DepÃ³sitos em Contas</span>
+                  <span className="text-muted-foreground">Depósitos em Contas</span>
                   <span className="font-mono font-medium text-blue-400">{fmt(stats.depositosAtivos)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
@@ -1933,14 +1933,14 @@ const DelayEsportivo = () => {
             </CardContent>
           </Card>
 
-          {/* DepÃ³sitos em Contas */}
+          {/* Depósitos em Contas */}
           <Card className="border-blue-500/30 bg-blue-500/5">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="rounded-lg bg-blue-500/20 p-1.5">
                   <ArrowDownCircle className="h-4 w-4 text-blue-400" />
                 </div>
-                <p className="text-xs font-semibold uppercase tracking-wider">DepÃ³sitos em Contas</p>
+                <p className="text-xs font-semibold uppercase tracking-wider">Depósitos em Contas</p>
               </div>
               <p className="text-xl font-bold font-mono text-blue-400">
                 {fmt(stats.depositosAtivos)}
@@ -2044,7 +2044,7 @@ const DelayEsportivo = () => {
           </Card>
         </div>
 
-        {/* HistÃ³rico Geral Dialog */}
+        {/* Histórico Geral Dialog */}
         <HistoricoGeralDialog clientes={clientes} open={showHistorico} onOpenChange={setShowHistorico} fmt={fmt} />
 
         {/* Approve Deposit Dialog */}
@@ -2052,7 +2052,7 @@ const DelayEsportivo = () => {
           <DialogContent className="w-[92vw] sm:max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400" /> Aprovar DepÃ³sito
+                <Check className="h-4 w-4 text-emerald-400" /> Aprovar Depósito
               </DialogTitle>
               <DialogDescription>
                 <span className="font-semibold">{approveDialog?.nome}</span> â€” R$ {(approveDialog?.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -2090,13 +2090,13 @@ const DelayEsportivo = () => {
                   setApproveDialog(null);
                 }
               }}>
-                <Check className="h-4 w-4" /> Confirmar AprovaÃ§Ã£o
+                <Check className="h-4 w-4" /> Confirmar Aprovação
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Quem estÃ¡ Operando */}
+        {/* Dialog: Quem está Operando */}
         <Dialog open={operandoDialogOpen} onOpenChange={setOperandoDialogOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -2136,7 +2136,7 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Contas com Custos (filtrado pelo mÃªs selecionado) */}
+        {/* Dialog: Contas com Custos (filtrado pelo mês selecionado) */}
         <Dialog open={custosDialogOpen} onOpenChange={setCustosDialogOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -2158,7 +2158,7 @@ const DelayEsportivo = () => {
                     porCliente.set(t.cliente_id, { nome: c.nome, custo: prev.custo + (t.custo ?? 0) });
                   });
                 const lista = Array.from(porCliente.values()).sort((a, b) => b.custo - a.custo);
-                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum custo neste mÃªs.</p>;
+                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum custo neste mês.</p>;
                 return lista.map((item, i) => (
                   <div key={i} className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm">
                     <span className="font-medium">{item.nome}</span>
@@ -2170,7 +2170,7 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Lucro do MÃªs â€” detalhe por conta */}
+        {/* Dialog: Lucro do Mês â€” detalhe por conta */}
         <Dialog open={lucroDetalheOpen} onOpenChange={setLucroDetalheOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -2192,7 +2192,7 @@ const DelayEsportivo = () => {
                     porCliente.set(t.cliente_id, { nome: c.nome, lucro: prev.lucro + t.lucro });
                   });
                 const lista = Array.from(porCliente.values()).sort((a, b) => b.lucro - a.lucro);
-                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum lucro registrado neste mÃªs.</p>;
+                if (lista.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum lucro registrado neste mês.</p>;
                 return lista.map((item, i) => (
                   <div key={i} className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
                     <span className="font-medium">{item.nome}</span>
@@ -2207,7 +2207,7 @@ const DelayEsportivo = () => {
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-              {/* Operando â€” clique para ver quem estÃ¡ operando */}
+              {/* Operando â€” clique para ver quem está operando */}
               <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setOperandoDialogOpen(true)}>
                 <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
                 <div>
@@ -2215,7 +2215,7 @@ const DelayEsportivo = () => {
                   <p className="text-lg font-bold font-mono">{stats.ativas}</p>
                 </div>
               </div>
-              {/* Saque Pendente â€” clique para ver quem estÃ¡ pendente */}
+              {/* Saque Pendente â€” clique para ver quem está pendente */}
               <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setSaquePendenteDialogOpen(true)}>
                 <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
                 <div>
@@ -2235,11 +2235,11 @@ const DelayEsportivo = () => {
               <div className="flex items-center justify-center gap-2.5">
                 <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
                 <div>
-                  {/* â–¾ abre seletor de mÃªs */}
+                  {/* â–¾ abre seletor de mês */}
                   <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
                     <PopoverTrigger asChild>
                       <p className="text-[9px] uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-primary transition-colors select-none">
-                        Lucro do MÃªs <span className="text-primary">â–¾</span>
+                        Lucro do Mês <span className="text-primary">â–¾</span>
                       </p>
                     </PopoverTrigger>
                     <PopoverContent className="w-44 p-1" align="end">
@@ -2274,9 +2274,9 @@ const DelayEsportivo = () => {
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays className="h-4 w-4 text-primary" />
               <p className="text-xs font-semibold">
-                Lucro {periodo === "diario" ? `de ${format(selectedDate, "dd/MM/yyyy")}` : periodo === "semanal" ? "da Semana" : "do MÃªs"}
+                Lucro {periodo === "diario" ? `de ${format(selectedDate, "dd/MM/yyyy")}` : periodo === "semanal" ? "da Semana" : "do Mês"}
               </p>
-              <Badge variant="outline" className="text-[10px] ml-auto">{periodStats.totalTrans} transaÃ§Ãµes</Badge>
+              <Badge variant="outline" className="text-[10px] ml-auto">{periodStats.totalTrans} transações</Badge>
             </div>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
@@ -2290,7 +2290,7 @@ const DelayEsportivo = () => {
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <div className="cursor-pointer">
-                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">Lucro DiÃ¡rio</p>
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors">Lucro Diário</p>
                     <p className={`text-base font-bold font-mono ${periodStats.lucro >= 0 ? "text-primary" : "text-destructive"}`}>
                       {periodStats.lucro >= 0 ? "+" : ""}{fmt(periodStats.lucro)}
                     </p>
@@ -2434,7 +2434,7 @@ const DelayEsportivo = () => {
                 onClick={(e) => toggleFilter("pendentes", e.ctrlKey || e.metaKey)}
               >
                 <Clock className="h-3.5 w-3.5" />
-                DepÃ³sitos Pendentes
+                Depósitos Pendentes
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-orange-500/20 text-orange-400 border-orange-500/30">{pendentesCount}</Badge>
               </Button>
               {saquePendenteCount > 0 && (
@@ -2456,7 +2456,7 @@ const DelayEsportivo = () => {
                 onClick={(e) => toggleFilter("concluidas", e.ctrlKey || e.metaKey)}
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                ConcluÃ­dos
+                Concluídos
                 <Badge className="ml-0.5 text-[10px] px-1.5 py-0 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">{concluidasCount}</Badge>
               </Button>
               {redCount > 0 && (
@@ -2547,7 +2547,7 @@ const DelayEsportivo = () => {
             size="icon"
             className={`rounded-lg h-9 w-9 sm:h-7 sm:w-7 ${selectionMode ? "bg-primary/20 text-primary" : "bg-muted/60 hover:bg-muted"}`}
             onClick={() => { setSelectionMode(prev => !prev); setSelectedCards(new Set()); }}
-            title={selectionMode ? "Sair da seleÃ§Ã£o" : "Selecionar cards"}
+            title={selectionMode ? "Sair da seleção" : "Selecionar cards"}
           >
             <CheckSquare className="h-3.5 w-3.5" />
           </Button>
@@ -2565,7 +2565,7 @@ const DelayEsportivo = () => {
             size="icon"
             className={`rounded-lg h-9 w-9 sm:h-7 sm:w-7 ${viewMode === "table" ? "bg-primary/20 text-primary" : "bg-muted/60 hover:bg-muted"}`}
             onClick={() => setViewMode(prev => prev === "cards" ? "table" : "cards")}
-            title={viewMode === "cards" ? "VisualizaÃ§Ã£o em tabela" : "VisualizaÃ§Ã£o em cards"}
+            title={viewMode === "cards" ? "Visualização em tabela" : "Visualização em cards"}
           >
             <List className="h-3.5 w-3.5" />
           </Button>
@@ -2584,7 +2584,7 @@ const DelayEsportivo = () => {
           {(["diario", "semanal", "mensal"] as Periodo[]).map(p => (
             <Button key={p} size="sm" variant={periodo === p ? "secondary" : "ghost"} className="text-xs"
               onClick={() => setPeriodo(p)}>
-              {p === "diario" ? "DiÃ¡rio" : p === "semanal" ? "Semanal" : "Mensal"}
+              {p === "diario" ? "Diário" : p === "semanal" ? "Semanal" : "Mensal"}
             </Button>
           ))}
         </div>
@@ -2624,10 +2624,10 @@ const DelayEsportivo = () => {
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Casa</th>
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Login</th>
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Senha</th>
-                  <th className="text-right px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">DepÃ³sito</th>
+                  <th className="text-right px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Depósito</th>
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Fornecedor</th>
                   <th className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Tipo</th>
-                  <th className="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">AÃ§Ãµes</th>
+                  <th className="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -2753,7 +2753,7 @@ const DelayEsportivo = () => {
                         <h3 className="font-bold leading-tight truncate max-w-[160px] text-sm" title={c.nome}>{displayName}</h3>
                         {c.tipo === "50/50" && <Badge className="text-[11px] px-3 py-0.5 bg-yellow-900/40 border border-yellow-600/60 text-yellow-500 hover:bg-yellow-900/50 shrink-0 rounded-full font-medium">50/50</Badge>}
                         {c.saques > 0 && !(c.saques === c.depositos && c.lucro === 0) && (
-                          <Badge className="text-[11px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 shrink-0">ConcluÃ­do</Badge>
+                          <Badge className="text-[11px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 shrink-0">Concluído</Badge>
                         )}
                         {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-warning/20 text-warning hover:bg-warning/30 shrink-0">Devolvido</Badge>
@@ -2770,7 +2770,7 @@ const DelayEsportivo = () => {
                         {c.status !== "saque_pendente" && (c.deposito_pendente ?? 0) > 0 && (
                           <Badge className="text-[11px] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 shrink-0 flex items-center gap-1 animate-pulse">
                             <Clock className="h-3 w-3" />
-                            DepÃ³sito Pendente
+                            Depósito Pendente
                           </Badge>
                         )}
                         {c.status === "saque_pendente" && (
@@ -2845,7 +2845,7 @@ const DelayEsportivo = () => {
                     {c.saques > 0 && c.saques === c.depositos && c.lucro === 0 ? (
                       <div className="flex-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex flex-col items-center justify-center text-center gap-0.5 px-3 py-2">
                         <TrendingUp className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
-                        <p className="text-yellow-500/70 leading-none text-[11px]">DevoluÃ§Ã£o</p>
+                        <p className="text-yellow-500/70 leading-none text-[11px]">Devolução</p>
                         <span className="font-bold font-mono text-yellow-500 text-sm">+{fmt(0)}</span>
                       </div>
                     ) : (
@@ -2884,18 +2884,18 @@ const DelayEsportivo = () => {
                     );
                   })()}
 
-                  {/* Saque aguardando confirmaÃ§Ã£o (enviado pelo fornecedor) */}
+                  {/* Saque aguardando confirmação (enviado pelo fornecedor) */}
                   {c.status === "saque_pendente" && (c.deposito_pendente ?? 0) > 0 && (
                     <div className="mt-2 p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xs">
                           <p className="text-amber-400 font-semibold flex items-center gap-1">
                             <ArrowUpCircle className="h-3 w-3" />
-                            Saque aguardando confirmaÃ§Ã£o
+                            Saque aguardando confirmação
                           </p>
                           <p className="text-foreground font-mono font-bold mt-0.5">
                             R$ {(c.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            {c.custos > 0 && <span className="text-muted-foreground font-normal ml-1">Â· Custo: R$ {c.custos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>}
+                            {c.custos > 0 && <span className="text-muted-foreground font-normal ml-1">· Custo: R$ {c.custos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>}
                           </p>
                         </div>
                         <div className="flex gap-1.5 shrink-0">
@@ -2919,7 +2919,7 @@ const DelayEsportivo = () => {
                         <div className="text-xs">
                           <p className="text-orange-400 font-semibold flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            DepÃ³sito pendente de aprovaÃ§Ã£o
+                            Depósito pendente de aprovação
                           </p>
                           <p className="text-foreground font-mono font-bold mt-0.5">
                             R$ {(c.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -2944,7 +2944,7 @@ const DelayEsportivo = () => {
                   <div className="flex items-center gap-1.5 mt-2.5">
                     <Button size="sm" className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border-0 text-xs h-7"
                       onClick={() => { setTransDialog({ type: "deposito", cliente: c }); setTransValor(""); setTransCasa(c.casa); setTransData(new Date()); setTransDestino("santander"); }}>
-                      <ArrowDownCircle className="h-3 w-3 mr-0.5" /> DepÃ³sito
+                      <ArrowDownCircle className="h-3 w-3 mr-0.5" /> Depósito
                     </Button>
                     <Button size="sm" className="flex-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-500 border-0 text-xs h-7"
                       onClick={() => { setTransDialog({ type: "saque", cliente: c }); setTransValor(""); setTransCusto(""); setTransDividirLucro(c.tipo === "50/50"); setTransData(new Date()); setTransCasa(c.casa); setTransDestino("santander"); }}>
@@ -2959,7 +2959,7 @@ const DelayEsportivo = () => {
                           setTransCasa(c.casa);
                           setTransData(new Date());
                           setTransDestino(c.banco_deposito || "santander");
-                        }} title="Voltar para depÃ³sito pendente">
+                        }} title="Voltar para depósito pendente">
                         <RotateCcw className="h-3 w-3" />
                       </Button>
                     )}
@@ -2970,7 +2970,7 @@ const DelayEsportivo = () => {
                           <ArrowUpCircle className="h-3 w-3" />
                         </Button>
                         <Button size="sm" className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border-0 text-[10px] h-6 w-6 p-0"
-                          onClick={() => handleConcluir(c)} title="Marcar como concluÃ­do">
+                          onClick={() => handleConcluir(c)} title="Marcar como concluído">
                           <Check className="h-3 w-3" />
                         </Button>
                       </>
@@ -3087,7 +3087,7 @@ const DelayEsportivo = () => {
               <Input placeholder="Chave Pix do cliente" value={form.informacoes_adicionais} onChange={e => setForm(f => ({ ...f, informacoes_adicionais: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label className="font-bold">Valor do DepÃ³sito</Label>
+              <Label className="font-bold">Valor do Depósito</Label>
               <Input
                 type="number"
                 min="0"
@@ -3196,7 +3196,7 @@ const DelayEsportivo = () => {
                 </div>
                 {editCliente?.data_deposito && (
                   <div>
-                    <Label className="font-bold">Data de DepÃ³sito</Label>
+                    <Label className="font-bold">Data de Depósito</Label>
                     <Button variant="outline" className="w-full mt-1 justify-start text-left font-normal cursor-default" disabled>
                       <CalendarDays className="mr-2 h-4 w-4" />
                       {format(new Date(editCliente.data_deposito), "dd/MM/yyyy")}
@@ -3223,7 +3223,7 @@ const DelayEsportivo = () => {
                         <SelectItem value="ativo">Ativo</SelectItem>
                         <SelectItem value="operando">Operando</SelectItem>
                         <SelectItem value="saque_pendente">Saque Pendente</SelectItem>
-                        <SelectItem value="concluido">ConcluÃ­do</SelectItem>
+                        <SelectItem value="concluido">Concluído</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -3258,7 +3258,7 @@ const DelayEsportivo = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleteCliente?.nome}</strong>? Esta aÃ§Ã£o nÃ£o pode ser desfeita.
+              Tem certeza que deseja excluir <strong>{deleteCliente?.nome}</strong>? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3274,10 +3274,10 @@ const DelayEsportivo = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {transDialog?.type === "saque" ? <ArrowUpCircle className="h-5 w-5" /> : <ArrowDownCircle className="h-5 w-5" />}
-              {transDialog?.type === "deposito" ? "DepÃ³sito" : "Saque"} â€” {transDialog?.cliente.nome}
+              {transDialog?.type === "deposito" ? "Depósito" : "Saque"} â€” {transDialog?.cliente.nome}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              {transDialog?.type === "deposito" ? "DepÃ³sito" : "Saque"} para {transDialog?.cliente.nome}
+              {transDialog?.type === "deposito" ? "Depósito" : "Saque"} para {transDialog?.cliente.nome}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -3319,7 +3319,7 @@ const DelayEsportivo = () => {
                   <Label className="font-bold text-xs">Dividir Lucro ({transDialog?.cliente.tipo || "50/50"})</Label>
                   <Switch checked={transDividirLucro} onCheckedChange={setTransDividirLucro} />
                 </div>
-                {/* Resumo do cÃ¡lculo em tempo real */}
+                {/* Resumo do cálculo em tempo real */}
                 {(() => {
                   const val = parseFloat(transValor) || 0;
                   const cst = parseFloat(transCusto) || 0;
@@ -3330,7 +3330,7 @@ const DelayEsportivo = () => {
                   const lucroFinal = isGlauber ? lucroAposSplit - cst : lucroAposSplit;
                   return val > 0 ? (
                     <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-1.5 text-xs">
-                      <p className="font-semibold text-sm text-foreground mb-2">Resumo do CÃ¡lculo</p>
+                      <p className="font-semibold text-sm text-foreground mb-2">Resumo do Cálculo</p>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Valor do Saque</span>
                         <span className="font-mono font-medium">{fmt(val)}</span>
@@ -3342,7 +3342,7 @@ const DelayEsportivo = () => {
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">âˆ’ DepÃ³sito da Conta</span>
+                        <span className="text-muted-foreground">âˆ’ Depósito da Conta</span>
                         <span className="font-mono font-medium text-destructive">âˆ’{fmt(deposito)}</span>
                       </div>
                       <div className="border-t border-border my-1" />
@@ -3357,7 +3357,7 @@ const DelayEsportivo = () => {
                         </div>
                       ) : (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Lucro 100% (Sem divisÃ£o)</span>
+                          <span className="text-muted-foreground">Lucro 100% (Sem divisão)</span>
                           <span className="font-mono font-medium">{fmt(lucroBruto)}</span>
                         </div>
                       )}
@@ -3398,7 +3398,7 @@ const DelayEsportivo = () => {
               </Select>
             </div>
             <div>
-              <Label className="font-bold text-xs">Data {transDialog?.type === "deposito" ? "do DepÃ³sito" : "do Saque"}</Label>
+              <Label className="font-bold text-xs">Data {transDialog?.type === "deposito" ? "do Depósito" : "do Saque"}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -3427,7 +3427,7 @@ const DelayEsportivo = () => {
               onClick={handleTransaction}
               disabled={!transValor || parseFloat(transValor) <= 0}
             >
-              {transDialog?.type === "deposito" ? "Confirmar DepÃ³sito" : "Confirmar Saque"}
+              {transDialog?.type === "deposito" ? "Confirmar Depósito" : "Confirmar Saque"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -3439,7 +3439,7 @@ const DelayEsportivo = () => {
           <DialogHeader>
             <DialogTitle>{showDepositChoice === "depositar" ? "Onde deseja depositar?" : "De onde deseja retirar?"}</DialogTitle>
             <DialogDescription>
-              Escolha o destino da operaÃ§Ã£o
+              Escolha o destino da operação
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3">
@@ -3488,8 +3488,8 @@ const DelayEsportivo = () => {
             <DialogTitle>{walletDialog === "depositar" ? "Depositar na Caixa" : "Retirar da Caixa"}</DialogTitle>
             <DialogDescription>
               {walletDialog === "depositar"
-                ? "O valor serÃ¡ distribuÃ­do entre todos os clientes ativos."
-                : "O valor serÃ¡ retirado proporcionalmente dos clientes ativos."}
+                ? "O valor será distribuído entre todos os clientes ativos."
+                : "O valor será retirado proporcionalmente dos clientes ativos."}
             </DialogDescription>
           </DialogHeader>
           <div>
@@ -3563,7 +3563,7 @@ const DelayEsportivo = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Zerar saldo da carteira?</AlertDialogTitle>
             <AlertDialogDescription>
-              O saldo da carteira serÃ¡ zerado. Os dados dos clientes e o histÃ³rico nÃ£o serÃ£o alterados.
+              O saldo da carteira será zerado. Os dados dos clientes e o histórico não serão alterados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3579,10 +3579,10 @@ const DelayEsportivo = () => {
         <DialogContent className="w-[95vw] sm:max-w-md max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> HistÃ³rico â€” {historicoCliente?.nome}
+              <History className="h-5 w-5" /> Histórico â€” {historicoCliente?.nome}
             </DialogTitle>
             <DialogDescription className="sr-only">
-              HistÃ³rico de transaÃ§Ãµes de {historicoCliente?.nome}
+              Histórico de transações de {historicoCliente?.nome}
             </DialogDescription>
           </DialogHeader>
 
@@ -3590,7 +3590,7 @@ const DelayEsportivo = () => {
           {transacoes.length > 0 && (
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-primary/10 rounded-lg p-2">
-                <p className="text-[10px] text-muted-foreground">DepÃ³sitos</p>
+                <p className="text-[10px] text-muted-foreground">Depósitos</p>
                 <p className="text-sm font-bold font-mono text-primary">
                   {fmt(transacoes.filter(t => t.tipo === "deposito").reduce((a, t) => a + t.valor, 0))}
                 </p>
@@ -3615,7 +3615,7 @@ const DelayEsportivo = () => {
             {loadingTransacoes ? (
               <p className="text-center text-muted-foreground py-4">Carregando...</p>
             ) : transacoes.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Nenhuma transaÃ§Ã£o registrada.</p>
+              <p className="text-center text-muted-foreground py-8">Nenhuma transação registrada.</p>
             ) : (
               transacoes.map(t => (
                 <div key={t.id} className="flex items-center justify-between bg-muted/30 rounded-lg p-3 border border-border/50">
@@ -3630,7 +3630,7 @@ const DelayEsportivo = () => {
                       <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
                         {new Date(t.data_transacao + "T12:00:00").toLocaleDateString("pt-BR")}
-                        {t.casa && ` Â· ${t.casa}`}
+                        {t.casa && ` · ${t.casa}`}
                       </p>
                     </div>
                   </div>
@@ -3666,8 +3666,8 @@ const DelayEsportivo = () => {
       <Dialog open={!!editTransacao} onOpenChange={open => !open && setEditTransacao(null)}>
         <DialogContent className="w-[85vw] sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle>Editar TransaÃ§Ã£o</DialogTitle>
-            <DialogDescription className="sr-only">Editar valor da transaÃ§Ã£o</DialogDescription>
+            <DialogTitle>Editar Transação</DialogTitle>
+            <DialogDescription className="sr-only">Editar valor da transação</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -3681,7 +3681,7 @@ const DelayEsportivo = () => {
               </div>
             )}
             <div>
-              <Label className="font-bold text-xs">Data da TransaÃ§Ã£o</Label>
+              <Label className="font-bold text-xs">Data da Transação</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full mt-1 justify-start text-left font-normal text-xs">
@@ -3706,9 +3706,9 @@ const DelayEsportivo = () => {
       <AlertDialog open={!!deleteTransacao} onOpenChange={open => !open && setDeleteTransacao(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transaÃ§Ã£o?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta aÃ§Ã£o reverterÃ¡ os valores no cliente e nÃ£o pode ser desfeita.
+              Esta ação reverterá os valores no cliente e não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3729,7 +3729,7 @@ const DelayEsportivo = () => {
             {/* Create new link */}
             <div className="flex gap-2">
               <Input
-                placeholder="Nick da pessoa (ex: JoÃ£o)"
+                placeholder="Nick da pessoa (ex: João)"
                 value={newLinkNick}
                 onChange={e => setNewLinkNick(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleCreateShareLink()}
@@ -3745,10 +3745,10 @@ const DelayEsportivo = () => {
                 <p className="text-xs font-bold flex items-center gap-1.5">
                   <Eye className="h-3.5 w-3.5 text-purple-400" /> Link Operadores
                 </p>
-                <p className="text-[10px] text-muted-foreground">Quem acessar verÃ¡ <strong>somente</strong> os clientes do nick escolhido, com a mesma visÃ£o do Admin.</p>
+                <p className="text-[10px] text-muted-foreground">Quem acessar verá <strong>somente</strong> os clientes do nick escolhido, com a mesma visão do Admin.</p>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Nick do fornecedor (ex: JoÃ£o)"
+                    placeholder="Nick do fornecedor (ex: João)"
                     value={newIndividualNick}
                     onChange={e => setNewIndividualNick(e.target.value)}
                     className="text-sm h-8"
@@ -3768,7 +3768,7 @@ const DelayEsportivo = () => {
                         if (error) throw error;
                         setNewIndividualNick("");
                         await fetchShareLinks();
-                        toast({ title: `Link individual de visualizaÃ§Ã£o criado para "${newIndividualNick.trim()}"!` });
+                        toast({ title: `Link individual de visualização criado para "${newIndividualNick.trim()}"!` });
                       } catch (err: any) {
                         toast({ title: "Erro", description: getSafeErrorMessage(err), variant: "destructive" });
                       } finally {
@@ -3845,7 +3845,7 @@ const DelayEsportivo = () => {
           </DialogHeader>
           <textarea
             className="w-full h-64 p-3 text-sm bg-muted rounded-md border border-border resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="Anote suas observaÃ§Ãµes aqui..."
+            placeholder="Anote suas observações aqui..."
             value={notasTexto}
             onChange={e => { setNotasTexto(e.target.value); localStorage.setItem("delay_notas", e.target.value); }}
           />

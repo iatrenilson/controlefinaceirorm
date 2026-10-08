@@ -151,7 +151,7 @@ const Admin = () => {
     if (error) {
       toast({ title: "Erro ao estender assinatura", description: getSafeErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "Assinatura estendida!", description: `Acesso liberado atÃ© ${newExpiry.toLocaleDateString("pt-BR")}.` });
+      toast({ title: "Assinatura estendida!", description: `Acesso liberado até ${newExpiry.toLocaleDateString("pt-BR")}.` });
       setEditingSubUser(null);
       fetchSubscriptions();
     }
@@ -190,7 +190,7 @@ const Admin = () => {
       }
     }
 
-    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : "UsuÃ¡rio";
+    const label = newRole === "admin" ? "Administrador" : newRole === "moderator" ? "Moderador" : "Usuário";
     toast({ title: `Papel alterado para ${label} com sucesso` });
     fetchUserRoles();
   };
@@ -202,7 +202,7 @@ const Admin = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Erro ao carregar usuÃ¡rios", description: getSafeErrorMessage(error), variant: "destructive" });
+      toast({ title: "Erro ao carregar usuários", description: getSafeErrorMessage(error), variant: "destructive" });
     } else {
       setProfiles(data || []);
     }
@@ -216,7 +216,7 @@ const Admin = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Erro ao carregar emprÃ©stimos", description: getSafeErrorMessage(error), variant: "destructive" });
+      toast({ title: "Erro ao carregar empréstimos", description: getSafeErrorMessage(error), variant: "destructive" });
     } else {
       const profilesRes = await supabase.from("profiles").select("user_id, email");
       const emailMap = new Map((profilesRes.data || []).map((p: any) => [p.user_id, p.email]));
@@ -255,7 +255,7 @@ const Admin = () => {
     if (error) {
       toast({ title: "Erro ao atualizar", description: getSafeErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "UsuÃ¡rio atualizado com sucesso" });
+      toast({ title: "Usuário atualizado com sucesso" });
       setEditingProfile(null);
       fetchProfiles();
       fetchEmprestimos();
@@ -270,7 +270,7 @@ const Admin = () => {
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast({ title: "Senhas nÃ£o coincidem", description: "Digite a mesma senha nos dois campos.", variant: "destructive" });
+      toast({ title: "Senhas não coincidem", description: "Digite a mesma senha nos dois campos.", variant: "destructive" });
       return;
     }
     setSavingPassword(true);
@@ -310,7 +310,7 @@ const Admin = () => {
       } else if (res.data?.error) {
         toast({ title: "Erro ao excluir", description: getSafeErrorMessage(res.data), variant: "destructive" });
       } else {
-        toast({ title: "UsuÃ¡rio excluÃ­do com sucesso" });
+        toast({ title: "Usuário excluído com sucesso" });
         setDeletingUser(null);
         fetchProfiles();
         fetchEmprestimos();
@@ -335,14 +335,14 @@ const Admin = () => {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast({ title: "Erro", description: "UsuÃ¡rio nÃ£o autenticado", variant: "destructive" });
+      toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
       setSendingNotif(false);
       return;
     }
 
     const destinoLabel = notifDestino === "todos"
-      ? "todos os usuÃ¡rios"
-      : profiles.find(p => p.user_id === notifDestino)?.email || "usuÃ¡rio selecionado";
+      ? "todos os usuários"
+      : profiles.find(p => p.user_id === notifDestino)?.email || "usuário selecionado";
 
     let siteOk = true;
     let emailOk = true;
@@ -358,7 +358,7 @@ const Admin = () => {
 
       const { error } = await supabase.from("notifications").insert(insertData);
       if (error) {
-        toast({ title: "Erro ao enviar notificaÃ§Ã£o no site", description: getSafeErrorMessage(error), variant: "destructive" });
+        toast({ title: "Erro ao enviar notificação no site", description: getSafeErrorMessage(error), variant: "destructive" });
         siteOk = false;
       }
     }
@@ -391,7 +391,7 @@ const Admin = () => {
     // Success feedback
     if (siteOk && emailOk) {
       const metodoLabel = notifMetodo === "site" ? "no site" : notifMetodo === "email" ? "por e-mail" : "no site e por e-mail";
-      toast({ title: `NotificaÃ§Ã£o enviada ${metodoLabel} para ${destinoLabel}!` });
+      toast({ title: `Notificação enviada ${metodoLabel} para ${destinoLabel}!` });
     }
 
     setNotifTitulo("");
@@ -407,9 +407,9 @@ const Admin = () => {
     setClearingNotifs(true);
     const { error } = await supabase.rpc("admin_clear_all_notifications");
     if (error) {
-      toast({ title: "Erro ao limpar notificaÃ§Ãµes", description: getSafeErrorMessage(error), variant: "destructive" });
+      toast({ title: "Erro ao limpar notificações", description: getSafeErrorMessage(error), variant: "destructive" });
     } else {
-      toast({ title: "Todas as notificaÃ§Ãµes foram removidas!" });
+      toast({ title: "Todas as notificações foram removidas!" });
       fetchNotifications();
     }
     setClearingNotifs(false);
@@ -493,7 +493,7 @@ const Admin = () => {
             <ShieldCheck className="h-5 w-5 text-primary" />
             <div>
               <h1 className="text-base sm:text-lg font-bold tracking-tight">Painel Administrativo</h1>
-              <p className="text-xs text-muted-foreground">GestÃ£o completa do sistema</p>
+              <p className="text-xs text-muted-foreground">Gestão completa do sistema</p>
             </div>
           </div>
         </div>
@@ -506,7 +506,7 @@ const Admin = () => {
             <CardContent className="p-5 flex items-start gap-3">
               <div className="rounded-xl bg-primary/10 p-2.5"><Users className="h-5 w-5 text-primary" /></div>
               <div>
-                <p className="text-sm text-muted-foreground">UsuÃ¡rios</p>
+                <p className="text-sm text-muted-foreground">Usuários</p>
                 <p className="text-xl font-bold font-mono">{stats.totalUsuarios}</p>
               </div>
             </CardContent>
@@ -552,10 +552,10 @@ const Admin = () => {
         {/* Tabs */}
         <Tabs defaultValue="users">
           <TabsList className="w-full sm:w-auto flex">
-            <TabsTrigger value="users" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> UsuÃ¡rios</TabsTrigger>
+            <TabsTrigger value="users" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Usuários</TabsTrigger>
             <TabsTrigger value="clientes" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><UserCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Clientes</TabsTrigger>
-            <TabsTrigger value="emprestimos" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> EmprÃ©stimos</TabsTrigger>
-            <TabsTrigger value="notificacoes" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> NotificaÃ§Ãµes</TabsTrigger>
+            <TabsTrigger value="emprestimos" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Empréstimos</TabsTrigger>
+            <TabsTrigger value="notificacoes" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notificações</TabsTrigger>
             <TabsTrigger value="emails" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><MailCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> E-mails</TabsTrigger>
             <TabsTrigger value="assinaturas" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Assinaturas</TabsTrigger>
           </TabsList>
@@ -564,7 +564,7 @@ const Admin = () => {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-base font-semibold">UsuÃ¡rios Cadastrados</CardTitle>
+                  <CardTitle className="text-base font-semibold">Usuários Cadastrados</CardTitle>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Buscar por nome ou e-mail..." value={buscaUser} onChange={(e) => setBuscaUser(e.target.value)} className="pl-8 h-9 w-full sm:w-[250px]" />
@@ -575,7 +575,7 @@ const Admin = () => {
                 {loadingProfiles ? (
                   <p className="text-center text-muted-foreground py-8">Carregando...</p>
                 ) : filteredProfiles.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum usuÃ¡rio encontrado.</p>
+                  <p className="text-center text-muted-foreground py-8">Nenhum usuário encontrado.</p>
                 ) : (
                   <div className="overflow-x-auto">
                   <Table>
@@ -589,7 +589,7 @@ const Admin = () => {
                         <TableHead>Plano</TableHead>
                         <TableHead>Compra</TableHead>
                         <TableHead>Vencimento</TableHead>
-                        <TableHead className="text-right">AÃ§Ãµes</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -626,7 +626,7 @@ const Admin = () => {
                                 ) : isUserMod ? (
                                   <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">Moderador</Badge>
                                 ) : (
-                                  <Badge variant="outline" className="text-xs">UsuÃ¡rio</Badge>
+                                  <Badge variant="outline" className="text-xs">Usuário</Badge>
                                 )}
                               </div>
                             </TableCell>
@@ -674,7 +674,7 @@ const Admin = () => {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="user">UsuÃ¡rio</SelectItem>
+                                    <SelectItem value="user">Usuário</SelectItem>
                                     <SelectItem value="moderator">Moderador</SelectItem>
                                     <SelectItem value="admin">Administrador</SelectItem>
                                   </SelectContent>
@@ -741,16 +741,16 @@ const Admin = () => {
                       <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="Valor" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todos valores</SelectItem>
-                        <SelectItem value="ate_1000">AtÃ© R$ 1.000</SelectItem>
+                        <SelectItem value="ate_1000">Até R$ 1.000</SelectItem>
                         <SelectItem value="1000_5000">R$ 1k - 5k</SelectItem>
                         <SelectItem value="acima_5000">Acima de R$ 5k</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={filtroDataCliente} onValueChange={(v) => setFiltroDataCliente(v as any)}>
-                      <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="PerÃ­odo" /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="Período" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="todos">Todo perÃ­odo</SelectItem>
-                        <SelectItem value="ultimo_mes">Ãšltimo mÃªs</SelectItem>
+                        <SelectItem value="todos">Todo período</SelectItem>
+                        <SelectItem value="ultimo_mes">Ãšltimo mês</SelectItem>
                         <SelectItem value="ultimos_3">Ãšltimos 3 meses</SelectItem>
                         <SelectItem value="ultimos_6">Ãšltimos 6 meses</SelectItem>
                       </SelectContent>
@@ -827,9 +827,9 @@ const Admin = () => {
                                 <TableHead>Valor</TableHead>
                                 <TableHead>Juros</TableHead>
                                 <TableHead>Total</TableHead>
-                                <TableHead>EmprÃ©stimo</TableHead>
+                                <TableHead>Empréstimo</TableHead>
                                 <TableHead>Pagamento</TableHead>
-                                <TableHead>SituaÃ§Ã£o</TableHead>
+                                <TableHead>Situação</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -868,7 +868,7 @@ const Admin = () => {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="text-base font-semibold">Todos os EmprÃ©stimos</CardTitle>
+                  <CardTitle className="text-base font-semibold">Todos os Empréstimos</CardTitle>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -889,13 +889,13 @@ const Admin = () => {
                 {loadingEmprestimos ? (
                   <p className="text-center text-muted-foreground py-8">Carregando...</p>
                 ) : filteredEmprestimos.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum emprÃ©stimo encontrado.</p>
+                  <p className="text-center text-muted-foreground py-8">Nenhum empréstimo encontrado.</p>
                 ) : (
                   <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>UsuÃ¡rio</TableHead>
+                        <TableHead>Usuário</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Valor</TableHead>
                         <TableHead>Data Pagamento</TableHead>
@@ -934,13 +934,13 @@ const Admin = () => {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
-                    <Send className="h-4 w-4 text-muted-foreground" /> Enviar NotificaÃ§Ã£o
+                    <Send className="h-4 w-4 text-muted-foreground" /> Enviar Notificação
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="notif-titulo">TÃ­tulo</Label>
-                    <Input id="notif-titulo" placeholder="TÃ­tulo da notificaÃ§Ã£o..." value={notifTitulo} onChange={(e) => setNotifTitulo(e.target.value)} />
+                    <Label htmlFor="notif-titulo">Título</Label>
+                    <Input id="notif-titulo" placeholder="Título da notificação..." value={notifTitulo} onChange={(e) => setNotifTitulo(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -949,7 +949,7 @@ const Admin = () => {
                         {notifMensagem.length}/500
                       </span>
                     </div>
-                    <Textarea id="notif-msg" placeholder="Escreva a mensagem para todos os usuÃ¡rios..." rows={4} value={notifMensagem} onChange={(e) => setNotifMensagem(e.target.value)} maxLength={500} />
+                    <Textarea id="notif-msg" placeholder="Escreva a mensagem para todos os usuários..." rows={4} value={notifMensagem} onChange={(e) => setNotifMensagem(e.target.value)} maxLength={500} />
                     {notifMensagem.trim().length > 10 && (
                       <Button
                         type="button"
@@ -981,13 +981,13 @@ const Admin = () => {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label>DestinatÃ¡rio</Label>
+                    <Label>Destinatário</Label>
                     <Select value={notifDestino} onValueChange={setNotifDestino}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecionar destinatÃ¡rio" />
+                        <SelectValue placeholder="Selecionar destinatário" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="todos">Todos os usuÃ¡rios</SelectItem>
+                        <SelectItem value="todos">Todos os usuários</SelectItem>
                         {profiles.map((p) => (
                           <SelectItem key={p.user_id} value={p.user_id}>
                             {p.email || p.nome || p.user_id}
@@ -997,15 +997,15 @@ const Admin = () => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>MÃ©todo de Entrega</Label>
+                    <Label>Método de Entrega</Label>
                     <Select value={notifMetodo} onValueChange={(v) => setNotifMetodo(v as any)}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecionar mÃ©todo" />
+                        <SelectValue placeholder="Selecionar método" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="site">
                           <div className="flex items-center gap-2">
-                            <Monitor className="h-4 w-4" /> NotificaÃ§Ã£o no site
+                            <Monitor className="h-4 w-4" /> Notificação no site
                           </div>
                         </SelectItem>
                         <SelectItem value="email">
@@ -1025,14 +1025,14 @@ const Admin = () => {
                     <AlertDialogTrigger asChild>
                       <Button className="w-full gap-2" disabled={!notifTitulo.trim() || !notifMensagem.trim()}>
                         {notifMetodo === "email" ? <Mail className="h-4 w-4" /> : notifMetodo === "ambos" ? <Send className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-                        {notifDestino === "todos" ? "Enviar para todos os usuÃ¡rios" : "Enviar para usuÃ¡rio selecionado"}
+                        {notifDestino === "todos" ? "Enviar para todos os usuários" : "Enviar para usuário selecionado"}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Confirmar envio?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          A notificaÃ§Ã£o "<strong>{notifTitulo}</strong>" serÃ¡ enviada {notifMetodo === "site" ? "no site" : notifMetodo === "email" ? "por e-mail" : "no site e por e-mail"} para {notifDestino === "todos" ? `todos os ${profiles.length} usuÃ¡rios cadastrados` : (profiles.find(p => p.user_id === notifDestino)?.email || "o usuÃ¡rio selecionado")}. Deseja continuar?
+                          A notificação "<strong>{notifTitulo}</strong>" será enviada {notifMetodo === "site" ? "no site" : notifMetodo === "email" ? "por e-mail" : "no site e por e-mail"} para {notifDestino === "todos" ? `todos os ${profiles.length} usuários cadastrados` : (profiles.find(p => p.user_id === notifDestino)?.email || "o usuário selecionado")}. Deseja continuar?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -1051,7 +1051,7 @@ const Admin = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base font-semibold flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" /> HistÃ³rico de NotificaÃ§Ãµes
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" /> Histórico de Notificações
                     </CardTitle>
                     {notifHistory.length > 0 && (
                       <AlertDialog>
@@ -1062,9 +1062,9 @@ const Admin = () => {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Limpar todas as notificaÃ§Ãµes?</AlertDialogTitle>
+                            <AlertDialogTitle>Limpar todas as notificações?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Isso removerÃ¡ permanentemente todas as {notifHistory.length} notificaÃ§Ãµes do sistema. Esta aÃ§Ã£o Ã© irreversÃ­vel.
+                              Isso removerá permanentemente todas as {notifHistory.length} notificações do sistema. Esta ação é irreversível.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -1080,7 +1080,7 @@ const Admin = () => {
                 </CardHeader>
                 <CardContent>
                   {notifHistory.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">Nenhuma notificaÃ§Ã£o enviada.</p>
+                    <p className="text-sm text-muted-foreground text-center py-8">Nenhuma notificação enviada.</p>
                   ) : (
                     <div className="space-y-3 max-h-[400px] overflow-auto">
                       {notifHistory.map((n) => (
@@ -1115,12 +1115,12 @@ const Admin = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>UsuÃ¡rio</TableHead>
+                      <TableHead>Usuário</TableHead>
                       <TableHead>Trial iniciado</TableHead>
                       <TableHead>Plano</TableHead>
-                      <TableHead>Acesso atÃ©</TableHead>
+                      <TableHead>Acesso até</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">AÃ§Ãµes</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1213,8 +1213,8 @@ const Admin = () => {
                 const subEnd = sub?.subscription_expires_at ? new Date(sub.subscription_expires_at) : null;
                 const hasActive = subEnd && subEnd > new Date();
                 return hasActive
-                  ? <span className="ml-1 text-green-400">Â· Vence {format(subEnd!, "dd/MM/yyyy")}</span>
-                  : <span className="ml-1 text-destructive">Â· Sem plano ativo</span>;
+                  ? <span className="ml-1 text-green-400">· Vence {format(subEnd!, "dd/MM/yyyy")}</span>
+                  : <span className="ml-1 text-destructive">· Sem plano ativo</span>;
               })()}
             </DialogDescription>
           </DialogHeader>
@@ -1228,10 +1228,10 @@ const Admin = () => {
                   </Button>
                 ))}
               </div>
-              <Input type="number" min="1" value={subDays} onChange={e => setSubDays(e.target.value)} placeholder="NÃºmero de dias" className="mt-1" />
+              <Input type="number" min="1" value={subDays} onChange={e => setSubDays(e.target.value)} placeholder="Número de dias" className="mt-1" />
             </div>
             <p className="text-xs text-muted-foreground">
-              Adiciona <strong>{subDays} dias</strong> ao vencimento atual (ou a partir de hoje se nÃ£o tiver plano).
+              Adiciona <strong>{subDays} dias</strong> ao vencimento atual (ou a partir de hoje se não tiver plano).
             </p>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -1254,8 +1254,8 @@ const Admin = () => {
       <Dialog open={!!editingProfile} onOpenChange={(open) => !open && setEditingProfile(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar UsuÃ¡rio</DialogTitle>
-            <DialogDescription>Altere as informaÃ§Ãµes do perfil do usuÃ¡rio.</DialogDescription>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Altere as informações do perfil do usuário.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -1280,10 +1280,10 @@ const Admin = () => {
       <AlertDialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir UsuÃ¡rio</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o usuÃ¡rio <strong>{deletingUser?.email || deletingUser?.nome}</strong>? 
-              Esta aÃ§Ã£o Ã© irreversÃ­vel e removerÃ¡ todos os dados associados (perfil, emprÃ©stimos e roles).
+              Tem certeza que deseja excluir o usuário <strong>{deletingUser?.email || deletingUser?.nome}</strong>? 
+              Esta ação é irreversível e removerá todos os dados associados (perfil, empréstimos e roles).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1312,7 +1312,7 @@ const Admin = () => {
               <Input
                 id="new-password"
                 type="password"
-                placeholder="MÃ­nimo 6 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 minLength={6}
@@ -1330,7 +1330,7 @@ const Admin = () => {
               />
             </div>
             {newPassword && confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-xs text-destructive">As senhas nÃ£o coincidem.</p>
+              <p className="text-xs text-destructive">As senhas não coincidem.</p>
             )}
             {newPassword && newPassword.length < 6 && (
               <p className="text-xs text-destructive">A senha deve ter pelo menos 6 caracteres.</p>
