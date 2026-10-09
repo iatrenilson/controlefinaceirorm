@@ -574,7 +574,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
       await writable.close();
       return;
     } catch (e) {
-      if ((e as Error).name === "AbortError") return; // usuário cancelou
+      if ((e as Error).name === "AbortError") throw e; // usuário cancelou — propaga para não resetar form
     }
   }
 
@@ -1270,6 +1270,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                   .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
               }
             } catch (e) {
+              if ((e as Error).name === "AbortError") return; // cancelou o save — volta pro formulário
               console.error(e);
               toast.error("Erro ao gerar PDF.");
             }
