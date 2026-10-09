@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,7 +83,14 @@ export default function CadastrosAdmin() {
 
   // Cadastro manual
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const backUrl = searchParams.get("back");
   const [novoOpen, setNovoOpen] = useState(() => searchParams.get("novo") === "1");
+
+  const handleNovoOpenChange = (open: boolean) => {
+    setNovoOpen(open);
+    if (!open && backUrl) navigate(backUrl);
+  };
   const [novoNome, setNovoNome] = useState("");
   const [novoCpf, setNovoCpf] = useState("");
   const [novoEndereco, setNovoEndereco] = useState("");
@@ -245,7 +252,7 @@ export default function CadastrosAdmin() {
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
     toast.success("Cadastro criado com sucesso.");
     resetNovo();
-    setNovoOpen(false);
+    handleNovoOpenChange(false);
     carregar();
   };
 
@@ -402,7 +409,7 @@ export default function CadastrosAdmin() {
       </main>
 
       {/* Dialog de cadastro manual */}
-      <Dialog open={novoOpen} onOpenChange={v => { setNovoOpen(v); if (!v) resetNovo(); }}>
+      <Dialog open={novoOpen} onOpenChange={v => { handleNovoOpenChange(v); if (!v) resetNovo(); }}>
         <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -580,7 +587,7 @@ export default function CadastrosAdmin() {
             </div>
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => { setNovoOpen(false); resetNovo(); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { handleNovoOpenChange(false); resetNovo(); }}>Cancelar</Button>
             <Button onClick={salvarNovo} disabled={novoSaving || uploadingPsico} className="gap-2">
               <Check className="h-3.5 w-3.5" />
               {novoSaving ? "Salvando..." : "Salvar Cadastro"}

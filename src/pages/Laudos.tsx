@@ -859,7 +859,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Preencher a partir de cadastro</Label>
                 <div className="flex items-center gap-2">
-                  <Link to="/cadastros?novo=1">
+                  <Link to="/cadastros?novo=1&back=/laudos">
                     <Button size="sm" className="gap-1.5 h-7 text-xs px-2.5">
                       <ClipboardPen className="h-3.5 w-3.5" />
                       Cadastro Manual
