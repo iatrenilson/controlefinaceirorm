@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ClipboardList, Download, CalendarIcon, RotateCcw, Search } from "lucide-react";
+import { ClipboardList, Download, CalendarIcon, RotateCcw, Search, ClipboardPen, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -858,9 +858,19 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             <div ref={cadRef} className="relative space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs text-muted-foreground">Preencher a partir de cadastro</Label>
-                <div className="flex items-center gap-3">
-                  <Link to="/cadastros?novo=1" className="text-xs text-primary hover:underline">+ Cadastro Manual</Link>
-                  <Link to="/cadastros" className="text-xs text-muted-foreground hover:underline">Gerenciar</Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/cadastros?novo=1">
+                    <Button size="sm" className="gap-1.5 h-7 text-xs px-2.5">
+                      <ClipboardPen className="h-3.5 w-3.5" />
+                      Cadastro Manual
+                    </Button>
+                  </Link>
+                  <Link to="/cadastros">
+                    <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs px-2.5">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      Gerenciar
+                    </Button>
+                  </Link>
                 </div>
               </div>
               <div className="relative">
