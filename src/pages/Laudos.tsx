@@ -1252,6 +1252,9 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             if (!form.finalidade.length) { toast.error("Selecione ao menos uma Finalidade."); return; }
             if (!form.categoria.length) { toast.error("Selecione ao menos uma Categoria."); return; }
             if (!form.notaTeorica) { toast.error("Preencha a Nota da Prova Teórica."); return; }
+            if (!form.notaPistola && !form.notaRevolver && !form.notaRifle && !form.notaEspingarda) {
+              toast.error("Preencha ao menos uma Pontuação no Alvo Silhueta."); return;
+            }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
               await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
