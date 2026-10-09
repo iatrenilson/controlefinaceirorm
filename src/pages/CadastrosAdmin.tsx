@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { norm } from "@/lib/utils";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,7 +82,8 @@ export default function CadastrosAdmin() {
   const [deletandoTodos, setDeletandoTodos] = useState(false);
 
   // Cadastro manual
-  const [novoOpen, setNovoOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [novoOpen, setNovoOpen] = useState(() => searchParams.get("novo") === "1");
   const [novoNome, setNovoNome] = useState("");
   const [novoCpf, setNovoCpf] = useState("");
   const [novoEndereco, setNovoEndereco] = useState("");
