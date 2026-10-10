@@ -103,6 +103,8 @@ export default function CadastrosAdmin() {
   const [novoArmas, setNovoArmas] = useState<string[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrStatus, setOcrStatus] = useState<"idle"|"ok"|"erro">("idle");
+  const [ocrEndLoading, setOcrEndLoading] = useState(false);
+  const [ocrEndStatus, setOcrEndStatus] = useState<"idle"|"ok"|"erro">("idle");
   const [novoPsicoFile, setNovoPsicoFile] = useState<File | null>(null);
   const [novoPsicoUrl, setNovoPsicoUrl] = useState<string | null>(null);
   const [uploadingPsico, setUploadingPsico] = useState(false);
@@ -198,66 +200,137 @@ export default function CadastrosAdmin() {
   const toggleNovo = (list: string[], setList: (v: string[]) => void, item: string) =>
     setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
 
+  const carregarTesseract = async () => {
+    if (!(window as any).Tesseract) {
+      await new Promise<void>((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js";
+        s.onload = () => res(); s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+  };
+
+  const fileParaImagem = async (file: File): Promise<Blob> => {
+    if (!file.type.includes("pdf")) return file;
+    if (!(window as any).pdfjsLib) {
+      await new Promise<void>((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        s.onload = () => {
+          (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          res();
+        };
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const pdf = await (window as any).pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const page = await pdf.getPage(1);
+    const vp = page.getViewport({ scale: 2.5 });
+    const canvas = document.createElement("canvas");
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
+    return await new Promise<Blob>(res => canvas.toBlob(b => res(b!), "image/png"));
+  };
+
   const extrairOCR = async (file: File) => {
     setOcrLoading(true); setOcrStatus("idle");
     try {
-      if (!(window as any).Tesseract) {
-        await new Promise<void>((res, rej) => {
-          const s = document.createElement("script");
-          s.src = "https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js";
-          s.onload = () => res(); s.onerror = rej;
-          document.head.appendChild(s);
-        });
-      }
-      const { data: { text } } = await (window as any).Tesseract.recognize(file, "por");
-      const t = text.toUpperCase();
+      await carregarTesseract();
+      const img = await fileParaImagem(file);
+      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
+      const t = text.toUpperCase().replace(/\r/g, "\n");
 
-      // CPF
-      const cpfM = t.match(/\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\s]?\d{2}/);
+      // CPF — múltiplos formatos
+      const cpfM = t.match(/\d{3}[\. ]?\d{3}[\. ]?\d{3}[-. ]?\d{2}/);
       const cpfRaw = cpfM ? cpfM[0].replace(/\D/g, "") : "";
       const cpf = cpfRaw.length === 11
         ? cpfRaw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "";
 
-      // Nome
-      const nomeM = t.match(/NOME[:\s\n\r]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,60}?)[\n\r]/);
-      const nome = nomeM ? nomeM[1].trim().replace(/\s+/g, " ") : "";
+      // Nome — tenta com label, depois procura linha em maiúsculas que parece nome
+      let nome = "";
+      const nomeLabelM = t.match(/(?:NOME[:\s]+|^NOME\s*\n)([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{4,70}?)(?:\n|CPF|DATA|NASC)/m);
+      if (nomeLabelM) {
+        nome = nomeLabelM[1].trim().replace(/\s+/g, " ");
+      } else {
+        // Procura linha que parece um nome (2+ palavras, só letras/espaço, >6 chars)
+        const linhas = t.split("\n").map(l => l.trim()).filter(Boolean);
+        const bloqueios = /BRASIL|REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA|NACIONAL|SEGURANÇA|PÚBLICA|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO|MILITAR|FEDERAL|POLÍCIA|CIVIL|ESTADO|SERVIÇO|SOCIAL|NATURALIDADE|NASCIMENTO/;
+        for (const linha of linhas) {
+          if (linha.length >= 6 && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(linha) && !bloqueios.test(linha) && linha.split(/\s+/).length >= 2) {
+            nome = linha; break;
+          }
+        }
+      }
 
-      // Endereço
-      const endM = t.match(/(?:ENDERE[CÇ]O|DOMIC[IÍ]LIO)[:\s\n\r]+([^\n\r]{5,80})/);
+      if (cpf) setNovoCpf(cpf);
+      if (nome) setNovoNome(nome);
+      setOcrStatus("ok");
+    } catch {
+      setOcrStatus("erro");
+    } finally {
+      setOcrLoading(false);
+    }
+  };
+
+  const extrairOCREndereco = async (file: File) => {
+    setOcrEndLoading(true); setOcrEndStatus("idle");
+    try {
+      await carregarTesseract();
+      const img = await fileParaImagem(file);
+      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
+      const t = text.toUpperCase().replace(/\r/g, "\n");
+
+      // Endereço — vários padrões
       let endereco = "", numero = "";
-      if (endM) {
-        const endStr = endM[1].trim();
-        const numM = endStr.match(/,?\s*(?:N[°º.]?\s*|N[Úu]MERO\s*:?\s*)(\d+)/);
-        if (numM) {
-          numero = numM[1];
-          endereco = endStr.slice(0, endStr.indexOf(numM[0])).replace(/,\s*$/, "").trim();
-        } else { endereco = endStr; }
+      const endPatterns = [
+        /(?:ENDERE[CÇ]O|LOG[OA]RADOURO|DOMIC[IÍ]LIO)[:\s]+([^\n]{5,80})/,
+        /(?:RUA|AV(?:ENIDA)?\.?|TRAV(?:ESSA)?\.?|ALAMEDA|ESTRADA|ROD(?:OVIA)?\.?)\s+([^\n]{4,70})/,
+      ];
+      for (const re of endPatterns) {
+        const m = t.match(re);
+        if (m) {
+          const endStr = m[0].replace(/(?:ENDERE[CÇ]O|LOG[OA]RADOURO|DOMIC[IÍ]LIO)[:\s]+/, "").trim();
+          const numM = endStr.match(/,\s*(?:N[°º.]?\s*)?(\d+)/);
+          if (numM) {
+            numero = numM[1];
+            endereco = endStr.slice(0, endStr.indexOf(numM[0])).replace(/,\s*$/, "").trim();
+          } else {
+            const numSoloM = endStr.match(/\s(\d{1,6})(?:\s|$)/);
+            if (numSoloM) {
+              numero = numSoloM[1];
+              endereco = endStr.slice(0, endStr.indexOf(numSoloM[0])).trim();
+            } else { endereco = endStr; }
+          }
+          break;
+        }
       }
 
       // Bairro
-      const bairroM = t.match(/BAIRRO[:\s\n\r]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s\d]{2,40}?)[\n\r]/);
-      const bairro = bairroM ? bairroM[1].trim().split(/\s{2,}/)[0] : "";
+      const bairroM = t.match(/BAIRRO[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s\d\-]{2,50})(?:\n|CEP|CIDADE|MUNIC)/m);
+      const bairroAlt = t.match(/BAIRRO[:\s]+([^\n]{2,40})/);
+      const bairro = (bairroM ? bairroM[1] : bairroAlt ? bairroAlt[1] : "").trim().split(/\s{2,}/)[0];
 
-      // Cidade
-      const cidadeM = t.match(/(?:MUNIC[IÍ]PIO|NATURALIDADE|CIDADE)[:\s\n\r]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{2,40}?)[\n\r\/]/);
+      // Cidade / Município
+      const cidadeM = t.match(/(?:MUNIC[IÍ]PIO|CIDADE)[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{2,50})(?:\n|UF|ESTADO|\s{2,}|\-)/m);
       const cidade = cidadeM ? cidadeM[1].trim().split(/\s{2,}/)[0] : "";
 
       // UF
       const ufM = t.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
       const estado = ufM ? ufM[1] : "";
 
-      if (cpf) setNovoCpf(cpf);
-      if (nome) setNovoNome(nome);
-      if (endereco) setNovoEndereco(endereco);
+      if (endereco) setNovoEndereco(endereco.toUpperCase());
       if (numero) setNovoNumero(numero);
-      if (bairro) setNovoBairro(bairro);
-      if (cidade) setNovoCidade(cidade);
+      if (bairro) setNovoBairro(bairro.toUpperCase());
+      if (cidade) setNovoCidade(cidade.toUpperCase());
       if (estado) setNovoEstado(estado);
-      setOcrStatus("ok");
+      setOcrEndStatus("ok");
     } catch {
-      setOcrStatus("erro");
+      setOcrEndStatus("erro");
     } finally {
-      setOcrLoading(false);
+      setOcrEndLoading(false);
     }
   };
 
@@ -268,6 +341,7 @@ export default function CadastrosAdmin() {
     setNovoPsicoFile(null); setNovoPsicoUrl(null);
     setCacBusca(""); setCacDropOpen(false); setCacSelecionado(null);
     setOcrLoading(false); setOcrStatus("idle");
+    setOcrEndLoading(false); setOcrEndStatus("idle");
   };
 
   const handleNovoPsico = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -554,23 +628,45 @@ export default function CadastrosAdmin() {
               )}
             </div>
 
-            {/* OCR upload */}
-            <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors
-              ${ocrLoading ? "border-primary/40 bg-primary/5" : ocrStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
-              <input type="file" accept="image/*" className="hidden" disabled={ocrLoading}
-                onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCR(f); e.target.value = ""; }} />
-              {ocrLoading ? (
-                <><div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-primary">Lendo documento...</span></>
-              ) : ocrStatus === "ok" ? (
-                <><span className="text-lg">✓</span><span className="text-xs text-green-500 font-medium">Dados extraídos! Confira abaixo.</span></>
-              ) : ocrStatus === "erro" ? (
-                <><span className="text-lg">⚠</span><span className="text-xs text-destructive">Não foi possível ler. Preencha manualmente.</span></>
-              ) : (
-                <><Upload className="h-5 w-5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground text-center">📷 Enviar foto da <strong>CNH</strong> ou <strong>RG</strong><br/>para preencher automaticamente</span></>
-              )}
-            </label>
+            {/* OCR uploads */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* CNH / RG — extrai Nome e CPF */}
+              <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
+                ${ocrLoading ? "border-primary/40 bg-primary/5" : ocrStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
+                <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrLoading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCR(f); e.target.value = ""; }} />
+                {ocrLoading ? (
+                  <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[10px] text-primary text-center">Lendo...</span></>
+                ) : ocrStatus === "ok" ? (
+                  <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Nome e CPF<br/>extraídos!</span></>
+                ) : ocrStatus === "erro" ? (
+                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Não lido.<br/>Preencha manual.</span></>
+                ) : (
+                  <><Upload className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground text-center"><strong>CNH / RG</strong><br/>Nome e CPF</span></>
+                )}
+              </label>
+
+              {/* Comprovante de endereço — extrai Endereço */}
+              <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
+                ${ocrEndLoading ? "border-primary/40 bg-primary/5" : ocrEndStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrEndStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
+                <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrEndLoading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCREndereco(f); e.target.value = ""; }} />
+                {ocrEndLoading ? (
+                  <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[10px] text-primary text-center">Lendo...</span></>
+                ) : ocrEndStatus === "ok" ? (
+                  <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Endereço<br/>extraído!</span></>
+                ) : ocrEndStatus === "erro" ? (
+                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Não lido.<br/>Preencha manual.</span></>
+                ) : (
+                  <><Upload className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground text-center"><strong>Comp. Endereço</strong><br/>Rua, Bairro, Cidade</span></>
+                )}
+              </label>
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center -mt-1">Aceita foto (📷) ou PDF — preenche os campos automaticamente</p>
 
             {/* divider */}
             <div className="flex items-center gap-3">
