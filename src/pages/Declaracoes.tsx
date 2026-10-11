@@ -3149,27 +3149,6 @@ END $$;`
                   e.target.value = "";
                   setSubTipoPendente("");
                 }} />
-              {/* Sub-tipo de comprovante de residência */}
-              {subTipoDialogOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setSubTipoDialogOpen(false)}>
-                  <div className="bg-card border border-border rounded-xl p-4 shadow-xl w-64 space-y-3" onClick={e => e.stopPropagation()}>
-                    <p className="text-xs font-semibold text-foreground">Tipo de comprovante</p>
-                    {["Telefone", "Energia", "Água", "Gás"].map(tipo => (
-                      <button key={tipo} type="button"
-                        className="w-full text-left rounded-lg border border-border/50 px-3 py-2 text-xs hover:bg-primary/10 hover:border-primary/50 transition-colors"
-                        onClick={() => {
-                          setSubTipoPendente(tipo);
-                          setSubTipoDialogOpen(false);
-                          setTimeout(() => docUploadRef.current?.click(), 0);
-                        }}>
-                        {tipo}
-                      </button>
-                    ))}
-                    <button type="button" className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
-                      onClick={() => setSubTipoDialogOpen(false)}>Cancelar</button>
-                  </div>
-                </div>
-              )}
               <button type="button"
                 className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
                 onClick={() => setAbaDocsForm(o => !o)}>
@@ -3237,6 +3216,28 @@ END $$;`
               <UserPlus className="h-3.5 w-3.5" />{savingCliente ? "Salvando..." : editandoId ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog sub-tipo comprovante de residência ── */}
+      <Dialog open={subTipoDialogOpen} onOpenChange={setSubTipoDialogOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Tipo de comprovante</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {["Telefone", "Energia", "Água", "Gás"].map(tipo => (
+              <button key={tipo} type="button"
+                className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                onClick={() => {
+                  setSubTipoPendente(tipo);
+                  setSubTipoDialogOpen(false);
+                  setTimeout(() => docUploadRef.current?.click(), 100);
+                }}>
+                {tipo}
+              </button>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
