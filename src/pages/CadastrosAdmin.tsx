@@ -283,23 +283,33 @@ export default function CadastrosAdmin() {
       const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
       const t = text.toUpperCase().replace(/\r/g, "\n");
 
-      // CPF: 11 dígitos em vários formatos
+      // CPF: 11 dígitos em vários formatos (busca no texto todo)
       const cpfM = t.match(/\d{3}[\. ]?\d{3}[\. ]?\d{3}[-. ]?\d{2}/);
       const cpfRaw = cpfM ? cpfM[0].replace(/\D/g, "") : "";
       const cpf = cpfRaw.length === 11 ? cpfRaw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "";
 
-      // Nome: palavras a ignorar (instruções do assinador digital, cabeçalhos, etc.)
-      const IGNORAR = /BRASIL|REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA|NACIONAL|SEGURANÇA|PÚBLICA|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO|MILITAR|FEDERAL|POLÍCIA|CIVIL|ESTADO|SERVIÇO|SOCIAL|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|DENATRAN|SENATRAN|SERPRO|HTTPS|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|VALIDA|CONFIRM|PROGRAMA|DISPONÍVEL/;
+      // Para CNH-e: o texto de instrução termina em "SENATRAN" ou "DENATRAN"
+      // O conteúdo da CNH (nome, CPF) vem DEPOIS disso
+      const markerEnd = /SENATRAN|DENATRAN|DETRAN/.exec(t);
+      const cnh = markerEnd ? t.slice(markerEnd.index + markerEnd[0].length) : t;
+
+      const IGNORAR = /^(REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA\s+NACIONAL|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO\s+GERAL|MILITAR|POLÍCIA|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|SENATRAN|SERPRO|HTTP|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|PROGRAMAS|DISPONÍV)$/;
       let nome = "";
-      // 1) Tenta label "NOME:"
-      const nomeLabelM = t.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|DATA|NASC|FILIA)/m);
+      // 1) Tenta label "NOME" (com ou sem ":")
+      const nomeLabelM = cnh.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|DATA|NASC|FILIA|DOC)/m);
       if (nomeLabelM) nome = nomeLabelM[1].trim().replace(/\s+/g, " ");
-      // 2) Procura primeira linha que parece nome próprio (≥2 palavras, só letras)
+      // 2) Linha após "1." (campos CNH são numerados)
       if (!nome) {
-        for (const ln of t.split("\n").map(l => l.trim()).filter(Boolean)) {
-          const palavras = ln.split(/\s+/);
-          if (ln.length >= 6 && palavras.length >= 2 && palavras.length <= 7 &&
-              /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(ln) && !IGNORAR.test(ln)) {
+        const campo1M = cnh.match(/(?:^|\n)\s*1[.\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?:\n|$)/m);
+        if (campo1M) nome = campo1M[1].trim().replace(/\s+/g, " ");
+      }
+      // 3) Primeira linha com ≥2 palavras que parece nome próprio
+      if (!nome) {
+        for (const ln of cnh.split("\n").map(l => l.trim()).filter(Boolean)) {
+          const words = ln.split(/\s+/);
+          if (ln.length >= 6 && words.length >= 2 && words.length <= 6 &&
+              /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(ln) &&
+              !IGNORAR.test(ln)) {
             nome = ln; break;
           }
         }
