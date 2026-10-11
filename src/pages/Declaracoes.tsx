@@ -1275,6 +1275,9 @@ END $$;`
   const [subTipoPendente, setSubTipoPendente] = useState<string>("");
   const docLoteRef = useRef<HTMLInputElement>(null);
   const [uploadingLote, setUploadingLote] = useState(false);
+  const [loteSubTipoDialogOpen, setLoteSubTipoDialogOpen] = useState(false);
+  const [loteSubTipoArquivo, setLoteSubTipoArquivo] = useState("");
+  const loteSubTipoResolveRef = useRef<((v: string) => void) | null>(null);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1702,6 +1705,12 @@ END $$;`
     return null;
   }
 
+  function pedirSubTipoLote(fileName: string): Promise<string> {
+    setLoteSubTipoArquivo(fileName);
+    setLoteSubTipoDialogOpen(true);
+    return new Promise(resolve => { loteSubTipoResolveRef.current = resolve; });
+  }
+
   const uploadEmLote = useCallback(async (clienteId: string, files: FileList) => {
     setUploadingLote(true);
     const arr = Array.from(files);
@@ -1709,7 +1718,11 @@ END $$;`
     for (const file of arr) {
       const tipo = detectarTipoPorNome(file.name);
       if (!tipo) { naoReconhecidos.push(file.name); continue; }
-      await uploadDocCR(clienteId, tipo, file);
+      let subTipo: string | undefined;
+      if (tipo === "comp_residencia" || tipo === "comp_2_end") {
+        subTipo = await pedirSubTipoLote(file.name);
+      }
+      await uploadDocCR(clienteId, tipo, file, subTipo);
     }
     setUploadingLote(false);
     if (naoReconhecidos.length > 0) {
@@ -3286,6 +3299,29 @@ END $$;`
               <UserPlus className="h-3.5 w-3.5" />{savingCliente ? "Salvando..." : editandoId ? "Salvar Alterações" : "Cadastrar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog sub-tipo para upload em lote ── */}
+      <Dialog open={loteSubTipoDialogOpen} onOpenChange={open => { if (!open) { loteSubTipoResolveRef.current?.(""); loteSubTipoResolveRef.current = null; setLoteSubTipoDialogOpen(false); } }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Tipo de comprovante</DialogTitle>
+            <p className="text-[11px] text-muted-foreground truncate">{loteSubTipoArquivo}</p>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {["Telefone", "Energia", "Água", "Gás"].map(sub => (
+              <button key={sub} type="button"
+                className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                onClick={() => {
+                  loteSubTipoResolveRef.current?.(sub);
+                  loteSubTipoResolveRef.current = null;
+                  setLoteSubTipoDialogOpen(false);
+                }}>
+                {sub}
+              </button>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
