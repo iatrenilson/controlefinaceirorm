@@ -19,20 +19,18 @@ import { ptBR } from "date-fns/locale";
 
 // ─── Documentos CR ─────────────────────────────────────────────────────────
 const DOCS_CR = [
-  { id: "cap_tecnica",      label: "Comprovante de Capacidade Técnica",                            tag: "" },
-  { id: "ant_federal",      label: "Certidão de Antecedente Criminal - Justiça Federal",            tag: "" },
-  { id: "decl_inquerito",   label: "Declaração de não estar respondendo a inquérito policial",      tag: "DESPACHANTE" },
-  { id: "doc_ident",        label: "Documento de Identificação Pessoal",                            tag: "" },
-  { id: "laudo_psico",      label: "Laudo de Aptidão Psicológica",                                 tag: "" },
-  { id: "comp_residencia",  label: "Comprovante de Residência Fixa",                               tag: "DESPACHANTE*" },
-  { id: "comp_ocupacao",    label: "Comprovante de Ocupação Lícita",                               tag: "" },
-  { id: "comp_2_end",       label: "Comprovante de 2º Endereço de Guarda do Acervo",               tag: "DESPACHANTE" },
-  { id: "ant_estadual",     label: "Certidão de Antecedente Criminal - Justiça Estadual",          tag: "" },
-  { id: "anexo_a",          label: "Anexo A / Declaração de Segurança do Acervo",                  tag: "CLUBE" },
-  { id: "decl_habitualidade", label: "Declaração de Habitualidade na Forma da Norma Vigente",      tag: "CLUBE" },
-  { id: "comp_filiacao",    label: "Comprovante de Filiação a Entidade de Tiro Desportivo",        tag: "CLUBE" },
-  { id: "ant_militar",      label: "Certidão de Antecedente Criminal - Justiça Militar",           tag: "" },
-  { id: "ant_eleitoral",    label: "Certidão de Antecedente Criminal - Justiça Eleitoral",         tag: "" },
+  { id: "ant_federal",       label: "Certidão negativa de antecedentes criminais da Justiça Federal",              tag: "" },
+  { id: "ant_estadual",      label: "Certidão negativa de antecedentes criminais da Justiça Estadual",             tag: "" },
+  { id: "ant_eleitoral",     label: "Certidão negativa de antecedentes criminais da Justiça Eleitoral",            tag: "" },
+  { id: "ant_militar",       label: "Certidão negativa de antecedentes criminais da Justiça Militar",              tag: "" },
+  { id: "comp_ocupacao",     label: "Comprovante de ocupação lícita ou aposentadoria",                             tag: "" },
+  { id: "comp_residencia",   label: "Comprovante de residência fixa",                                              tag: "" },
+  { id: "comp_2_end",        label: "Comprovante de segundo endereço para guarda do acervo",                       tag: "" },
+  { id: "cap_tecnica",       label: "Comprovante de capacidade técnica para o manuseio de arma de fogo",          tag: "" },
+  { id: "laudo_psico",       label: "Comprovante de aptidão psicológica para o manuseio de arma de fogo",         tag: "" },
+  { id: "decl_inquerito",    label: "Declaração de não estar respondendo a inquérito policial ou a processo criminal", tag: "" },
+  { id: "comp_filiacao",     label: "Comprovante de filiação a entidade de tiro desportivo",                       tag: "" },
+  { id: "decl_habitualidade", label: "Comprovante de habitualidade de tiro desportivo",                            tag: "" },
 ] as const;
 type DocCRTipo = typeof DOCS_CR[number]["id"];
 interface DocCRItem { id: string; tipo: DocCRTipo; fileName: string; storagePath: string; fileUrl: string; }
