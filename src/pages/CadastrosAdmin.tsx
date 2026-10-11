@@ -69,16 +69,51 @@ const checkboxStyle = (checked: boolean): React.CSSProperties => ({
 const GEMINI_KEY = "AIzaSyAb8RN6K-dG5_Ryzt95bAHuWIIE-sUiSd2dAQCth_9gPRE1tOjA";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
-const fileParaBase64 = (file: File): Promise<{ data: string; mimeType: string }> =>
+let _pdfjs: any = null;
+const carregarPDFJS = async () => {
+  if (_pdfjs) return _pdfjs;
+  await new Promise<void>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("pdf.js load failed"));
+    document.head.appendChild(s);
+  });
+  (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  _pdfjs = (window as any).pdfjsLib;
+  return _pdfjs;
+};
+
+// Converte PDF para imagem (renderiza página 1 no canvas)
+const pdfParaImagem = async (file: File): Promise<Blob> => {
+  const lib = await carregarPDFJS();
+  const buf = await file.arrayBuffer();
+  const pdf = await lib.getDocument({ data: buf }).promise;
+  const page = await pdf.getPage(1);
+  const vp = page.getViewport({ scale: 2 });
+  const canvas = document.createElement("canvas");
+  canvas.width = vp.width; canvas.height = vp.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  return new Promise<Blob>((res, rej) =>
+    canvas.toBlob(b => b ? res(b) : rej(new Error("canvas toBlob")), "image/png")
+  );
+};
+
+const blobParaBase64 = (blob: Blob): Promise<{ data: string; mimeType: string }> =>
   new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: file.type || "image/jpeg" });
+    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: blob.type });
     r.onerror = rej;
-    r.readAsDataURL(file);
+    r.readAsDataURL(blob);
   });
 
 const geminiExtract = async (file: File, prompt: string): Promise<any> => {
-  const { data, mimeType } = await fileParaBase64(file);
+  // PDFs: render to image so Gemini sees the visual content, not the text layer
+  const blob: Blob = file.type === "application/pdf" ? await pdfParaImagem(file) : file;
+  const { data, mimeType } = await blobParaBase64(blob);
   const body = {
     contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data } }] }],
     generationConfig: { temperature: 0, responseMimeType: "application/json" },
