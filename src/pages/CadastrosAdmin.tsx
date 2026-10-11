@@ -293,19 +293,32 @@ export default function CadastrosAdmin() {
       const markerEnd = /SENATRAN|DENATRAN|DETRAN/.exec(t);
       const cnh = markerEnd ? t.slice(markerEnd.index + markerEnd[0].length) : t;
 
-      const IGNORAR = /^(REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA\s+NACIONAL|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO\s+GERAL|MILITAR|POLÍCIA|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|SENATRAN|SERPRO|HTTP|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|PROGRAMAS|DISPONÍV)$/;
+      const IGNORAR = /^(REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA\s+NACIONAL|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO\s+GERAL|MILITAR|POLÍCIA|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|SENATRAN|SERPRO|HTTP|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|PROGRAMAS|DISPONÍV|\d+\s+E\s+\d+|\d[A-Z]?\s+CPF|\d[A-Z]?\s+NOME)/;
       let nome = "";
-      // 1) Tenta label "NOME" (com ou sem ":")
-      const nomeLabelM = cnh.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|DATA|NASC|FILIA|DOC)/m);
-      if (nomeLabelM) nome = nomeLabelM[1].trim().replace(/\s+/g, " ");
-      // 2) Linha após "1." (campos CNH são numerados)
-      if (!nome) {
-        const campo1M = cnh.match(/(?:^|\n)\s*1[.\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?:\n|$)/m);
-        if (campo1M) nome = campo1M[1].trim().replace(/\s+/g, " ");
+      const cnhLinhas = cnh.split("\n").map(l => l.trim());
+
+      // 1) CNH-e: "2 e 1 NOME E SOBRENOME" na linha, nome na próxima
+      for (let i = 0; i < cnhLinhas.length - 1; i++) {
+        if (/NOME\s+E\s+SOBRENOME/i.test(cnhLinhas[i])) {
+          const prox = cnhLinhas[i + 1];
+          if (/^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,}$/.test(prox)) {
+            nome = prox.trim().replace(/\s+/g, " "); break;
+          }
+        }
       }
-      // 3) Primeira linha com ≥2 palavras que parece nome próprio
+      // 2) Label "NOME:" na mesma linha
       if (!nome) {
-        for (const ln of cnh.split("\n").map(l => l.trim()).filter(Boolean)) {
+        const m = cnh.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|\bDATA\b|\bNASC\b|FILIA|DOC)/m);
+        if (m) nome = m[1].trim().replace(/\s+/g, " ");
+      }
+      // 3) Linha após "1." (CNH campos numerados)
+      if (!nome) {
+        const m = cnh.match(/(?:^|\n)\s*1[.\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?:\n|$)/m);
+        if (m) nome = m[1].trim().replace(/\s+/g, " ");
+      }
+      // 4) Primeira linha com ≥2 palavras que parece nome próprio
+      if (!nome) {
+        for (const ln of cnhLinhas.filter(Boolean)) {
           const words = ln.split(/\s+/);
           if (ln.length >= 6 && words.length >= 2 && words.length <= 6 &&
               /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(ln) &&
