@@ -260,50 +260,47 @@ export default function CadastrosAdmin() {
     return await new Promise<Blob>(res => canvas.toBlob(b => res(b!), "image/png"));
   };
 
-  const textoParaCampos = (raw: string) => raw.toUpperCase().replace(/\r/g, "\n");
-
   const parseNumeroEndereco = (endStr: string): { endereco: string; numero: string } => {
-    // "AV JOAQUIM NABUCO - 1908"
-    const dashEnd = endStr.match(/\s*-\s*(\d{1,6})\s*$/);
-    if (dashEnd) return { endereco: endStr.slice(0, endStr.lastIndexOf(dashEnd[0])).trim(), numero: dashEnd[1] };
+    const s = endStr.trim();
+    // "AV JOAQUIM NABUCO - 1908" ou "RUA X - 10"
+    const dashEnd = s.match(/\s*-\s*(\d{1,6})\s*$/);
+    if (dashEnd) return { endereco: s.slice(0, s.lastIndexOf(dashEnd[0])).trim(), numero: dashEnd[1] };
     // "RUA TAL, N° 123" ou "RUA TAL, 123"
-    const commaNum = endStr.match(/,\s*(?:N[°º.]?\s*)?(\d{1,6})(?:\s|$)/);
-    if (commaNum) return { endereco: endStr.slice(0, endStr.indexOf(commaNum[0])).replace(/,\s*$/, "").trim(), numero: commaNum[1] };
-    // "RUA TAL 123" (número no final)
-    const endNum = endStr.match(/\s(\d{1,6})(?:\s*$)/);
-    if (endNum) return { endereco: endStr.slice(0, endStr.lastIndexOf(endNum[0])).trim(), numero: endNum[1] };
-    return { endereco: endStr, numero: "" };
+    const commaNum = s.match(/,\s*(?:N[°º.]?\s*)?(\d{1,6})(?:\s|$)/);
+    if (commaNum) return { endereco: s.slice(0, s.indexOf(commaNum[0])).replace(/,\s*$/, "").trim(), numero: commaNum[1] };
+    // "RUA TAL 123" (número isolado no final)
+    const endNum = s.match(/\s(\d{1,6})\s*$/);
+    if (endNum) return { endereco: s.slice(0, s.lastIndexOf(endNum[0])).trim(), numero: endNum[1] };
+    return { endereco: s, numero: "" };
   };
 
   const extrairOCR = async (file: File) => {
     setOcrLoading(true); setOcrStatus("idle");
     try {
-      let t = "";
-      if (file.type.includes("pdf")) {
-        // PDF digital (CNH-e, etc): extrai texto embutido — muito mais confiável que OCR
-        t = textoParaCampos(await extrairTextoPDF(file));
-      } else {
-        await carregarTesseract();
-        const { data: { text } } = await (window as any).Tesseract.recognize(file, "por");
-        t = textoParaCampos(text);
-      }
+      // Sempre usa OCR (imagem), pois CNH-e tem o nome/CPF em imagem, não em texto
+      await carregarTesseract();
+      const img = await fileParaImagem(file);
+      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
+      const t = text.toUpperCase().replace(/\r/g, "\n");
 
-      // CPF
+      // CPF: 11 dígitos em vários formatos
       const cpfM = t.match(/\d{3}[\. ]?\d{3}[\. ]?\d{3}[-. ]?\d{2}/);
       const cpfRaw = cpfM ? cpfM[0].replace(/\D/g, "") : "";
       const cpf = cpfRaw.length === 11 ? cpfRaw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "";
 
-      // Nome: tenta label primeiro, depois procura linha que parece nome completo
+      // Nome: palavras a ignorar (instruções do assinador digital, cabeçalhos, etc.)
+      const IGNORAR = /BRASIL|REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA|NACIONAL|SEGURANÇA|PÚBLICA|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO|MILITAR|FEDERAL|POLÍCIA|CIVIL|ESTADO|SERVIÇO|SOCIAL|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|DENATRAN|SENATRAN|SERPRO|HTTPS|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|VALIDA|CONFIRM|PROGRAMA|DISPONÍVEL/;
       let nome = "";
-      const nomeLabelM = t.match(/NOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{4,70}?)(?:\n|CPF|DATA|NASC|FILIA)/m);
-      if (nomeLabelM) {
-        nome = nomeLabelM[1].trim().replace(/\s+/g, " ");
-      } else {
-        const linhas = t.split("\n").map(l => l.trim()).filter(Boolean);
-        const bloqueios = /BRASIL|REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA|NACIONAL|SEGURANÇA|PÚBLICA|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO|MILITAR|FEDERAL|POLÍCIA|CIVIL|ESTADO|SERVIÇO|SOCIAL|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|DENATRAN|SENATRAN/;
-        for (const linha of linhas) {
-          if (linha.length >= 6 && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(linha) && !bloqueios.test(linha) && linha.split(/\s+/).length >= 2) {
-            nome = linha; break;
+      // 1) Tenta label "NOME:"
+      const nomeLabelM = t.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|DATA|NASC|FILIA)/m);
+      if (nomeLabelM) nome = nomeLabelM[1].trim().replace(/\s+/g, " ");
+      // 2) Procura primeira linha que parece nome próprio (≥2 palavras, só letras)
+      if (!nome) {
+        for (const ln of t.split("\n").map(l => l.trim()).filter(Boolean)) {
+          const palavras = ln.split(/\s+/);
+          if (ln.length >= 6 && palavras.length >= 2 && palavras.length <= 7 &&
+              /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(ln) && !IGNORAR.test(ln)) {
+            nome = ln; break;
           }
         }
       }
@@ -321,68 +318,55 @@ export default function CadastrosAdmin() {
   const extrairOCREndereco = async (file: File) => {
     setOcrEndLoading(true); setOcrEndStatus("idle");
     try {
-      let t = "";
-      if (file.type.includes("pdf")) {
-        t = textoParaCampos(await extrairTextoPDF(file));
-      } else {
-        await carregarTesseract();
-        const img = await fileParaImagem(file);
-        const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
-        t = textoParaCampos(text);
-      }
-
+      await carregarTesseract();
+      const img = await fileParaImagem(file);
+      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
+      const t = text.toUpperCase().replace(/\r/g, "\n");
       const linhas = t.split("\n").map(l => l.trim()).filter(l => l.length > 1);
       let endereco = "", numero = "", complemento = "", bairro = "", cidade = "", estado = "";
 
-      // ESTRATÉGIA 1: encontra bloco do cliente APÓS a linha de CPF/CNPJ
-      // Evita pegar o endereço da empresa no cabeçalho do documento
-      let cpfLineIdx = -1;
+      // ── ESTRATÉGIA 1: bloco APÓS linha de CPF (do cliente, não empresa) ──
+      // Contas: empresa tem "CNPJ:", cliente tem "CPF/CNPJ:" ou "CPF:"
+      let cpfIdx = -1;
       for (let i = 0; i < linhas.length; i++) {
-        if (/CPF[\/\s]?(?:CNPJ)?[:\s]/i.test(linhas[i])) { cpfLineIdx = i; break; }
+        const l = linhas[i];
+        if (/\bCPF\b/i.test(l) && /[:\/]/.test(l)) { cpfIdx = i; break; }
       }
-      if (cpfLineIdx >= 0) {
-        const bloco = linhas.slice(cpfLineIdx + 1, cpfLineIdx + 8);
-        for (const linha of bloco) {
-          if (/^CEP[:\s]|\d{5}-\d{3}/.test(linha)) break;
-          if (/^(TOTAL|VENCIMENTO|EMISS|MATR|REFER|FATURA|IDENT|NF|DATA|VALOR)/.test(linha)) break;
-          if (!endereco && /^(?:RUA|AV|TRAV|ALAMEDA|ESTRADA|PC[AÇ]|LARGO|ROD)\b/i.test(linha)) {
-            const p = parseNumeroEndereco(linha);
-            endereco = p.endereco; numero = p.numero;
-          } else if (endereco && !complemento && /^(?:APTO|APT|BL|BLOCO|SALA|ANDAR|CASA|COND|SL)\b/i.test(linha)) {
-            complemento = linha;
-          } else if (endereco && !bairro && linha.length >= 3) {
+      if (cpfIdx >= 0) {
+        for (let i = cpfIdx + 1; i < Math.min(cpfIdx + 9, linhas.length); i++) {
+          const ln = linhas[i];
+          if (/\bCEP\b|^\d{5}[-\s]\d{3}$/.test(ln)) break;
+          if (/^(TOTAL|VENCIMENTO|EMISS|MATR[Í]|REFER|FATURA|IDENTIF|DATA\b|VALOR\b|N[°º]\s*DE)/.test(ln)) break;
+          if (!endereco && /^(RUA|AV\.?|AV\b|AVENIDA|TRAV\.?|TRAVESSA|ALAMEDA|ESTRADA|PC[AÇ]|PRAC[AÇ]|LARGO|ROD\.?|RODOVIA)\b/i.test(ln)) {
+            const p = parseNumeroEndereco(ln); endereco = p.endereco; numero = p.numero;
+          } else if (endereco && !complemento && /^(APTO|APT\.?|BL\.?|BLOCO|SALA|ANDAR|CASA|COND\.?|SL\.?|AP\b)\b/i.test(ln)) {
+            complemento = ln;
+          } else if (endereco && !bairro && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ]/.test(ln) && ln.length >= 3) {
             // "CENTRO - SMART DOWNTOWN - MANAUS" ou "CENTRO"
-            const partes = linha.split(/\s*-\s*/);
+            const partes = ln.split(/\s*[-–]\s*/);
             bairro = partes[0].trim();
-            if (partes.length >= 2) cidade = partes[partes.length - 1].trim();
+            if (partes.length >= 2) cidade = partes[partes.length - 1].trim().split(/\s+/)[0];
           }
         }
       }
 
-      // ESTRATÉGIA 2: label ENDEREÇO explícito
+      // ── ESTRATÉGIA 2: label ENDEREÇO explícito ──
       if (!endereco) {
         const endM = t.match(/(?:ENDERE[CÇ]O|LOG[OA]RADOURO)[:\s]+([^\n]{5,80})/);
         if (endM) { const p = parseNumeroEndereco(endM[1].trim()); endereco = p.endereco; numero = p.numero; }
       }
 
-      // ESTRATÉGIA 3: todas as ruas encontradas — pega a última (mais provável ser do cliente)
+      // ── ESTRATÉGIA 3: todas as linhas de rua — pega a SEGUNDA (1ª é empresa) ──
       if (!endereco) {
-        const todos = [...t.matchAll(/(?:RUA|AV(?:ENIDA)?|TRAVESSA|ALAMEDA)\s+[A-ZÀ-Ú][^\n]{4,60}/g)];
-        if (todos.length > 0) {
-          const p = parseNumeroEndereco(todos[todos.length - 1][0].trim());
-          endereco = p.endereco; numero = p.numero;
-        }
+        const ruaRe = /^(RUA|AV\.?|AVENIDA|TRAVESSA|ALAMEDA|ESTRADA)\b.{4,60}$/m;
+        const todas = [...t.matchAll(new RegExp(ruaRe.source, "gm"))];
+        const alvo = todas.length >= 2 ? todas[1] : todas[0];
+        if (alvo) { const p = parseNumeroEndereco(alvo[0].trim()); endereco = p.endereco; numero = p.numero; }
       }
 
-      // Bairro/Cidade fallbacks
-      if (!bairro) {
-        const bM = t.match(/BAIRRO[:\s]+([^\n,]{2,40})/); if (bM) bairro = bM[1].trim();
-      }
-      if (!cidade) {
-        const cM = t.match(/(?:MUNIC[IÍ]PIO|CIDADE)[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{2,40}?)(?:\n|[-\/]|\s{2,})/);
-        if (cM) cidade = cM[1].trim();
-      }
-      // UF
+      // ── Fallbacks bairro/cidade/UF ──
+      if (!bairro) { const m = t.match(/BAIRRO[:\s]+([^\n,]{2,40})/); if (m) bairro = m[1].trim(); }
+      if (!cidade) { const m = t.match(/(?:MUNIC[IÍ]PIO|CIDADE)[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{2,40}?)(?:\n|[-\/]|\s{2,})/); if (m) cidade = m[1].trim(); }
       const ufM = t.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
       if (ufM) estado = ufM[1];
 
