@@ -1165,6 +1165,26 @@ END $$;`
     }).then(() => localStorage.setItem("schema_migration_v4", "1")).catch(() => {});
   }, []);
 
+  // Migração v5: adiciona colunas de nascimento, telefone, profissão e campos clube
+  useEffect(() => {
+    if (localStorage.getItem("schema_migration_v5")) return;
+    supabase.functions.invoke("run-migration", {
+      body: {
+        sql: `DO $$ BEGIN
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento    TEXT NOT NULL DEFAULT 'AM';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS telefone         TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS profissao        TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS email            TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube       TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube      TEXT NOT NULL DEFAULT '';
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube      TEXT NOT NULL DEFAULT '';
+  PERFORM pg_notify('pgrst', 'reload schema');
+END $$;`
+      }
+    }).then(() => localStorage.setItem("schema_migration_v5", "1")).catch(() => {});
+  }, []);
+
   // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
   useEffect(() => {
     if (!isAdmin || !userId) return;
