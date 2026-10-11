@@ -70,50 +70,72 @@ const GEMINI_KEY = "AIzaSyAb8RN6K-dG5_Ryzt95bAHuWIIE-sUiSd2dAQCth_9gPRE1tOjA";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
 let _pdfjs: any = null;
-const carregarPDFJS = async () => {
-  if (_pdfjs) return _pdfjs;
-  await new Promise<void>((resolve, reject) => {
+const carregarPDFJS = (): Promise<any> =>
+  new Promise((resolve, reject) => {
+    if (_pdfjs) { resolve(_pdfjs); return; }
+    const existing = (window as any).pdfjsLib;
+    if (existing) {
+      existing.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      _pdfjs = existing; resolve(_pdfjs); return;
+    }
     const s = document.createElement("script");
     s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    s.onload = () => resolve();
+    s.crossOrigin = "anonymous";
+    s.onload = () => {
+      const lib = (window as any).pdfjsLib;
+      if (!lib) { reject(new Error("pdfjsLib not defined")); return; }
+      lib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      _pdfjs = lib; resolve(_pdfjs);
+    };
     s.onerror = () => reject(new Error("pdf.js load failed"));
     document.head.appendChild(s);
   });
-  (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  _pdfjs = (window as any).pdfjsLib;
-  return _pdfjs;
-};
 
-// Converte PDF para imagem (renderiza página 1 no canvas)
-const pdfParaImagem = async (file: File): Promise<Blob> => {
-  const lib = await carregarPDFJS();
-  const buf = await file.arrayBuffer();
-  const pdf = await lib.getDocument({ data: buf }).promise;
-  const page = await pdf.getPage(1);
-  const vp = page.getViewport({ scale: 2 });
-  const canvas = document.createElement("canvas");
-  canvas.width = vp.width; canvas.height = vp.height;
-  const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: ctx, viewport: vp }).promise;
-  return new Promise<Blob>((res, rej) =>
-    canvas.toBlob(b => b ? res(b) : rej(new Error("canvas toBlob")), "image/png")
-  );
+// Tenta converter PDF para imagem; retorna null se falhar
+const pdfParaImagem = async (file: File): Promise<Blob | null> => {
+  try {
+    const lib = await carregarPDFJS();
+    const buf = await file.arrayBuffer();
+    const pdf = await lib.getDocument({ data: buf, disableStream: true, disableAutoFetch: true }).promise;
+    const page = await pdf.getPage(1);
+    const vp = page.getViewport({ scale: 2 });
+    const canvas = document.createElement("canvas");
+    canvas.width = vp.width; canvas.height = vp.height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    return await new Promise<Blob | null>(res => canvas.toBlob(res, "image/png"));
+  } catch (e) {
+    console.error("[OCR] pdfParaImagem falhou:", e);
+    return null;
+  }
 };
 
 const blobParaBase64 = (blob: Blob): Promise<{ data: string; mimeType: string }> =>
   new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: blob.type });
+    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: blob.type || "image/jpeg" });
     r.onerror = rej;
     r.readAsDataURL(blob);
   });
 
 const geminiExtract = async (file: File, prompt: string): Promise<any> => {
-  // PDFs: render to image so Gemini sees the visual content, not the text layer
-  const blob: Blob = file.type === "application/pdf" ? await pdfParaImagem(file) : file;
-  const { data, mimeType } = await blobParaBase64(blob);
+  let blob: Blob = file;
+  let mimeType = file.type || "image/jpeg";
+
+  if (file.type === "application/pdf") {
+    const img = await pdfParaImagem(file);
+    if (img) {
+      blob = img; mimeType = "image/png";
+    } else {
+      // Fallback: envia PDF direto ao Gemini com instrução extra
+      mimeType = "application/pdf";
+    }
+  }
+
+  const { data } = await blobParaBase64(blob);
   const body = {
     contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data } }] }],
     generationConfig: { temperature: 0, responseMimeType: "application/json" },
@@ -121,7 +143,10 @@ const geminiExtract = async (file: File, prompt: string): Promise<any> => {
   const res = await fetch(GEMINI_URL, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Gemini ${res.status}: ${txt.slice(0, 200)}`);
+  }
   const json = await res.json();
   const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
   try { return JSON.parse(txt); }
@@ -261,14 +286,18 @@ export default function CadastrosAdmin() {
     setOcrLoading(true); setOcrStatus("idle");
     try {
       const dados = await geminiExtract(file,
-        `Analise este documento brasileiro (CNH ou RG). Extraia SOMENTE o nome completo e o CPF do TITULAR do documento.
-Retorne JSON exato: {"nome": "NOME EM MAIUSCULAS", "cpf": "000.000.000-00"}
-Se não encontrar um campo deixe "".`
+        `Documento de identificacao brasileiro (CNH-e, CNH fisica ou RG).
+IGNORE qualquer texto sobre Assinador Serpro, instalacao ou instrucoes.
+Encontre o NOME DO TITULAR: campo "2 e 1 NOME E SOBRENOME" ou "NOME".
+Encontre o CPF: campo "4d CPF" ou "CPF" com formato 000.000.000-00.
+Retorne SOMENTE JSON valido: {"nome": "NOME COMPLETO EM MAIUSCULAS", "cpf": "000.000.000-00"}
+Se nao encontrar um campo use "".`
       );
       if (dados.nome) setNovoNome(String(dados.nome).toUpperCase().trim());
       if (dados.cpf)  setNovoCpf(String(dados.cpf).trim());
       setOcrStatus("ok");
-    } catch {
+    } catch (e) {
+      console.error("[OCR CNH] erro:", e);
       setOcrStatus("erro");
     } finally {
       setOcrLoading(false);
@@ -279,10 +308,11 @@ Se não encontrar um campo deixe "".`
     setOcrEndLoading(true); setOcrEndStatus("idle");
     try {
       const dados = await geminiExtract(file,
-        `Analise este comprovante de endereço brasileiro (conta de água, luz, banco, etc.).
-Extraia o endereço do CLIENTE (não da empresa emissora).
-Retorne JSON exato: {"endereco": "RUA/AV SEM NUMERO", "numero": "123", "complemento": "APTO 10", "bairro": "CENTRO", "cidade": "MANAUS", "estado": "AM"}
-Coloque tudo em MAIUSCULAS. Se não encontrar um campo deixe "".`
+        `Comprovante de endereco brasileiro (agua, luz, banco, telefone, etc.).
+Extraia SOMENTE o endereco do CLIENTE que recebe a conta, NAO o endereco da empresa emissora.
+Separe o numero da rua: campo "endereco" = nome da rua/av sem numero, campo "numero" = apenas o numero.
+Retorne SOMENTE JSON valido: {"endereco": "AV/RUA NOME", "numero": "123", "complemento": "APTO 10", "bairro": "NOME BAIRRO", "cidade": "CIDADE", "estado": "UF"}
+Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
       );
       if (dados.endereco)    setNovoEndereco(String(dados.endereco).toUpperCase().trim());
       if (dados.numero)      setNovoNumero(String(dados.numero).trim());
@@ -291,7 +321,8 @@ Coloque tudo em MAIUSCULAS. Se não encontrar um campo deixe "".`
       if (dados.cidade)      setNovoCidade(String(dados.cidade).toUpperCase().trim());
       if (dados.estado)      setNovoEstado(String(dados.estado).toUpperCase().trim().slice(0, 2));
       setOcrEndStatus("ok");
-    } catch {
+    } catch (e) {
+      console.error("[OCR Endereço] erro:", e);
       setOcrEndStatus("erro");
     } finally {
       setOcrEndLoading(false);
