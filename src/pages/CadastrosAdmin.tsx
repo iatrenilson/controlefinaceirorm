@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
@@ -64,6 +64,35 @@ const checkboxStyle = (checked: boolean): React.CSSProperties => ({
   display: "flex", alignItems: "center", justifyContent: "center",
   transition: "all .15s", cursor: "pointer",
 });
+
+// ── Gemini Vision ──────────────────────────────────────────────────────────────
+const GEMINI_KEY = "AIzaSyAb8RN6K-dG5_Ryzt95bAHuWIIE-sUiSd2dAQCth_9gPRE1tOjA";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+const fileParaBase64 = (file: File): Promise<{ data: string; mimeType: string }> =>
+  new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: file.type || "image/jpeg" });
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+
+const geminiExtract = async (file: File, prompt: string): Promise<any> => {
+  const { data, mimeType } = await fileParaBase64(file);
+  const body = {
+    contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data } }] }],
+    generationConfig: { temperature: 0, responseMimeType: "application/json" },
+  };
+  const res = await fetch(GEMINI_URL, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  const json = await res.json();
+  const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+  try { return JSON.parse(txt); }
+  catch { const m = txt.match(/```(?:json)?\s*([\s\S]+?)\s*```/); return JSON.parse(m ? m[1] : "{}"); }
+};
+// ──────────────────────────────────────────────────────────────────────────────
 
 export default function CadastrosAdmin() {
   const [cadastros, setCadastros] = useState<CacCadastro[]>([]);
@@ -189,147 +218,20 @@ export default function CadastrosAdmin() {
     carregar();
   };
 
-  const excluir = async (id: string) => {
-    const { error } = await supabase.from("cac_cadastros").delete().eq("id", id);
-    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
-    toast.success("Cadastro excluído.");
-    setDeletandoId(null);
-    carregar();
-  };
-
   const toggleNovo = (list: string[], setList: (v: string[]) => void, item: string) =>
     setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
 
-  const carregarTesseract = async () => {
-    if (!(window as any).Tesseract) {
-      await new Promise<void>((res, rej) => {
-        const s = document.createElement("script");
-        s.src = "https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js";
-        s.onload = () => res(); s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    }
-  };
-
-  const carregarPDFJS = async () => {
-    if (!(window as any).pdfjsLib) {
-      await new Promise<void>((res, rej) => {
-        const s = document.createElement("script");
-        s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        s.onload = () => {
-          (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          res();
-        };
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    }
-  };
-
-  // Extrai texto embutido do PDF (ideal para CNH-e e documentos digitais)
-  const extrairTextoPDF = async (file: File): Promise<string> => {
-    await carregarPDFJS();
-    const pdf = await (window as any).pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-    let allText = "";
-    for (let i = 1; i <= Math.min(pdf.numPages, 4); i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageLines: string[] = [];
-      let lastY = -1;
-      for (const item of content.items as any[]) {
-        const y = Math.round(item.transform[5]);
-        if (lastY !== -1 && Math.abs(y - lastY) > 2) pageLines.push("\n");
-        pageLines.push(item.str);
-        lastY = y;
-      }
-      allText += pageLines.join(" ") + "\n";
-    }
-    return allText;
-  };
-
-  const fileParaImagem = async (file: File): Promise<Blob> => {
-    if (!file.type.includes("pdf")) return file;
-    await carregarPDFJS();
-    const pdf = await (window as any).pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-    const page = await pdf.getPage(1);
-    const vp = page.getViewport({ scale: 2.5 });
-    const canvas = document.createElement("canvas");
-    canvas.width = vp.width; canvas.height = vp.height;
-    await page.render({ canvasContext: canvas.getContext("2d")!, viewport: vp }).promise;
-    return await new Promise<Blob>(res => canvas.toBlob(b => res(b!), "image/png"));
-  };
-
-  const parseNumeroEndereco = (endStr: string): { endereco: string; numero: string } => {
-    const s = endStr.trim();
-    // "AV JOAQUIM NABUCO - 1908" ou "RUA X - 10"
-    const dashEnd = s.match(/\s*-\s*(\d{1,6})\s*$/);
-    if (dashEnd) return { endereco: s.slice(0, s.lastIndexOf(dashEnd[0])).trim(), numero: dashEnd[1] };
-    // "RUA TAL, N° 123" ou "RUA TAL, 123"
-    const commaNum = s.match(/,\s*(?:N[°º.]?\s*)?(\d{1,6})(?:\s|$)/);
-    if (commaNum) return { endereco: s.slice(0, s.indexOf(commaNum[0])).replace(/,\s*$/, "").trim(), numero: commaNum[1] };
-    // "RUA TAL 123" (número isolado no final)
-    const endNum = s.match(/\s(\d{1,6})\s*$/);
-    if (endNum) return { endereco: s.slice(0, s.lastIndexOf(endNum[0])).trim(), numero: endNum[1] };
-    return { endereco: s, numero: "" };
-  };
-
+  // ── OCR via Gemini Vision ────────────────────────────────────────────────────
   const extrairOCR = async (file: File) => {
     setOcrLoading(true); setOcrStatus("idle");
     try {
-      // Sempre usa OCR (imagem), pois CNH-e tem o nome/CPF em imagem, não em texto
-      await carregarTesseract();
-      const img = await fileParaImagem(file);
-      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
-      const t = text.toUpperCase().replace(/\r/g, "\n");
-
-      // CPF: 11 dígitos em vários formatos (busca no texto todo)
-      const cpfM = t.match(/\d{3}[\. ]?\d{3}[\. ]?\d{3}[-. ]?\d{2}/);
-      const cpfRaw = cpfM ? cpfM[0].replace(/\D/g, "") : "";
-      const cpf = cpfRaw.length === 11 ? cpfRaw.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "";
-
-      // Para CNH-e: o texto de instrução termina em "SENATRAN" ou "DENATRAN"
-      // O conteúdo da CNH (nome, CPF) vem DEPOIS disso
-      const markerEnd = /SENATRAN|DENATRAN|DETRAN/.exec(t);
-      const cnh = markerEnd ? t.slice(markerEnd.index + markerEnd[0].length) : t;
-
-      const IGNORAR = /^(REPÚBLICA|HABILITAÇÃO|IDENTIDADE|SECRETARIA|CARTEIRA\s+NACIONAL|MINISTÉRIO|CATEGORIA|VALIDADE|EMISSÃO|FILIAÇÃO|ÓRGÃO|EMISSOR|REGISTRO\s+GERAL|MILITAR|POLÍCIA|NATURALIDADE|NASCIMENTO|ORIENTAÇÕES|ASSINADOR|INSTALAR|DIGITAL|INFRAESTRUTURA|SENATRAN|SERPRO|HTTP|WWW\.|MEDIDA|PROVISÓRIA|CERTIFICADO|QR.?CODE|DOCUMENTO|PROGRAMAS|DISPONÍV|\d+\s+E\s+\d+|\d[A-Z]?\s+CPF|\d[A-Z]?\s+NOME)/;
-      let nome = "";
-      const cnhLinhas = cnh.split("\n").map(l => l.trim());
-
-      // 1) CNH-e: "2 e 1 NOME E SOBRENOME" na linha, nome na próxima
-      for (let i = 0; i < cnhLinhas.length - 1; i++) {
-        if (/NOME\s+E\s+SOBRENOME/i.test(cnhLinhas[i])) {
-          const prox = cnhLinhas[i + 1];
-          if (/^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,}$/.test(prox)) {
-            nome = prox.trim().replace(/\s+/g, " "); break;
-          }
-        }
-      }
-      // 2) Label "NOME:" na mesma linha
-      if (!nome) {
-        const m = cnh.match(/\bNOME[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?=\s{2,}|\n|CPF|\bDATA\b|\bNASC\b|FILIA|DOC)/m);
-        if (m) nome = m[1].trim().replace(/\s+/g, " ");
-      }
-      // 3) Linha após "1." (CNH campos numerados)
-      if (!nome) {
-        const m = cnh.match(/(?:^|\n)\s*1[.\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{3,68}?)(?:\n|$)/m);
-        if (m) nome = m[1].trim().replace(/\s+/g, " ");
-      }
-      // 4) Primeira linha com ≥2 palavras que parece nome próprio
-      if (!nome) {
-        for (const ln of cnhLinhas.filter(Boolean)) {
-          const words = ln.split(/\s+/);
-          if (ln.length >= 6 && words.length >= 2 && words.length <= 6 &&
-              /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ][A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]+$/.test(ln) &&
-              !IGNORAR.test(ln)) {
-            nome = ln; break;
-          }
-        }
-      }
-
-      if (cpf) setNovoCpf(cpf);
-      if (nome) setNovoNome(nome);
+      const dados = await geminiExtract(file,
+        `Analise este documento brasileiro (CNH ou RG). Extraia SOMENTE o nome completo e o CPF do TITULAR do documento.
+Retorne JSON exato: {"nome": "NOME EM MAIUSCULAS", "cpf": "000.000.000-00"}
+Se não encontrar um campo deixe "".`
+      );
+      if (dados.nome) setNovoNome(String(dados.nome).toUpperCase().trim());
+      if (dados.cpf)  setNovoCpf(String(dados.cpf).trim());
       setOcrStatus("ok");
     } catch {
       setOcrStatus("erro");
@@ -341,63 +243,18 @@ export default function CadastrosAdmin() {
   const extrairOCREndereco = async (file: File) => {
     setOcrEndLoading(true); setOcrEndStatus("idle");
     try {
-      await carregarTesseract();
-      const img = await fileParaImagem(file);
-      const { data: { text } } = await (window as any).Tesseract.recognize(img, "por");
-      const t = text.toUpperCase().replace(/\r/g, "\n");
-      const linhas = t.split("\n").map(l => l.trim()).filter(l => l.length > 1);
-      let endereco = "", numero = "", complemento = "", bairro = "", cidade = "", estado = "";
-
-      const isRua = (l: string) => /^(RUA|AV\.?\s|AVENIDA|TRAV\.?\s|TRAVESSA|ALAMEDA|ESTRADA|PC[AÇ]\.?\s|PRAC[AÇ]|LARGO|ROD\.?\s|RODOVIA)\b/i.test(l);
-      const isCEP = (l: string) => /\bCEP\b|\b\d{5}[-\s]?\d{3}\b/.test(l);
-      const isCompl = (l: string) => /^(APTO|APT|BL|BLOCO|SALA|ANDAR|CASA|COND|SL|AP)\b/i.test(l);
-      const isLixo = (l: string) => /^(TOTAL|VENCIMENTO|EMISS|MATR|REFER|FATURA|IDENTIF|DATA\b|VALOR|NF\b|CNPJ\b|N[°º]\s*DE|DESCRI|SERVI|LANC)/i.test(l);
-
-      // ── ESTRATÉGIA 1: rua seguida de CEP próximo (=bloco do cliente) ──
-      for (let i = 0; i < linhas.length; i++) {
-        if (!isRua(linhas[i])) continue;
-        // Verifica se há CEP nas próximas 5 linhas
-        const temCEP = linhas.slice(i + 1, i + 6).some(isCEP);
-        if (!temCEP) continue;
-        const p = parseNumeroEndereco(linhas[i]); endereco = p.endereco; numero = p.numero;
-        for (let j = i + 1; j < Math.min(i + 6, linhas.length); j++) {
-          if (isCEP(linhas[j])) break;
-          if (isLixo(linhas[j])) break;
-          if (!complemento && isCompl(linhas[j])) { complemento = linhas[j]; continue; }
-          if (!bairro && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ]/.test(linhas[j]) && linhas[j].length >= 3) {
-            const partes = linhas[j].split(/\s*[-–]\s*/);
-            bairro = partes[0].trim();
-            if (partes.length >= 2) cidade = partes[partes.length - 1].trim().replace(/\s+\S+$/, "").trim();
-          }
-        }
-        if (endereco) break;
-      }
-
-      // ── ESTRATÉGIA 2: label ENDEREÇO explícito ──
-      if (!endereco) {
-        const endM = t.match(/(?:ENDERE[CÇ]O|LOG[OA]RADOURO)[:\s]+([^\n]{5,80})/);
-        if (endM) { const p = parseNumeroEndereco(endM[1].trim()); endereco = p.endereco; numero = p.numero; }
-      }
-
-      // ── ESTRATÉGIA 3: segunda rua encontrada (1ª costuma ser da empresa) ──
-      if (!endereco) {
-        const todas = linhas.filter(isRua);
-        const alvo = todas.length >= 2 ? todas[1] : todas[0];
-        if (alvo) { const p = parseNumeroEndereco(alvo); endereco = p.endereco; numero = p.numero; }
-      }
-
-      // ── Fallbacks bairro/cidade/UF ──
-      if (!bairro) { const m = t.match(/BAIRRO[:\s]+([^\n,]{2,40})/); if (m) bairro = m[1].trim(); }
-      if (!cidade) { const m = t.match(/(?:MUNIC[IÍ]PIO|CIDADE)[:\s]+([A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ\s]{2,40}?)(?:\n|[-\/]|\s{2,})/); if (m) cidade = m[1].trim(); }
-      const ufM = t.match(/\b(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b/);
-      if (ufM) estado = ufM[1];
-
-      if (endereco) setNovoEndereco(endereco);
-      if (numero) setNovoNumero(numero);
-      if (complemento) setNovoComplemento(complemento);
-      if (bairro) setNovoBairro(bairro);
-      if (cidade) setNovoCidade(cidade);
-      if (estado) setNovoEstado(estado);
+      const dados = await geminiExtract(file,
+        `Analise este comprovante de endereço brasileiro (conta de água, luz, banco, etc.).
+Extraia o endereço do CLIENTE (não da empresa emissora).
+Retorne JSON exato: {"endereco": "RUA/AV SEM NUMERO", "numero": "123", "complemento": "APTO 10", "bairro": "CENTRO", "cidade": "MANAUS", "estado": "AM"}
+Coloque tudo em MAIUSCULAS. Se não encontrar um campo deixe "".`
+      );
+      if (dados.endereco)    setNovoEndereco(String(dados.endereco).toUpperCase().trim());
+      if (dados.numero)      setNovoNumero(String(dados.numero).trim());
+      if (dados.complemento) setNovoComplemento(String(dados.complemento).toUpperCase().trim());
+      if (dados.bairro)      setNovoBairro(String(dados.bairro).toUpperCase().trim());
+      if (dados.cidade)      setNovoCidade(String(dados.cidade).toUpperCase().trim());
+      if (dados.estado)      setNovoEstado(String(dados.estado).toUpperCase().trim().slice(0, 2));
       setOcrEndStatus("ok");
     } catch {
       setOcrEndStatus("erro");
@@ -405,6 +262,7 @@ export default function CadastrosAdmin() {
       setOcrEndLoading(false);
     }
   };
+  // ────────────────────────────────────────────────────────────────────────────
 
   const resetNovo = () => {
     setNovoNome(""); setNovoCpf(""); setNovoEndereco(""); setNovoNumero("");
@@ -465,6 +323,14 @@ export default function CadastrosAdmin() {
     toast.success("Cadastro criado com sucesso.");
     resetNovo();
     handleNovoOpenChange(false);
+    carregar();
+  };
+
+  const excluir = async (id: string) => {
+    const { error } = await supabase.from("cac_cadastros").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+    toast.success("Cadastro excluído.");
+    setDeletandoId(null);
     carregar();
   };
 
@@ -700,45 +566,45 @@ export default function CadastrosAdmin() {
               )}
             </div>
 
-            {/* OCR uploads */}
+            {/* ── IA uploads ── */}
             <div className="grid grid-cols-2 gap-2">
-              {/* CNH / RG — extrai Nome e CPF */}
+              {/* CNH / RG */}
               <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
                 ${ocrLoading ? "border-primary/40 bg-primary/5" : ocrStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
                 <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrLoading}
                   onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCR(f); e.target.value = ""; }} />
                 {ocrLoading ? (
                   <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-primary text-center">Lendo...</span></>
+                  <span className="text-[10px] text-primary text-center">Analisando...</span></>
                 ) : ocrStatus === "ok" ? (
                   <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Nome e CPF<br/>extraídos!</span></>
                 ) : ocrStatus === "erro" ? (
-                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Não lido.<br/>Preencha manual.</span></>
+                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Erro.<br/>Preencha manual.</span></>
                 ) : (
                   <><Upload className="h-4 w-4 text-muted-foreground" />
                   <span className="text-[10px] text-muted-foreground text-center"><strong>CNH / RG</strong><br/>Nome e CPF</span></>
                 )}
               </label>
 
-              {/* Comprovante de endereço — extrai Endereço */}
+              {/* Comprovante de endereço */}
               <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
                 ${ocrEndLoading ? "border-primary/40 bg-primary/5" : ocrEndStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrEndStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
                 <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrEndLoading}
                   onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCREndereco(f); e.target.value = ""; }} />
                 {ocrEndLoading ? (
                   <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-primary text-center">Lendo...</span></>
+                  <span className="text-[10px] text-primary text-center">Analisando...</span></>
                 ) : ocrEndStatus === "ok" ? (
                   <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Endereço<br/>extraído!</span></>
                 ) : ocrEndStatus === "erro" ? (
-                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Não lido.<br/>Preencha manual.</span></>
+                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Erro.<br/>Preencha manual.</span></>
                 ) : (
                   <><Upload className="h-4 w-4 text-muted-foreground" />
                   <span className="text-[10px] text-muted-foreground text-center"><strong>Comp. Endereço</strong><br/>Rua, Bairro, Cidade</span></>
                 )}
               </label>
             </div>
-            <p className="text-[10px] text-muted-foreground text-center -mt-1">Aceita foto (📷) ou PDF — preenche os campos automaticamente</p>
+            <p className="text-[10px] text-muted-foreground text-center -mt-1">IA lê foto (📷) ou PDF e preenche automaticamente</p>
 
             {/* divider */}
             <div className="flex items-center gap-3">
@@ -814,34 +680,27 @@ export default function CadastrosAdmin() {
 
             {/* Psicológico */}
             <div className="space-y-2">
-              <Label className="text-xs">Psicológico (opcional)</Label>
-              <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
-              <button type="button" onClick={() => psicoInputRef.current?.click()}
-                className={`w-full flex flex-col items-center gap-2 py-5 rounded-xl border-2 border-dashed transition-colors ${novoPsicoUrl ? "border-primary/60 bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                {uploadingPsico ? (
-                  <>
-                    <Upload className="h-6 w-6 text-primary animate-pulse" />
-                    <span className="text-xs text-primary font-semibold">Enviando...</span>
-                  </>
-                ) : novoPsicoUrl ? (
-                  <>
-                    <Check className="h-6 w-6 text-primary" />
-                    <span className="text-xs text-foreground font-semibold">{novoPsicoFile?.name}</span>
-                    <span className="text-[10px] text-muted-foreground">Clique para trocar</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Clique para selecionar PDF ou imagem</span>
-                  </>
+              <Label className="text-xs">Laudo Psicológico</Label>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => psicoInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium hover:bg-accent transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  {novoPsicoFile ? novoPsicoFile.name.slice(0, 24) + "…" : "Anexar PDF"}
+                </button>
+                {uploadingPsico && <span className="text-xs text-muted-foreground">Enviando…</span>}
+                {novoPsicoUrl && !uploadingPsico && <span className="text-xs text-green-500">✓ Enviado</span>}
+                {novoPsicoFile && !uploadingPsico && (
+                  <button type="button" onClick={() => { setNovoPsicoFile(null); setNovoPsicoUrl(null); }}
+                    className="text-xs text-destructive hover:underline">Remover</button>
                 )}
-              </button>
+              </div>
+              <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
             </div>
           </div>
-          <DialogFooter className="gap-2 pt-2">
+
+          <DialogFooter className="mt-4 flex gap-2">
             <Button variant="outline" onClick={() => { handleNovoOpenChange(false); resetNovo(); }}>Cancelar</Button>
-            <Button onClick={salvarNovo} disabled={novoSaving || uploadingPsico} className="gap-2">
-              <Check className="h-3.5 w-3.5" />
+            <Button onClick={salvarNovo} disabled={novoSaving} className="flex-1">
               {novoSaving ? "Salvando..." : "Salvar Cadastro"}
             </Button>
           </DialogFooter>
@@ -850,75 +709,75 @@ export default function CadastrosAdmin() {
 
       {/* Dialog de edição */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Cadastro</DialogTitle>
           </DialogHeader>
           {editData && (
             <div className="space-y-3">
               <div className="space-y-1">
-                <Label className="text-xs">Nome completo *</Label>
-                <Input value={editData.nome} onChange={e => setEditData(p => p && ({ ...p, nome: e.target.value.toUpperCase() }))} />
+                <Label className="text-xs">Nome completo</Label>
+                <Input value={editData.nome} onChange={e => setEditData({ ...editData, nome: e.target.value.toUpperCase() })} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
-                <Input value={editData.cpf || ""} onChange={e => setEditData(p => p && ({ ...p, cpf: maskCpf(e.target.value) }))} placeholder="000.000.000-00" inputMode="numeric" />
+                <Input value={editData.cpf || ""} onChange={e => setEditData({ ...editData, cpf: maskCpf(e.target.value) })} inputMode="numeric" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Endereço</Label>
-                <Input value={editData.endereco || ""} onChange={e => setEditData(p => p && ({ ...p, endereco: e.target.value.toUpperCase() }))} />
+                <Input value={editData.endereco || ""} onChange={e => setEditData({ ...editData, endereco: e.target.value.toUpperCase() })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Nº</Label>
-                  <Input value={editData.numero || ""} onChange={e => setEditData(p => p && ({ ...p, numero: e.target.value }))} />
+                  <Input value={editData.numero || ""} onChange={e => setEditData({ ...editData, numero: e.target.value })} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Complemento</Label>
-                  <Input value={editData.complemento || ""} onChange={e => setEditData(p => p && ({ ...p, complemento: e.target.value.toUpperCase() }))} />
+                  <Input value={editData.complemento || ""} onChange={e => setEditData({ ...editData, complemento: e.target.value.toUpperCase() })} />
                 </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Bairro</Label>
-                <Input value={editData.bairro || ""} onChange={e => setEditData(p => p && ({ ...p, bairro: e.target.value.toUpperCase() }))} />
+                <Input value={editData.bairro || ""} onChange={e => setEditData({ ...editData, bairro: e.target.value.toUpperCase() })} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Cidade</Label>
-                  <Input value={editData.cidade || ""} onChange={e => setEditData(p => p && ({ ...p, cidade: e.target.value.toUpperCase() }))} placeholder="EX: MANAUS" />
+                  <Input value={editData.cidade || ""} onChange={e => setEditData({ ...editData, cidade: e.target.value.toUpperCase() })} />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Estado</Label>
-                  <Input value={editData.estado || ""} onChange={e => setEditData(p => p && ({ ...p, estado: e.target.value.toUpperCase() }))} placeholder="EX: AM" maxLength={2} />
+                  <Input value={editData.estado || ""} onChange={e => setEditData({ ...editData, estado: e.target.value.toUpperCase() })} maxLength={2} />
                 </div>
               </div>
-
-              {/* Tipo */}
               <div className="space-y-2">
                 <Label className="text-xs">Tipo de Serviço</Label>
                 {TIPOS_SINARM.map(t => (
-                  <label key={t} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={editTipos.includes(t)} onChange={() => toggleEdit(editTipos, setEditTipos, t)} className="accent-primary" />
-                    <span className="text-sm">{t}</span>
+                  <label key={t} className="flex items-center gap-2.5 cursor-pointer">
+                    <div style={checkboxStyle(editTipos.includes(t))} onClick={() => toggleEdit(editTipos, setEditTipos, t)}>
+                      {editTipos.includes(t) && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </div>
+                    <span className={`text-sm ${editTipos.includes(t) ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{t}</span>
                   </label>
                 ))}
               </div>
-
-              {/* Armas */}
               <div className="space-y-2">
                 <Label className="text-xs">Armas</Label>
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-2 gap-2">
                   {ARMAS_OPTS.map(a => (
-                    <label key={a} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={editArmas.includes(a)} onChange={() => toggleEdit(editArmas, setEditArmas, a)} className="accent-primary" />
-                      <span className="text-sm">{a}</span>
+                    <label key={a} className="flex items-center gap-2.5 cursor-pointer">
+                      <div style={checkboxStyle(editArmas.includes(a))} onClick={() => toggleEdit(editArmas, setEditArmas, a)}>
+                        {editArmas.includes(a) && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                      <span className={`text-sm ${editArmas.includes(a) ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{a}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2">
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button onClick={salvarEdicao} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
           </DialogFooter>
@@ -927,4 +786,3 @@ export default function CadastrosAdmin() {
     </div>
   );
 }
-
