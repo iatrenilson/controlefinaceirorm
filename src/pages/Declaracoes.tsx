@@ -1251,6 +1251,8 @@ END $$;`
   const [abaDocsForm, setAbaDocsForm] = useState(false);
   const docUploadRef = useRef<HTMLInputElement>(null);
   const [docUploadTipo, setDocUploadTipo] = useState<string>("");
+  const [subTipoDialogOpen, setSubTipoDialogOpen] = useState(false);
+  const [subTipoPendente, setSubTipoPendente] = useState<string>("");
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1621,13 +1623,13 @@ END $$;`
     if (data) setDocsCliente(prev => new Map(prev).set(clienteId, data as DocCRItem[]));
   }, []);
 
-  const uploadDocCR = useCallback(async (clienteId: string, tipo: string, file: File) => {
+  const uploadDocCR = useCallback(async (clienteId: string, tipo: string, file: File, subTipo?: string) => {
     setUploadingDocTipo(tipo);
     try {
       const ext = file.name.split(".").pop() ?? "pdf";
       const docDef = DOCS_CR.find(d => d.id === tipo);
       const displayName = docDef
-        ? `${docDef.label.replace(/[/\\?%*:|"<>]/g, "-")}.${ext}`
+        ? `${docDef.label.replace(/[/\\?%*:|"<>]/g, "-")}${subTipo ? ` - ${subTipo}` : ""}.${ext}`
         : file.name;
       const path = `${clienteId}/${tipo}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("cac-docs").upload(path, file, { upsert: true });
@@ -3143,9 +3145,31 @@ END $$;`
               <input ref={docUploadRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                 onChange={e => {
                   const f = e.target.files?.[0];
-                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f);
+                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f, subTipoPendente || undefined);
                   e.target.value = "";
+                  setSubTipoPendente("");
                 }} />
+              {/* Sub-tipo de comprovante de residência */}
+              {subTipoDialogOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setSubTipoDialogOpen(false)}>
+                  <div className="bg-card border border-border rounded-xl p-4 shadow-xl w-64 space-y-3" onClick={e => e.stopPropagation()}>
+                    <p className="text-xs font-semibold text-foreground">Tipo de comprovante</p>
+                    {["Telefone", "Energia", "Água", "Gás"].map(tipo => (
+                      <button key={tipo} type="button"
+                        className="w-full text-left rounded-lg border border-border/50 px-3 py-2 text-xs hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                        onClick={() => {
+                          setSubTipoPendente(tipo);
+                          setSubTipoDialogOpen(false);
+                          setTimeout(() => docUploadRef.current?.click(), 0);
+                        }}>
+                        {tipo}
+                      </button>
+                    ))}
+                    <button type="button" className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+                      onClick={() => setSubTipoDialogOpen(false)}>Cancelar</button>
+                  </div>
+                </div>
+              )}
               <button type="button"
                 className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
                 onClick={() => setAbaDocsForm(o => !o)}>
@@ -3188,7 +3212,14 @@ END $$;`
                           )}
                           <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary/80" title="Enviar documento"
                             disabled={uploading}
-                            onClick={() => { setDocUploadTipo(doc.id); setTimeout(() => docUploadRef.current?.click(), 0); }}>
+                            onClick={() => {
+                              setDocUploadTipo(doc.id);
+                              if (doc.id === "comp_residencia" || doc.id === "comp_2_end") {
+                                setSubTipoDialogOpen(true);
+                              } else {
+                                setTimeout(() => docUploadRef.current?.click(), 0);
+                              }
+                            }}>
                             {uploading ? <span className="text-[9px]">...</span> : <Upload className="h-3 w-3" />}
                           </Button>
                         </div>
