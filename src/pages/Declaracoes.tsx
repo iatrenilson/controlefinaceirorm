@@ -1273,6 +1273,8 @@ END $$;`
   const [docUploadTipo, setDocUploadTipo] = useState<string>("");
   const [subTipoDialogOpen, setSubTipoDialogOpen] = useState(false);
   const [subTipoPendente, setSubTipoPendente] = useState<string>("");
+  const docLoteRef = useRef<HTMLInputElement>(null);
+  const [uploadingLote, setUploadingLote] = useState(false);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -1681,6 +1683,42 @@ END $$;`
     });
     sonnerToast.success("Documento removido.");
   }, []);
+
+  // Detecta o tipo de doc CR pelo nome do arquivo
+  function detectarTipoPorNome(fileName: string): DocCRTipo | null {
+    const n = norm(fileName);
+    if (n.includes("federal"))                                        return "ant_federal";
+    if (n.includes("estadual"))                                       return "ant_estadual";
+    if (n.includes("eleitoral"))                                      return "ant_eleitoral";
+    if (n.includes("militar"))                                        return "ant_militar";
+    if (n.includes("habitualidade") || n.includes("habitual"))        return "decl_habitualidade";
+    if (n.includes("filiacao") || n.includes("filiaca") || n.includes("clube") || n.includes("entidade de tiro")) return "comp_filiacao";
+    if (n.includes("inquerito") || n.includes("processo criminal") || n.includes("nao estar")) return "decl_inquerito";
+    if (n.includes("psico") || n.includes("laudo psic") || n.includes("aptidao")) return "laudo_psico";
+    if (n.includes("capacidade tecnica") || n.includes("cap tec") || n.includes("cap tecnica")) return "cap_tecnica";
+    if (n.includes("segundo end") || n.includes("2 end") || n.includes("guarda do acervo") || n.includes("comp 2")) return "comp_2_end";
+    if (n.includes("residencia") || n.includes("residenc"))           return "comp_residencia";
+    if (n.includes("ocupacao") || n.includes("ocupac") || n.includes("aposentad") || n.includes("licit")) return "comp_ocupacao";
+    return null;
+  }
+
+  const uploadEmLote = useCallback(async (clienteId: string, files: FileList) => {
+    setUploadingLote(true);
+    const arr = Array.from(files);
+    const naoReconhecidos: string[] = [];
+    for (const file of arr) {
+      const tipo = detectarTipoPorNome(file.name);
+      if (!tipo) { naoReconhecidos.push(file.name); continue; }
+      await uploadDocCR(clienteId, tipo, file);
+    }
+    setUploadingLote(false);
+    if (naoReconhecidos.length > 0) {
+      sonnerToast.warning(`${arr.length - naoReconhecidos.length} enviados. Não reconhecidos: ${naoReconhecidos.join(", ")}`);
+    } else {
+      sonnerToast.success(`${arr.length} documento(s) enviados com sucesso!`);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadDocCR]);
 
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   // Retorna true se salvou com sucesso, false caso contrário
@@ -3169,6 +3207,11 @@ END $$;`
                   e.target.value = "";
                   setSubTipoPendente("");
                 }} />
+              <input ref={docLoteRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden"
+                onChange={e => {
+                  if (e.target.files && editandoId) uploadEmLote(editandoId, e.target.files);
+                  e.target.value = "";
+                }} />
               <button type="button"
                 className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
                 onClick={() => setAbaDocsForm(o => !o)}>
@@ -3184,6 +3227,13 @@ END $$;`
               </button>
               {abaDocsForm && (
                 <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
+                  {/* Envio em lote */}
+                  <button type="button" disabled={uploadingLote}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-2 text-[11px] text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-50 mb-2"
+                    onClick={() => docLoteRef.current?.click()}>
+                    <Upload className="h-3 w-3" />
+                    {uploadingLote ? "Enviando..." : "Enviar vários arquivos de uma vez (detecção automática)"}
+                  </button>
                   {DOCS_CR.map((doc, i) => {
                     const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
                     const uploading = uploadingDocTipo === doc.id;
