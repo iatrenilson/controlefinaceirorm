@@ -325,29 +325,29 @@ export default function CadastrosAdmin() {
       const linhas = t.split("\n").map(l => l.trim()).filter(l => l.length > 1);
       let endereco = "", numero = "", complemento = "", bairro = "", cidade = "", estado = "";
 
-      // ── ESTRATÉGIA 1: bloco APÓS linha de CPF (do cliente, não empresa) ──
-      // Contas: empresa tem "CNPJ:", cliente tem "CPF/CNPJ:" ou "CPF:"
-      let cpfIdx = -1;
+      const isRua = (l: string) => /^(RUA|AV\.?\s|AVENIDA|TRAV\.?\s|TRAVESSA|ALAMEDA|ESTRADA|PC[AÇ]\.?\s|PRAC[AÇ]|LARGO|ROD\.?\s|RODOVIA)\b/i.test(l);
+      const isCEP = (l: string) => /\bCEP\b|\b\d{5}[-\s]?\d{3}\b/.test(l);
+      const isCompl = (l: string) => /^(APTO|APT|BL|BLOCO|SALA|ANDAR|CASA|COND|SL|AP)\b/i.test(l);
+      const isLixo = (l: string) => /^(TOTAL|VENCIMENTO|EMISS|MATR|REFER|FATURA|IDENTIF|DATA\b|VALOR|NF\b|CNPJ\b|N[°º]\s*DE|DESCRI|SERVI|LANC)/i.test(l);
+
+      // ── ESTRATÉGIA 1: rua seguida de CEP próximo (=bloco do cliente) ──
       for (let i = 0; i < linhas.length; i++) {
-        const l = linhas[i];
-        if (/\bCPF\b/i.test(l) && /[:\/]/.test(l)) { cpfIdx = i; break; }
-      }
-      if (cpfIdx >= 0) {
-        for (let i = cpfIdx + 1; i < Math.min(cpfIdx + 9, linhas.length); i++) {
-          const ln = linhas[i];
-          if (/\bCEP\b|^\d{5}[-\s]\d{3}$/.test(ln)) break;
-          if (/^(TOTAL|VENCIMENTO|EMISS|MATR[Í]|REFER|FATURA|IDENTIF|DATA\b|VALOR\b|N[°º]\s*DE)/.test(ln)) break;
-          if (!endereco && /^(RUA|AV\.?|AV\b|AVENIDA|TRAV\.?|TRAVESSA|ALAMEDA|ESTRADA|PC[AÇ]|PRAC[AÇ]|LARGO|ROD\.?|RODOVIA)\b/i.test(ln)) {
-            const p = parseNumeroEndereco(ln); endereco = p.endereco; numero = p.numero;
-          } else if (endereco && !complemento && /^(APTO|APT\.?|BL\.?|BLOCO|SALA|ANDAR|CASA|COND\.?|SL\.?|AP\b)\b/i.test(ln)) {
-            complemento = ln;
-          } else if (endereco && !bairro && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ]/.test(ln) && ln.length >= 3) {
-            // "CENTRO - SMART DOWNTOWN - MANAUS" ou "CENTRO"
-            const partes = ln.split(/\s*[-–]\s*/);
+        if (!isRua(linhas[i])) continue;
+        // Verifica se há CEP nas próximas 5 linhas
+        const temCEP = linhas.slice(i + 1, i + 6).some(isCEP);
+        if (!temCEP) continue;
+        const p = parseNumeroEndereco(linhas[i]); endereco = p.endereco; numero = p.numero;
+        for (let j = i + 1; j < Math.min(i + 6, linhas.length); j++) {
+          if (isCEP(linhas[j])) break;
+          if (isLixo(linhas[j])) break;
+          if (!complemento && isCompl(linhas[j])) { complemento = linhas[j]; continue; }
+          if (!bairro && /^[A-ZÀ-ÚÃÕÂÊÔÁÉÍÓÚÇ]/.test(linhas[j]) && linhas[j].length >= 3) {
+            const partes = linhas[j].split(/\s*[-–]\s*/);
             bairro = partes[0].trim();
-            if (partes.length >= 2) cidade = partes[partes.length - 1].trim().split(/\s+/)[0];
+            if (partes.length >= 2) cidade = partes[partes.length - 1].trim().replace(/\s+\S+$/, "").trim();
           }
         }
+        if (endereco) break;
       }
 
       // ── ESTRATÉGIA 2: label ENDEREÇO explícito ──
@@ -356,12 +356,11 @@ export default function CadastrosAdmin() {
         if (endM) { const p = parseNumeroEndereco(endM[1].trim()); endereco = p.endereco; numero = p.numero; }
       }
 
-      // ── ESTRATÉGIA 3: todas as linhas de rua — pega a SEGUNDA (1ª é empresa) ──
+      // ── ESTRATÉGIA 3: segunda rua encontrada (1ª costuma ser da empresa) ──
       if (!endereco) {
-        const ruaRe = /^(RUA|AV\.?|AVENIDA|TRAVESSA|ALAMEDA|ESTRADA)\b.{4,60}$/m;
-        const todas = [...t.matchAll(new RegExp(ruaRe.source, "gm"))];
+        const todas = linhas.filter(isRua);
         const alvo = todas.length >= 2 ? todas[1] : todas[0];
-        if (alvo) { const p = parseNumeroEndereco(alvo[0].trim()); endereco = p.endereco; numero = p.numero; }
+        if (alvo) { const p = parseNumeroEndereco(alvo); endereco = p.endereco; numero = p.numero; }
       }
 
       // ── Fallbacks bairro/cidade/UF ──
