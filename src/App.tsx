@@ -33,6 +33,7 @@ import CarteiraCliente from "./pages/CarteiraCliente";
 import CarteiraDIgital from "./pages/CarteiraDIgital";
 import CadastrosAdmin from "./pages/CadastrosAdmin";
 import DocsCR from "./pages/DocsCR";
+import ColaboradorPortal from "./pages/ColaboradorPortal";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -136,6 +137,7 @@ const AppRoutes = () => {
       <Route path="/visualizar-delay" element={<DelayViewer />} />
       <Route path="/carteira/:id" element={<CarteiraCliente />} />
       <Route path="/cadastro" element={<CadastroPublico />} />
+      <Route path="/area/:token" element={<ColaboradorPortal />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );
