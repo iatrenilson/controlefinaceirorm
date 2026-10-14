@@ -395,8 +395,8 @@ export default function CarteiraCliente() {
             </div>
           </a>
 
-          <p style={{ textAlign:"center", color:"#3d3020", fontSize:10, marginTop:20, fontFamily:FONT, letterSpacing:"0.1em" }}>
-            rwinvestimentos.com.br
+          <p style={{ textAlign:"center", color:"#ffffff", fontSize:10, marginTop:20, fontFamily:FONT, letterSpacing:"0.1em" }}>
+            William Bruno Toyoda Hitotuzi
           </p>
         </div>
       </div>
