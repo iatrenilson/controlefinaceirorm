@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
 import { toast } from "sonner";
 
 const MIGRATION_SQL = `
@@ -127,7 +128,7 @@ export default function CadastroPublico() {
       armas.length    ? `*Armas:* ${armas.join(", ")}` : null,
       psicoUrl        ? `\n📄 *Psicológico:*\n${psicoUrl}?download=${encodeURIComponent(`${nome.trim().toUpperCase()} - Psicológico.${psicoExt}`)}` : null,
     ].filter(l => l !== null).join("\n");
-    window.open(`https://api.whatsapp.com/send?phone=5592993161828&text=${encodeURIComponent(linhas)}`, "_blank");
+    window.open(whatsappUrl(WHATSAPP_NUMBER, linhas), "_blank");
 
     // Captura snapshot antes de resetar
     const snap = {
