@@ -192,6 +192,7 @@ export default function CadastrosAdmin() {
   const [deletandoColab, setDeletandoColab] = useState<string | null>(null);
   const [editandoColab, setEditandoColab] = useState<string | null>(null);
   const [editandoColabNome, setEditandoColabNome] = useState("");
+  const [filtroColab, setFiltroColab] = useState<{ token: string; nome: string } | null>(null);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -494,9 +495,9 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
     carregar();
   };
 
-  const filtrados = busca.trim()
-    ? cadastros.filter(c => norm(c.nome).includes(norm(busca)) || (c.cpf || "").includes(busca))
-    : cadastros;
+  const filtrados = cadastros
+    .filter(c => !filtroColab || (c as any).colaborador_token === filtroColab.token)
+    .filter(c => !busca.trim() || norm(c.nome).includes(norm(busca)) || (c.cpf || "").includes(busca));
 
   const fmtData = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -601,7 +602,7 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
                 <Card key={c.id} className={c.ativo ? "" : "opacity-60"}>
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setFiltroColab({ token: c.token, nome: c.nome }); setAba("cadastros"); }} title="Ver clientes deste colaborador">
                         {editandoColab === c.id ? (
                           <div className="flex items-center gap-1.5">
                             <Input
@@ -616,10 +617,11 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm">{c.nome}</p>
+                            <p className="font-semibold text-sm hover:text-primary transition-colors">{c.nome}</p>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.ativo ? "bg-green-500/15 text-green-500" : "bg-muted text-muted-foreground"}`}>
                               {c.ativo ? "Ativo" : "Inativo"}
                             </span>
+                            <span className="text-[10px] text-muted-foreground hidden sm:inline">— clique para ver clientes</span>
                           </div>
                         )}
                         <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
@@ -697,6 +699,17 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
             </div>
           </CardContent>
         </Card>
+
+        {/* Filtro por colaborador ativo */}
+        {filtroColab && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm">
+            <Users className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            <span className="flex-1 text-primary font-medium">Filtrando: <span className="font-bold">{filtroColab.nome}</span></span>
+            <button onClick={() => setFiltroColab(null)} className="text-primary hover:opacity-70 transition-opacity">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Busca */}
         <div className="relative">
