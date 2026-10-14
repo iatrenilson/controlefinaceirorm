@@ -619,7 +619,7 @@ function CheckBtn({ checked, onClick, label }: { checked: boolean; onClick: () =
     >
       <span className={`w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center flex-shrink-0
         ${checked ? "border-primary-foreground" : "border-current"}`}>
-        {checked && <span className="text-[9px] leading-none font-black">âœ"</span>}
+        {checked && <span className="text-[9px] leading-none font-black">{"✓"}</span>}
       </span>
       {label}
     </button>
@@ -1185,7 +1185,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       form.notaRifle
                         ? "bg-primary text-primary-foreground border-primary font-semibold"
                         : "border-border text-muted-foreground hover:border-primary/50")}>
-                    <span>{form.notaRifle ? `50 âœ"` : "- (clique p/ marcar)"}</span>
+                    <span>{form.notaRifle ? "50 ✓" : "- (clique p/ marcar)"}</span>
                   </button>
                 </div>
                 {/* Espingarda - toggle manual: marcada = APTO */}
@@ -1197,7 +1197,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       form.notaEspingarda
                         ? "bg-primary text-primary-foreground border-primary font-semibold"
                         : "border-border text-muted-foreground hover:border-primary/50")}>
-                    <span>{form.notaEspingarda ? `APTO âœ"` : "- (clique p/ marcar)"}</span>
+                    <span>{form.notaEspingarda ? "APTO ✓" : "- (clique p/ marcar)"}</span>
                   </button>
                 </div>
               </div>
