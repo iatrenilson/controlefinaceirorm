@@ -229,7 +229,7 @@ export default function ColaboradorPortal() {
   // ── Tela do formulário ────────────────────────────────────────────────────
   if (tela === "novo" || tela === "editar") return (
     <div style={{ background:"var(--background)", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
-      <div style={{ width:"100%", maxWidth:440, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(201,162,39,0.2)", borderRadius:20, padding:"28px 24px" }}>
+      <div style={{ width:"100%", maxWidth:440, background:"rgba(0,0,0,0.45)", border:"1px solid rgba(201,162,39,0.2)", borderRadius:20, padding:"28px 24px" }}>
 
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
@@ -391,7 +391,7 @@ export default function ColaboradorPortal() {
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {filtrados.map(c => (
-              <div key={c.id} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(201,162,39,0.15)", borderRadius:14, padding:"14px 16px" }}>
+              <div key={c.id} style={{ background:"rgba(0,0,0,0.35)", border:"1px solid rgba(201,162,39,0.15)", borderRadius:14, padding:"14px 16px" }}>
                 <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ color:"#e8d5a0", fontWeight:700, fontSize:14, margin:"0 0 2px", textTransform:"uppercase" }}>{c.nome}</p>
