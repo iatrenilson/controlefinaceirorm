@@ -190,6 +190,8 @@ export default function CadastrosAdmin() {
   const [novoColabNome, setNovoColabNome] = useState("");
   const [savingColab, setSavingColab] = useState(false);
   const [deletandoColab, setDeletandoColab] = useState<string | null>(null);
+  const [editandoColab, setEditandoColab] = useState<string | null>(null);
+  const [editandoColabNome, setEditandoColabNome] = useState("");
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -278,6 +280,15 @@ export default function CadastrosAdmin() {
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
     toast.success("Colaborador excluído.");
     setDeletandoColab(null);
+    carregarColaboradores();
+  };
+
+  const salvarNomeColab = async (id: string) => {
+    if (!editandoColabNome.trim()) { toast.error("Informe o nome."); return; }
+    const { error } = await supabase.from("colaboradores").update({ nome: editandoColabNome.trim() }).eq("id", id);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Nome atualizado.");
+    setEditandoColab(null);
     carregarColaboradores();
   };
 
@@ -591,12 +602,26 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm">{c.nome}</p>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.ativo ? "bg-green-500/15 text-green-500" : "bg-muted text-muted-foreground"}`}>
-                            {c.ativo ? "Ativo" : "Inativo"}
-                          </span>
-                        </div>
+                        {editandoColab === c.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              autoFocus
+                              value={editandoColabNome}
+                              onChange={e => setEditandoColabNome(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") salvarNomeColab(c.id); if (e.key === "Escape") setEditandoColab(null); }}
+                              className="h-7 text-sm"
+                            />
+                            <button onClick={() => salvarNomeColab(c.id)} className="p-1 rounded text-green-500 hover:bg-green-500/10"><Check className="h-4 w-4" /></button>
+                            <button onClick={() => setEditandoColab(null)} className="p-1 rounded text-muted-foreground hover:bg-accent"><X className="h-4 w-4" /></button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm">{c.nome}</p>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.ativo ? "bg-green-500/15 text-green-500" : "bg-muted text-muted-foreground"}`}>
+                              {c.ativo ? "Ativo" : "Inativo"}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
                           {window.location.origin}/area/{c.token}
                         </p>
@@ -609,6 +634,13 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
                         >
                           <Copy className="h-3.5 w-3.5" />
                           <span className="hidden sm:inline">Copiar</span>
+                        </button>
+                        <button
+                          onClick={() => { setEditandoColab(c.id); setEditandoColabNome(c.nome); }}
+                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                          title="Editar nome"
+                        >
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => toggleAtivoColab(c)}
