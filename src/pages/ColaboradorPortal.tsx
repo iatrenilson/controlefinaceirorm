@@ -145,9 +145,9 @@ export default function ColaboradorPortal() {
         (form.cidade || form.estado) ? `*Cidade/UF:* ${form.cidade}${form.cidade && form.estado ? " - " : ""}${form.estado}` : null,
         form.tipos.length ? `*Tipo:* ${form.tipos.join(", ")}` : null,
         form.armas.length ? `*Armas:* ${form.armas.join(", ")}` : null,
-        form.psicoUrl ? `*Psicológico:* ${form.psicoUrl}` : null,
+        form.psicoUrl ? `\n📄 *Psicológico:*\n${form.psicoUrl}` : null,
       ].filter(l => l !== null).join("\n");
-      window.open(`https://wa.me/5592993161828?text=${encodeURIComponent(linhas)}`, "_blank");
+      window.open(`https://api.whatsapp.com/send?phone=5592993161828&text=${encodeURIComponent(linhas)}`, "_blank");
 
       const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
         p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
