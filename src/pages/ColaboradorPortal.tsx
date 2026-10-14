@@ -344,7 +344,7 @@ export default function ColaboradorPortal() {
         {/* Header */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
           <div>
-            <p style={{ color:GOLD, fontSize:11, letterSpacing:"0.15em", fontWeight:600, textTransform:"uppercase", margin:0 }}>✦ Colaborador</p>
+            <p style={{ color:GOLD, fontSize:11, letterSpacing:"0.15em", fontWeight:600, textTransform:"uppercase", margin:0 }}>✦ Despachante</p>
             <p style={{ color:"#e8d5a0", fontSize:18, fontWeight:700, margin:"4px 0 0" }}>{colaborador.nome}</p>
           </div>
           <button onClick={() => { setForm(initForm()); setTela("novo"); }} style={{
