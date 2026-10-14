@@ -250,13 +250,13 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                         <p className="text-sm font-semibold">{t.tipo === "deposito" ? "Depósito" : t.tipo === "devolucao" ? "Devolução" : "Saque"}</p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <CalendarDays className="h-3 w-3" />
-                          {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM/yyyy")} â€¢ {t.casa}
+                          {format(new Date(t.data_transacao + "T12:00:00"), "dd/MM/yyyy")} • {t.casa}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate">{getNomeCliente(t.cliente_id)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className={`text-sm font-bold font-mono ${t.tipo === "deposito" ? "text-destructive" : t.tipo === "devolucao" ? "text-warning" : "text-emerald-500"}`}>
-                          {t.tipo === "deposito" ? "âˆ’" : t.tipo === "devolucao" ? "â†© " : "+"}{fmt(t.valor)}
+                          {t.tipo === "deposito" ? "−" : t.tipo === "devolucao" ? "↩ " : "+"}{fmt(t.valor)}
                         </p>
                         {t.tipo === "saque" && t.lucro > 0 && (
                           <p className="text-[10px] text-muted-foreground">Lucro: {fmt(t.lucro)}</p>
@@ -325,7 +325,7 @@ const HistoricoGeralDialog = ({ clientes, open, onOpenChange, fmt }: { clientes:
                       </div>
                       <div className="text-right shrink-0">
                         <p className={`text-sm font-bold font-mono ${t.tipo === "deposito" ? "text-primary" : "text-destructive"}`}>
-                          {t.tipo === "deposito" ? "+" : "âˆ’"}{fmt(t.valor)}
+                          {t.tipo === "deposito" ? "+" : "−"}{fmt(t.valor)}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           Saldo: {fmt(t.saldo_posterior)}
@@ -954,7 +954,7 @@ const DelayEsportivo = () => {
       if (c.status === "system") {
         return acc + c.saques;
       }
-      // Devolução: saques === depositos && lucro === 0 â†’ deposit still subtracted, Caixa holds the refund
+      // Devolução: saques === depositos && lucro === 0 → deposit still subtracted, Caixa holds the refund
       if (c.saques > 0 && c.saques === c.depositos && c.lucro === 0) {
         return acc - c.depositos;
       }
@@ -1267,7 +1267,7 @@ const DelayEsportivo = () => {
     } else {
       const depositoVal = parseFloat(depositoInicial) || 0;
 
-      // created_by_token is a FK to delay_share_links(id) â€” use link.id directly
+      // created_by_token is a FK to delay_share_links(id) — use link.id directly
       const chosenToken: string | null = (selectedLinkToken && selectedLinkToken !== "__none__") ? selectedLinkToken : null;
 
       const { data: newCliente, error } = await supabase.from("delay_clientes")
@@ -2055,7 +2055,7 @@ const DelayEsportivo = () => {
                 <Check className="h-4 w-4 text-emerald-400" /> Aprovar Depósito
               </DialogTitle>
               <DialogDescription>
-                <span className="font-semibold">{approveDialog?.nome}</span> â€” R$ {(approveDialog?.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                <span className="font-semibold">{approveDialog?.nome}</span> — R$ {(approveDialog?.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-1">
@@ -2142,7 +2142,7 @@ const DelayEsportivo = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-red-400" />
-                Custos â€” {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                Custos — {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -2170,13 +2170,13 @@ const DelayEsportivo = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Lucro do Mês â€” detalhe por conta */}
+        {/* Dialog: Lucro do Mês — detalhe por conta */}
         <Dialog open={lucroDetalheOpen} onOpenChange={setLucroDetalheOpen}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-yellow-500" />
-                Lucro â€” {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                Lucro — {format(new Date(+mesSelecionado.slice(0,4), +mesSelecionado.slice(5,7) - 1, 1), "MMMM yyyy", { locale: ptBR })}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -2207,7 +2207,7 @@ const DelayEsportivo = () => {
         <Card className="border border-border/50">
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-              {/* Operando â€” clique para ver quem está operando */}
+              {/* Operando — clique para ver quem está operando */}
               <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setOperandoDialogOpen(true)}>
                 <div className="rounded-lg bg-primary/10 p-2"><Users className="h-4 w-4 text-primary" /></div>
                 <div>
@@ -2215,7 +2215,7 @@ const DelayEsportivo = () => {
                   <p className="text-lg font-bold font-mono">{stats.ativas}</p>
                 </div>
               </div>
-              {/* Saque Pendente â€” clique para ver quem está pendente */}
+              {/* Saque Pendente — clique para ver quem está pendente */}
               <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setSaquePendenteDialogOpen(true)}>
                 <div className="rounded-lg bg-orange-500/10 p-2"><ArrowUpCircle className="h-4 w-4 text-orange-400" /></div>
                 <div>
@@ -2223,7 +2223,7 @@ const DelayEsportivo = () => {
                   <p className="text-lg font-bold font-mono text-orange-400">{stats.saquePendente}</p>
                 </div>
               </div>
-              {/* Custos â€” clique para ver contas com custo */}
+              {/* Custos — clique para ver contas com custo */}
               <div className="flex items-center justify-center gap-2.5 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => setCustosDialogOpen(true)}>
                 <div className="rounded-lg bg-red-500/10 p-2"><DollarSign className="h-4 w-4 text-red-400" /></div>
                 <div>
@@ -2235,11 +2235,11 @@ const DelayEsportivo = () => {
               <div className="flex items-center justify-center gap-2.5">
                 <div className="rounded-lg bg-yellow-500/10 p-2"><TrendingUp className="h-4 w-4 text-yellow-500" /></div>
                 <div>
-                  {/* â–¾ abre seletor de mês */}
+                  {/* ▾ abre seletor de mês */}
                   <Popover open={lucroMesOpen} onOpenChange={setLucroMesOpen}>
                     <PopoverTrigger asChild>
                       <p className="text-[9px] uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-primary transition-colors select-none">
-                        Lucro do Mês <span className="text-primary">â–¾</span>
+                        Lucro do Mês <span className="text-primary">▾</span>
                       </p>
                     </PopoverTrigger>
                     <PopoverContent className="w-44 p-1" align="end">
@@ -2254,7 +2254,7 @@ const DelayEsportivo = () => {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  {/* valor â€” clique para ver as contas */}
+                  {/* valor — clique para ver as contas */}
                   <p className={`text-lg font-bold font-mono cursor-pointer hover:opacity-75 transition-opacity ${monthlyLucro >= 0 ? "text-primary" : "text-destructive"}`}
                     onClick={() => setLucroDetalheOpen(true)}>
                     {monthlyLucro >= 0 ? "+" : ""}{fmt(monthlyLucro)}
@@ -2294,7 +2294,7 @@ const DelayEsportivo = () => {
                     <p className={`text-base font-bold font-mono ${periodStats.lucro >= 0 ? "text-primary" : "text-destructive"}`}>
                       {periodStats.lucro >= 0 ? "+" : ""}{fmt(periodStats.lucro)}
                     </p>
-                    <p className="text-[8px] text-muted-foreground mt-0.5">{format(selectedDate, "dd/MM/yyyy")} ðŸ“…</p>
+                    <p className="text-[8px] text-muted-foreground mt-0.5">{format(selectedDate, "dd/MM/yyyy")} 📅</p>
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
@@ -2666,22 +2666,22 @@ const DelayEsportivo = () => {
                     </td>
                     <td className="px-3 py-2.5 font-mono text-foreground whitespace-nowrap">
                       <div className="flex items-center gap-1">
-                        <span>{hideAllCredentials ? "â€¢â€¢â€¢â€¢â€¢â€¢" : (c.login || "â€”")}</span>
+                        <span>{hideAllCredentials ? "••••••" : (c.login || "—")}</span>
                         {c.login && <Button variant="ghost" size="icon" className="h-5 w-5 opacity-40 hover:opacity-100" onClick={() => copyToClipboard(c.login!)}><Copy className="h-3 w-3" /></Button>}
                       </div>
                     </td>
                     <td className="px-3 py-2.5 font-mono text-foreground whitespace-nowrap">
                       <div className="flex items-center gap-1">
-                        <span>{hideAllCredentials ? "â€¢â€¢â€¢â€¢â€¢â€¢" : (c.senha || "â€”")}</span>
+                        <span>{hideAllCredentials ? "••••••" : (c.senha || "—")}</span>
                         {c.senha && <Button variant="ghost" size="icon" className="h-5 w-5 opacity-40 hover:opacity-100" onClick={() => copyToClipboard(c.senha!)}><Copy className="h-3 w-3" /></Button>}
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono font-medium text-primary whitespace-nowrap">
-                      {c.depositos > 0 ? `R$ ${c.depositos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "â€”"}
+                      {c.depositos > 0 ? `R$ ${c.depositos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{c.fornecedor || "â€”"}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{c.fornecedor || "—"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      {c.tipo === "50/50" ? <Badge className="text-[10px] px-2 py-0 bg-yellow-900/40 border border-yellow-600/60 text-yellow-500 rounded-full">50/50</Badge> : <span className="text-muted-foreground">{c.tipo || "â€”"}</span>}
+                      {c.tipo === "50/50" ? <Badge className="text-[10px] px-2 py-0 bg-yellow-900/40 border border-yellow-600/60 text-yellow-500 rounded-full">50/50</Badge> : <span className="text-muted-foreground">{c.tipo || "—"}</span>}
                     </td>
                     <td className="px-3 py-2.5 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-0.5">
@@ -2795,21 +2795,21 @@ const DelayEsportivo = () => {
                       {c.login && (
                         <div className="flex items-center gap-1">
                           <span className="uppercase tracking-wider shrink-0 text-[11px]">Login:</span>
-                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "â€¢â€¢â€¢â€¢â€¢â€¢" : c.login}</span>
+                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "••••••" : c.login}</span>
                           <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-40 hover:opacity-100" onClick={() => copyToClipboard(c.login!)}><Copy className="h-3 w-3" /></Button>
                         </div>
                       )}
                       {c.senha && (
                         <div className="flex items-center gap-1">
                           <span className="uppercase tracking-wider shrink-0 text-[11px]">Senha:</span>
-                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "â€¢â€¢â€¢â€¢â€¢â€¢" : c.senha}</span>
+                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "••••••" : c.senha}</span>
                           <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-40 hover:opacity-100" onClick={() => copyToClipboard(c.senha!)}><Copy className="h-3 w-3" /></Button>
                         </div>
                       )}
                       {c.informacoes_adicionais && c.informacoes_adicionais.trim() !== "" && (
                         <div className="flex items-center gap-1">
                           <span className="uppercase tracking-wider shrink-0 text-[11px]">Pix:</span>
-                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "â€¢â€¢â€¢â€¢â€¢â€¢" : c.informacoes_adicionais}</span>
+                          <span className="font-mono text-foreground truncate flex-1 font-semibold text-xs">{hideAllCredentials ? "••••••" : c.informacoes_adicionais}</span>
                           <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-40 hover:opacity-100" onClick={() => copyToClipboard(c.informacoes_adicionais!)}><Copy className="h-3 w-3" /></Button>
                         </div>
                       )}
@@ -2923,7 +2923,7 @@ const DelayEsportivo = () => {
                           </p>
                           <p className="text-foreground font-mono font-bold mt-0.5">
                             R$ {(c.deposito_pendente ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                            <span className="text-muted-foreground font-normal ml-1">â†’ {c.banco_deposito === "c6" ? "Carteira Pessoal" : "Santander"}</span>
+                            <span className="text-muted-foreground font-normal ml-1">→ {c.banco_deposito === "c6" ? "Carteira Pessoal" : "Santander"}</span>
                           </p>
                         </div>
                         <div className="flex gap-1.5 shrink-0">
@@ -3274,7 +3274,7 @@ const DelayEsportivo = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {transDialog?.type === "saque" ? <ArrowUpCircle className="h-5 w-5" /> : <ArrowDownCircle className="h-5 w-5" />}
-              {transDialog?.type === "deposito" ? "Depósito" : "Saque"} â€” {transDialog?.cliente.nome}
+              {transDialog?.type === "deposito" ? "Depósito" : "Saque"} — {transDialog?.cliente.nome}
             </DialogTitle>
             <DialogDescription className="sr-only">
               {transDialog?.type === "deposito" ? "Depósito" : "Saque"} para {transDialog?.cliente.nome}
@@ -3337,13 +3337,13 @@ const DelayEsportivo = () => {
                       </div>
                       {!isGlauber && cst > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">âˆ’ Custo da Conta</span>
-                          <span className="font-mono font-medium text-destructive">âˆ’{fmt(cst)}</span>
+                          <span className="text-muted-foreground">− Custo da Conta</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">âˆ’ Depósito da Conta</span>
-                        <span className="font-mono font-medium text-destructive">âˆ’{fmt(deposito)}</span>
+                        <span className="text-muted-foreground">− Depósito da Conta</span>
+                        <span className="font-mono font-medium text-destructive">−{fmt(deposito)}</span>
                       </div>
                       <div className="border-t border-border my-1" />
                       <div className="flex justify-between">
@@ -3352,7 +3352,7 @@ const DelayEsportivo = () => {
                       </div>
                       {transDividirLucro ? (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Ã· 2 (Dividido)</span>
+                          <span className="text-muted-foreground">÷ 2 (Dividido)</span>
                           <span className="font-mono font-medium">{fmt(lucroAposSplit)}</span>
                         </div>
                       ) : (
@@ -3363,8 +3363,8 @@ const DelayEsportivo = () => {
                       )}
                       {isGlauber && cst > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">âˆ’ Custo da Conta</span>
-                          <span className="font-mono font-medium text-destructive">âˆ’{fmt(cst)}</span>
+                          <span className="text-muted-foreground">− Custo da Conta</span>
+                          <span className="font-mono font-medium text-destructive">−{fmt(cst)}</span>
                         </div>
                       )}
                       <div className="border-t border-border my-1" />
@@ -3579,7 +3579,7 @@ const DelayEsportivo = () => {
         <DialogContent className="w-[95vw] sm:max-w-md max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Histórico â€” {historicoCliente?.nome}
+              <History className="h-5 w-5" /> Histórico — {historicoCliente?.nome}
             </DialogTitle>
             <DialogDescription className="sr-only">
               Histórico de transações de {historicoCliente?.nome}
@@ -3782,7 +3782,7 @@ const DelayEsportivo = () => {
               </div>
             )}
 
-            {/* List of links â€” separated by type */}
+            {/* List of links — separated by type */}
             <div className="space-y-3 max-h-[320px] overflow-y-auto">
               {shareLinks.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhum link criado ainda.</p>

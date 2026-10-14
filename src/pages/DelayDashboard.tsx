@@ -214,7 +214,7 @@ const DelayDashboard = () => {
     return [...clientes]
       .filter(c => c.depositos > 0)
       .map(c => ({
-        nome: c.nome.length > 12 ? c.nome.substring(0, 12) + "â€¦" : c.nome,
+        nome: c.nome.length > 12 ? c.nome.substring(0, 12) + "…" : c.nome,
         nomeCompleto: c.nome,
         casa: c.casa,
         roi: (c.lucro / c.depositos) * 100,
@@ -299,9 +299,9 @@ const DelayDashboard = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todo período</SelectItem>
-                <SelectItem value="1m">Ãšltimo mês</SelectItem>
-                <SelectItem value="3m">Ãšltimos 3 meses</SelectItem>
-                <SelectItem value="6m">Ãšltimos 6 meses</SelectItem>
+                <SelectItem value="1m">Último mês</SelectItem>
+                <SelectItem value="3m">Últimos 3 meses</SelectItem>
+                <SelectItem value="6m">Últimos 6 meses</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -317,7 +317,7 @@ const DelayDashboard = () => {
               <div className="rounded-lg bg-primary/10 p-2 mb-2"><Users className="h-4 w-4 text-primary" /></div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Contas</p>
               <p className="text-xl font-bold font-mono">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">{stats.ativos} ativos â€¢ {stats.concluidos} concl.</p>
+              <p className="text-[10px] text-muted-foreground">{stats.ativos} ativos • {stats.concluidos} concl.</p>
             </CardContent>
           </Card>
           {/* 2 - Lucro do Dia */}
