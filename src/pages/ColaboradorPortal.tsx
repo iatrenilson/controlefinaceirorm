@@ -2,38 +2,50 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Pencil, Trash2, UserPlus, Search, Users, Check, X } from "lucide-react";
 
-const TIPOS_SINARM = [
-  "Registro de Arma",
-  "Transferência",
-  "Aquisição",
-  "Renovação CR",
-  "Autorização de Porte",
-  "Outros",
-];
+const GOLD = "#c9a227";
+const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"] as const;
+const ARMAS_OPTS   = ["Pistola", "Revólver", "Rifle", "Espingarda"]  as const;
 
-const ARMAS_LISTA = [
-  "Pistola",
-  "Revólver",
-  "Espingarda",
-  "Rifle",
-  "Carabina",
-  "Outros",
-];
+const labelStyle: React.CSSProperties = {
+  color: "#7a6a48", fontSize: 13, fontWeight: 600, display: "block", marginBottom: 4,
+};
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "10px 12px", borderRadius: 10,
+  border: "1px solid rgba(201,162,39,0.2)", background: "rgba(255,255,255,0.05)",
+  color: "#e8d5a0", fontSize: 14, outline: "none", boxSizing: "border-box",
+};
 
-function maskCpf(v: string) {
+function CheckboxOpt({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+      <div onClick={onClick} style={{
+        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+        border: `2px solid ${checked ? GOLD : "rgba(201,162,39,0.3)"}`,
+        background: checked ? GOLD : "transparent",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        transition: "all .15s", cursor: "pointer",
+      }}>
+        {checked && (
+          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+            <path d="M1 4L4 7L10 1" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      <span style={{ color: checked ? "#e8d5a0" : "#7a7060", fontSize: 13, fontWeight: checked ? 600 : 400, transition: "color .15s" }}>
+        {label}
+      </span>
+    </label>
+  );
+}
+
+const maskCpf = (v: string) => {
   const d = v.replace(/\D/g, "").slice(0, 11);
   if (d.length <= 3) return d;
-  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
-  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
+  if (d.length <= 6) return `${d.slice(0,3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+};
 
 interface Cliente {
   id: string;
@@ -51,384 +63,358 @@ interface Cliente {
   created_at: string;
 }
 
-interface FormState {
-  nome: string;
-  cpf: string;
-  endereco: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  tipos: string[];
-  armas: string[];
+function initForm() {
+  return { nome:"", cpf:"", endereco:"", numero:"", complemento:"", bairro:"", cidade:"", estado:"", tipos:[] as string[], armas:[] as string[], psicoFile:null as File|null, psicoUrl:null as string|null };
 }
 
-const formVazio = (): FormState => ({
-  nome: "", cpf: "", endereco: "", numero: "", complemento: "",
-  bairro: "", cidade: "", estado: "AM", tipos: [], armas: [],
-});
+type FormState = ReturnType<typeof initForm>;
 
 export default function ColaboradorPortal() {
   const { token } = useParams<{ token: string }>();
   const [colaborador, setColaborador] = useState<{ nome: string; ativo: boolean } | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [busca, setBusca] = useState("");
+  const [tela, setTela] = useState<"lista" | "novo" | "editar">("lista");
+  const [form, setForm] = useState<FormState>(initForm());
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const [novoOpen, setNovoOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(formVazio());
-
-  const [editando, setEditando] = useState<Cliente | null>(null);
-  const [editForm, setEditForm] = useState<FormState>(formVazio());
-
+  const [uploadingPsico, setUploadingPsico] = useState(false);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
 
-  useEffect(() => {
-    if (!token) return;
-    verificarToken();
-  }, [token]);
+  useEffect(() => { if (token) verificarToken(); }, [token]);
 
   async function verificarToken() {
     setCarregando(true);
     const { data, error } = await supabase.rpc("get_colaborador_info", { p_token: token });
-    if (error || !data || data.length === 0) {
-      setColaborador(null);
-      setCarregando(false);
-      return;
-    }
-    const info = data[0] as { nome: string; ativo: boolean };
+    if (error || !data || (data as any[]).length === 0) { setCarregando(false); return; }
+    const info = (data as any[])[0];
     setColaborador(info);
     if (info.ativo) await carregar();
     setCarregando(false);
   }
 
   async function carregar() {
-    const { data, error } = await supabase.rpc("get_cac_cadastros_by_token", { p_token: token });
-    if (!error && data) setClientes(data as Cliente[]);
+    const { data } = await supabase.rpc("get_cac_cadastros_by_token", { p_token: token });
+    if (data) setClientes(data as Cliente[]);
   }
 
-  function toggleTipo(t: string, lista: string[], setLista: (v: string[]) => void) {
-    setLista(lista.includes(t) ? lista.filter(x => x !== t) : [...lista, t]);
+  function toggle(k: "tipos" | "armas", v: string) {
+    const lista = form[k] as string[];
+    setForm(f => ({ ...f, [k]: lista.includes(v) ? lista.filter(x => x !== v) : [...lista, v] }));
   }
 
-  async function salvarNovo() {
-    if (!form.nome.trim()) { toast.error("Informe o nome."); return; }
+  async function handlePsicoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setForm(f => ({ ...f, psicoFile: file, psicoUrl: null }));
+    setUploadingPsico(true);
+    const ext = file.name.split(".").pop() || "pdf";
+    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from("psicologicos").getPublicUrl(path);
+      setForm(f => ({ ...f, psicoUrl: publicUrl }));
+    } else {
+      toast.error("Erro ao enviar arquivo.");
+      setForm(f => ({ ...f, psicoFile: null }));
+    }
+    setUploadingPsico(false);
+  }
+
+  async function salvar() {
+    if (!form.nome.trim())     { toast.error("Informe o nome."); return; }
+    if (!form.cpf.trim())      { toast.error("Informe o CPF."); return; }
     if (!form.endereco.trim()) { toast.error("Informe o endereço."); return; }
-    if (!form.numero.trim()) { toast.error("Informe o número."); return; }
-    if (!form.bairro.trim()) { toast.error("Informe o bairro."); return; }
-    if (!form.cidade.trim()) { toast.error("Informe a cidade."); return; }
-    if (!form.tipos.length) { toast.error("Selecione ao menos um Tipo de Serviço."); return; }
-    if (!form.armas.length) { toast.error("Selecione ao menos uma Arma."); return; }
+    if (!form.numero.trim())   { toast.error("Informe o número."); return; }
+    if (!form.bairro.trim())   { toast.error("Informe o bairro."); return; }
+    if (!form.cidade.trim())   { toast.error("Informe a cidade."); return; }
+    if (!form.tipos.length)    { toast.error("Selecione o Tipo de Serviço."); return; }
+    if (!form.armas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
+    if (uploadingPsico)        { toast.error("Aguarde o upload."); return; }
     setSaving(true);
-    const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
-      p_token: token,
-      p_nome: form.nome.trim(),
-      p_cpf: form.cpf.trim() || null,
-      p_endereco: form.endereco.trim() || null,
-      p_numero: form.numero.trim() || null,
-      p_complemento: form.complemento.trim() || null,
-      p_bairro: form.bairro.trim() || null,
-      p_cidade: form.cidade.trim() || null,
-      p_estado: form.estado.trim() || null,
-      p_tipo_sinarm: form.tipos.join(", ") || null,
-      p_armas: form.armas.join(", ") || null,
-      p_psicologico_url: null,
-    });
+    if (tela === "novo") {
+      const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
+        p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
+        p_numero: form.numero, p_complemento: form.complemento, p_bairro: form.bairro,
+        p_cidade: form.cidade, p_estado: form.estado,
+        p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
+        p_psicologico_url: form.psicoUrl,
+      });
+      if (error) { toast.error("Erro: " + error.message); setSaving(false); return; }
+      toast.success("Cliente cadastrado!");
+    } else {
+      const { error } = await supabase.rpc("update_cac_cadastro_by_token", {
+        p_token: token, p_id: editandoId, p_nome: form.nome, p_cpf: form.cpf,
+        p_endereco: form.endereco, p_numero: form.numero, p_complemento: form.complemento,
+        p_bairro: form.bairro, p_cidade: form.cidade, p_estado: form.estado,
+        p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
+      });
+      if (error) { toast.error("Erro: " + error.message); setSaving(false); return; }
+      toast.success("Atualizado!");
+    }
     setSaving(false);
-    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-    toast.success("Cliente cadastrado!");
-    setForm(formVazio());
-    setNovoOpen(false);
+    setTela("lista");
+    setForm(initForm());
     carregar();
   }
 
   function abrirEdicao(c: Cliente) {
-    setEditando(c);
-    setEditForm({
-      nome: c.nome || "",
-      cpf: c.cpf || "",
-      endereco: c.endereco || "",
-      numero: c.numero || "",
-      complemento: c.complemento || "",
-      bairro: c.bairro || "",
-      cidade: c.cidade || "",
-      estado: c.estado || "AM",
-      tipos: c.tipo_sinarm ? c.tipo_sinarm.split(", ").map(s => s.trim()).filter(Boolean) : [],
-      armas: c.armas ? c.armas.split(", ").map(s => s.trim()).filter(Boolean) : [],
+    setForm({
+      nome: c.nome, cpf: c.cpf || "", endereco: c.endereco || "", numero: c.numero || "",
+      complemento: c.complemento || "", bairro: c.bairro || "", cidade: c.cidade || "",
+      estado: c.estado || "", psicoFile: null, psicoUrl: c.psicologico_url || null,
+      tipos: c.tipo_sinarm ? c.tipo_sinarm.split(", ").filter(Boolean) : [],
+      armas: c.armas ? c.armas.split(", ").filter(Boolean) : [],
     });
-  }
-
-  async function salvarEdicao() {
-    if (!editando) return;
-    if (!editForm.nome.trim()) { toast.error("Informe o nome."); return; }
-    setSaving(true);
-    const { error } = await supabase.rpc("update_cac_cadastro_by_token", {
-      p_token: token,
-      p_id: editando.id,
-      p_nome: editForm.nome.trim(),
-      p_cpf: editForm.cpf.trim() || null,
-      p_endereco: editForm.endereco.trim() || null,
-      p_numero: editForm.numero.trim() || null,
-      p_complemento: editForm.complemento.trim() || null,
-      p_bairro: editForm.bairro.trim() || null,
-      p_cidade: editForm.cidade.trim() || null,
-      p_estado: editForm.estado.trim() || null,
-      p_tipo_sinarm: editForm.tipos.join(", ") || null,
-      p_armas: editForm.armas.join(", ") || null,
-    });
-    setSaving(false);
-    if (error) { toast.error("Erro ao atualizar: " + error.message); return; }
-    toast.success("Cliente atualizado!");
-    setEditando(null);
-    carregar();
+    setEditandoId(c.id);
+    setTela("editar");
   }
 
   async function excluir(id: string) {
     const { error } = await supabase.rpc("delete_cac_cadastro_by_token", { p_token: token, p_id: id });
-    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
-    toast.success("Cliente excluído.");
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Excluído.");
     setDeletandoId(null);
     carregar();
   }
 
-  const clientesFiltrados = clientes.filter(c =>
-    !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    (c.cpf || "").includes(busca)
+  // ── Loading ─────────────────────────────────────────────────────────────────
+  if (carregando) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a" }}>
+      <div style={{ width:32, height:32, border:`3px solid ${GOLD}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
   );
 
-  if (carregando) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+  if (!colaborador) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a", padding:24 }}>
+      <div style={{ textAlign:"center", color:"#7a6a48" }}>
+        <p style={{ fontSize:32, marginBottom:8 }}>✕</p>
+        <p style={{ fontWeight:600, color:"#e8d5a0" }}>Link inválido</p>
+        <p style={{ fontSize:13, marginTop:4 }}>Este link não existe ou foi removido.</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!colaborador) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="p-8 text-center max-w-sm mx-4">
-          <X className="w-12 h-12 text-destructive mx-auto mb-3" />
-          <h2 className="text-lg font-semibold mb-2">Link inválido</h2>
-          <p className="text-muted-foreground text-sm">Este link não existe ou foi removido.</p>
-        </Card>
+  if (!colaborador.ativo) return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a", padding:24 }}>
+      <div style={{ textAlign:"center", color:"#7a6a48" }}>
+        <p style={{ fontSize:32, marginBottom:8 }}>⚠</p>
+        <p style={{ fontWeight:600, color:"#e8d5a0" }}>Link desativado</p>
+        <p style={{ fontSize:13, marginTop:4 }}>Contate o administrador.</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!colaborador.ativo) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="p-8 text-center max-w-sm mx-4">
-          <X className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-          <h2 className="text-lg font-semibold mb-2">Link desativado</h2>
-          <p className="text-muted-foreground text-sm">Este link foi desativado. Contate o administrador.</p>
-        </Card>
-      </div>
-    );
-  }
+  const filtrados = clientes.filter(c =>
+    !busca || c.nome.toLowerCase().includes(busca.toLowerCase()) || (c.cpf||"").includes(busca)
+  );
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <p className="text-xs text-muted-foreground">Portal do Colaborador</p>
-          <h1 className="font-bold text-base leading-tight">{colaborador.nome}</h1>
+  // ── Tela do formulário ────────────────────────────────────────────────────
+  if (tela === "novo" || tela === "editar") return (
+    <div style={{ background:"#0f172a", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
+      <div style={{ width:"100%", maxWidth:440, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(201,162,39,0.2)", borderRadius:20, padding:"28px 24px" }}>
+
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+          <p style={{ color:GOLD, fontSize:11, letterSpacing:"0.15em", fontWeight:600, textTransform:"uppercase", margin:0 }}>
+            ✦ {tela === "novo" ? "Novo Cliente" : "Editar Cliente"}
+          </p>
+          <button onClick={() => { setTela("lista"); setForm(initForm()); }}
+            style={{ background:"none", border:"none", color:"#7a6a48", cursor:"pointer", fontSize:20, lineHeight:1, padding:0 }}>✕</button>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Users className="w-4 h-4" />
-          <span>{clientes.length} cliente{clientes.length !== 1 ? "s" : ""}</span>
-        </div>
-      </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
-        {/* Ações */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-8"
-              placeholder="Buscar por nome ou CPF..."
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-            />
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {/* Nome */}
+          <div>
+            <label style={labelStyle}>Nome completo {!form.nome.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <input value={form.nome} onChange={e => setForm(f=>({...f, nome:e.target.value.toUpperCase()}))} placeholder="Ex: JOÃO DA SILVA" style={inputStyle} />
           </div>
-          <Button onClick={() => { setForm(formVazio()); setNovoOpen(true); }} className="shrink-0 gap-1.5">
-            <UserPlus className="w-4 h-4" />
-            <span className="hidden sm:inline">Novo Cliente</span>
-          </Button>
+          {/* CPF */}
+          <div>
+            <label style={labelStyle}>CPF {!form.cpf.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <input value={form.cpf} onChange={e => setForm(f=>({...f, cpf:maskCpf(e.target.value)}))} placeholder="000.000.000-00" style={inputStyle} inputMode="numeric" />
+          </div>
+          {/* Endereço */}
+          <div>
+            <label style={labelStyle}>Endereço {!form.endereco.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <input value={form.endereco} onChange={e => setForm(f=>({...f, endereco:e.target.value.toUpperCase()}))} placeholder="RUA, AV..." style={inputStyle} />
+          </div>
+          {/* Nº + Complemento */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            <div>
+              <label style={labelStyle}>Nº {!form.numero.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+              <input value={form.numero} onChange={e => setForm(f=>({...f, numero:e.target.value}))} placeholder="123" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Complemento</label>
+              <input value={form.complemento} onChange={e => setForm(f=>({...f, complemento:e.target.value.toUpperCase()}))} placeholder="APTO, BLOCO..." style={inputStyle} />
+            </div>
+          </div>
+          {/* Bairro */}
+          <div>
+            <label style={labelStyle}>Bairro {!form.bairro.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <input value={form.bairro} onChange={e => setForm(f=>({...f, bairro:e.target.value.toUpperCase()}))} placeholder="EX: CENTRO" style={inputStyle} />
+          </div>
+          {/* Cidade + UF */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 80px", gap:10 }}>
+            <div>
+              <label style={labelStyle}>Cidade {!form.cidade.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
+              <input value={form.cidade} onChange={e => setForm(f=>({...f, cidade:e.target.value.toUpperCase()}))} placeholder="EX: MANAUS" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>UF</label>
+              <input value={form.estado} onChange={e => setForm(f=>({...f, estado:e.target.value.toUpperCase()}))} placeholder="AM" style={inputStyle} maxLength={2} />
+            </div>
+          </div>
+          {/* Tipo de Serviço */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Tipo de Serviço {!form.tipos.length && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {TIPOS_SINARM.map(t => (
+                <CheckboxOpt key={t} checked={form.tipos.includes(t)} onClick={() => toggle("tipos", t)} label={t} />
+              ))}
+            </div>
+          </div>
+          {/* Armas */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Armas {!form.armas.length && <span style={{ color:"#ef4444" }}>*</span>}</label>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+              {ARMAS_OPTS.map(a => (
+                <CheckboxOpt key={a} checked={form.armas.includes(a)} onClick={() => toggle("armas", a)} label={a} />
+              ))}
+            </div>
+          </div>
+          {/* Psicológico */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Psicológico</label>
+            <label style={{
+              display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
+              border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
+              borderRadius:12, padding:"28px 16px", cursor:"pointer",
+              background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
+              transition:"all .2s",
+            }}>
+              <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
+              {uploadingPsico ? (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
+                </>
+              ) : form.psicoUrl ? (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
+                  <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
+                </>
+              ) : (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
+                </>
+              )}
+            </label>
+          </div>
+
+          <button onClick={salvar} disabled={saving || uploadingPsico} style={{
+            marginTop:6, padding:12, borderRadius:10, background:GOLD, color:"#0f172a",
+            fontWeight:700, fontSize:14, border:"none", cursor: saving ? "not-allowed" : "pointer",
+            opacity: saving ? 0.7 : 1, transition:"opacity .2s",
+          }}>
+            {uploadingPsico ? "Aguardando upload..." : saving ? "Salvando..." : tela === "novo" ? "Salvar Cadastro" : "Atualizar Cadastro"}
+          </button>
         </div>
+      </div>
+      <p style={{ color:"#3a3020", fontSize:11, marginTop:20 }}>rwinvestimentos.com.br</p>
+    </div>
+  );
+
+  // ── Tela de lista ─────────────────────────────────────────────────────────
+  return (
+    <div style={{ background:"#0f172a", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
+      <div style={{ width:"100%", maxWidth:440 }}>
+
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+          <div>
+            <p style={{ color:GOLD, fontSize:11, letterSpacing:"0.15em", fontWeight:600, textTransform:"uppercase", margin:0 }}>✦ Colaborador</p>
+            <p style={{ color:"#e8d5a0", fontSize:18, fontWeight:700, margin:"4px 0 0" }}>{colaborador.nome}</p>
+          </div>
+          <button onClick={() => { setForm(initForm()); setTela("novo"); }} style={{
+            display:"flex", alignItems:"center", gap:6, padding:"10px 14px", borderRadius:10,
+            background:GOLD, color:"#0f172a", fontWeight:700, fontSize:13, border:"none", cursor:"pointer",
+          }}>
+            + Novo Cliente
+          </button>
+        </div>
+
+        {/* Busca */}
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por nome ou CPF..."
+          style={{ ...inputStyle, marginBottom:12 }}
+        />
+
+        {/* Contador */}
+        <p style={{ color:"#7a6a48", fontSize:12, marginBottom:12 }}>
+          {filtrados.length} cliente{filtrados.length !== 1 ? "s" : ""}
+        </p>
 
         {/* Lista */}
-        {clientesFiltrados.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Users className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="text-sm">
-                {busca ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}
-              </p>
-            </CardContent>
-          </Card>
+        {filtrados.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"40px 0", color:"#7a6a48" }}>
+            <p style={{ fontSize:13 }}>{busca ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}</p>
+          </div>
         ) : (
-          <div className="space-y-2">
-            {clientesFiltrados.map(c => (
-              <Card key={c.id}>
-                <CardContent className="p-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{c.nome}</p>
-                    {c.cpf && <p className="text-xs text-muted-foreground">{c.cpf}</p>}
-                    {c.cidade && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[c.endereco, c.numero, c.bairro, c.cidade, c.estado].filter(Boolean).join(", ")}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-1 mt-1">
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {filtrados.map(c => (
+              <div key={c.id} style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(201,162,39,0.15)", borderRadius:14, padding:"14px 16px" }}>
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <p style={{ color:"#e8d5a0", fontWeight:700, fontSize:14, margin:"0 0 2px", textTransform:"uppercase" }}>{c.nome}</p>
+                    {c.cpf && <p style={{ color:"#7a6a48", fontSize:12, margin:"0 0 4px" }}>{c.cpf}</p>}
+                    {c.cidade && <p style={{ color:"#5a4e38", fontSize:11, margin:"0 0 6px" }}>{[c.endereco, c.numero, c.bairro, c.cidade, c.estado].filter(Boolean).join(", ")}</p>}
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                       {c.tipo_sinarm && c.tipo_sinarm.split(", ").map(t => (
-                        <span key={t} className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5">{t}</span>
+                        <span key={t} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(201,162,39,0.15)", color:GOLD, border:"1px solid rgba(201,162,39,0.3)", fontWeight:600 }}>{t}</span>
                       ))}
                       {c.armas && c.armas.split(", ").map(a => (
-                        <span key={a} className="text-[10px] bg-muted rounded px-1.5 py-0.5">{a}</span>
+                        <span key={a} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(255,255,255,0.05)", color:"#7a6a48", border:"1px solid rgba(255,255,255,0.08)" }}>{a}</span>
                       ))}
+                      {c.psicologico_url && (
+                        <a href={c.psicologico_url} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(34,197,94,0.1)", color:"#4ade80", border:"1px solid rgba(34,197,94,0.2)", textDecoration:"none", fontWeight:600 }}>
+                          📄 Psicológico
+                        </a>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => abrirEdicao(c)}>
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletandoId(c.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                  <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                    <button onClick={() => abrirEdicao(c)} style={{ background:"none", border:"1px solid rgba(201,162,39,0.3)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:GOLD, fontSize:12 }}>✏</button>
+                    {deletandoId === c.id ? (
+                      <div style={{ display:"flex", gap:4 }}>
+                        <button onClick={() => excluir(c.id)} style={{ background:"#ef4444", border:"none", borderRadius:8, padding:"6px 10px", cursor:"pointer", color:"#fff", fontSize:11, fontWeight:700 }}>Sim</button>
+                        <button onClick={() => setDeletandoId(null)} style={{ background:"none", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:"#7a6a48", fontSize:11 }}>Não</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setDeletandoId(c.id)} style={{ background:"none", border:"1px solid rgba(239,68,68,0.3)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:"#ef4444", fontSize:12 }}>🗑</button>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
-
-      {/* Modal Novo */}
-      <Dialog open={novoOpen} onOpenChange={setNovoOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Novo Cliente</DialogTitle>
-          </DialogHeader>
-          <FormFields form={form} setForm={setForm} />
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => setNovoOpen(false)}>Cancelar</Button>
-            <Button onClick={salvarNovo} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Editar */}
-      <Dialog open={!!editando} onOpenChange={v => { if (!v) setEditando(null); }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Cliente</DialogTitle>
-          </DialogHeader>
-          <FormFields form={editForm} setForm={setEditForm} />
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>
-            <Button onClick={salvarEdicao} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmação Exclusão */}
-      <Dialog open={!!deletandoId} onOpenChange={v => { if (!v) setDeletandoId(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este cliente?</p>
-          <DialogFooter className="gap-2 pt-2">
-            <Button variant="outline" onClick={() => setDeletandoId(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => deletandoId && excluir(deletandoId)}>Excluir</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function FormFields({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
-  const set = (k: keyof FormState, v: string) => setForm({ ...form, [k]: v });
-  const toggle = (k: "tipos" | "armas", v: string) => {
-    const lista = form[k] as string[];
-    setForm({ ...form, [k]: lista.includes(v) ? lista.filter(x => x !== v) : [...lista, v] });
-  };
-
-  return (
-    <div className="space-y-3">
-      <div>
-        <Label>Nome Completo *</Label>
-        <Input value={form.nome} onChange={e => set("nome", e.target.value)} placeholder="Nome completo" />
-      </div>
-      <div>
-        <Label>CPF</Label>
-        <Input value={form.cpf} onChange={e => set("cpf", maskCpf(e.target.value))} placeholder="000.000.000-00" />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="col-span-2 sm:col-span-1">
-          <Label>Endereço *</Label>
-          <Input value={form.endereco} onChange={e => set("endereco", e.target.value)} placeholder="Rua / Av." />
-        </div>
-        <div>
-          <Label>Número *</Label>
-          <Input value={form.numero} onChange={e => set("numero", e.target.value)} placeholder="Nº" />
-        </div>
-        <div>
-          <Label>Complemento</Label>
-          <Input value={form.complemento} onChange={e => set("complemento", e.target.value)} placeholder="Apto, Casa..." />
-        </div>
-        <div>
-          <Label>Bairro *</Label>
-          <Input value={form.bairro} onChange={e => set("bairro", e.target.value)} placeholder="Bairro" />
-        </div>
-        <div>
-          <Label>Cidade *</Label>
-          <Input value={form.cidade} onChange={e => set("cidade", e.target.value)} placeholder="Cidade" />
-        </div>
-        <div>
-          <Label>Estado</Label>
-          <Input value={form.estado} onChange={e => set("estado", e.target.value.toUpperCase().slice(0, 2))} placeholder="AM" maxLength={2} />
-        </div>
-      </div>
-      <div>
-        <Label>Tipo de Serviço *</Label>
-        <div className="flex flex-wrap gap-1.5 mt-1">
-          {TIPOS_SINARM.map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => toggle("tipos", t)}
-              className={`text-xs px-2 py-1 rounded border transition-colors ${form.tipos.includes(t) ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-            >
-              {form.tipos.includes(t) && <Check className="inline w-3 h-3 mr-0.5" />}
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <Label>Armas *</Label>
-        <div className="flex flex-wrap gap-1.5 mt-1">
-          {ARMAS_LISTA.map(a => (
-            <button
-              key={a}
-              type="button"
-              onClick={() => toggle("armas", a)}
-              className={`text-xs px-2 py-1 rounded border transition-colors ${form.armas.includes(a) ? "bg-primary text-primary-foreground border-primary" : "border-input hover:bg-accent"}`}
-            >
-              {form.armas.includes(a) && <Check className="inline w-3 h-3 mr-0.5" />}
-              {a}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p style={{ color:"#3a3020", fontSize:11, marginTop:24 }}>rwinvestimentos.com.br</p>
     </div>
   );
 }
