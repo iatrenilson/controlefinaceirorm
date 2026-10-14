@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
-import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload } from "lucide-react";
+import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload, Share2, ToggleLeft, ToggleRight, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,16 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS cidade TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS estado TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS colaborador_token TEXT;
+CREATE TABLE IF NOT EXISTS public.colaboradores (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  nome TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.colaboradores ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_update') THEN
     CREATE POLICY "cac_cad_update" ON public.cac_cadastros FOR UPDATE TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator')) WITH CHECK (true);
@@ -39,7 +49,20 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_delete') THEN
     CREATE POLICY "cac_cad_delete" ON public.cac_cadastros FOR DELETE TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='colaboradores' AND policyname='colab_owner') THEN
+    CREATE POLICY "colab_owner" ON public.colaboradores USING (owner_user_id = auth.uid()) WITH CHECK (owner_user_id = auth.uid());
+  END IF;
 END $$;
+CREATE OR REPLACE FUNCTION public.get_colaborador_info(p_token TEXT) RETURNS TABLE(id UUID, nome TEXT, ativo BOOLEAN) SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $f$ BEGIN RETURN QUERY SELECT c.id, c.nome, c.ativo FROM colaboradores c WHERE c.token = p_token LIMIT 1; END; $f$;
+CREATE OR REPLACE FUNCTION public.get_cac_cadastros_by_token(p_token TEXT) RETURNS TABLE(id UUID, nome TEXT, cpf TEXT, endereco TEXT, numero TEXT, complemento TEXT, bairro TEXT, cidade TEXT, estado TEXT, tipo_sinarm TEXT, armas TEXT, psicologico_url TEXT, created_at TIMESTAMPTZ, colaborador_token TEXT) SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $f$ BEGIN RETURN QUERY SELECT c.id, c.nome, c.cpf, c.endereco, c.numero, c.complemento, c.bairro, c.cidade, c.estado, c.tipo_sinarm, c.armas, c.psicologico_url, c.created_at, c.colaborador_token FROM cac_cadastros c WHERE c.colaborador_token = p_token ORDER BY c.created_at DESC; END; $f$;
+CREATE OR REPLACE FUNCTION public.insert_cac_cadastro_by_token(p_token TEXT, p_nome TEXT, p_cpf TEXT, p_endereco TEXT, p_numero TEXT, p_complemento TEXT, p_bairro TEXT, p_cidade TEXT, p_estado TEXT, p_tipo_sinarm TEXT, p_armas TEXT, p_psicologico_url TEXT) RETURNS UUID SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $f$ DECLARE v_id UUID; BEGIN IF NOT EXISTS (SELECT 1 FROM colaboradores WHERE token = p_token AND ativo = true) THEN RAISE EXCEPTION 'Link invalido ou desativado'; END IF; INSERT INTO cac_cadastros (nome, cpf, endereco, numero, complemento, bairro, cidade, estado, tipo_sinarm, armas, psicologico_url, colaborador_token) VALUES (p_nome, p_cpf, p_endereco, p_numero, p_complemento, p_bairro, p_cidade, p_estado, p_tipo_sinarm, p_armas, p_psicologico_url, p_token) RETURNING id INTO v_id; RETURN v_id; END; $f$;
+CREATE OR REPLACE FUNCTION public.update_cac_cadastro_by_token(p_token TEXT, p_id UUID, p_nome TEXT, p_cpf TEXT, p_endereco TEXT, p_numero TEXT, p_complemento TEXT, p_bairro TEXT, p_cidade TEXT, p_estado TEXT, p_tipo_sinarm TEXT, p_armas TEXT) RETURNS VOID SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $f$ BEGIN IF NOT EXISTS (SELECT 1 FROM colaboradores WHERE token = p_token AND ativo = true) THEN RAISE EXCEPTION 'Link invalido ou desativado'; END IF; UPDATE cac_cadastros SET nome = p_nome, cpf = p_cpf, endereco = p_endereco, numero = p_numero, complemento = p_complemento, bairro = p_bairro, cidade = p_cidade, estado = p_estado, tipo_sinarm = p_tipo_sinarm, armas = p_armas WHERE id = p_id AND colaborador_token = p_token; END; $f$;
+CREATE OR REPLACE FUNCTION public.delete_cac_cadastro_by_token(p_token TEXT, p_id UUID) RETURNS VOID SECURITY DEFINER SET search_path = public LANGUAGE plpgsql AS $f$ BEGIN IF NOT EXISTS (SELECT 1 FROM colaboradores WHERE token = p_token AND ativo = true) THEN RAISE EXCEPTION 'Link invalido ou desativado'; END IF; DELETE FROM cac_cadastros WHERE id = p_id AND colaborador_token = p_token; END; $f$;
+GRANT EXECUTE ON FUNCTION public.get_colaborador_info(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_cac_cadastros_by_token(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.insert_cac_cadastro_by_token(TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_cac_cadastro_by_token(TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_cac_cadastro_by_token(TEXT,UUID) TO anon, authenticated;
 `.trim();
 
 const LINK_CADASTRO = `${window.location.origin}/cadastro`;
@@ -154,10 +177,19 @@ const geminiExtract = async (file: File, prompt: string): Promise<any> => {
 };
 // ──────────────────────────────────────────────────────────────────────────────
 
+interface Colaborador { id: string; nome: string; token: string; ativo: boolean; created_at: string; }
+
 export default function CadastrosAdmin() {
+  const [aba, setAba] = useState<"cadastros" | "colaboradores">("cadastros");
   const [cadastros, setCadastros] = useState<CacCadastro[]>([]);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Colaboradores
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [novoColabNome, setNovoColabNome] = useState("");
+  const [savingColab, setSavingColab] = useState(false);
+  const [deletandoColab, setDeletandoColab] = useState<string | null>(null);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -211,6 +243,49 @@ export default function CadastrosAdmin() {
     supabase.from("cac_cadastros").select("*").order("created_at", { ascending: false })
       .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); setLoading(false); });
 
+  const carregarColaboradores = async () => {
+    const { data } = await supabase.from("colaboradores").select("*").order("created_at", { ascending: false });
+    if (data) setColaboradores(data as Colaborador[]);
+  };
+
+  const criarColaborador = async () => {
+    if (!novoColabNome.trim()) { toast.error("Informe o nome do colaborador."); return; }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setSavingColab(true);
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+    const { error } = await supabase.from("colaboradores").insert({
+      nome: novoColabNome.trim(),
+      token,
+      owner_user_id: user.id,
+    });
+    setSavingColab(false);
+    if (error) { toast.error("Erro ao criar colaborador: " + error.message); return; }
+    toast.success("Colaborador criado!");
+    setNovoColabNome("");
+    carregarColaboradores();
+  };
+
+  const toggleAtivoColab = async (c: Colaborador) => {
+    const { error } = await supabase.from("colaboradores").update({ ativo: !c.ativo }).eq("id", c.id);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    carregarColaboradores();
+  };
+
+  const excluirColaborador = async (id: string) => {
+    const { error } = await supabase.from("colaboradores").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir: " + error.message); return; }
+    toast.success("Colaborador excluído.");
+    setDeletandoColab(null);
+    carregarColaboradores();
+  };
+
+  const copiarLinkColab = (token: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/area/${token}`);
+    toast.success("Link copiado!");
+  };
+
   // Carrega clientes SINARM CAC ao abrir o dialog
   useEffect(() => {
     if (!novoOpen) { setCacBusca(""); setCacDropOpen(false); return; }
@@ -231,7 +306,7 @@ export default function CadastrosAdmin() {
   }, []);
 
   useEffect(() => {
-    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(carregar);
+    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(() => { carregar(); carregarColaboradores(); });
 
     const channel = supabase.channel("cac_cadastros_admin")
       .on("postgres_changes", { event: "*", schema: "public", table: "cac_cadastros" }, carregar)
@@ -422,36 +497,158 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
           <Users className="h-5 w-5 text-primary flex-shrink-0" />
           <div className="flex-1">
             <h1 className="text-base sm:text-lg font-bold tracking-tight">Cadastros</h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">Clientes cadastrados pelo link externo</p>
           </div>
-          {deletandoTodos ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-destructive font-medium">Excluir todos?</span>
-              <Button size="sm" variant="destructive" onClick={excluirTodos} className="gap-1.5">
-                <Check className="h-3.5 w-3.5" />Confirmar
+          {aba === "cadastros" && (
+            <>
+              {deletandoTodos ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-destructive font-medium">Excluir todos?</span>
+                  <Button size="sm" variant="destructive" onClick={excluirTodos} className="gap-1.5">
+                    <Check className="h-3.5 w-3.5" />Confirmar
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(false)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(true)} className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Excluir todos</span>
+                </Button>
+              )}
+              <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
+                <ClipboardPen className="h-4 w-4" />
+                <span className="hidden sm:inline">Cadastro Manual</span>
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(false)}>
-                <X className="h-3.5 w-3.5" />
+              <Button onClick={copiarLink} size="sm" variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
+                <Link className="h-4 w-4" />
+                <span className="hidden sm:inline">Copiar link</span>
               </Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="outline" onClick={() => setDeletandoTodos(true)} className="gap-2 border-destructive/40 text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-              Excluir todos
-            </Button>
+            </>
           )}
-          <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
-            <ClipboardPen className="h-4 w-4" />
-            Cadastro Manual
-          </Button>
-          <Button onClick={copiarLink} size="sm" variant="outline" className="gap-2 border-primary/40 text-primary hover:bg-primary/10">
-            <Link className="h-4 w-4" />
-            Copiar link
-          </Button>
+        </div>
+        {/* Tabs */}
+        <div className="flex border-t">
+          <button
+            onClick={() => setAba("cadastros")}
+            className={`flex-1 text-xs font-medium py-2 px-4 transition-colors flex items-center justify-center gap-1.5 ${aba === "cadastros" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Cadastros ({cadastros.length})
+          </button>
+          <button
+            onClick={() => setAba("colaboradores")}
+            className={`flex-1 text-xs font-medium py-2 px-4 transition-colors flex items-center justify-center gap-1.5 ${aba === "colaboradores" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Colaboradores ({colaboradores.length})
+          </button>
         </div>
       </header>
 
       <main className="px-4 sm:px-6 py-6 max-w-3xl mx-auto space-y-4">
+
+      {aba === "colaboradores" ? (
+        /* ── ABA COLABORADORES ─────────────────────────────────── */
+        <div className="space-y-4">
+          {/* Criar novo colaborador */}
+          <Card>
+            <CardContent className="py-4 px-4 space-y-3">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <PlusCircle className="h-4 w-4 text-primary" />
+                Criar link para colaborador
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Cada colaborador recebe um link único. Ele acessa sem precisar de login e gerencia só os clientes dele.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nome do colaborador (ex: Maria, João)"
+                  value={novoColabNome}
+                  onChange={e => setNovoColabNome(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && criarColaborador()}
+                  className="flex-1"
+                />
+                <Button onClick={criarColaborador} disabled={savingColab} className="shrink-0 gap-1.5">
+                  <PlusCircle className="h-4 w-4" />
+                  {savingColab ? "Criando..." : "Criar"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lista de colaboradores */}
+          {colaboradores.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">
+              <Share2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Nenhum colaborador ainda.</p>
+              <p className="text-xs mt-1">Crie um link acima para começar.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {colaboradores.map(c => (
+                <Card key={c.id} className={c.ativo ? "" : "opacity-60"}>
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm">{c.nome}</p>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.ativo ? "bg-green-500/15 text-green-500" : "bg-muted text-muted-foreground"}`}>
+                            {c.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
+                          {window.location.origin}/area/{c.token}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => copiarLinkColab(c.token)}
+                          className="flex items-center gap-1 px-2 py-1.5 rounded-md border border-primary/40 text-primary text-xs font-medium hover:bg-primary/10 transition-colors"
+                          title="Copiar link"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Copiar</span>
+                        </button>
+                        <button
+                          onClick={() => toggleAtivoColab(c)}
+                          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground transition-colors"
+                          title={c.ativo ? "Desativar" : "Ativar"}
+                        >
+                          {c.ativo
+                            ? <ToggleRight className="h-5 w-5 text-green-500" />
+                            : <ToggleLeft className="h-5 w-5" />
+                          }
+                        </button>
+                        {deletandoColab === c.id ? (
+                          <div className="flex gap-1">
+                            <button onClick={() => excluirColaborador(c.id)} className="flex items-center gap-1 px-2 py-1 rounded-md bg-destructive text-white text-[10px] font-semibold hover:opacity-90">
+                              <Check className="h-3 w-3" />Sim
+                            </button>
+                            <button onClick={() => setDeletandoColab(null)} className="flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold hover:bg-accent">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeletandoColab(c.id)}
+                            className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Excluir colaborador"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ── ABA CADASTROS ─────────────────────────────────────── */
+        <>
 
         {/* Link */}
         <Card className="border-primary/20 bg-primary/5">
@@ -550,6 +747,8 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
             ))}
           </div>
         )}
+        </>
+      )}
       </main>
 
       {/* Dialog de cadastro manual */}
