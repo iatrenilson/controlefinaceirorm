@@ -61,7 +61,7 @@ const Relatorios = () => {
       .in("tipo", ["pagamento_juros", "pagamento"])
       .order("created_at", { ascending: false });
 
-    // Monta mapa: nome do cliente â†’ data/hora do recebimento mais recente
+    // Monta mapa: nome do cliente → data/hora do recebimento mais recente
     const txMap = new Map<string, string>();
     for (const tx of txData || []) {
       if (!tx.descricao) continue;
@@ -178,7 +178,7 @@ const Relatorios = () => {
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 8)
       .map((c) => ({
-        nome: c.nome.length > 12 ? c.nome.slice(0, 12) + "â€¦" : c.nome,
+        nome: c.nome.length > 12 ? c.nome.slice(0, 12) + "…" : c.nome,
         valor: c.valor,
         juros: c.valor * (c.juros / 100),
       }));
@@ -302,7 +302,7 @@ const Relatorios = () => {
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="mes_atual">Mês atual</SelectItem>
-                    <SelectItem value="ultimo_mes">Ãšltimo mês</SelectItem>
+                    <SelectItem value="ultimo_mes">Último mês</SelectItem>
                     <SelectItem value="personalizado">Personalizado</SelectItem>
                   </SelectContent>
                 </Select>

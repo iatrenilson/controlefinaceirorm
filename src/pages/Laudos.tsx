@@ -126,12 +126,12 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   const B = (sz: number) => { doc.setFont("helvetica", "bold");   doc.setFontSize(sz); doc.setTextColor(0); };
   const N = (sz: number) => { doc.setFont("helvetica", "normal"); doc.setFontSize(sz); doc.setTextColor(0); };
   // Tamanhos usados no original:
-  //   ANEXO II heading   â†’ 16
-  //   Title / sec header â†’ 10
-  //   Body labels/vals   â†’ 9
-  //   Legal / small      â†’ 7.5
-  //   Weapon rows body   â†’ 8.5 / 8
-  //   APTO / INAPTO      â†’ 12
+  //   ANEXO II heading   → 16
+  //   Title / sec header → 10
+  //   Body labels/vals   → 9
+  //   Legal / small      → 7.5
+  //   Weapon rows body   → 8.5 / 8
+  //   APTO / INAPTO      → 12
 
   // Horizontal line - sempre preto
   const hl = (y: number, x1 = ML, x2 = ML + CW, w = 0.2) => { doc.setDrawColor(0); doc.setLineWidth(w); doc.line(x1, y, x2, y); };
@@ -254,9 +254,9 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   if (tipo === "sinarm") {
     // SINARM: lista de 8 armas pré-definidas com checkboxes em 2 colunas
-    // sRowH=9: baseline em +5.5 â†’ topo visual=3.2mm, base visual=3.5mm âœ"
+    // sRowH=9: baseline em +5.5 → topo visual=3.2mm, base visual=3.5mm âœ"
     const sRowH = 9;
-    const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas Ã— 2 colunas = 8 armas
+    const sinarmArmasH = HDR + 4 * sRowH; // 4 linhas × 2 colunas = 8 armas
     const midColX = ML + CW / 2;
     section(y, sinarmArmasH, "DADOS DA ARMA DE FOGO UTILIZADA");
     vl(midColX, y + HDR, y + sinarmArmasH);
@@ -265,7 +265,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
       const col = i % 2;
       const row = Math.floor(i / 2);
       const ax = col === 0 ? ML + 3 : midColX + 3;
-      const ay = y + HDR + row * sRowH + 5.5; // baseline 5.5mm â†’ topo visual ~3.2mm
+      const ay = y + HDR + row * sRowH + 5.5; // baseline 5.5mm → topo visual ~3.2mm
       const checked = f.armasSinarm.includes(arma.id);
       N(9);
       const pcW2 = renderPc(checked, ax, ay);
@@ -275,7 +275,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     y += sinarmArmasH + 0.8;
   } else {
     // CR/CAC: tabela com tipo, marca, calibre, registro SINARM/SIGMA
-    // aRowH=10: linhas em +3.5 e +7 â†’ margens topoâ‰ˆ3.5mm, base=3mm âœ"
+    // aRowH=10: linhas em +3.5 e +7 → margens topo≈3.5mm, base=3mm âœ"
     const ARMAS = [
       { tipo: "PISTOLA",    serie: "ADK 818094",  marca: "TAUROS GX4",    reg: "905970870", cal: "9 MM",    sist: f.pistola },
       { tipo: "REVOLVER",   serie: "ACL 493291",  marca: "TAURUS RT 85S", reg: "906589762", cal: "38",      sist: f.revolver },
@@ -365,7 +365,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     { id: "juliet", nome: "Clube de Tiro Juliet Papa", end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
     { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04 - Iranduba/AM." },
   ];
-  // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm â†’ visual igual âœ"
+  // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm → visual igual âœ"
   const lRowH = 12;
   const localH = HDR + LOCAIS.length * lRowH;
   section(y, localH, "LOCAL DE APLICAÇÃO PROVA PRATICA (ESTANDE)");
@@ -385,16 +385,16 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // Margem visual igual ~3mm topo e base.
   // doc.text() posiciona no baseline; letras sobem ~2.3mm (ascender Helvetica 9pt).
-  // â†’ topo visual = baseline_from_divider - 2.3mm; base visual = content_h - last_baseline_from_divider
-  // fndY = divider + 1; offset = 4.5 â†’ baseline a 5.5mm da divisória â†’ topo visual = 3.2mm âœ"
-  // CR/CAC: 4 linhas a 4.5mm â†’ last_offset=18 â†’ content=22 â†’ base visual=22-19=3mm âœ"
-  // SINARM: 5 linhas â†’ last_offset=22.5 â†’ content=27 â†’ base visual=27-23.5=3.5mm âœ"
+  // → topo visual = baseline_from_divider - 2.3mm; base visual = content_h - last_baseline_from_divider
+  // fndY = divider + 1; offset = 4.5 → baseline a 5.5mm da divisória → topo visual = 3.2mm âœ"
+  // CR/CAC: 4 linhas a 4.5mm → last_offset=18 → content=22 → base visual=22-19=3mm âœ"
+  // SINARM: 5 linhas → last_offset=22.5 → content=27 → base visual=27-23.5=3.5mm âœ"
   const fundH = tipo === "sinarm" ? HDR + 27 : HDR + 22;
   section(y, fundH, "FUNDAMENTAÇÃO");
 
   const fndY = y + HDR + 1;
 
-  // FINALIDADE  (offset +4.5 â†’ baseline 5.5mm da divisória â†’ topo visual ~3.2mm)
+  // FINALIDADE  (offset +4.5 → baseline 5.5mm da divisória → topo visual ~3.2mm)
   N(9); doc.text("FINALIDADE:", ML + 2, fndY + 4.5);
   let fx = ML + 2 + doc.getTextWidth("FINALIDADE:") + 2;
   fx += renderPc(f.finalidade.includes("aquisicao"), fx, fndY + 4.5);
@@ -459,7 +459,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // Caixas menores, X centralizado, centralizado na largura da caixa
   const bsz = 3.2;
   // ccY calculado para centralizar o box (bsz=3.2) na área de conteúdo (concH-HDR=7mm)
-  // box_top = ccY - bsz + 0.3 ; para box_top = 1.9mm â†’ ccY = 1.9 + 3.2 - 0.3 = 4.8
+  // box_top = ccY - bsz + 0.3 ; para box_top = 1.9mm → ccY = 1.9 + 3.2 - 0.3 = 4.8
   const ccY = y + HDR + 4.8;
   // Calcula largura total e centraliza dinamicamente
   N(9);
@@ -579,7 +579,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
     }
   }
 
-  // Fallback mobile: abre em nova aba (iOS: botão compartilharâ†’Arquivos; Android: menu download do browser)
+  // Fallback mobile: abre em nova aba (iOS: botão compartilhar→Arquivos; Android: menu download do browser)
   const url = URL.createObjectURL(blob);
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if (isMobile) {
@@ -701,7 +701,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
   const selecionarCadastro = (c: CacCadastro) => {
     const tipoRaw = (c.tipo_sinarm || "").toUpperCase();
 
-    // Mapeamento de tipo_sinarm â†’ laudoTipo, finalidade, categoria, sinarmPorte
+    // Mapeamento de tipo_sinarm → laudoTipo, finalidade, categoria, sinarmPorte
     let novoLaudoTipo: "cr_cac" | "sinarm" = laudoTipo;
     let novaFinalidade: Finalidade[] = [];
     let novaCategoria: Categoria[] = [];
@@ -724,7 +724,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
       novoSinarmPorte  = false;
     }
 
-    // Mapeia armas do cadastro â†’ campos do laudo
+    // Mapeia armas do cadastro → campos do laudo
     const armasStr = (c.armas || "").toLowerCase();
     const temPistola    = armasStr.includes("pistola");
     const temRevolver   = armasStr.includes("rev");
@@ -788,9 +788,9 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
     { label: "Espingarda", key: "espingarda" },
   ];
 
-  // Silhueta: 60-100 (41 opções, grid 7Ã—6)
+  // Silhueta: 60-100 (41 opções, grid 7×6)
   const PONT_SILHUETA = Array.from({ length: 41 }, (_, i) => String(60 + i));
-  // Multicolorido: 72-120 (49 opções, grid 7Ã—7)
+  // Multicolorido: 72-120 (49 opções, grid 7×7)
   const PONT_COLORIDO = Array.from({ length: 49 }, (_, i) => String(72 + i));
 
   return (
@@ -1138,7 +1138,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
-                      {/* Grade 7Ã—6 = 42 slots para 41 opções (60-100), sem rolagem */}
+                      {/* Grade 7×6 = 42 slots para 41 opções (60-100), sem rolagem */}
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_SILHUETA.map(n => (
                           <button key={n} type="button"
@@ -1217,7 +1217,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-2 w-64">
-                      {/* Grade 7Ã—7 = 49 opções (72-120), estilo calendário */}
+                      {/* Grade 7×7 = 49 opções (72-120), estilo calendário */}
                       <div className="grid grid-cols-7 gap-0.5">
                         {PONT_COLORIDO.map(n => (
                           <button key={n} type="button"

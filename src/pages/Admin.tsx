@@ -610,8 +610,8 @@ const Admin = () => {
 
                         return (
                           <TableRow key={p.user_id}>
-                            <TableCell className="font-medium">{p.nome || "â€”"}</TableCell>
-                            <TableCell className="text-muted-foreground">{p.email || "â€”"}</TableCell>
+                            <TableCell className="font-medium">{p.nome || "—"}</TableCell>
+                            <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                             <TableCell>{format(parseISO(p.created_at), "dd/MM/yyyy")}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">
@@ -648,13 +648,13 @@ const Admin = () => {
                             <TableCell className="text-xs text-muted-foreground">
                               {hasActiveSub && sub?.trial_started_at
                                 ? format(parseISO(sub.trial_started_at), "dd/MM/yyyy")
-                                : "â€”"}
+                                : "—"}
                             </TableCell>
 
                             {/* Vencimento */}
                             <TableCell className="text-xs">
                               {isPrivileged ? (
-                                <span className="text-muted-foreground">â€”</span>
+                                <span className="text-muted-foreground">—</span>
                               ) : hasActiveSub ? (
                                 <span className="text-green-400 font-medium">{format(subEnd!, "dd/MM/yyyy")}</span>
                               ) : trialActive ? (
@@ -750,9 +750,9 @@ const Admin = () => {
                       <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="Período" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="todos">Todo período</SelectItem>
-                        <SelectItem value="ultimo_mes">Ãšltimo mês</SelectItem>
-                        <SelectItem value="ultimos_3">Ãšltimos 3 meses</SelectItem>
-                        <SelectItem value="ultimos_6">Ãšltimos 6 meses</SelectItem>
+                        <SelectItem value="ultimo_mes">Último mês</SelectItem>
+                        <SelectItem value="ultimos_3">Últimos 3 meses</SelectItem>
+                        <SelectItem value="ultimos_6">Últimos 6 meses</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -806,7 +806,7 @@ const Admin = () => {
                                   </Badge>
                                 </div>
                                 <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                                  <span>Tel: {c.telefone || "â€”"}</span>
+                                  <span>Tel: {c.telefone || "—"}</span>
                                   <span>Valor: <span className="font-mono text-foreground">R$ {c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
                                   <span>Juros: <span className="font-mono text-foreground">{c.juros}%</span></span>
                                   <span>Total: <span className="font-mono font-semibold text-foreground">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></span>
@@ -839,7 +839,7 @@ const Admin = () => {
                                 return (
                                   <TableRow key={c.id}>
                                     <TableCell className="font-medium">{c.nome}</TableCell>
-                                    <TableCell className="text-muted-foreground">{c.telefone || "â€”"}</TableCell>
+                                    <TableCell className="text-muted-foreground">{c.telefone || "—"}</TableCell>
                                     <TableCell className="font-mono">R$ {c.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                     <TableCell className="font-mono">{c.juros}%</TableCell>
                                     <TableCell className="font-mono font-semibold">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
@@ -1139,12 +1139,12 @@ const Admin = () => {
                         <TableRow key={p.user_id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium text-sm">{p.nome || "â€”"}</p>
+                              <p className="font-medium text-sm">{p.nome || "—"}</p>
                               <p className="text-xs text-muted-foreground">{p.email}</p>
                             </div>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {sub ? format(new Date(sub.trial_started_at), "dd/MM/yyyy HH:mm") : "â€”"}
+                            {sub ? format(new Date(sub.trial_started_at), "dd/MM/yyyy HH:mm") : "—"}
                           </TableCell>
                           <TableCell>
                             {isPrivileged ? (
