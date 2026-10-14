@@ -398,14 +398,23 @@ export default function ColaboradorPortal() {
                     </div>
                   </div>
                   <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                    <button onClick={() => abrirEdicao(c)} style={{ background:"none", border:"1px solid rgba(201,162,39,0.3)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:GOLD, fontSize:12 }}>✏</button>
+                    <button onClick={() => abrirEdicao(c)} title="Editar" style={{ background:"none", border:"1px solid rgba(201,162,39,0.35)", borderRadius:8, padding:"7px 9px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
                     {deletandoId === c.id ? (
                       <div style={{ display:"flex", gap:4 }}>
                         <button onClick={() => excluir(c.id)} style={{ background:"#ef4444", border:"none", borderRadius:8, padding:"6px 10px", cursor:"pointer", color:"#fff", fontSize:11, fontWeight:700 }}>Sim</button>
                         <button onClick={() => setDeletandoId(null)} style={{ background:"none", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:"#7a6a48", fontSize:11 }}>Não</button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeletandoId(c.id)} style={{ background:"none", border:"1px solid rgba(239,68,68,0.3)", borderRadius:8, padding:"6px 8px", cursor:"pointer", color:"#ef4444", fontSize:12 }}>🗑</button>
+                      <button onClick={() => setDeletandoId(c.id)} title="Excluir" style={{ background:"none", border:"1px solid rgba(239,68,68,0.35)", borderRadius:8, padding:"7px 9px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      </button>
                     )}
                   </div>
                 </div>
