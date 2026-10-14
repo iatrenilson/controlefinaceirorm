@@ -583,7 +583,7 @@ const Emprestimos = () => {
         toast({ title: "Telefone não cadastrado", description: "Este cliente não possui telefone cadastrado.", variant: "destructive" });
         return;
       }
-      const url = `https://wa.me/55${telefoneFormatado}?text=${encodeURIComponent(msg)}`;
+      const url = `https://api.whatsapp.com/send?phone=55${telefoneFormatado}&text=${encodeURIComponent(msg)}`;
       // Use location.href as fallback for iframe environments
       const link = document.createElement("a");
       link.href = url;
