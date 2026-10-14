@@ -181,14 +181,14 @@ export default function ColaboradorPortal() {
 
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (carregando) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a" }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--background)" }}>
       <div style={{ width:32, height:32, border:`3px solid ${GOLD}`, borderTopColor:"transparent", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!colaborador) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a", padding:24 }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--background)", padding:24 }}>
       <div style={{ textAlign:"center", color:"#7a6a48" }}>
         <p style={{ fontSize:32, marginBottom:8 }}>✕</p>
         <p style={{ fontWeight:600, color:"#e8d5a0" }}>Link inválido</p>
@@ -198,7 +198,7 @@ export default function ColaboradorPortal() {
   );
 
   if (!colaborador.ativo) return (
-    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#0f172a", padding:24 }}>
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"var(--background)", padding:24 }}>
       <div style={{ textAlign:"center", color:"#7a6a48" }}>
         <p style={{ fontSize:32, marginBottom:8 }}>⚠</p>
         <p style={{ fontWeight:600, color:"#e8d5a0" }}>Link desativado</p>
@@ -213,7 +213,7 @@ export default function ColaboradorPortal() {
 
   // ── Tela do formulário ────────────────────────────────────────────────────
   if (tela === "novo" || tela === "editar") return (
-    <div style={{ background:"#0f172a", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
+    <div style={{ background:"var(--background)", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
       <div style={{ width:"100%", maxWidth:440, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(201,162,39,0.2)", borderRadius:20, padding:"28px 24px" }}>
 
         {/* Header */}
@@ -338,7 +338,7 @@ export default function ColaboradorPortal() {
 
   // ── Tela de lista ─────────────────────────────────────────────────────────
   return (
-    <div style={{ background:"#0f172a", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
+    <div style={{ background:"var(--background)", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", padding:"24px 16px" }}>
       <div style={{ width:"100%", maxWidth:440 }}>
 
         {/* Header */}
