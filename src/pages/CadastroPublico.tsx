@@ -318,7 +318,7 @@ export default function CadastroPublico() {
         </form>
       </div>
 
-      <p style={{ color: "#3a3020", fontSize: 11, marginTop: 20 }}>rwinvestimentos.com.br</p>
+      <p style={{ color: "#ffffff", fontSize: 11, marginTop: 20 }}>William Bruno Toyoda Hitotuzi</p>
     </div>
   );
 }

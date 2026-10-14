@@ -347,7 +347,7 @@ export default function ColaboradorPortal() {
           </button>
         </div>
       </div>
-      <p style={{ color:"#3a3020", fontSize:11, marginTop:20 }}>rwinvestimentos.com.br</p>
+      <p style={{ color:"#ffffff", fontSize:11, marginTop:20 }}>William Bruno Toyoda Hitotuzi</p>
     </div>
   );
 
@@ -438,7 +438,7 @@ export default function ColaboradorPortal() {
           </div>
         )}
       </div>
-      <p style={{ color:"#3a3020", fontSize:11, marginTop:24 }}>rwinvestimentos.com.br</p>
+      <p style={{ color:"#ffffff", fontSize:11, marginTop:24 }}>William Bruno Toyoda Hitotuzi</p>
     </div>
   );
 }
