@@ -387,7 +387,7 @@ export default function ColaboradorPortal() {
                         <span key={t} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(201,162,39,0.15)", color:GOLD, border:"1px solid rgba(201,162,39,0.3)", fontWeight:600 }}>{t}</span>
                       ))}
                       {c.armas && c.armas.split(", ").map(a => (
-                        <span key={a} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(255,255,255,0.05)", color:"#7a6a48", border:"1px solid rgba(255,255,255,0.08)" }}>{a}</span>
+                        <span key={a} style={{ fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(201,162,39,0.15)", color:GOLD, border:"1px solid rgba(201,162,39,0.3)", fontWeight:600 }}>{a}</span>
                       ))}
                       {c.psicologico_url && (
                         <a href={c.psicologico_url} target="_blank" rel="noopener noreferrer"
