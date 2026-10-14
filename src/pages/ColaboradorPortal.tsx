@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
 import { toast } from "sonner";
 
 const GOLD = "#c9a227";
@@ -147,7 +148,7 @@ export default function ColaboradorPortal() {
         form.armas.length ? `*Armas:* ${form.armas.join(", ")}` : null,
         form.psicoUrl ? `\n📄 *Psicológico:*\n${form.psicoUrl}` : null,
       ].filter(l => l !== null).join("\n");
-      window.open(`https://api.whatsapp.com/send?phone=5592993161828&text=${encodeURIComponent(linhas)}`, "_blank");
+      window.open(whatsappUrl(WHATSAPP_NUMBER, linhas), "_blank");
 
       const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
         p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
