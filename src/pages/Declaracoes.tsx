@@ -92,6 +92,7 @@ interface Cliente {
   email: string;
   telefone: string;
   profissao: string;
+  tipo_ocupacao: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -109,7 +110,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  email: "", telefone: "", profissao: "",
+  email: "", telefone: "", profissao: "", tipo_ocupacao: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1107,6 +1108,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     email: (row.email as string) ?? "",
     telefone: maskTelefone((row.telefone as string) ?? ""),
     profissao: (row.profissao as string) ?? "",
+    tipo_ocupacao: (row.tipo_ocupacao as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -1183,6 +1185,19 @@ END $$;`
 END $$;`
       }
     }).then(() => localStorage.setItem("schema_migration_v5", "1")).catch(() => {});
+  }, []);
+
+  // Migração v6: adiciona tipo_ocupacao
+  useEffect(() => {
+    if (localStorage.getItem("schema_migration_v6")) return;
+    supabase.functions.invoke("run-migration", {
+      body: {
+        sql: `DO $$ BEGIN
+  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS tipo_ocupacao TEXT NOT NULL DEFAULT '';
+  PERFORM pg_notify('pgrst', 'reload schema');
+END $$;`
+      }
+    }).then(() => localStorage.setItem("schema_migration_v6", "1")).catch(() => {});
   }, []);
 
   // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
@@ -1765,6 +1780,7 @@ END $$;`
         email: c.email || null,
         telefone: c.telefone || null,
         profissao: c.profissao || null,
+        tipo_ocupacao: c.tipo_ocupacao || null,
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -2147,6 +2163,7 @@ END $$;`
       email: formCliente.email || null,
       telefone: formCliente.telefone || null,
       profissao: formCliente.profissao || null,
+      tipo_ocupacao: formCliente.tipo_ocupacao || null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -2898,6 +2915,24 @@ END $$;`
                   value={formCliente.profissao} onChange={e => setC("profissao", e.target.value)} />
                 <CopyButton value={formCliente.profissao} />
               </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo de Comprovante de Ocupação Lícita</Label>
+              <Select value={formCliente.tipo_ocupacao || ""} onValueChange={v => setC("tipo_ocupacao", v)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selecione o tipo de documento..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contracheque">Contracheque / Holerite / CTPS</SelectItem>
+                  <SelectItem value="registros municipais">Registros Municipais / DECORE</SelectItem>
+                  <SelectItem value="oab">OAB</SelectItem>
+                  <SelectItem value="junta comercial">Junta Comercial / CNPJ</SelectItem>
+                  <SelectItem value="ccmei">MEI / DAS-MEI / CCMEI</SelectItem>
+                  <SelectItem value="inss">INSS (aposentadoria)</SelectItem>
+                  <SelectItem value="instituicao publica">Instituição Pública</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {/* CPF + RG */}
             <div className="grid grid-cols-2 gap-3">
