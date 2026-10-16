@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getSafeErrorMessage } from "@/lib/safe-error";
-import { Users, Landmark, BarChart3, Search, ShieldCheck, Banknote, AlertTriangle, Percent, UserCheck, Pencil, Trash2, Bell, Send, Mail, Monitor, Sparkles, Loader2, MailCheck, KeyRound, CreditCard, CalendarPlus, Clock } from "lucide-react";
+import { Users, Landmark, BarChart3, Search, ShieldCheck, Banknote, AlertTriangle, Percent, UserCheck, Pencil, Trash2, Bell, Send, Mail, Monitor, Sparkles, Loader2, MailCheck, KeyRound, CreditCard, CalendarPlus, Clock, HardDrive, Database, RefreshCw, FileX2 } from "lucide-react";
 import { EmailDashboard } from "@/components/dashboard/EmailDashboard";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -85,6 +85,12 @@ const Admin = () => {
   const [subDays, setSubDays] = useState("30");
   const [savingSub, setSavingSub] = useState(false);
 
+  // Storage stats state
+  interface StorageStats { totalClientes: number; totalDocs: number; clientesPorStatus: Record<string, number>; loading: boolean; }
+  const [storageStats, setStorageStats] = useState<StorageStats>({ totalClientes: 0, totalDocs: 0, clientesPorStatus: {}, loading: false });
+  const [limpandoStorage, setLimpandoStorage] = useState(false);
+  const [confirmLimpeza, setConfirmLimpeza] = useState(false);
+
   useEffect(() => {
     fetchProfiles();
     fetchEmprestimos();
@@ -132,6 +138,47 @@ const Admin = () => {
   const fetchSubscriptions = async () => {
     const { data } = await supabase.from("subscriptions").select("user_id, trial_started_at, subscription_expires_at, plan_name");
     setSubscriptions(data || []);
+  };
+
+  const fetchStorageStats = async () => {
+    setStorageStats(s => ({ ...s, loading: true }));
+    const [{ count: totalClientes }, { count: totalDocs }, { data: statusRows }] = await Promise.all([
+      supabase.from("declaracao_clientes").select("*", { count: "exact", head: true }),
+      supabase.from("declaracao_docs_cr").select("*", { count: "exact", head: true }),
+      supabase.from("declaracao_clientes").select("status"),
+    ]);
+    const clientesPorStatus: Record<string, number> = {};
+    (statusRows || []).forEach((r: any) => {
+      const s = (r.status as string) ?? "doc";
+      clientesPorStatus[s] = (clientesPorStatus[s] || 0) + 1;
+    });
+    setStorageStats({ totalClientes: totalClientes ?? 0, totalDocs: totalDocs ?? 0, clientesPorStatus, loading: false });
+  };
+
+  const limparDocsCompletos = async () => {
+    setLimpandoStorage(true);
+    try {
+      const { data: completedClients } = await supabase.from("declaracao_clientes").select("id").eq("status", "completo");
+      if (!completedClients || completedClients.length === 0) {
+        toast({ title: "Nenhum cliente concluído encontrado." });
+        setConfirmLimpeza(false);
+        return;
+      }
+      const ids = completedClients.map((c: any) => c.id);
+      const { data: docs } = await supabase.from("declaracao_docs_cr").select("storage_path").in("cliente_id", ids);
+      if (docs && docs.length > 0) {
+        const paths = docs.map((d: any) => d.storage_path).filter(Boolean);
+        if (paths.length > 0) await supabase.storage.from("cac-docs").remove(paths);
+        await supabase.from("declaracao_docs_cr").delete().in("cliente_id", ids);
+      }
+      toast({ title: `Limpeza concluída! ${docs?.length ?? 0} documento(s) removidos.` });
+      fetchStorageStats();
+    } catch {
+      toast({ title: "Erro ao limpar documentos.", variant: "destructive" });
+    } finally {
+      setLimpandoStorage(false);
+      setConfirmLimpeza(false);
+    }
   };
 
   const handleExtendSubscription = async () => {
@@ -558,6 +605,7 @@ const Admin = () => {
             <TabsTrigger value="notificacoes" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notificações</TabsTrigger>
             <TabsTrigger value="emails" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><MailCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> E-mails</TabsTrigger>
             <TabsTrigger value="assinaturas" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Assinaturas</TabsTrigger>
+            <TabsTrigger value="armazenamento" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm" onClick={() => { if (!storageStats.totalClientes && !storageStats.loading) fetchStorageStats(); }}><HardDrive className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Storage</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -1197,6 +1245,132 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="armazenamento">
+            {(() => {
+              const LIMITE_STORAGE_MB = 1024;
+              const estimadoMB = Math.round(storageStats.totalDocs * 0.3);
+              const pct = Math.min(100, Math.round((estimadoMB / LIMITE_STORAGE_MB) * 100));
+              const STATUS_LABEL_MAP: Record<string, string> = {
+                doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR Deferido",
+                analise: "CR Análise", autor: "Aut. Análise", craf: "Craf. Análise",
+                doccraf: "Doc Craf", completo: "Concluído",
+              };
+              const completoCount = storageStats.clientesPorStatus["completo"] ?? 0;
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold flex items-center gap-2"><HardDrive className="h-4 w-4" /> Uso de Armazenamento</h2>
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={fetchStorageStats} disabled={storageStats.loading}>
+                      <RefreshCw className={`h-3.5 w-3.5 ${storageStats.loading ? "animate-spin" : ""}`} /> Atualizar
+                    </Button>
+                  </div>
+
+                  {/* Cards de resumo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10"><HardDrive className="h-5 w-5 text-primary" /></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Storage estimado</p>
+                            <p className="text-xl font-bold">{estimadoMB < 1024 ? `${estimadoMB} MB` : `${(estimadoMB/1024).toFixed(1)} GB`}</p>
+                            <p className="text-[10px] text-muted-foreground">de 1 GB · {pct}% usado</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${pct > 80 ? "bg-destructive" : pct > 50 ? "bg-yellow-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-500/10"><Database className="h-5 w-5 text-blue-400" /></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Clientes cadastrados</p>
+                            <p className="text-xl font-bold">{storageStats.totalClientes}</p>
+                            <p className="text-[10px] text-muted-foreground">{completoCount} concluídos</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-green-500/10"><FileX2 className="h-5 w-5 text-green-400" /></div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">PDFs armazenados</p>
+                            <p className="text-xl font-bold">{storageStats.totalDocs}</p>
+                            <p className="text-[10px] text-muted-foreground">~300 KB cada em média</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Clientes por status */}
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold">Clientes por status</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {storageStats.loading ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground py-4"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando...</div>
+                        ) : Object.keys(storageStats.clientesPorStatus).length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-4">Nenhum dado. Clique em Atualizar.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {Object.entries(storageStats.clientesPorStatus).sort((a, b) => b[1] - a[1]).map(([status, count]) => (
+                              <div key={status} className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">{STATUS_LABEL_MAP[status] ?? status}</span>
+                                <span className="font-medium">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Limpeza */}
+                    <Card className="border-destructive/30">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2"><Trash2 className="h-4 w-4 text-destructive" /> Limpeza de documentos</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0 space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Remove todos os PDFs de clientes com status <strong>Concluído</strong>.
+                          Os dados cadastrais são mantidos; só os documentos são apagados.
+                        </p>
+                        <p className="text-xs font-medium">
+                          {completoCount} cliente(s) concluído(s) · aprox. {Math.round(completoCount * 12 * 0.3)} MB liberados
+                        </p>
+                        {!confirmLimpeza ? (
+                          <Button
+                            variant="destructive" size="sm" className="w-full gap-1.5"
+                            disabled={completoCount === 0 || storageStats.loading}
+                            onClick={() => setConfirmLimpeza(true)}>
+                            <Trash2 className="h-3.5 w-3.5" /> Limpar docs de clientes concluídos
+                          </Button>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs text-destructive font-medium">⚠️ Esta ação não pode ser desfeita. Confirma?</p>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setConfirmLimpeza(false)}>Cancelar</Button>
+                              <Button variant="destructive" size="sm" className="flex-1 text-xs gap-1" disabled={limpandoStorage} onClick={limparDocsCompletos}>
+                                {limpandoStorage ? <><Loader2 className="h-3 w-3 animate-spin" /> Limpando...</> : "Confirmar limpeza"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              );
+            })()}
           </TabsContent>
         </Tabs>
       </main>
