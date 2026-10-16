@@ -1187,17 +1187,14 @@ END $$;`
     }).then(() => localStorage.setItem("schema_migration_v5", "1")).catch(() => {});
   }, []);
 
-  // Migração v6: adiciona tipo_ocupacao
+  // Migração v7: adiciona tipo_ocupacao (v7 para forçar rerun caso v6 tenha falhado silenciosamente)
   useEffect(() => {
-    if (localStorage.getItem("schema_migration_v6")) return;
+    if (localStorage.getItem("schema_migration_v7")) return;
     supabase.functions.invoke("run-migration", {
-      body: {
-        sql: `DO $$ BEGIN
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS tipo_ocupacao TEXT NOT NULL DEFAULT '';
-  PERFORM pg_notify('pgrst', 'reload schema');
-END $$;`
-      }
-    }).then(() => localStorage.setItem("schema_migration_v6", "1")).catch(() => {});
+      body: { sql: `ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS tipo_ocupacao TEXT NOT NULL DEFAULT '';` }
+    }).then(({ error }) => {
+      if (!error) localStorage.setItem("schema_migration_v7", "1");
+    }).catch(() => {});
   }, []);
 
   // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
@@ -1782,7 +1779,7 @@ END $$;`
         email: c.email || null,
         telefone: c.telefone || null,
         profissao: c.profissao || null,
-        tipo_ocupacao: c.tipo_ocupacao || null,
+        ...(c.tipo_ocupacao ? { tipo_ocupacao: c.tipo_ocupacao } : {}),
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -2165,7 +2162,7 @@ END $$;`
       email: formCliente.email || null,
       telefone: formCliente.telefone || null,
       profissao: formCliente.profissao || null,
-      tipo_ocupacao: formCliente.tipo_ocupacao || null,
+      ...(formCliente.tipo_ocupacao ? { tipo_ocupacao: formCliente.tipo_ocupacao } : {}),
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
