@@ -97,6 +97,7 @@ const Admin = () => {
     fetchNotifications();
     fetchUserRoles();
     fetchSubscriptions();
+    fetchStorageStats();
   }, []);
 
   // Track online users via Realtime Presence
@@ -605,7 +606,7 @@ const Admin = () => {
             <TabsTrigger value="notificacoes" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Notificações</TabsTrigger>
             <TabsTrigger value="emails" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><MailCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> E-mails</TabsTrigger>
             <TabsTrigger value="assinaturas" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Assinaturas</TabsTrigger>
-            <TabsTrigger value="armazenamento" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm" onClick={() => { if (!storageStats.totalClientes && !storageStats.loading) fetchStorageStats(); }}><HardDrive className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Storage</TabsTrigger>
+            <TabsTrigger value="armazenamento" className="gap-1.5 flex-1 sm:flex-none text-xs sm:text-sm"><HardDrive className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Storage</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
