@@ -593,7 +593,7 @@ async function gerarPDF(data: FormData, semLogo = false) {
   const sigLabelW = doc.getTextWidth(sigLabel);
   doc.line(ML + sigLabelW, y - 0.5, W - MR, y - 0.5);
 
-  return await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
+  return await salvarPDF(doc, `10 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
 async function gerarPDFAcervo(data: FormDataAcervo, semLogo = false) {
