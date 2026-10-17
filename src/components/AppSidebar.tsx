@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet, UserPlus, FolderOpen, ImageIcon } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ClipboardList, Wallet, UserPlus, FolderOpen, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,7 +8,6 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PixPaymentDialog } from "@/components/PixPaymentDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 const rwLogo = "/logo-passarinho.png";
 import {
   Sidebar,
@@ -105,7 +104,6 @@ export function AppSidebar() {
   const { isAdmin, isModerator, loading: roleLoading } = useUserRole();
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const [criarOpen, setCriarOpen] = useState(false);
 
   const showDelaySection = isAdmin || isModerator;
 
@@ -283,48 +281,6 @@ export function AppSidebar() {
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-
-                  {/* Criar Declarações — colapsável */}
-                  <Collapsible open={criarOpen} onOpenChange={setCriarOpen} className="group/criar">
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip="Criar Declarações" className="w-full">
-                          <Plus className="h-[18px] w-[18px]" />
-                          <span>Criar Declarações</span>
-                          <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/criar:rotate-180" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=inquerito")} className="cursor-pointer text-xs">
-                              Inquérito Policial
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=acervo")} className="cursor-pointer text-xs">
-                              Comp. 2º Endereço de Guarda
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=dsa")} className="cursor-pointer text-xs">
-                              DSA
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=residencia")} className="cursor-pointer text-xs">
-                              Declaração de Residência
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton onClick={() => navigate("/declaracoes?open=craf")} className="cursor-pointer text-xs">
-                              Docs Emissão de CRAF
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
 
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Imagem para PDF">
