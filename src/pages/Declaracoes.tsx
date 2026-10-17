@@ -1297,6 +1297,8 @@ END $$;`
   const [loteSubTipoArquivo, setLoteSubTipoArquivo] = useState("");
   const [loteSubTipoDocId, setLoteSubTipoDocId] = useState("");
   const loteSubTipoResolveRef = useRef<((v: string) => void) | null>(null);
+  const [inqTipoDialogOpen, setInqTipoDialogOpen] = useState(false);
+  const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -3521,10 +3523,41 @@ END $$;`
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!form.nome || !form.dataNascimento || !form.rg) { alert("Preencha Nome, Data de Nascimento e RG."); return; }
-              const ok = await gerarPDF(form, semLogo);
-              if (ok) setDialogOpen(false);
+              const tipo = await new Promise<string>(resolve => { inqTipoResolveRef.current = resolve; setInqTipoDialogOpen(true); });
+              if (!tipo) return;
+              if (tipo === "CR") {
+                const ok = await gerarPDF(form, semLogo);
+                if (ok) setDialogOpen(false);
+              }
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: tipo de declaração de inquérito ── */}
+      <Dialog open={inqTipoDialogOpen} onOpenChange={open => { if (!open) { inqTipoResolveRef.current?.(""); inqTipoResolveRef.current = null; setInqTipoDialogOpen(false); } }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Tipo de declaração</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-1">
+            {[
+              { label: "CR", disponivel: true },
+              { label: "Autorização", disponivel: false },
+              { label: "Renovação", disponivel: false },
+            ].map(({ label, disponivel }) => (
+              <button key={label} type="button" disabled={!disponivel}
+                className={`w-full text-left rounded-lg border px-4 py-3 text-sm transition-colors ${disponivel ? "border-border/50 hover:bg-primary/10 hover:border-primary/50" : "border-border/20 text-muted-foreground opacity-40 cursor-not-allowed"}`}
+                onClick={() => {
+                  if (!disponivel) return;
+                  inqTipoResolveRef.current?.(label);
+                  inqTipoResolveRef.current = null;
+                  setInqTipoDialogOpen(false);
+                }}>
+                {label}{!disponivel && <span className="ml-2 text-[10px]">em breve</span>}
+              </button>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
