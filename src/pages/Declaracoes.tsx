@@ -3393,7 +3393,7 @@ END $$;`
 
       {/* ── Dialog 1: Inquérito Policial ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -3528,7 +3528,7 @@ END $$;`
 
       {/* ── Dialog 2: Acervo ── */}
       <Dialog open={dialogAcervoOpen} onOpenChange={setDialogAcervoOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -3601,7 +3601,7 @@ END $$;`
 
       {/* ── Dialog 4: DSA ── */}
       <Dialog open={dialogDSAOpen} onOpenChange={setDialogDSAOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -3725,7 +3725,7 @@ END $$;`
 
       {/* ── Dialog 3: Residência ── */}
       <Dialog open={dialogResOpen} onOpenChange={setDialogResOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -3941,7 +3941,7 @@ END $$;`
 
       {/* ── Dialog 5: Docs Emissão de CRAF ── */}
       <Dialog open={dialogCrafOpen} onOpenChange={setDialogCrafOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
