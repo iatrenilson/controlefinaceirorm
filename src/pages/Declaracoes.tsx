@@ -2346,6 +2346,30 @@ END $$;`
           </div>
         </div>
 
+        {/* ── Acesso rápido: Criar Declarações ── */}
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Criar Declaração</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Inquérito Policial",            action: () => { setForm(EMPTY_FORM); setDialogOpen(true); } },
+              { label: "Comp. 2º End. de Guarda",      action: () => { setFormAcervo(EMPTY_FORM_ACERVO); setDialogAcervoOpen(true); } },
+              { label: "DSA",                           action: () => { setFormDSA(EMPTY_FORM_DSA); setDialogDSAOpen(true); } },
+              { label: "Declaração de Residência",      action: () => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); } },
+              { label: "Docs Emissão de CRAF",          action: () => { setCrafNome(""); clearNotaFiscal(); clearAutorizacaoCompra(); clearCnhCraf(); setDialogCrafOpen(true); } },
+            ].map(({ label, action }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={action}
+                className="flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium hover:bg-primary/10 hover:border-primary/50 hover:text-primary transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Clientes cadastrados */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
