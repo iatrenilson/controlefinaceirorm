@@ -405,7 +405,7 @@ function writeInlinePara(
   return cy;
 }
 
-async function salvarPDF(doc: any, filename: string) {
+async function salvarPDF(doc: any, filename: string): Promise<boolean> {
   const blob = doc.output("blob");
   if (typeof (window as any).showSaveFilePicker === "function") {
     try {
@@ -420,9 +420,9 @@ async function salvarPDF(doc: any, filename: string) {
         description: "Verifique a pasta que você selecionou.",
         duration: 4000,
       });
-      return;
+      return true;
     } catch (e: any) {
-      if (e?.name === "AbortError") return; // usuário cancelou — não salva nada
+      if (e?.name === "AbortError") return false; // usuário cancelou
     }
   }
   doc.save(filename);
@@ -430,6 +430,7 @@ async function salvarPDF(doc: any, filename: string) {
     description: "Verifique a pasta de Downloads.",
     duration: 4000,
   });
+  return true;
 }
 
 // ─── Layout padrão Passarinho (logo + linhas douradas + marca d'água + rodapé) ──
@@ -592,7 +593,7 @@ async function gerarPDF(data: FormData, semLogo = false) {
   const sigLabelW = doc.getTextWidth(sigLabel);
   doc.line(ML + sigLabelW, y - 0.5, W - MR, y - 0.5);
 
-  await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
+  return await salvarPDF(doc, `3 Declaração de não estar respondendo a inquérito policial ou a processo criminal - ${primeiroNome}.pdf`);
 }
 
 async function gerarPDFAcervo(data: FormDataAcervo, semLogo = false) {
@@ -657,7 +658,7 @@ async function gerarPDFAcervo(data: FormDataAcervo, semLogo = false) {
   const sigLabelAcW = doc.getTextWidth(sigLabelAc);
   doc.line(ML + sigLabelAcW, y - 0.5, W - MR, y - 0.5);
 
-  await salvarPDF(doc, `8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
+  return await salvarPDF(doc, `8 Comprovante de Segundo Endereço de Guarda do Acervo - ${primeiroNome}.pdf`);
 }
 
 // ─── DSA — Declaração de Segurança do Acervo ──────────────────────────────
@@ -719,7 +720,7 @@ async function gerarPDFDSA(data: FormDataDSA, tipo: "registro" | "aquisicao" = "
   const sufixo = tipo === "aquisicao"
     ? "10 Declaração de Segurança do Acervo - Aquisição"
     : "10 Declaração de Segurança do Acervo - Concessão";
-  await salvarPDF(doc, `${sufixo} - ${primeiroNome}.pdf`);
+  return await salvarPDF(doc, `${sufixo} - ${primeiroNome}.pdf`);
 }
 
 // ─── Carrega script CDN dinamicamente ────────────────────────────────────
@@ -958,7 +959,7 @@ async function gerarPDFResidencia(data: FormDataResidencia, rgDataUrl: string | 
     doc.addImage(att.dataUrl, "JPEG", dx, dy, dw, dh);
   }
 
-  await salvarPDF(doc, `6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
+  return await salvarPDF(doc, `6 Comprovante de Residência Fixa - ${primeiroNome}.pdf`);
 }
 
 // ─── Docs Emissão de CRAF (Nota Fiscal + Autorização de Compra + CNH) ─────
@@ -1026,9 +1027,9 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
         types: [{ description: "PDF", accept: { "application/pdf": [".pdf"] } }],
       });
       const writable = await handle.createWritable();
-      await writable.write(blob); await writable.close(); return;
+      await writable.write(blob); await writable.close(); return true;
     } catch (e: any) {
-      if (e?.name === "AbortError") return;
+      if (e?.name === "AbortError") return false;
     }
   }
   const url = URL.createObjectURL(blob);
@@ -1037,6 +1038,7 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
   document.body.appendChild(el); el.click();
   document.body.removeChild(el);
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return true;
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
@@ -3519,8 +3521,8 @@ END $$;`
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!form.nome || !form.dataNascimento || !form.rg) { alert("Preencha Nome, Data de Nascimento e RG."); return; }
-              await gerarPDF(form, semLogo);
-              setDialogOpen(false);
+              const ok = await gerarPDF(form, semLogo);
+              if (ok) setDialogOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -3592,8 +3594,8 @@ END $$;`
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogAcervoOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formAcervo.nome || !formAcervo.rg || !formAcervo.cpf) { alert("Preencha Nome, RG e CPF."); return; }
-              await gerarPDFAcervo(formAcervo, semLogo);
-              setDialogAcervoOpen(false);
+              const ok = await gerarPDFAcervo(formAcervo, semLogo);
+              if (ok) setDialogAcervoOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -3716,8 +3718,8 @@ END $$;`
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogDSAOpen(false)}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
               if (!formDSA.nome || !formDSA.dataNascimento || !formDSA.cpf) { alert("Preencha Nome, Data de Nascimento e CPF."); return; }
-              await gerarPDFDSA(formDSA, dsaTipo, semLogo);
-              setDialogDSAOpen(false);
+              const ok = await gerarPDFDSA(formDSA, dsaTipo, semLogo);
+              if (ok) setDialogDSAOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -3932,8 +3934,8 @@ END $$;`
               if (!formRes.nomeDeclarante || !formRes.nomeDeclarado || !formRes.endereco) {
                 alert("Preencha Declarante, Declarado e Endereço."); return;
               }
-              await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl, semLogo);
-              setDialogResOpen(false);
+              const ok = await gerarPDFResidencia(formRes, rgDataUrl, rgDataUrl2, compDataUrl, semLogo);
+              if (ok) setDialogResOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
@@ -4034,8 +4036,8 @@ END $$;`
                 cnhCrafUrl ? { label: "CNH", dataUrl: cnhCrafUrl } : null,
               ].filter((a): a is { label: string; dataUrl: string } => a !== null);
               if (anexos.length === 0) { alert("Anexe ao menos um documento."); return; }
-              await gerarPDFCraf(crafNome, anexos);
-              setDialogCrafOpen(false);
+              const ok = await gerarPDFCraf(crafNome, anexos);
+              if (ok) setDialogCrafOpen(false);
             }}><Download className="h-3.5 w-3.5" />Gerar PDF</Button>
           </DialogFooter>
         </DialogContent>
