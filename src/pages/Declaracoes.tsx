@@ -2342,14 +2342,14 @@ END $$;`
             <FileText className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Declarações</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Clientes Armas</h1>
             <p className="text-sm text-muted-foreground">Área restrita — Administradores e Moderadores</p>
           </div>
         </div>
 
-        {/* ── Acesso rápido: Criar Declarações ── */}
+        {/* ── Acesso rápido: Ferramentas ── */}
         <div>
-          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Criar Declaração</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Ferramentas</p>
           <div className="flex flex-wrap gap-2">
             {[
               { label: "Inquérito Policial",            action: () => { setForm(EMPTY_FORM); setDialogOpen(true); } },
