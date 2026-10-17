@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -2276,6 +2276,7 @@ END $$;`
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [formAcervo, setFormAcervo] = useState<FormDataAcervo>(EMPTY_FORM_ACERVO);
   const setA = (field: keyof FormDataAcervo, value: string) => setFormAcervo(prev => ({ ...prev, [field]: value }));
 
@@ -2356,6 +2357,7 @@ END $$;`
               { label: "DSA",                           action: () => { setFormDSA(EMPTY_FORM_DSA); setDialogDSAOpen(true); } },
               { label: "Declaração de Residência",      action: () => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); } },
               { label: "Docs Emissão de CRAF",          action: () => { setCrafNome(""); clearNotaFiscal(); clearAutorizacaoCompra(); clearCnhCraf(); setDialogCrafOpen(true); } },
+            { label: "Imagem para PDF",               action: () => navigate("/imagem-para-pdf") },
             ].map(({ label, action }) => (
               <button
                 key={label}
