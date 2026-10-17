@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet, UserPlus, FolderOpen } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ChevronDown, Plus, ClipboardList, Wallet, UserPlus, FolderOpen, ImageIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -325,6 +325,15 @@ export function AppSidebar() {
                       </CollapsibleContent>
                     </SidebarMenuItem>
                   </Collapsible>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Imagem para PDF">
+                      <NavLink to="/imagem-para-pdf" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <ImageIcon className="h-[18px] w-[18px]" />
+                        <span>Imagem para PDF</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

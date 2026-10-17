@@ -33,6 +33,7 @@ import CarteiraCliente from "./pages/CarteiraCliente";
 import CarteiraDIgital from "./pages/CarteiraDIgital";
 import CadastrosAdmin from "./pages/CadastrosAdmin";
 import DocsCR from "./pages/DocsCR";
+import ImageToPdf from "./pages/ImageToPdf";
 import ColaboradorPortal from "./pages/ColaboradorPortal";
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
@@ -112,6 +113,7 @@ const ProtectedLayout = () => {
             <Route path="/laudos" element={<DelayRoute><Laudos /></DelayRoute>} />
             <Route path="/cadastros" element={<DelayRoute><CadastrosAdmin /></DelayRoute>} />
             <Route path="/docs-cr" element={<DelayRoute><DocsCR /></DelayRoute>} />
+            <Route path="/imagem-para-pdf" element={<DelayRoute><ImageToPdf /></DelayRoute>} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
