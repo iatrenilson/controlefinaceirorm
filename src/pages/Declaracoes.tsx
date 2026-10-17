@@ -421,7 +421,9 @@ async function salvarPDF(doc: any, filename: string) {
         duration: 4000,
       });
       return;
-    } catch (_) {}
+    } catch (e: any) {
+      if (e?.name === "AbortError") return; // usuário cancelou — não salva nada
+    }
   }
   doc.save(filename);
   sonnerToast.success("PDF baixado!", {
@@ -1025,7 +1027,9 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
       });
       const writable = await handle.createWritable();
       await writable.write(blob); await writable.close(); return;
-    } catch (_) {}
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
+    }
   }
   const url = URL.createObjectURL(blob);
   const el = document.createElement("a");
