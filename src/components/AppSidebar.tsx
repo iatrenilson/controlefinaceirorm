@@ -265,10 +265,10 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Clientes">
+                    <SidebarMenuButton asChild tooltip="Clientes Armas">
                       <NavLink to="/declaracoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                         <Users className="h-[18px] w-[18px]" />
-                        <span>Clientes</span>
+                        <span>Clientes Armas</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
