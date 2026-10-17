@@ -10,6 +10,15 @@ interface ImageItem {
   name: string;
 }
 
+async function loadScript(src: string): Promise<void> {
+  if (document.querySelector(`script[src="${src}"]`)) return;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = () => resolve(); s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 async function salvarPDFBlob(blob: Blob, filename: string): Promise<boolean> {
   if (typeof (window as any).showSaveFilePicker === "function") {
     try {
@@ -40,7 +49,6 @@ export default function ImageToPdf() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [converting, setConverting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragOverRef = useRef<string | null>(null);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const arr = Array.from(files).filter(f => f.type === "image/png" || f.type === "image/jpeg");
@@ -83,7 +91,8 @@ export default function ImageToPdf() {
     if (!images.length) return;
     setConverting(true);
     try {
-      const { jsPDF } = await import("jspdf");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const { jsPDF } = (window as any).jspdf;
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const W = 210, H = 297;
 
