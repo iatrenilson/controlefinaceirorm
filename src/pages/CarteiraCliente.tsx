@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
@@ -13,7 +13,7 @@ const TIPOS = [
 ] as const;
 
 interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
-interface CarteiraData { id: string; nome: string; docs: CartDoc[]; }
+interface CarteiraData { id: string; nome: string; cpf?: string; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
@@ -74,15 +74,106 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
       {/* Preview */}
       <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
         {isPdf ? (
-          <iframe
-            src={viewerUrl}
-            title={nome}
-            style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }}
-          />
+          <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
         ) : (
           <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
         )}
       </div>
+    </div>
+  );
+}
+
+function CRCardModal({ nome, cpf, numeroCr, validade, onClose }: {
+  nome: string; cpf?: string; numeroCr?: string; validade?: string; onClose: () => void;
+}) {
+  const BRASAO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Bras%C3%A3o_das_Armas_Nacionais_do_Brasil.svg/200px-Bras%C3%A3o_das_Armas_Nacionais_do_Brasil.svg.png";
+  const cardStyle: React.CSSProperties = {
+    position: "relative", background: "#fff", borderRadius: 8,
+    padding: "0", overflow: "hidden", width: "100%", maxWidth: 480,
+    boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
+    border: "4px solid #009c3b",
+    outline: "3px solid #ffdf00",
+    outlineOffset: "-7px",
+  };
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.90)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:16, gap:12 }}>
+      {/* Botão fechar */}
+      <button onClick={onClose} style={{ alignSelf:"flex-end", marginBottom:-4, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", borderRadius:8, width:36, height:36, fontSize:18, cursor:"pointer" }}>✕</button>
+
+      {/* Card frente */}
+      <div style={cardStyle}>
+        {/* Listras laterais Brasil */}
+        <div style={{ position:"absolute", top:0, left:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
+        <div style={{ position:"absolute", top:0, right:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
+
+        <div style={{ padding:"14px 22px 14px 28px", fontFamily:"Arial, sans-serif" }}>
+          {/* Cabeçalho */}
+          <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+            <img src={BRASAO} alt="Brasão" style={{ width:52, height:52, objectFit:"contain", flexShrink:0, marginTop:2 }} onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+            <div style={{ flex:1, textAlign:"center" }}>
+              <p style={{ margin:0, fontSize:9, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.05em" }}>REPÚBLICA FEDERATIVA DO BRASIL</p>
+              <p style={{ margin:"1px 0 0", fontSize:9, fontWeight:700, color:"#1a1a1a" }}>MINISTÉRIO DA DEFESA</p>
+              <p style={{ margin:"1px 0 0", fontSize:9, fontWeight:700, color:"#1a1a1a" }}>EXÉRCITO BRASILEIRO</p>
+              <p style={{ margin:"6px 0 2px", fontSize:13, fontWeight:800, color:"#002776", letterSpacing:"0.08em", textDecoration:"underline" }}>CERTIFICADO DE REGISTRO</p>
+            </div>
+          </div>
+
+          {/* Nº CR e Validade */}
+          <div style={{ display:"flex", gap:8, marginTop:8 }}>
+            <div style={{ flex:1 }}>
+              <p style={{ margin:0, fontSize:8, color:"#555", fontWeight:600 }}>Nº CR</p>
+              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.05em" }}>{numeroCr || "—"}</p>
+            </div>
+            <div style={{ flex:1 }}>
+              <p style={{ margin:0, fontSize:8, color:"#555", fontWeight:600 }}>VALIDADE</p>
+              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#c00", letterSpacing:"0.05em" }}>{validade || "—"}</p>
+            </div>
+          </div>
+
+          {/* Nome */}
+          <div style={{ marginTop:8, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
+            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>NOME COMPLETO</p>
+            <p style={{ margin:0, fontSize:12, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.03em", textTransform:"uppercase" }}>{nome}</p>
+          </div>
+
+          {/* CPF e SFPC */}
+          <div style={{ display:"flex", gap:8, marginTop:8 }}>
+            <div style={{ flex:1, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
+              <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>CPF</p>
+              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a" }}>{cpf || "—"}</p>
+            </div>
+            <div style={{ flex:1, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
+              <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>SFPC DE VINCULAÇÃO (RM)</p>
+              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a" }}>SR/PF/AM</p>
+            </div>
+          </div>
+
+          {/* Amparo Legal */}
+          <div style={{ marginTop:8, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
+            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>AMPARO LEGAL</p>
+            <p style={{ margin:0, fontSize:10, color:"#1a1a1a" }}>De acordo com o Decreto 11.366 de 2023</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Card verso */}
+      <div style={{ ...cardStyle, maxWidth:480 }}>
+        <div style={{ position:"absolute", top:0, left:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
+        <div style={{ position:"absolute", top:0, right:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
+        <div style={{ padding:"14px 22px 14px 28px", fontFamily:"Arial, sans-serif" }}>
+          <div style={{ border:"1px solid #888", borderRadius:3, padding:"6px 8px", position:"relative", minHeight:60, marginBottom:12 }}>
+            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>ATIVIDADES AUTORIZADAS</p>
+            <p style={{ margin:0, fontSize:10, color:"#1a1a1a" }}>1- Tiro Desportivo - Atirador Desportivo</p>
+          </div>
+          <p style={{ margin:0, fontSize:9, color:"#555" }}>Documento Assinado Eletrônicamente por:</p>
+          <p style={{ margin:"4px 0 0", fontSize:10, fontWeight:700, color:"#1a1a1a" }}>SFPC - SR/PF/AM</p>
+          <p style={{ margin:"2px 0 0", fontSize:9, color:"#1a1a1a" }}>Manaus/AM, {validade ? `${validade.slice(3)}` : "—"}</p>
+          <p style={{ margin:"10px 0 0", fontSize:9, color:"#555" }}>QR Code Vio</p>
+        </div>
+      </div>
+
+      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:10, margin:0 }}>Toque fora para fechar</p>
     </div>
   );
 }
@@ -94,6 +185,7 @@ export default function CarteiraCliente() {
   const [erro, setErro] = useState(false);
   const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
   const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
+  const [crCard, setCrCard] = useState<CartDoc | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -215,6 +307,7 @@ export default function CarteiraCliente() {
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
+      {crCard && <CRCardModal nome={data?.nome ?? ""} cpf={data?.cpf} numeroCr={crCard.numero_serie ?? ""} validade={crCard.data_validade ?? ""} onClose={() => setCrCard(null)} />}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
 
       <div style={{ ...FULL_BG, padding:"0 0 40px" }}>
@@ -358,12 +451,21 @@ export default function CarteiraCliente() {
                       });
                     })() : docList.map((doc, i) => {
                       const url = publicUrl(doc.arquivo_path);
+                      const docKey = doc.id ?? `${key}-${i}`;
                       return (
-                        <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
+                        <div key={docKey} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
                           <p style={{ color:FG, fontSize:12, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, fontFamily:FONT }}>
                             {docList.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
                           </p>
                           <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                            {key === "cr" && (
+                              <button
+                                onClick={() => setCrCard(doc)}
+                                title="Ver CR colorido"
+                                style={{ padding:"6px 8px", background:"rgba(0,156,59,0.12)", color:"#009c3b", borderRadius:7, border:"1px solid rgba(0,156,59,0.30)", fontSize:13, cursor:"pointer" }}>
+                                🎨
+                              </button>
+                            )}
                             <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
                               style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
                               ⛶ Expandir
