@@ -83,97 +83,49 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
   );
 }
 
-function CRCardModal({ nome, cpf, numeroCr, validade, onClose }: {
-  nome: string; cpf?: string; numeroCr?: string; validade?: string; onClose: () => void;
+function CRCardModal({ url, nome, onClose }: {
+  url: string; nome: string; onClose: () => void;
 }) {
-  const BRASAO = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Bras%C3%A3o_das_Armas_Nacionais_do_Brasil.svg/200px-Bras%C3%A3o_das_Armas_Nacionais_do_Brasil.svg.png";
-  const cardStyle: React.CSSProperties = {
-    position: "relative", background: "#fff", borderRadius: 8,
-    padding: "0", overflow: "hidden", width: "100%", maxWidth: 480,
-    boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
-    border: "4px solid #009c3b",
-    outline: "3px solid #ffdf00",
-    outlineOffset: "-7px",
-  };
+  const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+  const viewerUrl = isPdf
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.90)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:16, gap:12 }}>
-      {/* Botão fechar */}
-      <button onClick={onClose} style={{ alignSelf:"flex-end", marginBottom:-4, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", borderRadius:8, width:36, height:36, fontSize:18, cursor:"pointer" }}>✕</button>
+      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.92)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:16, gap:10 }}>
+      <button onClick={onClose} style={{ alignSelf:"flex-end", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", borderRadius:8, width:36, height:36, fontSize:18, cursor:"pointer" }}>✕</button>
 
-      {/* Card frente */}
-      <div style={cardStyle}>
-        {/* Listras laterais Brasil */}
-        <div style={{ position:"absolute", top:0, left:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
-        <div style={{ position:"absolute", top:0, right:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
-
-        <div style={{ padding:"14px 22px 14px 28px", fontFamily:"Arial, sans-serif" }}>
-          {/* Cabeçalho */}
-          <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-            <img src={BRASAO} alt="Brasão" style={{ width:52, height:52, objectFit:"contain", flexShrink:0, marginTop:2 }} onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
-            <div style={{ flex:1, textAlign:"center" }}>
-              <p style={{ margin:0, fontSize:9, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.05em" }}>REPÚBLICA FEDERATIVA DO BRASIL</p>
-              <p style={{ margin:"1px 0 0", fontSize:9, fontWeight:700, color:"#1a1a1a" }}>MINISTÉRIO DA DEFESA</p>
-              <p style={{ margin:"1px 0 0", fontSize:9, fontWeight:700, color:"#1a1a1a" }}>EXÉRCITO BRASILEIRO</p>
-              <p style={{ margin:"6px 0 2px", fontSize:13, fontWeight:800, color:"#002776", letterSpacing:"0.08em", textDecoration:"underline" }}>CERTIFICADO DE REGISTRO</p>
-            </div>
-          </div>
-
-          {/* Nº CR e Validade */}
-          <div style={{ display:"flex", gap:8, marginTop:8 }}>
-            <div style={{ flex:1 }}>
-              <p style={{ margin:0, fontSize:8, color:"#555", fontWeight:600 }}>Nº CR</p>
-              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.05em" }}>{numeroCr || "—"}</p>
-            </div>
-            <div style={{ flex:1 }}>
-              <p style={{ margin:0, fontSize:8, color:"#555", fontWeight:600 }}>VALIDADE</p>
-              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#c00", letterSpacing:"0.05em" }}>{validade || "—"}</p>
-            </div>
-          </div>
-
-          {/* Nome */}
-          <div style={{ marginTop:8, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
-            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>NOME COMPLETO</p>
-            <p style={{ margin:0, fontSize:12, fontWeight:700, color:"#1a1a1a", letterSpacing:"0.03em", textTransform:"uppercase" }}>{nome}</p>
-          </div>
-
-          {/* CPF e SFPC */}
-          <div style={{ display:"flex", gap:8, marginTop:8 }}>
-            <div style={{ flex:1, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
-              <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>CPF</p>
-              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a" }}>{cpf || "—"}</p>
-            </div>
-            <div style={{ flex:1, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
-              <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>SFPC DE VINCULAÇÃO (RM)</p>
-              <p style={{ margin:0, fontSize:11, fontWeight:700, color:"#1a1a1a" }}>SR/PF/AM</p>
-            </div>
-          </div>
-
-          {/* Amparo Legal */}
-          <div style={{ marginTop:8, border:"1px solid #888", borderRadius:3, padding:"4px 8px", position:"relative" }}>
-            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>AMPARO LEGAL</p>
-            <p style={{ margin:0, fontSize:10, color:"#1a1a1a" }}>De acordo com o Decreto 11.366 de 2023</p>
-          </div>
-        </div>
+      {/* Documento original com moldura nas cores do Brasil */}
+      <div style={{
+        position:"relative",
+        width:"100%",
+        maxWidth:480,
+        height:"72vh",
+        borderRadius:6,
+        padding:0,
+        boxShadow:"0 8px 40px rgba(0,0,0,0.7)",
+        /* borda verde externa */
+        border:"7px solid #009c3b",
+        /* faixa amarela */
+        outline:"5px solid #ffdf00",
+        outlineOffset:"-12px",
+        overflow:"hidden",
+      }}>
+        {/* Faixa azul interna como div sobreposta */}
+        <div style={{ position:"absolute", inset:16, border:"3px solid #002776", borderRadius:2, pointerEvents:"none", zIndex:10 }} />
+        {isPdf ? (
+          <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", display:"block" }} />
+        ) : (
+          <img src={url} alt={nome} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block", background:"#fff" }} />
+        )}
       </div>
 
-      {/* Card verso */}
-      <div style={{ ...cardStyle, maxWidth:480 }}>
-        <div style={{ position:"absolute", top:0, left:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
-        <div style={{ position:"absolute", top:0, right:0, bottom:0, width:6, background:"linear-gradient(to bottom, #009c3b 33%, #ffdf00 33%, #ffdf00 66%, #002776 66%)" }} />
-        <div style={{ padding:"14px 22px 14px 28px", fontFamily:"Arial, sans-serif" }}>
-          <div style={{ border:"1px solid #888", borderRadius:3, padding:"6px 8px", position:"relative", minHeight:60, marginBottom:12 }}>
-            <p style={{ margin:0, fontSize:7.5, color:"#555", fontWeight:600, position:"absolute", top:-9, left:6, background:"#fff", padding:"0 3px" }}>ATIVIDADES AUTORIZADAS</p>
-            <p style={{ margin:0, fontSize:10, color:"#1a1a1a" }}>1- Tiro Desportivo - Atirador Desportivo</p>
-          </div>
-          <p style={{ margin:0, fontSize:9, color:"#555" }}>Documento Assinado Eletrônicamente por:</p>
-          <p style={{ margin:"4px 0 0", fontSize:10, fontWeight:700, color:"#1a1a1a" }}>SFPC - SR/PF/AM</p>
-          <p style={{ margin:"2px 0 0", fontSize:9, color:"#1a1a1a" }}>Manaus/AM, {validade ? `${validade.slice(3)}` : "—"}</p>
-          <p style={{ margin:"10px 0 0", fontSize:9, color:"#555" }}>QR Code Vio</p>
-        </div>
-      </div>
+      <button onClick={() => baixarArquivo(url, nome)}
+        style={{ padding:"10px 28px", background:"#009c3b", color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", letterSpacing:"0.03em" }}>
+        ⬇ Baixar Original
+      </button>
 
-      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:10, margin:0 }}>Toque fora para fechar</p>
+      <p style={{ color:"rgba(255,255,255,0.35)", fontSize:10, margin:0 }}>Toque fora para fechar</p>
     </div>
   );
 }
@@ -307,7 +259,7 @@ export default function CarteiraCliente() {
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
-      {crCard && <CRCardModal nome={data?.nome ?? ""} cpf={data?.cpf} numeroCr={crCard.numero_serie ?? ""} validade={crCard.data_validade ?? ""} onClose={() => setCrCard(null)} />}
+      {crCard && <CRCardModal url={publicUrl(crCard.arquivo_path)} nome={crCard.arquivo_nome} onClose={() => setCrCard(null)} />}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
 
       <div style={{ ...FULL_BG, padding:"0 0 40px" }}>
