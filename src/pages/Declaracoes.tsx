@@ -1136,10 +1136,10 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
 }
 
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState(false);
+  const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+  const viewerUrl = isPdf
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -1147,48 +1147,29 @@ function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; on
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  useEffect(() => {
-    let obj = "";
-    setCarregando(true); setErro(false); setBlobUrl(null);
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
-      .then(blob => { obj = URL.createObjectURL(blob); setBlobUrl(obj); setCarregando(false); })
-      .catch(() => { setErro(true); setCarregando(false); });
-    return () => { if (obj) URL.revokeObjectURL(obj); };
-  }, [url]);
-
   return (
     <div
       onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.90)", display:"flex", flexDirection:"column" }}
+      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}
     >
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"#111", borderBottom:"1px solid rgba(255,255,255,0.12)", flexShrink:0, gap:10 }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
         <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
           <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ padding:"5px 12px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:7, border:"1px solid rgba(255,255,255,0.18)", fontSize:12, fontWeight:600, textDecoration:"none" }}>
+            style={{ padding:"6px 14px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", fontSize:12, fontWeight:600, textDecoration:"none", display:"inline-block" }}>
             ↗ Abrir
           </a>
           <button onClick={onClose} title="Fechar (ESC)"
-            style={{ width:32, height:32, borderRadius:7, background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.18)", color:"#fff", cursor:"pointer", fontSize:17, lineHeight:"1" }}>
+            style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
             ✕
           </button>
         </div>
       </div>
-      <div style={{ flex:1, overflow:"hidden", padding:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
-        {carregando && <p style={{ color:"rgba(255,255,255,0.6)", fontSize:14 }}>Carregando...</p>}
-        {erro && <div style={{ textAlign:"center" }}>
-          <p style={{ color:"#f87171", fontSize:14, marginBottom:12 }}>Não foi possível carregar o arquivo.</p>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ padding:"8px 18px", background:"#3b82f6", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:13, fontWeight:600 }}>
-            ↗ Abrir em nova aba
-          </a>
-        </div>}
-        {!carregando && !erro && blobUrl && (
-          isImage
-            ? <img src={blobUrl} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
-            : <iframe src={blobUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
-        )}
+      <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
+        {isPdf
+          ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
+          : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+        }
       </div>
     </div>
   );

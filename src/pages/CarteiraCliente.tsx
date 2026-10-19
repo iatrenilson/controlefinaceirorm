@@ -47,27 +47,10 @@ async function baixarArquivo(url: string, nomeArquivo: string) {
 }
 
 function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome) || /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(url);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  useEffect(() => {
-    let obj = "";
-    setCarregando(true); setErro(false); setBlobUrl(null);
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
-      .then(blob => { obj = URL.createObjectURL(blob); setBlobUrl(obj); setCarregando(false); })
-      .catch(() => { setErro(true); setCarregando(false); });
-    return () => { if (obj) URL.revokeObjectURL(obj); };
-  }, [url]);
-
+  const isPdf = nome.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf") || (!nome.match(/\.(png|jpg|jpeg|gif|webp)$/i) && !url.match(/\.(png|jpg|jpeg|gif|webp)(\?|$)/i));
+  const viewerUrl = isPdf
+    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+    : url;
   return (
     <div
       onClick={e => e.target === e.currentTarget && onClose()}
@@ -87,19 +70,10 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
         </div>
       </div>
       <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
-        {carregando && <p style={{ color:"rgba(255,255,255,0.5)", fontSize:14 }}>Carregando...</p>}
-        {erro && <div style={{ textAlign:"center" }}>
-          <p style={{ color:"#f87171", fontSize:14, marginBottom:12 }}>Não foi possível carregar.</p>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ padding:"8px 18px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, textDecoration:"none", fontSize:13, fontWeight:700 }}>
-            ↗ Abrir
-          </a>
-        </div>}
-        {!carregando && !erro && blobUrl && (
-          isImage
-            ? <img src={blobUrl} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
-            : <iframe src={blobUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
-        )}
+        {isPdf
+          ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
+          : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+        }
       </div>
     </div>
   );
