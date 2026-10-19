@@ -3376,15 +3376,17 @@ END $$;`
                           {item && (
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
-                                onClick={async (e) => {
-                                  const btn = e.currentTarget as HTMLButtonElement;
-                                  btn.disabled = true;
+                                onClick={async () => {
+                                  const tid = sonnerToast.loading("Carregando documento...");
                                   try {
-                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
-                                    if (error || !data) { sonnerToast.error("Erro ao carregar: " + (error?.message ?? "arquivo não encontrado")); return; }
-                                    const blobUrl = URL.createObjectURL(data);
-                                    setDocPreview({ url: blobUrl, nome: item.fileName });
-                                  } finally { btn.disabled = false; }
+                                    const { data: sd, error: se } = await supabase.storage.from("cac-docs").createSignedUrl(item.storagePath, 3600);
+                                    if (se || !sd?.signedUrl) throw new Error(se?.message ?? "URL inválida");
+                                    sonnerToast.dismiss(tid);
+                                    setDocPreview({ url: sd.signedUrl, nome: item.fileName });
+                                  } catch (err: any) {
+                                    sonnerToast.dismiss(tid);
+                                    sonnerToast.error("Erro: " + err.message);
+                                  }
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
