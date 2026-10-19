@@ -3375,7 +3375,10 @@ END $$;`
                           {item && (
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
-                                onClick={() => setDocPreview({ url: item.fileUrl, nome: item.fileName })}>
+                                onClick={async () => {
+                                  const { data } = await supabase.storage.from("cac-docs").createSignedUrl(item.storagePath, 300);
+                                  setDocPreview({ url: data?.signedUrl ?? item.fileUrl, nome: item.fileName });
+                                }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
