@@ -1135,6 +1135,45 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
   }
 }
 
+function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
+  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.90)", display:"flex", flexDirection:"column" }}
+    >
+      {/* Barra topo */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"#111", borderBottom:"1px solid rgba(255,255,255,0.12)", flexShrink:0, gap:10 }}>
+        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            style={{ padding:"5px 12px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:7, border:"1px solid rgba(255,255,255,0.18)", fontSize:12, fontWeight:600, textDecoration:"none" }}>
+            ↗ Abrir
+          </a>
+          <button onClick={onClose} title="Fechar (ESC)"
+            style={{ width:32, height:32, borderRadius:7, background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.18)", color:"#fff", cursor:"pointer", fontSize:17, lineHeight:1 }}>
+            ✕
+          </button>
+        </div>
+      </div>
+      {/* Conteúdo */}
+      <div style={{ flex:1, overflow:"hidden", padding:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        {isImage
+          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+          : <iframe src={url} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
+        }
+      </div>
+    </div>
+  );
+}
+
 export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
@@ -2337,28 +2376,7 @@ END $$;`
   return (
     <>
     {docPreview && (
-      <div onClick={e => e.target === e.currentTarget && setDocPreview(null)}
-        style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"#0d0e13", borderBottom:"1px solid rgba(255,255,255,0.1)", flexShrink:0, gap:10 }}>
-          <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{docPreview.nome}</p>
-          <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-            <a href={docPreview.url} target="_blank" rel="noopener noreferrer"
-              style={{ padding:"6px 14px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", fontSize:12, fontWeight:600, textDecoration:"none", display:"inline-block" }}>
-              ↗ Abrir
-            </a>
-            <button onClick={() => setDocPreview(null)}
-              style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.15)", color:"#fff", cursor:"pointer", fontSize:18 }}>
-              ✕
-            </button>
-          </div>
-        </div>
-        <div style={{ flex:1, overflow:"hidden", padding:8 }}>
-          {docPreview.nome.match(/\.(png|jpg|jpeg|gif|webp)$/i)
-            ? <img src={docPreview.url} alt={docPreview.nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", borderRadius:8, objectFit:"contain" }} />
-            : <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(docPreview.url)}&embedded=true`} title={docPreview.nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
-          }
-        </div>
-      </div>
+      <DocPreviewModal url={docPreview.url} nome={docPreview.nome} onClose={() => setDocPreview(null)} />
     )}
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
