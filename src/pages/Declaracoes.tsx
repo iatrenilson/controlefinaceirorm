@@ -1136,39 +1136,28 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
 }
 
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
-  const viewerUrl = isPdf
-    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-    : url;
+  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+    return () => { window.removeEventListener("keydown", handler); URL.revokeObjectURL(url); };
+  }, [onClose, url]);
 
   return (
-    <div
-      onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}
-    >
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
-        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ padding:"6px 14px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", fontSize:12, fontWeight:600, textDecoration:"none", display:"inline-block" }}>
-            ↗ Abrir
-          </a>
-          <button onClick={onClose} title="Fechar (ESC)"
-            style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            ✕
-          </button>
-        </div>
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(255,255,255,0.12)", flexShrink:0, gap:10 }}>
+        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
+        <button onClick={onClose} title="Fechar (ESC)"
+          style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:18, flexShrink:0 }}>
+          ✕
+        </button>
       </div>
-      <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
-        {isPdf
-          ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
-          : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+      <div style={{ flex:1, overflow:"hidden", padding:8 }}>
+        {isImage
+          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", objectFit:"contain" }} />
+          : <iframe src={url} title={nome} style={{ width:"100%", height:"100%", border:"none", background:"#fff", borderRadius:4 }} />
         }
       </div>
     </div>
@@ -3376,8 +3365,10 @@ END $$;`
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
                                 onClick={async () => {
-                                  const { data } = await supabase.storage.from("cac-docs").createSignedUrl(item.storagePath, 300);
-                                  setDocPreview({ url: data?.signedUrl ?? item.fileUrl, nome: item.fileName });
+                                  const { data } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                  if (!data) return;
+                                  const blob = URL.createObjectURL(data);
+                                  setDocPreview({ url: blob, nome: item.fileName });
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
