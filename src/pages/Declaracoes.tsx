@@ -3391,6 +3391,17 @@ END $$;`
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:text-amber-300" title="Baixar"
+                                onClick={async () => {
+                                  const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                  if (error || !data) { sonnerToast.error("Erro ao baixar"); return; }
+                                  const a = document.createElement("a");
+                                  a.href = URL.createObjectURL(data);
+                                  a.download = item.fileName;
+                                  a.click();
+                                }}>
+                                <Download className="h-3 w-3" />
+                              </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
                                 onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
                                 <Trash2 className="h-3 w-3" />
