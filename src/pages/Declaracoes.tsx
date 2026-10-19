@@ -1299,6 +1299,7 @@ END $$;`
   const loteSubTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [inqTipoDialogOpen, setInqTipoDialogOpen] = useState(false);
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
+  const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
 
   const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
     const r: Partial<ClienteForm> = {};
@@ -2334,6 +2335,31 @@ END $$;`
   const clearCnhCraf = () => { setCnhCrafUrl(null); setCnhCrafNome(""); if (cnhCrafRef.current) cnhCrafRef.current.value = ""; };
 
   return (
+    <>
+    {docPreview && (
+      <div onClick={e => e.target === e.currentTarget && setDocPreview(null)}
+        style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"#0d0e13", borderBottom:"1px solid rgba(255,255,255,0.1)", flexShrink:0, gap:10 }}>
+          <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{docPreview.nome}</p>
+          <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+            <a href={docPreview.url} target="_blank" rel="noopener noreferrer"
+              style={{ padding:"6px 14px", background:"rgba(255,255,255,0.10)", color:"#fff", borderRadius:8, border:"1px solid rgba(255,255,255,0.15)", fontSize:12, fontWeight:600, textDecoration:"none", display:"inline-block" }}>
+              ↗ Abrir
+            </a>
+            <button onClick={() => setDocPreview(null)}
+              style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.10)", border:"1px solid rgba(255,255,255,0.15)", color:"#fff", cursor:"pointer", fontSize:18 }}>
+              ✕
+            </button>
+          </div>
+        </div>
+        <div style={{ flex:1, overflow:"hidden", padding:8 }}>
+          {docPreview.nome.match(/\.(png|jpg|jpeg|gif|webp)$/i)
+            ? <img src={docPreview.url} alt={docPreview.nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", borderRadius:8, objectFit:"contain" }} />
+            : <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(docPreview.url)}&embedded=true`} title={docPreview.nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
+          }
+        </div>
+      </div>
+    )}
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
@@ -3329,11 +3355,10 @@ END $$;`
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {item && (
                             <>
-                              <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar">
-                                  <ExternalLink className="h-3 w-3" />
-                                </Button>
-                              </a>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
+                                onClick={() => setDocPreview({ url: item.fileUrl, nome: item.fileName })}>
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
                                 onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
                                 <Trash2 className="h-3 w-3" />
@@ -4102,5 +4127,6 @@ END $$;`
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
