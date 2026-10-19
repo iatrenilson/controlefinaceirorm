@@ -1136,15 +1136,16 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
 }
 
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome) || /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(url);
-  const isPdf = !isImage;
-  const viewerUrl = isPdf ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : url;
+  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
-    return () => { window.removeEventListener("keydown", handler); };
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+    };
+  }, [onClose, url]);
 
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
@@ -1156,10 +1157,12 @@ function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; on
           ✕
         </button>
       </div>
-      <div style={{ flex:1, overflow:"hidden", padding:8 }}>
+      <div style={{ flex:1, overflow:"hidden", padding:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
         {isImage
-          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", objectFit:"contain" }} />
-          : <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", background:"#fff", borderRadius:4 }} />
+          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:4 }} />
+          : <object data={url} type="application/pdf" style={{ width:"100%", height:"100%", borderRadius:4 }}>
+              <embed src={url} type="application/pdf" style={{ width:"100%", height:"100%" }} />
+            </object>
         }
       </div>
     </div>
@@ -3373,10 +3376,15 @@ END $$;`
                           {item && (
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
-                                onClick={async () => {
-                                  const { data, error } = await supabase.storage.from("cac-docs").createSignedUrl(item.storagePath, 3600);
-                                  if (error || !data?.signedUrl) { alert("Erro ao gerar URL: " + (error?.message ?? "sem URL")); return; }
-                                  setDocPreview({ url: data.signedUrl, nome: item.fileName });
+                                onClick={async (e) => {
+                                  const btn = e.currentTarget as HTMLButtonElement;
+                                  btn.disabled = true;
+                                  try {
+                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                    if (error || !data) { sonnerToast.error("Erro ao carregar: " + (error?.message ?? "arquivo não encontrado")); return; }
+                                    const blobUrl = URL.createObjectURL(data);
+                                    setDocPreview({ url: blobUrl, nome: item.fileName });
+                                  } finally { btn.disabled = false; }
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
