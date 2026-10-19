@@ -1141,28 +1141,29 @@ function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; on
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
-    return () => {
-      window.removeEventListener("keydown", handler);
-      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
-    };
-  }, [onClose, url]);
+    return () => { window.removeEventListener("keydown", handler); };
+  }, [onClose]);
 
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(255,255,255,0.12)", flexShrink:0, gap:10 }}>
         <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
-        <button onClick={onClose} title="Fechar (ESC)"
-          style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:18, flexShrink:0 }}>
-          ✕
-        </button>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            style={{ height:32, padding:"0 10px", borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", textDecoration:"none" }}>
+            ↗ Nova aba
+          </a>
+          <button onClick={onClose} title="Fechar (ESC)"
+            style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:18, flexShrink:0 }}>
+            ✕
+          </button>
+        </div>
       </div>
-      <div style={{ flex:1, overflow:"hidden", padding:8, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ flex:1, overflow:"hidden", padding:8 }}>
         {isImage
-          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:4 }} />
-          : <object data={url} type="application/pdf" style={{ width:"100%", height:"100%", borderRadius:4 }}>
-              <embed src={url} type="application/pdf" style={{ width:"100%", height:"100%" }} />
-            </object>
+          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", objectFit:"contain", borderRadius:4 }} />
+          : <iframe src={url} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:4, background:"#fff" }} />
         }
       </div>
     </div>
