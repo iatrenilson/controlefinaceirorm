@@ -1136,13 +1136,15 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
 }
 
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
-  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
+  const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome) || /\.(png|jpg|jpeg|gif|webp)(\?|$)/i.test(url);
+  const isPdf = !isImage;
+  const viewerUrl = isPdf ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : url;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
-    return () => { window.removeEventListener("keydown", handler); URL.revokeObjectURL(url); };
-  }, [onClose, url]);
+    return () => { window.removeEventListener("keydown", handler); };
+  }, [onClose]);
 
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
@@ -1157,7 +1159,7 @@ function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; on
       <div style={{ flex:1, overflow:"hidden", padding:8 }}>
         {isImage
           ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", objectFit:"contain" }} />
-          : <iframe src={url} title={nome} style={{ width:"100%", height:"100%", border:"none", background:"#fff", borderRadius:4 }} />
+          : <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", background:"#fff", borderRadius:4 }} />
         }
       </div>
     </div>
@@ -2131,6 +2133,13 @@ END $$;`
           body: { sql: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_insert' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_insert ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_select' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_update' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_update ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_delete' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_delete ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'cac-docs'); END IF; END $$;` },
         }).catch(() => {});
         localStorage.setItem("dc_migration_docs_cr_v2", "1");
+      }
+      const migDocsCRv3 = localStorage.getItem("dc_migration_docs_cr_v3");
+      if (!migDocsCRv3) {
+        await supabase.functions.invoke("run-migration", {
+          body: { sql: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_public_select' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_public_select ON storage.objects FOR SELECT TO public USING (bucket_id = 'cac-docs'); END IF; END $$;` },
+        }).catch(() => {});
+        localStorage.setItem("dc_migration_docs_cr_v3", "1");
       }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
@@ -3364,12 +3373,7 @@ END $$;`
                           {item && (
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
-                                onClick={async () => {
-                                  const { data } = await supabase.storage.from("cac-docs").download(item.storagePath);
-                                  if (!data) return;
-                                  const blob = URL.createObjectURL(data);
-                                  setDocPreview({ url: blob, nome: item.fileName });
-                                }}>
+                                onClick={() => setDocPreview({ url: item.fileUrl, nome: item.fileName })}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
