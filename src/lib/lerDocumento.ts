@@ -10,7 +10,7 @@ export interface DadosDocumento {
   nome?: string; cpf?: string; rg?: string; rgEhCpf?: boolean; orgaoEmissor?: string; dataExpedicao?: string;
   dataNascimento?: string; localNascimento?: string; ufNascimento?: string;
   nomePai?: string; nomeMae?: string; estadoCivil?: string; filiacaoUnica?: boolean;
-  ufOrgao?: string; siglaOrgao?: string;
+  ufOrgao?: string; siglaOrgao?: string; nomeOrgao?: string; temOrgaoExpedidor?: boolean;
 }
 
 const scripts: Record<string, Promise<any>> = {};
@@ -235,6 +235,12 @@ export function extrairCampos(texto: string): DadosDocumento {
     if (est) r.ufOrgao = UF_POR_ESTADO.find(([n]) => n === est[1])![1];
     const sigla = SIGLA_POR_NOME.find(([re]) => re.test(sa));
     if (sigla) r.siglaOrgao = sigla[1];
+    // CIN: o campo "Órgão Expedidor / Card Issuer" nomeia o instituto; guarda a linha mais completa com o nome dele
+    if (/[ÓO]RG[ÃA]O\s+EXPEDIDOR|CARD\s+ISSUER/i.test(texto)) r.temOrgaoExpedidor = true;
+    for (const linha of L) {
+      const m = semAcento(linha).match(/\bINSTITUTO(?:\s+[A-Z]{2,})+/);
+      if (m && (!r.nomeOrgao || m[0].split(" ").length > r.nomeOrgao.split(" ").length)) r.nomeOrgao = m[0];
+    }
   }
   if (r.rgEhCpf && r.cpf) r.rg = r.cpf;
   return r;
@@ -284,9 +290,23 @@ function nomeComAcento(nomeMRZ: string, textos: string[]): string {
 const mesclar = (destino: DadosDocumento, fonte: DadosDocumento) => {
   for (const [k, v] of Object.entries(fonte) as [keyof DadosDocumento, never][]) if (v && !destino[k]) destino[k] = v;
 };
-// Sem sigla escrita no RG/CIN: estado emissor do cabeçalho + sigla pelo nome do órgão (a CIN só imprime o nome do instituto)
+// Iniciais das palavras do nome do órgão: "INSTITUTO DE IDENTIFICACAO ADERSON CONCEICAO DE MELO" -> "IIACM"
+const siglaDoNome = (nome: string) => nome.split(" ").filter(p => !CONECTORES.has(p)).map(p => p[0]).join("");
+
+// Junta o que um texto rendeu; o nome do órgão fica com a versão mais completa (no verso da CIN ele quebra em duas linhas)
+function juntar(r: DadosDocumento, c: DadosDocumento) {
+  const maisCompleto = !!c.nomeOrgao && (!r.nomeOrgao || c.nomeOrgao.split(" ").length > r.nomeOrgao.split(" ").length);
+  mesclar(r, c);
+  if (maisCompleto) r.nomeOrgao = c.nomeOrgao;
+}
+
+// Sem sigla escrita: CIN usa o instituto do "Órgão Expedidor"; RG antigo, o órgão do cabeçalho (padrão SSP); + estado emissor
 function finalizar(r: DadosDocumento): DadosDocumento {
-  if (!r.orgaoEmissor && r.ufOrgao) r.orgaoEmissor = `${r.siglaOrgao ?? "SSP"}-${r.ufOrgao}`;
+  if (!r.orgaoEmissor) {
+    const sigla = r.temOrgaoExpedidor && r.nomeOrgao ? siglaDoNome(r.nomeOrgao) : r.siglaOrgao;
+    if (r.ufOrgao) r.orgaoEmissor = `${sigla ?? "SSP"}-${r.ufOrgao}`;
+    else if (sigla && r.temOrgaoExpedidor) r.orgaoEmissor = sigla;
+  }
   if (r.rgEhCpf && r.cpf) r.rg ||= r.cpf;
   return r;
 }
@@ -396,7 +416,7 @@ export async function lerDocumento(file: File, progresso?: (msg: string) => void
       const jpegs = await jpegsDoPDF(L, bytes.slice());
       for (const b of jpegs.slice(0, 4)) { const u = URL.createObjectURL(b); urls.push(u); imagens.push(await carregarImagem(u)); }
       const { texto, paginas } = await textoEPaginasDoPDF(pdfjs, bytes.slice(), imagens.length === 0);
-      mesclar(r, extrairCampos(texto));
+      juntar(r, extrairCampos(texto));
       if (!imagens.length) imagens = paginas;
     } else {
       const u = URL.createObjectURL(file); urls.push(u);
@@ -416,7 +436,7 @@ export async function lerDocumento(file: File, progresso?: (msg: string) => void
           progresso?.(`Lendo documento... ${passada === 1 ? "" : "(revisão) "}${i + 1}/${preparadas.length}`);
           const { data } = await worker.recognize(preparadas[i]);
           textos.push(data.text);
-          mesclar(r, extrairCampos(data.text));
+          juntar(r, extrairCampos(data.text));
           mesclar(mrz, lerMRZ(data.text));
         }
         if (completo(r)) break;
