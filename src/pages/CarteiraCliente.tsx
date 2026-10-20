@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { gerarCRColorido, type CRColorido } from "@/lib/crColorido";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
@@ -79,49 +80,89 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
   );
 }
 
+const liberarCR = (r: CRColorido | null) => { if (r) { URL.revokeObjectURL(r.frente); URL.revokeObjectURL(r.verso); } };
+
 function CRCardModal({ url, nome, onClose }: {
   url: string; nome: string; onClose: () => void;
 }) {
   const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
-  const viewerUrl = isPdf
-    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-    : url;
-  return (
-    <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.92)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:16, gap:10 }}>
-      <button onClick={onClose} style={{ alignSelf:"flex-end", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", borderRadius:8, width:36, height:36, fontSize:18, cursor:"pointer" }}>✕</button>
+  const [cr, setCr] = useState<CRColorido | null>(null);
+  const [estado, setEstado] = useState<"carregando" | "pronto" | "original">(isPdf ? "carregando" : "original");
 
-      {/* Documento original com moldura nas cores do Brasil */}
-      <div style={{
-        position:"relative",
-        width:"100%",
-        maxWidth:480,
-        height:"72vh",
-        borderRadius:6,
-        padding:0,
-        boxShadow:"0 8px 40px rgba(0,0,0,0.7)",
-        /* borda verde externa */
-        border:"7px solid #009c3b",
-        /* faixa amarela */
-        outline:"5px solid #ffdf00",
-        outlineOffset:"-12px",
-        overflow:"hidden",
-      }}>
-        {/* Faixa azul interna como div sobreposta */}
-        <div style={{ position:"absolute", inset:16, border:"3px solid #002776", borderRadius:2, pointerEvents:"none", zIndex:10 }} />
-        {isPdf ? (
-          <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", display:"block" }} />
-        ) : (
-          <img src={url} alt={nome} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block", background:"#fff" }} />
-        )}
+  useEffect(() => {
+    if (!isPdf) return;
+    let vivo = true, gerado: CRColorido | null = null;
+    gerarCRColorido(url, `${import.meta.env.BASE_URL}brasao-colorido.png`)
+      .then(r => {
+        gerado = r;
+        if (!vivo) { liberarCR(r); return; }
+        if (r) { setCr(r); setEstado("pronto"); } else setEstado("original");
+      })
+      .catch(() => { if (vivo) setEstado("original"); });
+    return () => { vivo = false; liberarCR(gerado); };
+  }, [url, isPdf]);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  const baixarColorido = () => {
+    if (!cr) return;
+    const blobUrl = URL.createObjectURL(cr.ladoALado);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.png`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  };
+
+  const fecharFora = (e: React.MouseEvent) => { if (e.target === e.currentTarget) onClose(); };
+  const viewerUrl = isPdf ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : url;
+
+  return (
+    <div onClick={fecharFora}
+      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.92)", display:"flex", flexDirection:"column" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
+        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, whiteSpace:"nowrap" }}>🎨 CR colorido</p>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          {estado === "pronto" && (
+            <button onClick={baixarColorido}
+              style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+              ⬇ Baixar colorido
+            </button>
+          )}
+          <button onClick={() => baixarArquivo(url, nome)}
+            style={{ padding:"6px 12px", background:"rgba(201,162,39,0.10)", color:"#c9a227", borderRadius:8, border:"1px solid rgba(201,162,39,0.28)", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+            ⬇ Original
+          </button>
+          <button onClick={onClose} title="Fechar (ESC)"
+            style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            ✕
+          </button>
+        </div>
       </div>
 
-      <button onClick={() => baixarArquivo(url, nome)}
-        style={{ padding:"10px 28px", background:"#009c3b", color:"#fff", border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer", letterSpacing:"0.03em" }}>
-        ⬇ Baixar Original
-      </button>
-
-      <p style={{ color:"rgba(255,255,255,0.35)", fontSize:10, margin:0 }}>Toque fora para fechar</p>
+      <div onClick={fecharFora} style={{ flex:1, overflow:"auto", padding:16 }}>
+        <div onClick={fecharFora} style={{ minHeight:"100%", display:"flex", flexWrap:"wrap", alignItems:"center", alignContent:"center", justifyContent:"center", gap:16 }}>
+          {estado === "carregando" && <p style={{ color:"#e8d5a0", fontSize:13, margin:0 }}>Colorindo o CR...</p>}
+          {estado === "pronto" && cr && (
+            <>
+              <img src={cr.frente} alt="CR colorido - frente" style={{ width:"100%", maxWidth:620, height:"auto", display:"block" }} />
+              <img src={cr.verso} alt="CR colorido - verso" style={{ width:"100%", maxWidth:620, height:"auto", display:"block" }} />
+            </>
+          )}
+          {estado === "original" && (
+            <div style={{ width:"100%", maxWidth:480, height:"72vh", border:"7px solid #009c3b", outline:"5px solid #ffdf00", outlineOffset:"-12px", borderRadius:6, overflow:"hidden", position:"relative", background:"#fff" }}>
+              <div style={{ position:"absolute", inset:16, border:"3px solid #002776", borderRadius:2, pointerEvents:"none", zIndex:10 }} />
+              {isPdf
+                ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", display:"block" }} />
+                : <img src={url} alt={nome} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
