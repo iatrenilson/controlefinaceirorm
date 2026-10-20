@@ -51,6 +51,16 @@ function data(s: string): string | undefined {
   return `${y}-${mo}-${d}`;
 }
 
+// Todas as datas da linha, tolerando uma barra perdida pelo OCR ("1107/2022"); usar só em linhas de data
+function datasTolerantes(s: string): string[] {
+  const out: string[] = [];
+  for (const m of s.matchAll(/(?<!\d)(\d{2})\s?[/.\-]?\s?(\d{2})\s?[/.\-]?\s?(\d{4})(?!\d)/g)) {
+    const d = data(`${m[1]}/${m[2]}/${m[3]}`);
+    if (d) out.push(d);
+  }
+  return out;
+}
+
 // Maior sequência de palavras em MAIÚSCULAS da linha (o OCR deixa letras soltas e lixo nas pontas)
 function nomeDe(linha: string): string | undefined {
   const tokens = linha.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'\s]/g, " ").split(/\s+/).filter(Boolean);
@@ -168,9 +178,14 @@ export function extrairCampos(texto: string): DadosDocumento {
       }
     }
 
-    // Data de expedição só vale para RG: na CNH a "data de emissão" é da própria CNH
-    if (!ehCNH && !r.dataExpedicao && /EXPEDI[ÇC][ÃA]O|DATA\s+DE\s+EMISS[ÃA]O|ISSUE\s+DATE/i.test(l)) {
-      for (const c of [l, ...depois(i, 4)]) { const d = data(c); if (d) { r.dataExpedicao = d; break; } }
+    // RG: "data de expedição"; CIN: "Data de Emissão"; CNH: "4a DATA EMISSÃO" — todas entram como data de expedição do documento
+    // Na CNH a validade vem ao lado da emissão: data futura nunca é expedição
+    if (!r.dataExpedicao && /EXPEDI[ÇC][ÃA]O|DATA\s+(?:DE\s+)?EMISS[ÃA]O|ISSUE\s+DATE/i.test(l)) {
+      const hoje = new Date().toISOString().slice(0, 10);
+      for (const c of [l, ...depois(i, 4)]) {
+        const d = datasTolerantes(c).find(x => x <= hoje);
+        if (d) { r.dataExpedicao = d; break; }
+      }
     }
 
     if (/FILIA[ÇCG][ÃA]O|FILIATION/i.test(l) && !r.nomePai && !r.nomeMae) {
