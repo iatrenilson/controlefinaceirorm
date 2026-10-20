@@ -80,7 +80,7 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
   );
 }
 
-const liberarCR = (r: CRColorido | null) => { if (r) { URL.revokeObjectURL(r.frente); URL.revokeObjectURL(r.verso); } };
+const liberarCR = (r: CRColorido | null) => { if (r) { URL.revokeObjectURL(r.previaOriginal); URL.revokeObjectURL(r.previaColorida); } };
 
 function CRCardModal({ url, nome, onClose }: {
   url: string; nome: string; onClose: () => void;
@@ -88,6 +88,7 @@ function CRCardModal({ url, nome, onClose }: {
   const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
   const [cr, setCr] = useState<CRColorido | null>(null);
   const [estado, setEstado] = useState<"carregando" | "pronto" | "original">(isPdf ? "carregando" : "original");
+  const [colorir, setColorir] = useState(true);
 
   useEffect(() => {
     if (!isPdf) return;
@@ -108,12 +109,12 @@ function CRCardModal({ url, nome, onClose }: {
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
-  const baixarColorido = () => {
-    if (!cr) return;
-    const blobUrl = URL.createObjectURL(cr.ladoALado);
+  const baixar = () => {
+    if (!cr || !colorir) { baixarArquivo(url, nome); return; }
+    const blobUrl = URL.createObjectURL(cr.pdfColorido);
     const a = document.createElement("a");
     a.href = blobUrl;
-    a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.png`;
+    a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.pdf`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   };
@@ -125,17 +126,22 @@ function CRCardModal({ url, nome, onClose }: {
     <div onClick={fecharFora}
       style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.92)", display:"flex", flexDirection:"column" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
-        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, whiteSpace:"nowrap" }}>🎨 CR colorido</p>
+        {estado === "pronto" ? (
+          <button onClick={() => setColorir(c => !c)} aria-pressed={colorir} title={colorir ? "Mostrar o original" : "Mostrar colorido"}
+            style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 12px", borderRadius:999, cursor:"pointer", fontSize:12, fontWeight:700, whiteSpace:"nowrap",
+              border:`1px solid ${colorir ? "#009c3b" : "rgba(255,255,255,0.25)"}`, background: colorir ? "rgba(0,156,59,0.18)" : "transparent", color: colorir ? "#3ddc84" : "#cfcfcf" }}>
+            <span style={{ position:"relative", width:30, height:16, borderRadius:999, background: colorir ? "#009c3b" : "rgba(255,255,255,0.25)", flexShrink:0 }}>
+              <span style={{ position:"absolute", top:2, left: colorir ? 16 : 2, width:12, height:12, borderRadius:"50%", background:"#fff", transition:"left .15s" }} />
+            </span>
+            🎨 Colorir
+          </button>
+        ) : (
+          <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, whiteSpace:"nowrap" }}>CR</p>
+        )}
         <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          {estado === "pronto" && (
-            <button onClick={baixarColorido}
-              style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
-              ⬇ Baixar colorido
-            </button>
-          )}
-          <button onClick={() => baixarArquivo(url, nome)}
-            style={{ padding:"6px 12px", background:"rgba(201,162,39,0.10)", color:"#c9a227", borderRadius:8, border:"1px solid rgba(201,162,39,0.28)", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-            ⬇ Original
+          <button onClick={baixar}
+            style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+            ⬇ Baixar
           </button>
           <button onClick={onClose} title="Fechar (ESC)"
             style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -148,10 +154,8 @@ function CRCardModal({ url, nome, onClose }: {
         <div onClick={fecharFora} style={{ minHeight:"100%", display:"flex", flexWrap:"wrap", alignItems:"center", alignContent:"center", justifyContent:"center", gap:16 }}>
           {estado === "carregando" && <p style={{ color:"#e8d5a0", fontSize:13, margin:0 }}>Colorindo o CR...</p>}
           {estado === "pronto" && cr && (
-            <>
-              <img src={cr.frente} alt="CR colorido - frente" style={{ width:"100%", maxWidth:620, height:"auto", display:"block" }} />
-              <img src={cr.verso} alt="CR colorido - verso" style={{ width:"100%", maxWidth:620, height:"auto", display:"block" }} />
-            </>
+            <img src={colorir ? cr.previaColorida : cr.previaOriginal} alt={colorir ? "CR colorido" : "CR original"}
+              style={{ width:"100%", maxWidth:900, height:"auto", display:"block", background:"#fff", borderRadius:4 }} />
           )}
           {estado === "original" && (
             <div style={{ width:"100%", maxWidth:480, height:"72vh", border:"7px solid #009c3b", outline:"5px solid #ffdf00", outlineOffset:"-12px", borderRadius:6, overflow:"hidden", position:"relative", background:"#fff" }}>
