@@ -3378,23 +3378,24 @@ END $$;`
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
                                 onClick={async () => {
-                                  const tid = sonnerToast.loading("Carregando documento...");
-                                  try {
-                                    const { data: sd, error: se } = await supabase.storage.from("cac-docs").createSignedUrl(item.storagePath, 3600);
-                                    if (se || !sd?.signedUrl) throw new Error(se?.message ?? "URL inválida");
-                                    sonnerToast.dismiss(tid);
-                                    setDocPreview({ url: sd.signedUrl, nome: item.fileName });
-                                  } catch (err: any) {
-                                    sonnerToast.dismiss(tid);
-                                    sonnerToast.error("Erro: " + err.message);
-                                  }
+                                  const path = item.storagePath || item.fileUrl.split("/cac-docs/")[1];
+                                  if (!path) { sonnerToast.error("Caminho inválido"); return; }
+                                  const tid = sonnerToast.loading("Carregando...");
+                                  const { data, error } = await supabase.storage.from("cac-docs").download(path);
+                                  sonnerToast.dismiss(tid);
+                                  if (error || !data) { sonnerToast.error("Erro: " + (error?.message ?? "arquivo não encontrado")); return; }
+                                  setDocPreview({ url: URL.createObjectURL(data), nome: item.fileName });
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:text-amber-300" title="Baixar"
                                 onClick={async () => {
-                                  const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
-                                  if (error || !data) { sonnerToast.error("Erro ao baixar"); return; }
+                                  const path = item.storagePath || item.fileUrl.split("/cac-docs/")[1];
+                                  if (!path) { sonnerToast.error("Caminho inválido"); return; }
+                                  const tid = sonnerToast.loading("Baixando...");
+                                  const { data, error } = await supabase.storage.from("cac-docs").download(path);
+                                  sonnerToast.dismiss(tid);
+                                  if (error || !data) { sonnerToast.error("Erro ao baixar: " + (error?.message ?? "arquivo não encontrado")); return; }
                                   const a = document.createElement("a");
                                   a.href = URL.createObjectURL(data);
                                   a.download = item.fileName;
