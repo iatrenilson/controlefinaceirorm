@@ -707,10 +707,13 @@ const Emprestimos = () => {
 
   const stats = useMemo(() => {
     const total = clientes.reduce((a, c) => a + c.valor, 0);
-    const totalJuros = clientes.reduce((a, c) => a + c.valor * (c.juros / 100), 0);
-    const atrasados = clientes.filter((c) => isPast(parseISO(c.dataPagamento))).length;
+    const jurosDe = (c: { valor: number; juros: number }) => c.valor * (c.juros / 100);
+    const totalJuros = clientes.reduce((a, c) => a + jurosDe(c), 0);
+    const listaAtraso = clientes.filter((c) => isPast(parseISO(c.dataPagamento)));
+    const atrasados = listaAtraso.length;
+    const jurosAtraso = listaAtraso.reduce((a, c) => a + jurosDe(c), 0);
     const lucroTotal = total + totalJuros;
-    return { total, totalJuros, lucroTotal, atrasados, ativos: clientes.length };
+    return { total, totalJuros, lucroTotal, atrasados, jurosAtraso, aVencer: clientes.length - atrasados, jurosAVencer: totalJuros - jurosAtraso, ativos: clientes.length };
   }, [clientes]);
 
   return (
@@ -1149,7 +1152,7 @@ const Emprestimos = () => {
                 </div>
               </CardContent>
             </Card>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Card className="bg-card border-border/50">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="rounded-xl bg-purple-500/15 p-2.5">
@@ -1166,9 +1169,22 @@ const Emprestimos = () => {
                   <div className="rounded-xl bg-destructive/15 p-2.5">
                     <AlertTriangle className="h-5 w-5 text-destructive" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Em Atraso</p>
                     <p className="text-lg font-bold font-mono text-destructive">{stats.atrasados}</p>
+                    <p className="text-[11px] text-muted-foreground">Juros: <span className="font-mono font-semibold text-destructive">R$ {stats.jurosAtraso.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-card border-border/50 col-span-2 sm:col-span-1">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="rounded-xl bg-amber-500/15 p-2.5">
+                    <Clock className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Juros a Vencer</p>
+                    <p className="text-lg font-bold font-mono text-amber-500">R$ {stats.jurosAVencer.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[11px] text-muted-foreground">{stats.aVencer} cliente(s) em dia</p>
                   </div>
                 </CardContent>
               </Card>
