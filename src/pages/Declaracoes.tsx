@@ -2616,6 +2616,110 @@ END $$;`
               {editandoId ? "Editar Cliente" : "Cadastrar Cliente"}
             </DialogTitle>
           </DialogHeader>
+          {/* ── Documentos CR ── */}
+          {editandoId && (
+            <div className="mt-1">
+              <input ref={docUploadRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f, subTipoPendente || undefined);
+                  e.target.value = "";
+                  setSubTipoPendente("");
+                }} />
+              <input ref={docLoteRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden"
+                onChange={e => {
+                  if (e.target.files && editandoId) uploadEmLote(editandoId, e.target.files);
+                  e.target.value = "";
+                }} />
+              <button type="button"
+                className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
+                onClick={() => setAbaDocsForm(o => !o)}>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <FileText className="h-3.5 w-3.5" />
+                  Documentos CR
+                  {(() => {
+                    const ok = (docsCliente.get(editandoId) ?? []).length;
+                    return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
+                  })()}
+                </span>
+                {abaDocsForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
+              {abaDocsForm && (
+                <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
+                  {/* Envio em lote */}
+                  <button type="button" disabled={uploadingLote}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-2 text-[11px] text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-50 mb-2"
+                    onClick={() => docLoteRef.current?.click()}>
+                    <Upload className="h-3 w-3" />
+                    {uploadingLote ? "Enviando..." : "Enviar vários arquivos de uma vez (detecção automática)"}
+                  </button>
+                  {DOCS_CR.map((doc, i) => {
+                    const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
+                    const uploading = uploadingDocTipo === doc.id;
+                    return (
+                      <div key={doc.id} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}>
+                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
+                        {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
+                          {item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {item && (
+                            <>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
+                                onClick={async () => {
+                                  const tid = sonnerToast.loading("Carregando...");
+                                  try {
+                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
+                                    const blob = /\.pdf$/i.test(item.fileName) ? new Blob([data], { type: "application/pdf" }) : data;
+                                    setDocPreview({ url: URL.createObjectURL(blob), nome: item.fileName });
+                                  } catch (err) {
+                                    sonnerToast.error("Erro ao abrir: " + (err instanceof Error ? err.message : String(err)));
+                                  } finally { sonnerToast.dismiss(tid); }
+                                }}>
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:text-amber-300" title="Baixar"
+                                onClick={async () => {
+                                  const tid = sonnerToast.loading("Baixando...");
+                                  try {
+                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
+                                    baixarBlob(data, item.fileName);
+                                  } catch (err) {
+                                    sonnerToast.error("Erro ao baixar: " + (err instanceof Error ? err.message : String(err)));
+                                  } finally { sonnerToast.dismiss(tid); }
+                                }}>
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
+                                onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary/80" title="Enviar documento"
+                            disabled={uploading}
+                            onClick={() => {
+                              setDocUploadTipo(doc.id);
+                              if (doc.id === "comp_residencia" || doc.id === "comp_2_end" || doc.id === "comp_ocupacao") {
+                                setSubTipoDialogOpen(true);
+                              } else {
+                                setTimeout(() => docUploadRef.current?.click(), 0);
+                              }
+                            }}>
+                            {uploading ? <span className="text-[9px]">...</span> : <Upload className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
           <div className="space-y-4 py-2">
             {/* Importar CNH */}
             <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5">
@@ -2998,111 +3102,6 @@ END $$;`
               )}
             </div>
           </div>
-          {/* ── Documentos CR ── */}
-          {editandoId && (
-            <div className="mt-1">
-              <input ref={docUploadRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                onChange={e => {
-                  const f = e.target.files?.[0];
-                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f, subTipoPendente || undefined);
-                  e.target.value = "";
-                  setSubTipoPendente("");
-                }} />
-              <input ref={docLoteRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden"
-                onChange={e => {
-                  if (e.target.files && editandoId) uploadEmLote(editandoId, e.target.files);
-                  e.target.value = "";
-                }} />
-              <button type="button"
-                className="w-full flex items-center justify-between rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary hover:border-primary/80 transition-colors"
-                onClick={() => setAbaDocsForm(o => !o)}>
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <FileText className="h-3.5 w-3.5" />
-                  Documentos CR
-                  {(() => {
-                    const ok = (docsCliente.get(editandoId) ?? []).length;
-                    return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
-                  })()}
-                </span>
-                {abaDocsForm ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              </button>
-              {abaDocsForm && (
-                <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
-                  {/* Envio em lote */}
-                  <button type="button" disabled={uploadingLote}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-2 text-[11px] text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-50 mb-2"
-                    onClick={() => docLoteRef.current?.click()}>
-                    <Upload className="h-3 w-3" />
-                    {uploadingLote ? "Enviando..." : "Enviar vários arquivos de uma vez (detecção automática)"}
-                  </button>
-                  {DOCS_CR.map((doc, i) => {
-                    const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
-                    const uploading = uploadingDocTipo === doc.id;
-                    return (
-                      <div key={doc.id} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}>
-                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
-                        {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
-                          {item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {item && (
-                            <>
-                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
-                                onClick={async () => {
-                                  const tid = sonnerToast.loading("Carregando...");
-                                  try {
-                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
-                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
-                                    const blob = /\.pdf$/i.test(item.fileName) ? new Blob([data], { type: "application/pdf" }) : data;
-                                    setDocPreview({ url: URL.createObjectURL(blob), nome: item.fileName });
-                                  } catch (err) {
-                                    sonnerToast.error("Erro ao abrir: " + (err instanceof Error ? err.message : String(err)));
-                                  } finally { sonnerToast.dismiss(tid); }
-                                }}>
-                                <ExternalLink className="h-3 w-3" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:text-amber-300" title="Baixar"
-                                onClick={async () => {
-                                  const tid = sonnerToast.loading("Baixando...");
-                                  try {
-                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
-                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
-                                    baixarBlob(data, item.fileName);
-                                  } catch (err) {
-                                    sonnerToast.error("Erro ao baixar: " + (err instanceof Error ? err.message : String(err)));
-                                  } finally { sonnerToast.dismiss(tid); }
-                                }}>
-                                <Download className="h-3 w-3" />
-                              </Button>
-                              <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
-                                onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </>
-                          )}
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary/80" title="Enviar documento"
-                            disabled={uploading}
-                            onClick={() => {
-                              setDocUploadTipo(doc.id);
-                              if (doc.id === "comp_residencia" || doc.id === "comp_2_end" || doc.id === "comp_ocupacao") {
-                                setSubTipoDialogOpen(true);
-                              } else {
-                                setTimeout(() => docUploadRef.current?.click(), 0);
-                              }
-                            }}>
-                            {uploading ? <span className="text-[9px]">...</span> : <Upload className="h-3 w-3" />}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { setDialogClienteOpen(false); setAbaDocsForm(false); }}>Cancelar</Button>
             <Button size="sm" className="h-8 text-xs gap-1.5" onClick={salvarCliente} disabled={savingCliente}>
