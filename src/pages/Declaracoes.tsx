@@ -34,6 +34,10 @@ const DOCS_CR = [
 ] as const;
 type DocCRTipo = typeof DOCS_CR[number]["id"];
 interface DocCRItem { id: string; tipo: DocCRTipo; fileName: string; storagePath: string; fileUrl: string; }
+type DocCRRow = { id: string; cliente_id: string; tipo: string; file_name: string | null; storage_path: string | null; file_url: string | null };
+const toDocCRItem = (r: DocCRRow): DocCRItem => ({
+  id: r.id, tipo: r.tipo as DocCRTipo, fileName: r.file_name ?? "", storagePath: r.storage_path ?? "", fileUrl: r.file_url ?? "",
+});
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
 type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "doccraf" | "completo";
@@ -1135,38 +1139,32 @@ function onPasteDate(e: React.ClipboardEvent<HTMLInputElement>, setter: (v: stri
   }
 }
 
+function baixarBlob(blob: Blob, nome: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
   const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => { window.removeEventListener("keydown", handler); };
-  }, [onClose]);
-
   return (
-    <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(255,255,255,0.12)", flexShrink:0, gap:10 }}>
-        <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            style={{ height:32, padding:"0 10px", borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:12, display:"flex", alignItems:"center", textDecoration:"none" }}>
-            ↗ Nova aba
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent aria-describedby={undefined} className="max-w-[96vw] w-[96vw] h-[94vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 pr-12 border-b border-border/40 flex-shrink-0">
+          <DialogTitle className="text-sm font-semibold truncate flex-1">{nome}</DialogTitle>
+          <a href={url} download={nome} className="text-xs px-3 py-1.5 rounded-md border border-border/60 hover:bg-muted flex items-center gap-1.5 flex-shrink-0">
+            <Download className="h-3.5 w-3.5" /> Baixar
           </a>
-          <button onClick={onClose} title="Fechar (ESC)"
-            style={{ width:32, height:32, borderRadius:8, background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.2)", color:"#fff", cursor:"pointer", fontSize:18, flexShrink:0 }}>
-            ✕
-          </button>
         </div>
-      </div>
-      <div style={{ flex:1, overflow:"hidden", padding:8 }}>
-        {isImage
-          ? <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", display:"block", margin:"0 auto", objectFit:"contain", borderRadius:4 }} />
-          : <iframe src={url} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:4, background:"#fff" }} />
-        }
-      </div>
-    </div>
+        <div className="flex-1 min-h-0 flex items-center justify-center bg-black/40">
+          {isImage
+            ? <img src={url} alt={nome} className="max-w-full max-h-full object-contain" />
+            : <iframe src={url} title={nome} className="w-full h-full border-0 bg-white" />}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1702,7 +1700,7 @@ END $$;`
   // ─── Documentos CR ────────────────────────────────────────────────────────
   const fetchDocsCR = useCallback(async (clienteId: string) => {
     const { data } = await supabase.from("declaracao_docs_cr").select("*").eq("cliente_id", clienteId);
-    if (data) setDocsCliente(prev => new Map(prev).set(clienteId, data as DocCRItem[]));
+    if (data) setDocsCliente(prev => new Map(prev).set(clienteId, (data as DocCRRow[]).map(toDocCRItem)));
   }, []);
 
   const uploadDocCR = useCallback(async (clienteId: string, tipo: string, file: File, subTipo?: string) => {
@@ -2138,12 +2136,12 @@ END $$;`
         }).catch(() => {});
         localStorage.setItem("dc_migration_docs_cr_v2", "1");
       }
-      const migDocsCRv3 = localStorage.getItem("dc_migration_docs_cr_v3");
-      if (!migDocsCRv3) {
+      const migDocsCRv4 = localStorage.getItem("dc_migration_docs_cr_v4");
+      if (!migDocsCRv4) {
         await supabase.functions.invoke("run-migration", {
-          body: { sql: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_public_select' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_public_select ON storage.objects FOR SELECT TO public USING (bucket_id = 'cac-docs'); END IF; END $$;` },
+          body: { sql: `DROP POLICY IF EXISTS cac_docs_public_select ON storage.objects;` },
         }).catch(() => {});
-        localStorage.setItem("dc_migration_docs_cr_v3", "1");
+        localStorage.setItem("dc_migration_docs_cr_v4", "1");
       }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
@@ -2155,9 +2153,9 @@ END $$;`
         const { data: allDocs } = await supabase.from("declaracao_docs_cr").select("*");
         if (allDocs && allDocs.length > 0) {
           const map = new Map<string, DocCRItem[]>();
-          for (const d of allDocs as DocCRItem[]) {
+          for (const d of allDocs as DocCRRow[]) {
             const arr = map.get(d.cliente_id) ?? [];
-            arr.push(d);
+            arr.push(toDocCRItem(d));
             map.set(d.cliente_id, arr);
           }
           setDocsCliente(map);
@@ -2379,7 +2377,7 @@ END $$;`
   return (
     <>
     {docPreview && (
-      <DocPreviewModal url={docPreview.url} nome={docPreview.nome} onClose={() => setDocPreview(null)} />
+      <DocPreviewModal url={docPreview.url} nome={docPreview.nome} onClose={() => { URL.revokeObjectURL(docPreview.url); setDocPreview(null); }} />
     )}
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -3378,28 +3376,28 @@ END $$;`
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
                                 onClick={async () => {
-                                  const path = item.storagePath || item.fileUrl.split("/cac-docs/")[1];
-                                  if (!path) { sonnerToast.error("Caminho inválido"); return; }
                                   const tid = sonnerToast.loading("Carregando...");
-                                  const { data, error } = await supabase.storage.from("cac-docs").download(path);
-                                  sonnerToast.dismiss(tid);
-                                  if (error || !data) { sonnerToast.error("Erro: " + (error?.message ?? "arquivo não encontrado")); return; }
-                                  setDocPreview({ url: URL.createObjectURL(data), nome: item.fileName });
+                                  try {
+                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
+                                    const blob = /\.pdf$/i.test(item.fileName) ? new Blob([data], { type: "application/pdf" }) : data;
+                                    setDocPreview({ url: URL.createObjectURL(blob), nome: item.fileName });
+                                  } catch (err) {
+                                    sonnerToast.error("Erro ao abrir: " + (err instanceof Error ? err.message : String(err)));
+                                  } finally { sonnerToast.dismiss(tid); }
                                 }}>
                                 <ExternalLink className="h-3 w-3" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-amber-400 hover:text-amber-300" title="Baixar"
                                 onClick={async () => {
-                                  const path = item.storagePath || item.fileUrl.split("/cac-docs/")[1];
-                                  if (!path) { sonnerToast.error("Caminho inválido"); return; }
                                   const tid = sonnerToast.loading("Baixando...");
-                                  const { data, error } = await supabase.storage.from("cac-docs").download(path);
-                                  sonnerToast.dismiss(tid);
-                                  if (error || !data) { sonnerToast.error("Erro ao baixar: " + (error?.message ?? "arquivo não encontrado")); return; }
-                                  const a = document.createElement("a");
-                                  a.href = URL.createObjectURL(data);
-                                  a.download = item.fileName;
-                                  a.click();
+                                  try {
+                                    const { data, error } = await supabase.storage.from("cac-docs").download(item.storagePath);
+                                    if (error || !data) throw new Error(error?.message ?? "arquivo não encontrado");
+                                    baixarBlob(data, item.fileName);
+                                  } catch (err) {
+                                    sonnerToast.error("Erro ao baixar: " + (err instanceof Error ? err.message : String(err)));
+                                  } finally { sonnerToast.dismiss(tid); }
                                 }}>
                                 <Download className="h-3 w-3" />
                               </Button>
