@@ -105,12 +105,39 @@ function agruparCartoes(tiras: Ret[]): Cartao[] {
   return grupos.filter(g => g.tiras.length >= 3);
 }
 
-function pixelsDoBrasao(brasao: HTMLImageElement, w: number, h: number): Uint8ClampedArray {
+// Marca d'água nova: o brasão colorido a 50% sobre branco, no mesmo lugar e tamanho do brasão cinza original,
+// com o dobro da resolução da imagem original do PDF
+function marcaDagua(brasao: HTMLImageElement, cinza: Uint8Array, w: number, h: number): { rgb: Uint8Array; w: number; h: number } | null {
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (cinza[(y * w + x) * 3] < 250) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < 0) return null;
+  const k = 2, W = w * k, H = h * k;
   const c = document.createElement("canvas");
-  c.width = w; c.height = h;
+  c.width = W; c.height = H;
   const ctx = c.getContext("2d")!;
-  ctx.drawImage(brasao, 0, 0, w, h);
-  return ctx.getImageData(0, 0, w, h).data;
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+  const bw = (x1 - x0 + 1) * k, bh = (y1 - y0 + 1) * k;
+  const esc = Math.min(bw / brasao.naturalWidth, bh / brasao.naturalHeight);
+  const dw = brasao.naturalWidth * esc, dh = brasao.naturalHeight * esc;
+  ctx.globalAlpha = 0.5;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(brasao, x0 * k + (bw - dw) / 2, y0 * k + (bh - dh) / 2, dw, dh);
+  const px = ctx.getImageData(0, 0, W, H).data;
+  const rgb = new Uint8Array(W * H * 3);
+  for (let p = 0, q = 0; q < px.length; p += 3, q += 4) { rgb[p] = px[q]; rgb[p + 1] = px[q + 1]; rgb[p + 2] = px[q + 2]; }
+  return { rgb, w: W, h: H };
+}
+
+async function pngReduzido(img: HTMLImageElement, largura: number): Promise<ArrayBuffer> {
+  const c = document.createElement("canvas");
+  c.width = largura; c.height = Math.round(largura * img.naturalHeight / img.naturalWidth);
+  const ctx = c.getContext("2d")!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise<Blob>((ok, erro) => c.toBlob(b => (b ? ok(b) : erro(new Error("falha ao reduzir o brasão"))), "image/png"));
+  return blob.arrayBuffer();
 }
 
 // Troca as cores direto nas imagens do PDF: tiras da borda (preto -> cor) e marca d'água (cinza -> brasão colorido)
@@ -135,10 +162,10 @@ function recolorirImagens(L: any, doc: any, page: any, brasao: HTMLImageElement,
     .sort((a, b) => b.w * b.h - a.w * a.h)[0];
   if (!tiras.length) return false;
 
-  const trocar = (img: typeof imagens[number], novos: Uint8Array) => {
+  const trocar = (img: typeof imagens[number], novos: Uint8Array, w = img.w, h = img.h) => {
     const smask = img.dict.get(N("SMask"));
     doc.context.assign(img.ref, doc.context.flateStream(novos, {
-      Type: "XObject", Subtype: "Image", Width: img.w, Height: img.h, ColorSpace: "DeviceRGB", BitsPerComponent: 8,
+      Type: "XObject", Subtype: "Image", Width: w, Height: h, ColorSpace: "DeviceRGB", BitsPerComponent: 8,
       ...(smask ? { SMask: smask } : {}),
     }));
   };
@@ -147,18 +174,8 @@ function recolorirImagens(L: any, doc: any, page: any, brasao: HTMLImageElement,
     for (let i = 0; i < out.length; i++) out[i] = 255 - ((255 - t.dados[i]) * (255 - corBorda[i % 3])) / 255;
     trocar(t, out);
   }
-  if (marca) {
-    const cor = pixelsDoBrasao(brasao, marca.w, marca.h);
-    const out = new Uint8Array(marca.dados.length);
-    for (let p = 0, q = 0; p < out.length; p += 3, q += 4) {
-      const a = cor[q + 3] / 255;
-      for (let k = 0; k < 3; k++) {
-        const c = a * cor[q + k] + (1 - a) * 255;
-        out[p + k] = marca.dados[p + k] * (0.5 + (0.5 * c) / 255);
-      }
-    }
-    trocar(marca, out);
-  }
+  const nova = marca && marcaDagua(brasao, marca.dados, marca.w, marca.h);
+  if (marca && nova) trocar(marca, nova.rgb, nova.w, nova.h);
   return true;
 }
 
@@ -194,7 +211,8 @@ async function previa(pdfjs: any, bytes: Uint8Array): Promise<string> {
     c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
     const ctx = c.getContext("2d")!;
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    // intent "print": o pdf.js não espera requestAnimationFrame, então não trava se a aba ficar em segundo plano
+    await page.render({ canvasContext: ctx, viewport: vp, intent: "print" }).promise;
     const blob = await new Promise<Blob>((ok, erro) => c.toBlob(b => (b ? ok(b) : erro(new Error("falha ao gerar prévia"))), "image/png"));
     c.width = c.height = 0;
     return URL.createObjectURL(blob);
@@ -210,11 +228,10 @@ async function gerar(pdfUrl: string, modelo: ModeloDoc): Promise<DocColorido | n
   const estilo = ESTILO[modelo];
   const brasao = new Image();
   brasao.src = BRASAO;
-  const [pdfjs, L, original, brasaoBytes] = await Promise.all([
+  const [pdfjs, L, original] = await Promise.all([
     carregarPDFJS(),
     carregarPDFLib(),
     fetch(pdfUrl).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); }).then(b => new Uint8Array(b)),
-    fetch(BRASAO).then(r => r.arrayBuffer()),
     brasao.decode(),
   ]);
 
@@ -235,7 +252,7 @@ async function gerar(pdfUrl: string, modelo: ModeloDoc): Promise<DocColorido | n
 
   const h = frente.y1 - frente.y0;
   if (estilo.brasaoNoCanto) {
-    const png = await doc.embedPng(brasaoBytes);
+    const png = await doc.embedPng(await pngReduzido(brasao, 260));
     const lado = h * 0.18, alto = lado * png.height / png.width;
     page.drawImage(png, { x: frente.x0 + h * 0.08, y: frente.y1 - h * 0.055 - alto, width: lado, height: alto });
   }
