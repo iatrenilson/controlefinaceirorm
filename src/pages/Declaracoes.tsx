@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
+import { lerDocumento } from "@/lib/lerDocumento";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1314,6 +1315,7 @@ END $$;`
   const [mostrarClubeSection, setMostrarClubeSection] = useState(false);
   const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
   const [parsendoCNH, setParsendoCNH] = useState(false);
+  const [progressoDoc, setProgressoDoc] = useState("");
   const cNHFileRef = useRef<HTMLInputElement>(null);
   // Documentos CR
   const [docsCliente, setDocsCliente] = useState<Map<string, DocCRItem[]>>(new Map());
@@ -1334,368 +1336,37 @@ END $$;`
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
 
-  const _parsearTexto = useCallback((text: string): Partial<ClienteForm> => {
-    const r: Partial<ClienteForm> = {};
-    // Normaliza espaços múltiplos em cada linha (CNH digital tem "CPF   000.000.000-00")
-    const linhas = text.split(/\n/).map(l => l.trim().replace(/\s+/g, " ")).filter(l => l.length > 0);
-    const up = (s: string) => s.toUpperCase().trim();
-
-    const parseData = (s: string) => {
-      const m = s.match(/(\d{2})[\/\-\.\s](\d{2})[\/\-\.\s](\d{4})/);
-      if (!m) return null;
-      const [,d,mo,y] = m;
-      if (parseInt(mo) > 12 || parseInt(d) > 31) return null;
-      return `${y}-${mo.padStart(2,"0")}-${d.padStart(2,"0")}`;
-    };
-
-    // Pega valor: mesmo após label na mesma linha OU próxima(s) linha(s)
-    const proximo = (i: number, re: RegExp, linhas2 = linhas): string => {
-      const resto = linhas2[i].replace(re,"").replace(/^[\s:.\-–]+/,"").trim();
-      if (resto.length > 1) return resto;
-      for (let j = i+1; j < Math.min(i+4, linhas2.length); j++) {
-        const v = linhas2[j].trim();
-        if (v.length > 1) return v;
-      }
-      return "";
-    };
-
-    // Verifica se string parece um nome (2+ palavras, letras)
-    const pareceNome = (s: string) => {
-      const limpo = s.replace(/[^A-ZÀ-Úa-zà-ú\s]/g,"").trim();
-      const palavras = limpo.split(/\s+/).filter(p => p.length >= 2);
-      return palavras.length >= 2 && palavras.length <= 8 && limpo.length >= 5 && !/\d/.test(s);
-    };
-
-    // Palavras que indicam cabeçalhos de campo — não são nomes de pessoa
-    const LABEL_WORDS = /\b(NOME|DATA|NASC|CPF|FILIA|PAI|MAE|MÃE|RG|REGISTRO|GERAL|EXPEDI|EMISSOR|VALID|DISPON|DIGITAL|ASSIN|CERTIF|SERPRO|CONFORM|PROVISÓ|PROGRAM|ENDERE|BAIRRO|CEP|ESTADO|CIDADE|NATURAL|DOC|IDENTIDADE|HABILI|CATEG|PRONTU|CNH|SENATRAN|BRASIL|TRANSPORT|REPUB|MINIST|RENACH|SECRETARIA|FEDERAL|NACIONAL|TRANSITO|TRÂNSITO|PORTADOR|TITULAR|PROCESSO|DISPONÍV|HTTP|ASSINAT|INTEGRI|AUTENT)\b/i;
-
-    // Remove datas de uma string para extrair só o nome
-    const extrairNome = (s: string) => s.replace(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g,"").replace(/\s+/g," ").trim();
-
-    // ── Varredura linha por linha ──
-    for (let i = 0; i < linhas.length; i++) {
-      const l = linhas[i];
-      const U = up(l);
-
-      // CPF — busca padrão XXX.XXX.XXX-XX ou 11 dígitos seguidos
-      // Normaliza espaços ao redor de pontos/hífens (CNH digital: "123 . 456 . 789 - 00")
-      if (!r.cpf) {
-        const lNorm = l.replace(/(\d)\s*\.\s*(\d)/g,"$1.$2").replace(/(\d)\s*-\s*(\d)/g,"$1-$2");
-        const m = lNorm.match(/\b(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})\b/);
-        if (m) {
-          const d = m[1].replace(/\D/g,"");
-          if (d.length === 11 && !d.startsWith("00000")) r.cpf = maskCpf(d);
-        }
-        // Se linha só tem dígitos e label CPF na linha anterior
-        if (!r.cpf) {
-          const raw = l.replace(/[^\d]/g,"");
-          if (raw.length === 11 && !raw.startsWith("00000") && /CPF/i.test((linhas[i-1]||""))) {
-            r.cpf = maskCpf(raw);
-          }
-        }
-      }
-
-      // RG
-      if (!r.rg) {
-        if (/REGISTRO\s*GERAL|^\s*R\.?G\.?\s*$/i.test(U)) {
-          const val = proximo(i, /REGISTRO\s*GERAL|R\.?G\.?/i);
-          const m = val.match(/(\d[\d\.\-\/\s]{4,14}\d)/);
-          if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
-        }
-        if (!r.rg) {
-          const m = l.match(/\bR\.?G\.?[:\s#Nº°]*(\d[\d\.\-\/]{4,14})/i);
-          if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
-        }
-      }
-
-      // NOME — label na linha, valor na mesma ou próxima
-      if (!r.nome) {
-        // Caso 1: "NOME" sozinho, "NOME COMPLETO", "NOME DO PORTADOR/TITULAR"
-        if (/^NOME(\s+COMPLETO|\s+DO\s+(?:PORTADOR|TITULAR))?\s*$/i.test(l)) {
-          const val = extrairNome(proximo(i, /NOME(\s+COMPLETO|\s+DO\s+\w+)?/i));
-          if (pareceNome(val)) r.nome = up(val);
-        }
-        // Caso 2: "NOME: valor" na mesma linha
-        else if (/^NOME\s*[:\-]/i.test(l)) {
-          const val = l.replace(/^NOME\s*[:\-]\s*/i,"").trim();
-          if (pareceNome(val)) r.nome = up(val);
-        }
-        // Caso 3: CNH física — "2 e 1 NOME E SOBRENOME" (número + NOME + outros campos)
-        // O valor do nome está na próxima linha
-        else if (/^\d[\de\s]+NOME\b/i.test(l)) {
-          const nextLine = linhas[i+1]?.trim() || "";
-          const val = extrairNome(nextLine);
-          if (pareceNome(val)) r.nome = up(val);
-        }
-        // Caso 4: CNH — "NOME DATA DE NASCIMENTO" (dois labels na mesma linha)
-        // O valor está na PRÓXIMA linha junto com a data
-        else if (/^NOME\b/i.test(l) && LABEL_WORDS.test(l)) {
-          const nextLine = linhas[i+1]?.trim() || "";
-          const val = extrairNome(nextLine);
-          if (pareceNome(val)) r.nome = up(val);
-          // Aproveita e tenta extrair dataNascimento da mesma linha de valores
-          if (!r.dataNascimento && /NASC/i.test(l)) {
-            const d = parseData(nextLine);
-            if (d) r.dataNascimento = d;
-          }
-        }
-      }
-
-      // FILIAÇÃO — bloco com pai e mãe (CNH digital pode ter vários formatos)
-      // Regex aceita OCR comuns: FILIAÇÃO / FILIACAO / FILIAGAO
-      if (/\bFILIA[ÇCG][AÃA]O\b/i.test(l)) {
-        // Caso A: "FILIAÇÃO: PAI / MÃE" ou "FILIAÇÃO PAI MÃE" inline
-        const afterFil = l.replace(/.*?\bFILIA[ÇCG][AÃA]O\s*[:\-]?\s*/i,"").trim();
-        if (afterFil) {
-          const slash = afterFil.split(/\s*\/\s*/);
-          if (slash.length >= 2) {
-            if (pareceNome(slash[0]) && !r.nomePai) r.nomePai = up(slash[0]);
-            if (pareceNome(slash[1]) && !r.nomeMae) r.nomeMae = up(slash[1]);
-          } else if (pareceNome(afterFil) && !r.nomePai) {
-            r.nomePai = up(afterFil);
-          }
-        }
-        // Caso B: nomes nas próximas linhas (janela ampliada, break menos agressivo)
-        if (!r.nomePai || !r.nomeMae) {
-          let found = r.nomePai ? 1 : 0;
-          for (let j = i+1; j < Math.min(i+12, linhas.length); j++) {
-            const v = linhas[j].trim();
-            if (!v) continue;
-            // Para em linhas claramente de outro campo
-            if (/^(?:NACIONAL|CATEGOR|PRONTU|RENACH|REGISTRO|CPF|DOC\.?\s*IDENT|HABILI|VALIDADE|CAT\s*HAB|Nº\s*REG|CARTEIRA|MINISTERIO|MINIST[ÉE]RIO|SENATRAN|BRASIL|DETRAN)/i.test(v)) break;
-            if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) break; // linha só com data isolada
-            // Ignora linhas de cabeçalho/label (ex: "CARTEIRA NACIONAL", "REPÚBLICA FEDERATIVA")
-            if (LABEL_WORDS.test(v)) continue;
-            // Dois nomes na mesma linha (CNH digital pode concatenar)
-            if (!r.nomePai && !r.nomeMae) {
-              const words = v.split(/\s+/);
-              if (words.length > 6 && words.length <= 14 && !/\d/.test(v)) {
-                const slash2 = v.split(/\s*\/\s*/);
-                if (slash2.length >= 2 && pareceNome(slash2[0]) && pareceNome(slash2[1])) {
-                  r.nomePai = up(slash2[0]); r.nomeMae = up(slash2[1]); break;
-                }
-                // Divide no meio como última tentativa
-                const mid = Math.ceil(words.length / 2);
-                const n1 = words.slice(0, mid).join(" ");
-                const n2 = words.slice(mid).join(" ");
-                if (n1.split(/\s+/).length >= 2 && n2.split(/\s+/).length >= 2) {
-                  r.nomePai = up(n1); r.nomeMae = up(n2); break;
-                }
-              }
-            }
-            // Um nome por linha
-            if (pareceNome(v)) {
-              if (found === 0 && !r.nomePai) { r.nomePai = up(v); found++; }
-              else if (found >= 1 && !r.nomeMae) { r.nomeMae = up(v); break; }
-            }
-          }
-        }
-      }
-
-      // PAI
-      if (!r.nomePai) {
-        if (/^(?:NOME\s+DO\s+)?PAI\s*$/i.test(l)) {
-          const val = proximo(i, /(?:NOME\s+DO\s+)?PAI/i);
-          if (pareceNome(val)) r.nomePai = up(val);
-        } else if (/\bPAI\s*[:\-]\s*/i.test(l) && !/BRASIL|ESTADO|REPUBLICA/i.test(l)) {
-          const val = l.replace(/.*\bPAI\s*[:\-]\s*/i,"").trim();
-          if (pareceNome(val)) r.nomePai = up(val);
-        }
-      }
-
-      // MÃE
-      if (!r.nomeMae) {
-        if (/^(?:NOME\s+DA\s+)?M[ÃA]E\s*$/i.test(l)) {
-          const val = proximo(i, /(?:NOME\s+DA\s+)?M[ÃA]E/i);
-          if (pareceNome(val)) r.nomeMae = up(val);
-        } else if (/\bM[ÃA]E\s*[:\-]\s*/i.test(l) && !/BRASIL|ESTADO/i.test(l)) {
-          const val = l.replace(/.*\bM[ÃA]E\s*[:\-]\s*/i,"").trim();
-          if (pareceNome(val)) r.nomeMae = up(val);
-        }
-      }
-
-      // DATA DE NASCIMENTO
-      // CNH usa "3 DATA, LOCAL E UF DE NASCIMENTO" na label e a data na próxima linha
-      if (!r.dataNascimento && /NASC(?:IMENTO)?/i.test(U)) {
-        const val = proximo(i, /DATA\s+(?:DE\s+)?NASC(?:IMENTO)?|DT\.?\s*NASC/i);
-        // Se proximo retornou a própria label (sem data), tenta linha seguinte explicitamente
-        const d = parseData(val) || parseData(l) || parseData(linhas[i+1] ?? "") || parseData(linhas[i+2] ?? "");
-        if (d) r.dataNascimento = d;
-      }
-
-      // DATA DE EXPEDIÇÃO / EMISSÃO
-      // CNH usa "4a DATA EMISSÃO" na label e a data na próxima linha
-      if (!r.dataExpedicao && /EXPEDI|EMISS[AÃ]O|DT\.?\s*EXP/i.test(U)) {
-        const val = proximo(i, /DATA\s+(?:DE\s+)?(?:EXPEDI[ÇC][AÃ]O|EMISS[AÃ]O)|DT\.?\s*EXP/i);
-        const d = parseData(val) || parseData(l) || parseData(linhas[i+1] ?? "") || parseData(linhas[i+2] ?? "");
-        if (d) r.dataExpedicao = d;
-      }
-
-      // ÓRGÃO EMISSOR — só pega em linhas com dados, não cabeçalhos
-      if (!r.orgaoEmissor && !/^(?:MINISTÉRIO|SECRETARIA|REPÚBLICA|SENATRAN)/i.test(l)) {
-        const m = l.match(/\b((?:SSP|SPTC|PC|DETRAN|MD|PMAM|PM|DPF|SEDS|SESP|SEPC|CRB|SDS|PCAM|SESDC)[-\/\s]?(?:[A-Z]{2})?)\b/);
-        if (m && m[1].length >= 4) r.orgaoEmissor = m[1].replace(/\s/,"-").toUpperCase().replace(/-$/,"");
-      }
-      if (!r.orgaoEmissor && /ÓRG[AÃ]O\s*EMISSOR|ORGAO\s*EMISSOR/i.test(U)) {
-        const val = proximo(i, /ÓRG[AÃ]O\s*EMISSOR|ORGAO\s*EMISSOR/i);
-        if (val && val.length < 30) r.orgaoEmissor = up(val);
-      }
-
-      // ENDEREÇO
-      if (!r.endereco && /^(?:ENDERE[ÇC]O|LOGRADOURO)\s*[:\-]?\s*/i.test(l)) {
-        const val = proximo(i, /ENDERE[ÇC]O|LOGRADOURO/i);
-        if (val.length > 4) r.endereco = up(val);
-      }
-
-      // BAIRRO
-      if (!r.bairro && /^BAIRRO\s*[:\-]?\s*/i.test(l)) {
-        const val = proximo(i, /BAIRRO/i);
-        if (val.length > 2) r.bairro = up(val);
-      }
-
-      // CIDADE / NATURALIDADE / MUNICÍPIO
-      if (!r.cidade && /^(?:MUNIC[ÍI]PIO|CIDADE|NATURALIDADE)\s*[:\-]?\s*/i.test(l)) {
-        const val = proximo(i, /MUNIC[ÍI]PIO|CIDADE|NATURALIDADE/i);
-        if (val) r.cidade = val.split(/[\-\/]/)[0].trim();
-      }
-
-      // CEP — só extrai se a linha menciona "CEP" explicitamente
-      // (CNH não tem campo CEP; sem esse filtro números do RENACH/RG são capturados errado)
-      if (!r.cep && /\bCEP\b/i.test(l)) {
-        const m = l.match(/\b(\d{5}[\-\s]?\d{3})\b/);
-        if (m) { const d = m[1].replace(/\D/g,""); if (d.length === 8) r.cep = maskCep(d); }
-      }
-
-      // Nº — ignora referências legais como "nº 2200-2/2001"
-      if (!r.numero) {
-        const m = l.match(/\bN[º°ú\.]\s*(\d{1,6})(?![\d\/\-])\b/i);
-        if (m) r.numero = m[1];
-      }
-    }
-
-    // ── Fallback global: busca datas por faixa de ano plausível ──
-    // dataNascimento: ano <= 2008 (mínimo 16 anos para habilitação)
-    // dataExpedicao : ano >= 2000 (documento recente)
-    // Evita pegar a data de "1ª HABILITAÇÃO" como nascimento
-    const anoAtual = new Date().getFullYear();
-    const todasDatas = [...text.matchAll(/(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})/g)]
-      .map(m => parseData(m[0])).filter(Boolean) as string[];
-    if (!r.dataNascimento) {
-      const nascCandidata = todasDatas.find(d => {
-        const ano = parseInt(d.slice(0,4));
-        return ano >= 1920 && ano <= anoAtual - 16;
-      });
-      if (nascCandidata) r.dataNascimento = nascCandidata;
-    }
-    if (!r.dataExpedicao) {
-      const expCandidata = todasDatas.find(d => {
-        const ano = parseInt(d.slice(0,4));
-        return ano >= 2000 && ano <= anoAtual + 10;
-      });
-      if (expCandidata) r.dataExpedicao = expCandidata;
-    }
-
-    // ── Fallback global: CPF ──
-    if (!r.cpf) {
-      // Normaliza espaços ao redor de separadores (CNH digital: "123 . 456 . 789 - 00")
-      const normText = text
-        .replace(/(\d)\s*\.\s*(\d)/g,"$1.$2")
-        .replace(/(\d)\s*-\s*(\d)/g,"$1-$2")
-        .replace(/\s+/g," ");
-      for (const m of normText.matchAll(/\b(\d{3}[\s\.]?\d{3}[\s\.]?\d{3}[\s\-]?\d{2})\b/g)) {
-        const d = m[1].replace(/\D/g,"");
-        if (d.length === 11 && !d.startsWith("00000")) { r.cpf = maskCpf(d); break; }
-      }
-    }
-
-    // ── Fallback global: RG ──
-    if (!r.rg) {
-      const m = text.match(/\bR\.?G\.?[:\s#Nº°]*(\d[\d\.\-]{5,12})/i);
-      if (m) r.rg = maskRg(m[1].replace(/\D/g,""));
-    }
-
-    // ── CNH: DOC. IDENTIDADE / ORG. EMISSOR (ex: "1735427-7 SSP/AM") ──
-    if (!r.rg || !r.orgaoEmissor) {
-      const normText = text.replace(/\s+/g," ");
-      // Label "DOC. IDENTIDADE / ÓRG. EMISSOR / UF" seguido pelos valores (aceita ÓRG e ORG)
-      const cnh1 = normText.match(/DOC\.?\s*IDENTIDADE[\s\/,]+[ÓO]?RG\.?\s*EMISSOR[\s\/,A-Z]*[:\s]*([^\n]{5,40})/i);
-      if (cnh1) {
-        const partes = cnh1[1].trim().split(/\s+/);
-        for (const p of partes) {
-          if (!r.rg && /^\d[\d\.\-]{5,12}$/.test(p)) r.rg = maskRg(p.replace(/\D/g,""));
-          if (!r.orgaoEmissor && /^[A-Z]{2,8}$/.test(p) && !/^[AEIOU]{2,}$/i.test(p)) r.orgaoEmissor = p;
-        }
-      }
-      // Formato direto na linha de valor: "1735427-7 SSP AM" ou "1735427-7/SSP-AM"
-      const cnh2 = normText.match(/\b(\d{5,10}[\-\.]?\d{1,2})\s*[\/\s]\s*(SSP|SPTC|PC|DETRAN|MD|DPF|PCAM)\s*[\-\/]?\s*([A-Z]{2})\b/i);
-      if (cnh2) {
-        if (!r.rg) r.rg = maskRg(cnh2[1].replace(/\D/g,""));
-        if (!r.orgaoEmissor) r.orgaoEmissor = `${cnh2[2]}-${cnh2[3]}`.toUpperCase();
-      }
-    }
-
-    // ── CNH: NOME — fallback geral por todo o texto ──
-    if (!r.nome) {
-      for (const linha of linhas) {
-        if (LABEL_WORDS.test(linha)) continue;            // Pula linhas de label/cabeçalho
-        if (/^\d/.test(linha)) continue;                  // Pula linhas que começam com número
-        if (linha.endsWith(":")) continue;                // Pula labels que terminam com ":"
-        if (/^https?:\/\//i.test(linha)) continue;       // Pula URLs
-        if (linha.length > 60) continue;                  // Pula linhas muito longas (não são nomes)
-        const val = extrairNome(linha);
-        if (pareceNome(val) && val.split(/\s+/).length >= 2 && val.length <= 50) {
-          r.nome = up(val); break;
-        }
-      }
-    }
-
-    return r;
-  }, []);
-
-  const importarCNHPDF = useCallback(async (file: File) => {
+  const importarDocumento = useCallback(async (file: File) => {
     setParsendoCNH(true);
+    setProgressoDoc("Abrindo documento...");
     try {
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-      const ab = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
-      let fullText = "";
-      type TItem = { str: string; transform: number[]; hasEOL?: boolean };
-      for (let p = 1; p <= pdf.numPages; p++) {
-        const page = await pdf.getPage(p);
-        const tc = await page.getTextContent();
-        const items = (tc.items as TItem[]).filter(it => it.str && it.str.trim());
-        // Agrupa por posição Y (tolerância ±2px) para reconstruir linhas reais
-        const lineMap = new Map<number, TItem[]>();
-        for (const item of items) {
-          const y = Math.round(item.transform[5] / 2) * 2;
-          if (!lineMap.has(y)) lineMap.set(y, []);
-          lineMap.get(y)!.push(item);
-        }
-        // Ordena linhas de cima para baixo (Y maior = mais acima em coords PDF)
-        const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a);
-        for (const y of sortedYs) {
-          const lineItems = lineMap.get(y)!.sort((a, b) => a.transform[4] - b.transform[4]);
-          const lineText = lineItems.map(it => it.str).join(" ").trim();
-          if (lineText) fullText += lineText + "\n";
-        }
-      }
-      const parsed = _parsearTexto(fullText);
-      const defaults = new Set(["", "SSP-AM", "Solteiro(a)", "AM", "Manaus", "doc"]);
-      const count = Object.values(parsed).filter(v => v && !defaults.has(v as string)).length;
-      if (count > 0) {
-        setFormCliente(prev => ({ ...prev, ...parsed }));
-        sonnerToast.success(`✓ ${count} campo(s) preenchido(s) automaticamente!`);
+      const d = await lerDocumento(file, setProgressoDoc);
+      const novos: Partial<ClienteForm> = {};
+      if (d.nome) novos.nome = d.nome;
+      if (d.cpf) novos.cpf = maskCpf(d.cpf);
+      if (d.rg) novos.rg = d.rgEhCpf ? maskCpf(d.rg) : maskRg(d.rg);
+      if (d.orgaoEmissor) novos.orgaoEmissor = d.orgaoEmissor;
+      if (d.dataExpedicao) novos.dataExpedicao = d.dataExpedicao;
+      if (d.dataNascimento) novos.dataNascimento = d.dataNascimento;
+      if (d.localNascimento) novos.localNascimento = d.localNascimento;
+      if (d.ufNascimento) novos.ufNascimento = d.ufNascimento;
+      if (d.nomePai) novos.nomePai = d.nomePai;
+      if (d.nomeMae) novos.nomeMae = d.nomeMae;
+      if (d.estadoCivil) novos.estadoCivil = d.estadoCivil;
+      const n = Object.keys(novos).length;
+      if (n > 0) {
+        setFormCliente(prev => ({ ...prev, ...novos }));
+        sonnerToast.success(`✓ ${n} campo(s) preenchido(s) a partir do documento. Confira antes de salvar.`);
       } else {
-        sonnerToast.warning("Não foi possível extrair dados deste PDF.");
+        sonnerToast.warning("Não consegui ler os dados. Envie o PDF original da CNH/RG ou uma foto mais nítida.");
       }
-    } catch {
-      sonnerToast.error("Erro ao ler o PDF. Verifique se é uma CNH digital válida.");
+    } catch (err) {
+      sonnerToast.error("Erro ao ler o documento: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setParsendoCNH(false);
+      setProgressoDoc("");
     }
-  }, [_parsearTexto]);
+  }, []);
 
   // ─── Documentos CR ────────────────────────────────────────────────────────
   const fetchDocsCR = useCallback(async (clienteId: string) => {
@@ -2945,18 +2616,18 @@ END $$;`
             {/* Importar CNH */}
             <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5">
               <div>
-                <p className="text-xs font-semibold text-primary">Importar CNH (PDF)</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Preenche nome, CPF, RG, nascimento, endereço e mais</p>
+                <p className="text-xs font-semibold text-primary">Importar CNH ou RG</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação</p>
               </div>
               <Button type="button" size="sm" variant="outline"
                 className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
                 onClick={() => cNHFileRef.current?.click()}
                 disabled={parsendoCNH}>
                 <Paperclip className="h-3.5 w-3.5" />
-                {parsendoCNH ? "Lendo PDF..." : "Selecionar PDF"}
+                {parsendoCNH ? (progressoDoc || "Lendo...") : "Selecionar arquivo"}
               </Button>
-              <input ref={cNHFileRef} type="file" accept=".pdf" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) importarCNHPDF(f); e.target.value = ""; }} />
+              <input ref={cNHFileRef} type="file" accept="application/pdf,image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) importarDocumento(f); e.target.value = ""; }} />
             </div>
             {/* Nome */}
             <div className="space-y-1">
