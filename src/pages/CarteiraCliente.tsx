@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { gerarCRColorido, type CRColorido } from "@/lib/crColorido";
+import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
@@ -47,11 +47,56 @@ async function baixarArquivo(url: string, nomeArquivo: string) {
   }
 }
 
-function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
+const ehImagem = (nome: string) => /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
+
+// Com modelo (chave Colorir ligada), baixa o PDF colorido; se o PDF não for do SisGCorp, baixa o original
+async function baixarDoc(url: string, nome: string, modelo?: ModeloDoc) {
+  if (modelo && !ehImagem(nome)) {
+    const r = await docColorido(url, modelo).catch(() => null);
+    if (r) {
+      const blobUrl = URL.createObjectURL(r.pdf);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.pdf`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      return;
+    }
+  }
+  await baixarArquivo(url, nome);
+}
+
+function ChaveColorir({ ligada, onChange }: { ligada: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button onClick={() => onChange(!ligada)} aria-pressed={ligada} title={ligada ? "Voltar aos originais" : "Colorir CR e CRAF"}
+      style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 11px", borderRadius:999, cursor:"pointer", fontSize:11, fontWeight:700, whiteSpace:"nowrap",
+        border:`1px solid ${ligada ? "#009c3b" : "rgba(255,255,255,0.22)"}`, background: ligada ? "rgba(0,156,59,0.18)" : "transparent", color: ligada ? "#3ddc84" : "#cfcfcf" }}>
+      <span style={{ position:"relative", width:30, height:16, borderRadius:999, background: ligada ? "#009c3b" : "rgba(255,255,255,0.25)", flexShrink:0 }}>
+        <span style={{ position:"absolute", top:2, left: ligada ? 16 : 2, width:12, height:12, borderRadius:"50%", background:"#fff", transition:"left .15s" }} />
+      </span>
+      🎨 Colorir
+    </button>
+  );
+}
+
+function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
+  url: string; nome: string; modelo?: ModeloDoc; colorir: boolean; onColorir: (v: boolean) => void; onClose: () => void;
+}) {
   const isPdf = nome.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf") || (!nome.match(/\.(png|jpg|jpeg|gif|webp)$/i) && !url.match(/\.(png|jpg|jpeg|gif|webp)(\?|$)/i));
   const viewerUrl = isPdf
     ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
     : url;
+  const podeColorir = !!modelo && isPdf;
+  const [colorido, setColorido] = useState<DocColorido | "erro" | null>(null);
+
+  useEffect(() => {
+    if (!podeColorir || !colorir || !modelo) return;
+    let vivo = true;
+    docColorido(url, modelo).then(r => { if (vivo) setColorido(r ?? "erro"); }, () => { if (vivo) setColorido("erro"); });
+    return () => { vivo = false; };
+  }, [url, modelo, colorir, podeColorir]);
+
+  const mostrarColorido = podeColorir && colorir && colorido !== "erro";
   return (
     <div
       onClick={e => e.target === e.currentTarget && onClose()}
@@ -59,8 +104,9 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
     >
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
         <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <button onClick={() => baixarArquivo(url, nome)}
+        <div style={{ display:"flex", gap:8, flexShrink:0, alignItems:"center" }}>
+          {podeColorir && <ChaveColorir ligada={colorir} onChange={onColorir} />}
+          <button onClick={() => baixarDoc(url, nome, mostrarColorido ? modelo : undefined)}
             style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
             ⬇ Baixar
           </button>
@@ -70,102 +116,15 @@ function PreviewModal({ url, nome, onClose }: { url: string; nome: string; onClo
           </button>
         </div>
       </div>
-      <div style={{ flex:1, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
-        {isPdf
-          ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
-          : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
+      <div style={{ flex:1, overflow: mostrarColorido ? "auto" : "hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
+        {mostrarColorido
+          ? colorido
+            ? <img src={colorido.previa} alt={`${nome} colorido`} style={{ width:"100%", maxWidth:900, height:"auto", margin:"auto", borderRadius:8, background:"#fff" }} />
+            : <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>Colorindo...</p>
+          : isPdf
+            ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
+            : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />
         }
-      </div>
-    </div>
-  );
-}
-
-const liberarCR = (r: CRColorido | null) => { if (r) { URL.revokeObjectURL(r.previaOriginal); URL.revokeObjectURL(r.previaColorida); } };
-
-function CRCardModal({ url, nome, onClose }: {
-  url: string; nome: string; onClose: () => void;
-}) {
-  const isPdf = !nome.match(/\.(png|jpg|jpeg|gif|webp)$/i);
-  const [cr, setCr] = useState<CRColorido | null>(null);
-  const [estado, setEstado] = useState<"carregando" | "pronto" | "original">(isPdf ? "carregando" : "original");
-  const [colorir, setColorir] = useState(true);
-
-  useEffect(() => {
-    if (!isPdf) return;
-    let vivo = true, gerado: CRColorido | null = null;
-    gerarCRColorido(url, `${import.meta.env.BASE_URL}brasao-colorido.png`)
-      .then(r => {
-        gerado = r;
-        if (!vivo) { liberarCR(r); return; }
-        if (r) { setCr(r); setEstado("pronto"); } else setEstado("original");
-      })
-      .catch(() => { if (vivo) setEstado("original"); });
-    return () => { vivo = false; liberarCR(gerado); };
-  }, [url, isPdf]);
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
-  const baixar = () => {
-    if (!cr || !colorir) { baixarArquivo(url, nome); return; }
-    const blobUrl = URL.createObjectURL(cr.pdfColorido);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.pdf`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-  };
-
-  const fecharFora = (e: React.MouseEvent) => { if (e.target === e.currentTarget) onClose(); };
-  const viewerUrl = isPdf ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true` : url;
-
-  return (
-    <div onClick={fecharFora}
-      style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.92)", display:"flex", flexDirection:"column" }}>
-      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
-        {estado === "pronto" ? (
-          <button onClick={() => setColorir(c => !c)} aria-pressed={colorir} title={colorir ? "Mostrar o original" : "Mostrar colorido"}
-            style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 12px", borderRadius:999, cursor:"pointer", fontSize:12, fontWeight:700, whiteSpace:"nowrap",
-              border:`1px solid ${colorir ? "#009c3b" : "rgba(255,255,255,0.25)"}`, background: colorir ? "rgba(0,156,59,0.18)" : "transparent", color: colorir ? "#3ddc84" : "#cfcfcf" }}>
-            <span style={{ position:"relative", width:30, height:16, borderRadius:999, background: colorir ? "#009c3b" : "rgba(255,255,255,0.25)", flexShrink:0 }}>
-              <span style={{ position:"absolute", top:2, left: colorir ? 16 : 2, width:12, height:12, borderRadius:"50%", background:"#fff", transition:"left .15s" }} />
-            </span>
-            🎨 Colorir
-          </button>
-        ) : (
-          <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, whiteSpace:"nowrap" }}>CR</p>
-        )}
-        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-          <button onClick={baixar}
-            style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
-            ⬇ Baixar
-          </button>
-          <button onClick={onClose} title="Fechar (ESC)"
-            style={{ width:32, height:32, borderRadius:8, background:"rgba(201,162,39,0.10)", border:"1px solid rgba(201,162,39,0.28)", color:"#c9a227", cursor:"pointer", fontSize:18, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            ✕
-          </button>
-        </div>
-      </div>
-
-      <div onClick={fecharFora} style={{ flex:1, overflow:"auto", padding:16 }}>
-        <div onClick={fecharFora} style={{ minHeight:"100%", display:"flex", flexWrap:"wrap", alignItems:"center", alignContent:"center", justifyContent:"center", gap:16 }}>
-          {estado === "carregando" && <p style={{ color:"#e8d5a0", fontSize:13, margin:0 }}>Colorindo o CR...</p>}
-          {estado === "pronto" && cr && (
-            <img src={colorir ? cr.previaColorida : cr.previaOriginal} alt={colorir ? "CR colorido" : "CR original"}
-              style={{ width:"100%", maxWidth:900, height:"auto", display:"block", background:"#fff", borderRadius:4 }} />
-          )}
-          {estado === "original" && (
-            <div style={{ width:"100%", maxWidth:480, height:"72vh", border:"7px solid #009c3b", outline:"5px solid #ffdf00", outlineOffset:"-12px", borderRadius:6, overflow:"hidden", position:"relative", background:"#fff" }}>
-              <div style={{ position:"absolute", inset:16, border:"3px solid #002776", borderRadius:2, pointerEvents:"none", zIndex:10 }} />
-              {isPdf
-                ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", display:"block" }} />
-                : <img src={url} alt={nome} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }} />}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -176,9 +135,10 @@ export default function CarteiraCliente() {
   const [data, setData] = useState<CarteiraData | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
-  const [preview, setPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; nome: string; modelo?: ModeloDoc } | null>(null);
   const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
-  const [crCard, setCrCard] = useState<CartDoc | null>(null);
+  const [colorir, setColorir] = useState(false);
+  const [baixando, setBaixando] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -252,6 +212,14 @@ export default function CarteiraCliente() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Ao ligar a chave, já colore CR e CRAF em segundo plano para Expandir/Baixar abrirem na hora
+  useEffect(() => {
+    if (!colorir || !data) return;
+    for (const d of data.docs ?? []) {
+      if ((d.tipo === "cr" || d.tipo === "craf") && !ehImagem(d.arquivo_nome)) docColorido(publicUrl(d.arquivo_path), d.tipo).catch(() => {});
+    }
+  }, [colorir, data]);
+
   // Cores idênticas ao site principal (index.css .dark)
   const BG = "#0b0908";          // hsl(20 12% 4%)
   const GOLD = "#d4a730";        // hsl(42 82% 52%)
@@ -299,8 +267,7 @@ export default function CarteiraCliente() {
 
   return (
     <>
-      {preview && <PreviewModal url={preview.url} nome={preview.nome} onClose={() => setPreview(null)} />}
-      {crCard && <CRCardModal url={publicUrl(crCard.arquivo_path)} nome={crCard.arquivo_nome} onClose={() => setCrCard(null)} />}
+      {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} />}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
 
       <div style={{ ...FULL_BG, padding:"0 0 40px" }}>
@@ -333,7 +300,10 @@ export default function CarteiraCliente() {
 
           {/* Documentos */}
           <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}` }}>
-            <p style={{ color:GOLD, fontSize:10, margin:"0 0 14px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Seus Documentos</p>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, margin:"0 0 14px" }}>
+              <p style={{ color:GOLD, fontSize:10, margin:0, textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Seus Documentos</p>
+              {(docsMap.cr?.length || docsMap.craf?.length) ? <ChaveColorir ligada={colorir} onChange={setColorir} /> : null}
+            </div>
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
               {TIPOS.map(({ key, label, desc, emoji }) => {
                 const docList = docsMap[key] ?? [];
@@ -445,27 +415,25 @@ export default function CarteiraCliente() {
                     })() : docList.map((doc, i) => {
                       const url = publicUrl(doc.arquivo_path);
                       const docKey = doc.id ?? `${key}-${i}`;
+                      const modelo: ModeloDoc | undefined = key === "cr" || key === "craf" ? key : undefined;
+                      const nomeDoc = doc.arquivo_nome || `${label}.pdf`;
                       return (
                         <div key={docKey} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"10px 14px", borderBottom: i < docList.length - 1 ? "1px solid rgba(201,162,39,0.10)" : "none" }}>
                           <p style={{ color:FG, fontSize:12, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, fontFamily:FONT }}>
                             {docList.length > 1 ? `${i+1}. ` : ""}{doc.arquivo_nome}
                           </p>
                           <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                            {key === "cr" && (
-                              <button
-                                onClick={() => setCrCard(doc)}
-                                title="Ver CR colorido"
-                                style={{ padding:"6px 8px", background:"rgba(0,156,59,0.12)", color:"#009c3b", borderRadius:7, border:"1px solid rgba(0,156,59,0.30)", fontSize:13, cursor:"pointer" }}>
-                                🎨
-                              </button>
-                            )}
-                            <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label })}
+                            <button onClick={() => setPreview({ url, nome: doc.arquivo_nome || label, modelo })}
                               style={{ padding:"6px 10px", background:"rgba(201,162,39,0.12)", color:GOLD, borderRadius:7, border:`1px solid ${GOLD_BORDER}`, fontSize:11, fontWeight:600, cursor:"pointer" }}>
                               ⛶ Expandir
                             </button>
-                            <button onClick={() => baixarArquivo(url, doc.arquivo_nome || `${label}.pdf`)}
-                              style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer" }}>
-                              ⬇ Baixar
+                            <button disabled={baixando === docKey}
+                              onClick={async () => {
+                                setBaixando(docKey);
+                                try { await baixarDoc(url, nomeDoc, colorir ? modelo : undefined); } finally { setBaixando(null); }
+                              }}
+                              style={{ padding:"6px 10px", background:GOLD, color:"#0a0b0f", borderRadius:7, border:"none", fontSize:11, fontWeight:700, cursor:"pointer", minWidth:72 }}>
+                              {baixando === docKey ? "⏳" : "⬇ Baixar"}
                             </button>
                           </div>
                         </div>
