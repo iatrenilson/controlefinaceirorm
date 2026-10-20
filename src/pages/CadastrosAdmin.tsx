@@ -88,95 +88,6 @@ const checkboxStyle = (checked: boolean): React.CSSProperties => ({
   transition: "all .15s", cursor: "pointer",
 });
 
-// ── Gemini Vision ──────────────────────────────────────────────────────────────
-const GEMINI_KEY = "AIzaSyAb8RN6K-dG5_Ryzt95bAHuWIIE-sUiSd2dAQCth_9gPRE1tOjA";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-
-let _pdfjs: any = null;
-const carregarPDFJS = (): Promise<any> =>
-  new Promise((resolve, reject) => {
-    if (_pdfjs) { resolve(_pdfjs); return; }
-    const existing = (window as any).pdfjsLib;
-    if (existing) {
-      existing.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      _pdfjs = existing; resolve(_pdfjs); return;
-    }
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    s.crossOrigin = "anonymous";
-    s.onload = () => {
-      const lib = (window as any).pdfjsLib;
-      if (!lib) { reject(new Error("pdfjsLib not defined")); return; }
-      lib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      _pdfjs = lib; resolve(_pdfjs);
-    };
-    s.onerror = () => reject(new Error("pdf.js load failed"));
-    document.head.appendChild(s);
-  });
-
-// Tenta converter PDF para imagem; retorna null se falhar
-const pdfParaImagem = async (file: File): Promise<Blob | null> => {
-  try {
-    const lib = await carregarPDFJS();
-    const buf = await file.arrayBuffer();
-    const pdf = await lib.getDocument({ data: buf, disableStream: true, disableAutoFetch: true }).promise;
-    const page = await pdf.getPage(1);
-    const vp = page.getViewport({ scale: 2 });
-    const canvas = document.createElement("canvas");
-    canvas.width = vp.width; canvas.height = vp.height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-    return await new Promise<Blob | null>(res => canvas.toBlob(res, "image/png"));
-  } catch (e) {
-    console.error("[OCR] pdfParaImagem falhou:", e);
-    return null;
-  }
-};
-
-const blobParaBase64 = (blob: Blob): Promise<{ data: string; mimeType: string }> =>
-  new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res({ data: (r.result as string).split(",")[1], mimeType: blob.type || "image/jpeg" });
-    r.onerror = rej;
-    r.readAsDataURL(blob);
-  });
-
-const geminiExtract = async (file: File, prompt: string): Promise<any> => {
-  let blob: Blob = file;
-  let mimeType = file.type || "image/jpeg";
-
-  if (file.type === "application/pdf") {
-    const img = await pdfParaImagem(file);
-    if (img) {
-      blob = img; mimeType = "image/png";
-    } else {
-      // Fallback: envia PDF direto ao Gemini com instrução extra
-      mimeType = "application/pdf";
-    }
-  }
-
-  const { data } = await blobParaBase64(blob);
-  const body = {
-    contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data } }] }],
-    generationConfig: { temperature: 0, responseMimeType: "application/json" },
-  };
-  const res = await fetch(GEMINI_URL, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Gemini ${res.status}: ${txt.slice(0, 200)}`);
-  }
-  const json = await res.json();
-  const txt = json.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-  try { return JSON.parse(txt); }
-  catch { const m = txt.match(/```(?:json)?\s*([\s\S]+?)\s*```/); return JSON.parse(m ? m[1] : "{}"); }
-};
-// ──────────────────────────────────────────────────────────────────────────────
-
 interface Colaborador { id: string; nome: string; token: string; ativo: boolean; created_at: string; }
 
 export default function CadastrosAdmin() {
@@ -225,10 +136,6 @@ export default function CadastrosAdmin() {
   const [novoEstado, setNovoEstado] = useState("");
   const [novoTipos, setNovoTipos] = useState<string[]>([]);
   const [novoArmas, setNovoArmas] = useState<string[]>([]);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrStatus, setOcrStatus] = useState<"idle"|"ok"|"erro">("idle");
-  const [ocrEndLoading, setOcrEndLoading] = useState(false);
-  const [ocrEndStatus, setOcrEndStatus] = useState<"idle"|"ok"|"erro">("idle");
   const [novoPsicoFile, setNovoPsicoFile] = useState<File | null>(null);
   const [novoPsicoUrl, setNovoPsicoUrl] = useState<string | null>(null);
   const [uploadingPsico, setUploadingPsico] = useState(false);
@@ -368,63 +275,12 @@ export default function CadastrosAdmin() {
   const toggleNovo = (list: string[], setList: (v: string[]) => void, item: string) =>
     setList(list.includes(item) ? list.filter(x => x !== item) : [...list, item]);
 
-  // ── OCR via Gemini Vision ────────────────────────────────────────────────────
-  const extrairOCR = async (file: File) => {
-    setOcrLoading(true); setOcrStatus("idle");
-    try {
-      const dados = await geminiExtract(file,
-        `Documento de identificacao brasileiro (CNH-e, CNH fisica ou RG).
-IGNORE qualquer texto sobre Assinador Serpro, instalacao ou instrucoes.
-Encontre o NOME DO TITULAR: campo "2 e 1 NOME E SOBRENOME" ou "NOME".
-Encontre o CPF: campo "4d CPF" ou "CPF" com formato 000.000.000-00.
-Retorne SOMENTE JSON valido: {"nome": "NOME COMPLETO EM MAIUSCULAS", "cpf": "000.000.000-00"}
-Se nao encontrar um campo use "".`
-      );
-      if (dados.nome) setNovoNome(String(dados.nome).toUpperCase().trim());
-      if (dados.cpf)  setNovoCpf(String(dados.cpf).trim());
-      setOcrStatus("ok");
-    } catch (e) {
-      console.error("[OCR CNH] erro:", e);
-      setOcrStatus("erro");
-    } finally {
-      setOcrLoading(false);
-    }
-  };
-
-  const extrairOCREndereco = async (file: File) => {
-    setOcrEndLoading(true); setOcrEndStatus("idle");
-    try {
-      const dados = await geminiExtract(file,
-        `Comprovante de endereco brasileiro (agua, luz, banco, telefone, etc.).
-Extraia SOMENTE o endereco do CLIENTE que recebe a conta, NAO o endereco da empresa emissora.
-Separe o numero da rua: campo "endereco" = nome da rua/av sem numero, campo "numero" = apenas o numero.
-Retorne SOMENTE JSON valido: {"endereco": "AV/RUA NOME", "numero": "123", "complemento": "APTO 10", "bairro": "NOME BAIRRO", "cidade": "CIDADE", "estado": "UF"}
-Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
-      );
-      if (dados.endereco)    setNovoEndereco(String(dados.endereco).toUpperCase().trim());
-      if (dados.numero)      setNovoNumero(String(dados.numero).trim());
-      if (dados.complemento) setNovoComplemento(String(dados.complemento).toUpperCase().trim());
-      if (dados.bairro)      setNovoBairro(String(dados.bairro).toUpperCase().trim());
-      if (dados.cidade)      setNovoCidade(String(dados.cidade).toUpperCase().trim());
-      if (dados.estado)      setNovoEstado(String(dados.estado).toUpperCase().trim().slice(0, 2));
-      setOcrEndStatus("ok");
-    } catch (e) {
-      console.error("[OCR Endereço] erro:", e);
-      setOcrEndStatus("erro");
-    } finally {
-      setOcrEndLoading(false);
-    }
-  };
-  // ────────────────────────────────────────────────────────────────────────────
-
   const resetNovo = () => {
     setNovoNome(""); setNovoCpf(""); setNovoEndereco(""); setNovoNumero("");
     setNovoComplemento(""); setNovoBairro(""); setNovoCidade(""); setNovoEstado("");
     setNovoTipos([]); setNovoArmas([]);
     setNovoPsicoFile(null); setNovoPsicoUrl(null);
     setCacBusca(""); setCacDropOpen(false); setCacSelecionado(null);
-    setOcrLoading(false); setOcrStatus("idle");
-    setOcrEndLoading(false); setOcrEndStatus("idle");
   };
 
   const handleNovoPsico = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -874,53 +730,6 @@ Tudo em MAIUSCULAS. Se nao encontrar um campo use "".`
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* ── IA uploads ── */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* CNH / RG */}
-              <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
-                ${ocrLoading ? "border-primary/40 bg-primary/5" : ocrStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
-                <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrLoading}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCR(f); e.target.value = ""; }} />
-                {ocrLoading ? (
-                  <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-primary text-center">Analisando...</span></>
-                ) : ocrStatus === "ok" ? (
-                  <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Nome e CPF<br/>extraídos!</span></>
-                ) : ocrStatus === "erro" ? (
-                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Erro.<br/>Preencha manual.</span></>
-                ) : (
-                  <><Upload className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground text-center"><strong>CNH / RG</strong><br/>Nome e CPF</span></>
-                )}
-              </label>
-
-              {/* Comprovante de endereço */}
-              <label className={`flex flex-col items-center justify-center gap-1.5 border-2 border-dashed rounded-lg p-3 cursor-pointer transition-colors min-h-[80px]
-                ${ocrEndLoading ? "border-primary/40 bg-primary/5" : ocrEndStatus === "ok" ? "border-green-500/50 bg-green-500/5" : ocrEndStatus === "erro" ? "border-destructive/40 bg-destructive/5" : "border-border/50 hover:border-primary/40 hover:bg-primary/5"}`}>
-                <input type="file" accept="image/*,application/pdf" className="hidden" disabled={ocrEndLoading}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) extrairOCREndereco(f); e.target.value = ""; }} />
-                {ocrEndLoading ? (
-                  <><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-[10px] text-primary text-center">Analisando...</span></>
-                ) : ocrEndStatus === "ok" ? (
-                  <><span className="text-base">✓</span><span className="text-[10px] text-green-500 font-medium text-center">Endereço<br/>extraído!</span></>
-                ) : ocrEndStatus === "erro" ? (
-                  <><span className="text-base">⚠</span><span className="text-[10px] text-destructive text-center">Erro.<br/>Preencha manual.</span></>
-                ) : (
-                  <><Upload className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground text-center"><strong>Comp. Endereço</strong><br/>Rua, Bairro, Cidade</span></>
-                )}
-              </label>
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center -mt-1">IA lê foto (📷) ou PDF e preenche automaticamente</p>
-
-            {/* divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 border-t border-border/40" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">ou preencher manualmente</span>
-              <div className="flex-1 border-t border-border/40" />
             </div>
 
             <div className="space-y-1">
