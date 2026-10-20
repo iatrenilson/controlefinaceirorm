@@ -89,14 +89,16 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
   const podeColorir = !!modelo && isPdf;
   const [colorido, setColorido] = useState<DocColorido | "erro" | null>(null);
 
+  // CR/CRAF: original e colorido saem do mesmo renderizador, na mesma escala, para a chave só trocar as cores
   useEffect(() => {
-    if (!podeColorir || !colorir || !modelo) return;
+    if (!podeColorir || !modelo) return;
     let vivo = true;
     docColorido(url, modelo).then(r => { if (vivo) setColorido(r ?? "erro"); }, () => { if (vivo) setColorido("erro"); });
     return () => { vivo = false; };
-  }, [url, modelo, colorir, podeColorir]);
+  }, [url, modelo, podeColorir]);
 
-  const mostrarColorido = podeColorir && colorir && colorido !== "erro";
+  const usarRender = podeColorir && colorido !== "erro";
+  const mostrarColorido = usarRender && colorir;
   return (
     <div
       onClick={e => e.target === e.currentTarget && onClose()}
@@ -105,7 +107,7 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
         <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>
         <div style={{ display:"flex", gap:8, flexShrink:0, alignItems:"center" }}>
-          {podeColorir && <ChaveColorir ligada={colorir} onChange={onColorir} />}
+          {usarRender && <ChaveColorir ligada={colorir} onChange={onColorir} />}
           <button onClick={() => baixarDoc(url, nome, mostrarColorido ? modelo : undefined)}
             style={{ padding:"6px 14px", background:"#c9a227", color:"#0a0b0f", borderRadius:8, border:"none", fontSize:12, fontWeight:700, cursor:"pointer" }}>
             ⬇ Baixar
@@ -116,11 +118,12 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
           </button>
         </div>
       </div>
-      <div style={{ flex:1, overflow: mostrarColorido ? "auto" : "hidden", display:"flex", alignItems:"center", justifyContent:"center", padding:8 }}>
-        {mostrarColorido
+      <div style={{ flex:1, overflow: usarRender ? "auto" : "hidden", display:"flex", alignItems: usarRender ? "flex-start" : "center", justifyContent:"center", padding:8 }}>
+        {usarRender
           ? colorido
-            ? <img src={colorido.previa} alt={`${nome} colorido`} style={{ width:"100%", maxWidth:900, height:"auto", margin:"auto", borderRadius:8, background:"#fff" }} />
-            : <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>Colorindo...</p>
+            ? <img src={colorir ? colorido.previa : colorido.previaOriginal} alt={colorir ? `${nome} colorido` : nome}
+                style={{ width:"100%", height:"auto", display:"block", borderRadius:4, background:"#fff" }} />
+            : <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>{colorir ? "Colorindo..." : "Carregando..."}</p>
           : isPdf
             ? <iframe src={viewerUrl} title={nome} style={{ width:"100%", height:"100%", border:"none", borderRadius:8, background:"#fff" }} />
             : <img src={url} alt={nome} style={{ maxWidth:"100%", maxHeight:"100%", borderRadius:8, objectFit:"contain" }} />

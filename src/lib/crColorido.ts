@@ -184,7 +184,8 @@ function molduraArredondada(L: any, r: Ret, pad: number, cores: [RGB, RGB, RGB])
   return ops;
 }
 
-async function previa(pdfjs: any, bytes: Uint8Array, ateY: number): Promise<string> {
+// Página inteira, na mesma escala para o original e o colorido
+async function previa(pdfjs: any, bytes: Uint8Array): Promise<string> {
   const pdf = await pdfjs.getDocument({ data: bytes }).promise;
   try {
     const page = await pdf.getPage(1);
@@ -194,19 +195,15 @@ async function previa(pdfjs: any, bytes: Uint8Array, ateY: number): Promise<stri
     const ctx = c.getContext("2d")!;
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
     await page.render({ canvasContext: ctx, viewport: vp }).promise;
-    const corte = Math.min(c.height, Math.ceil(vp.convertToViewportPoint(0, ateY)[1]));
-    const out = document.createElement("canvas");
-    out.width = c.width; out.height = corte;
-    out.getContext("2d")!.drawImage(c, 0, 0);
+    const blob = await new Promise<Blob>((ok, erro) => c.toBlob(b => (b ? ok(b) : erro(new Error("falha ao gerar prévia"))), "image/png"));
     c.width = c.height = 0;
-    const blob = await new Promise<Blob>((ok, erro) => out.toBlob(b => (b ? ok(b) : erro(new Error("falha ao gerar prévia"))), "image/png"));
     return URL.createObjectURL(blob);
   } finally {
     await pdf.destroy();
   }
 }
 
-export interface DocColorido { previa: string; pdf: Blob }
+export interface DocColorido { previa: string; previaOriginal: string; pdf: Blob }
 
 // null = o PDF não tem o layout do SisGCorp (frente e verso com borda decorativa)
 async function gerar(pdfUrl: string, modelo: ModeloDoc): Promise<DocColorido | null> {
@@ -252,10 +249,8 @@ async function gerar(pdfUrl: string, modelo: ModeloDoc): Promise<DocColorido | n
   page.pushOperators(...molduraArredondada(L, frente, pad, estilo.moldura), ...molduraArredondada(L, verso, pad, estilo.moldura));
 
   const colorido: Uint8Array = await doc.save();
-  return {
-    previa: await previa(pdfjs, colorido.slice(), verso.y0 - pad - 18),
-    pdf: new Blob([colorido], { type: "application/pdf" }),
-  };
+  const [previaColorida, previaOriginal] = await Promise.all([previa(pdfjs, colorido.slice()), previa(pdfjs, original.slice())]);
+  return { previa: previaColorida, previaOriginal, pdf: new Blob([colorido], { type: "application/pdf" }) };
 }
 
 const cache = new Map<string, Promise<DocColorido | null>>();
