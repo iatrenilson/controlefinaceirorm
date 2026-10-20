@@ -140,7 +140,14 @@ export default function CarteiraCliente() {
   const [erro, setErro] = useState(false);
   const [preview, setPreview] = useState<{ url: string; nome: string; modelo?: ModeloDoc } | null>(null);
   const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
-  const [colorir, setColorir] = useState(false);
+  // A chave fica lembrada neste aparelho até ser desligada
+  const [colorir, setColorirEstado] = useState<boolean>(() => {
+    try { return localStorage.getItem("carteira_colorir") === "1"; } catch { return false; }
+  });
+  const setColorir = (v: boolean) => {
+    setColorirEstado(v);
+    try { localStorage.setItem("carteira_colorir", v ? "1" : "0"); } catch { /* armazenamento bloqueado: vale só nesta visita */ }
+  };
   const [baixando, setBaixando] = useState<string | null>(null);
 
   useEffect(() => {

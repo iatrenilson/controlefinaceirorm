@@ -37,6 +37,16 @@ function carregarScript(src: string, global: string): Promise<any> {
 const carregarPDFJS = () => carregarScript(PDFJS, "pdfjsLib").then(lib => { lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; return lib; });
 const carregarPDFLib = () => carregarScript(PDFLIB, "PDFLib");
 
+// onload em vez de img.decode(): o decode() do Chrome só conclui quando a página desenha um quadro
+function carregarImagem(src: string): Promise<HTMLImageElement> {
+  return new Promise((ok, erro) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = () => erro(new Error("brasão não carregou"));
+    img.src = src;
+  });
+}
+
 function mulM(m: Matriz, n: Matriz): Matriz {
   return [
     m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
@@ -226,13 +236,11 @@ export interface DocColorido { previa: string; previaOriginal: string; pdf: Blob
 // null = o PDF não tem o layout do SisGCorp (frente e verso com borda decorativa)
 async function gerar(pdfUrl: string, modelo: ModeloDoc): Promise<DocColorido | null> {
   const estilo = ESTILO[modelo];
-  const brasao = new Image();
-  brasao.src = BRASAO;
-  const [pdfjs, L, original] = await Promise.all([
+  const [pdfjs, L, original, brasao] = await Promise.all([
     carregarPDFJS(),
     carregarPDFLib(),
     fetch(pdfUrl).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); }).then(b => new Uint8Array(b)),
-    brasao.decode(),
+    carregarImagem(BRASAO),
   ]);
 
   const doc0 = await pdfjs.getDocument({ data: original.slice() }).promise;
