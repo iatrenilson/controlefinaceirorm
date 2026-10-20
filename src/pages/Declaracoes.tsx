@@ -1355,8 +1355,13 @@ END $$;`
       if (d.estadoCivil) novos.estadoCivil = d.estadoCivil;
       const n = Object.keys(novos).length;
       if (n > 0) {
-        setFormCliente(prev => ({ ...prev, ...novos }));
-        sonnerToast.success(`✓ ${n} campo(s) preenchido(s) a partir do documento. Confira antes de salvar.`);
+        // o "SSP-AM" padrão não pode parecer lido do documento
+        setFormCliente(prev => ({
+          ...prev, ...novos,
+          ...(!d.orgaoEmissor && prev.orgaoEmissor === EMPTY_CLIENTE.orgaoEmissor ? { orgaoEmissor: "" } : {}),
+        }));
+        sonnerToast.success(`✓ ${n} campo(s) preenchido(s) a partir do documento. Confira antes de salvar.`
+          + (d.orgaoEmissor ? "" : " Órgão emissor não encontrado no documento: preencha à mão."));
       } else {
         sonnerToast.warning("Não consegui ler os dados. Envie o PDF original da CNH/RG ou uma foto mais nítida.");
       }

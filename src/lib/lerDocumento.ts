@@ -10,6 +10,7 @@ export interface DadosDocumento {
   nome?: string; cpf?: string; rg?: string; rgEhCpf?: boolean; orgaoEmissor?: string; dataExpedicao?: string;
   dataNascimento?: string; localNascimento?: string; ufNascimento?: string;
   nomePai?: string; nomeMae?: string; estadoCivil?: string; filiacaoUnica?: boolean;
+  ufOrgao?: string; siglaOrgao?: string;
 }
 
 const scripts: Record<string, Promise<any>> = {};
@@ -99,6 +100,22 @@ function filiacao(r: DadosDocumento, nomes: string[]) {
   const [a, b] = nomes;
   if (ehFeminino(a) && !ehFeminino(b)) { r.nomeMae = a; r.nomePai = b; } else { r.nomePai = a; r.nomeMae = b; }
 }
+
+// Estado emissor do RG/CIN pelo cabeçalho ("ESTADO DE AMAZONAS"); nomes compostos primeiro
+const UF_POR_ESTADO: [string, string][] = [
+  ["MATO GROSSO DO SUL", "MS"], ["RIO GRANDE DO NORTE", "RN"], ["RIO GRANDE DO SUL", "RS"], ["DISTRITO FEDERAL", "DF"],
+  ["ESPIRITO SANTO", "ES"], ["MINAS GERAIS", "MG"], ["RIO DE JANEIRO", "RJ"], ["SANTA CATARINA", "SC"], ["SAO PAULO", "SP"],
+  ["MATO GROSSO", "MT"], ["ACRE", "AC"], ["ALAGOAS", "AL"], ["AMAPA", "AP"], ["AMAZONAS", "AM"], ["BAHIA", "BA"],
+  ["CEARA", "CE"], ["GOIAS", "GO"], ["MARANHAO", "MA"], ["PARAIBA", "PB"], ["PARANA", "PR"], ["PARA", "PA"],
+  ["PERNAMBUCO", "PE"], ["PIAUI", "PI"], ["RONDONIA", "RO"], ["RORAIMA", "RR"], ["SERGIPE", "SE"], ["TOCANTINS", "TO"],
+];
+const RE_ESTADO = new RegExp(`\\bESTADO\\s+D[EOA]S?\\s+(${UF_POR_ESTADO.map(([n]) => n).join("|")})\\b`);
+// Sigla do órgão pelo nome impresso no RG
+const SIGLA_POR_NOME: [RegExp, string][] = [
+  [/SEGURANCA\s+PUBLICA/, "SSP"], [/POLICIA\s+CIVIL/, "PC"], [/DEFESA\s+SOCIAL/, "SDS"],
+  [/FELIX\s+PACHECO/, "IFP"], [/INSTITUTO\s+GERAL\s+DE\s+PERICIAS/, "IGP"], [/DETRAN|DEPARTAMENTO\s+(?:ESTADUAL\s+)?DE\s+TRANSITO/, "DETRAN"],
+];
+const SIGLAS = "SSP|SESP|SEJUSP|SSPDS|SDS|SESDC|SSPC|PC|DETRAN|DPF|SPTC|IFP|IGP|ITEP|DGPC|POLITEC|SEGUP|SJS|SECC|PCAM|MD";
 
 const ESTADO_CIVIL: [RegExp, string][] = [
   [/SOLTEIR/i, "Solteiro(a)"], [/CASAD/i, "Casado(a)"], [/DIVORCIAD/i, "Divorciado(a)"],
@@ -208,6 +225,17 @@ export function extrairCampos(texto: string): DadosDocumento {
       }
     }
   }
+  // RG/CIN: sigla escrita ("SSP/PA"); senão, estado do cabeçalho + órgão pelo nome. A CNH fica de fora:
+  // nela o estado do cabeçalho é o do DETRAN, e o órgão do RG vem da linha "DOC IDENTIDADE / ÓRG EMISSOR / UF"
+  if (!ehCNH) {
+    const sa = semAcento(texto.toUpperCase());
+    const escrita = sa.match(new RegExp(`\\b(${SIGLAS})\\s*[/\\-]\\s*(${UF})\\b`));
+    if (escrita && !r.orgaoEmissor) r.orgaoEmissor = `${escrita[1]}-${escrita[2]}`;
+    const est = sa.match(RE_ESTADO);
+    if (est) r.ufOrgao = UF_POR_ESTADO.find(([n]) => n === est[1])![1];
+    const sigla = SIGLA_POR_NOME.find(([re]) => re.test(sa));
+    if (sigla) r.siglaOrgao = sigla[1];
+  }
   if (r.rgEhCpf && r.cpf) r.rg = r.cpf;
   return r;
 }
@@ -256,6 +284,13 @@ function nomeComAcento(nomeMRZ: string, textos: string[]): string {
 const mesclar = (destino: DadosDocumento, fonte: DadosDocumento) => {
   for (const [k, v] of Object.entries(fonte) as [keyof DadosDocumento, never][]) if (v && !destino[k]) destino[k] = v;
 };
+// Sem sigla escrita no RG/CIN: estado emissor do cabeçalho + sigla pelo nome do órgão (a CIN só imprime o nome do instituto)
+function finalizar(r: DadosDocumento): DadosDocumento {
+  if (!r.orgaoEmissor && r.ufOrgao) r.orgaoEmissor = `${r.siglaOrgao ?? "SSP"}-${r.ufOrgao}`;
+  if (r.rgEhCpf && r.cpf) r.rg ||= r.cpf;
+  return r;
+}
+
 const completo = (r: DadosDocumento) =>
   !!(r.nome && r.cpf && r.dataNascimento && r.localNascimento && ((r.nomePai && r.nomeMae) || (r.filiacaoUnica && (r.nomePai || r.nomeMae))));
 
@@ -367,7 +402,7 @@ export async function lerDocumento(file: File, progresso?: (msg: string) => void
       const u = URL.createObjectURL(file); urls.push(u);
       imagens = [await carregarImagem(u)];
     }
-    if (completo(r) || !imagens.length) return r;
+    if (completo(r) || !imagens.length) return finalizar(r);
 
     const Tesseract = await tesseractPromise;
     progresso?.("Preparando leitura...");
@@ -391,8 +426,7 @@ export async function lerDocumento(file: File, progresso?: (msg: string) => void
     }
     if (!r.nome && mrz.nome) r.nome = nomeComAcento(mrz.nome, textos);
     mesclar(r, mrz);
-    if (r.rgEhCpf && r.cpf) r.rg ||= r.cpf;
-    return r;
+    return finalizar(r);
   } finally {
     urls.forEach(u => URL.revokeObjectURL(u));
   }
