@@ -10,6 +10,16 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
+// Chaves novas do Supabase (sb_secret / sb_publishable). As antigas anon/service_role
+// vazaram e foram desligadas; a antiga fica so de reserva se a nova nao existir.
+function chaveNova(nova: string, antiga: string): string | undefined {
+  try {
+    const chaves = JSON.parse(Deno.env.get(nova) ?? "{}");
+    if (chaves.default) return chaves.default;
+  } catch { /* usa a antiga */ }
+  return Deno.env.get(antiga);
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -237,7 +247,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   // Enqueue email for async processing by the dispatcher (process-email-queue).
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    chaveNova("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY")!
   )
 
   const messageId = crypto.randomUUID()

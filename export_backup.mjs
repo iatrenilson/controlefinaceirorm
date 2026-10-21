@@ -9,7 +9,11 @@ import archiver from "archiver";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
-const SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDE0Mjk0MiwiZXhwIjoyMDg5NzE4OTQyfQ.lfdJ0AoAqNIKWtJVFHk9IbIw887ADgOl6nUcBMEVNsA";
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SECRET_KEY; // chave secreta (sb_secret_...) do painel do Supabase
+if (!SERVICE_ROLE_KEY) {
+  console.error("Defina SUPABASE_SECRET_KEY com a chave secreta do Supabase antes de rodar.");
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 

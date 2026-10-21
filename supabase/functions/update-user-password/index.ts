@@ -1,5 +1,15 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Chaves novas do Supabase (sb_secret / sb_publishable). As antigas anon/service_role
+// vazaram e foram desligadas; a antiga fica so de reserva se a nova nao existir.
+function chaveNova(nova: string, antiga: string): string | undefined {
+  try {
+    const chaves = JSON.parse(Deno.env.get(nova) ?? "{}");
+    if (chaves.default) return chaves.default;
+  } catch { /* usa a antiga */ }
+  return Deno.env.get(antiga);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,7 +32,7 @@ Deno.serve(async (req) => {
     // Verify caller is admin or moderator
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      chaveNova("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
@@ -66,7 +76,7 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      chaveNova("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 

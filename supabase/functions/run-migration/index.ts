@@ -1,6 +1,16 @@
 import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Chaves novas do Supabase (sb_secret / sb_publishable). As antigas anon/service_role
+// vazaram e foram desligadas; a antiga fica so de reserva se a nova nao existir.
+function chaveNova(nova: string, antiga: string): string | undefined {
+  try {
+    const chaves = JSON.parse(Deno.env.get(nova) ?? "{}");
+    if (chaves.default) return chaves.default;
+  } catch { /* usa a antiga */ }
+  return Deno.env.get(antiga);
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -21,7 +31,7 @@ Deno.serve(async (req) => {
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      chaveNova("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY")!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
     const { data: { user } } = await supabaseClient.auth.getUser(token);

@@ -1,6 +1,16 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// Chaves novas do Supabase (sb_secret / sb_publishable). As antigas anon/service_role
+// vazaram e foram desligadas; a antiga fica so de reserva se a nova nao existir.
+function chaveNova(nova: string, antiga: string): string | undefined {
+  try {
+    const chaves = JSON.parse(Deno.env.get(nova) ?? "{}");
+    if (chaves.default) return chaves.default;
+  } catch { /* usa a antiga */ }
+  return Deno.env.get(antiga);
+}
+
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
@@ -46,7 +56,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 Deno.serve(async (req) => {
   const apiKey = Deno.env.get('LOVABLE_API_KEY')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const supabaseServiceKey = chaveNova("SUPABASE_SECRET_KEYS", "SUPABASE_SERVICE_ROLE_KEY")
 
   if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')

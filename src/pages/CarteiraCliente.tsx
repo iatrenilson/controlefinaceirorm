@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1YmttZWNweGJzZHBodG13dnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDI5NDIsImV4cCI6MjA4OTcxODk0Mn0.Y72dKZFiqCh-CMNLMyi5Yg7lOLGT4BsODQQO0FSD54E";
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const BUCKET = "carteira-docs";
 
 const TIPOS = [
