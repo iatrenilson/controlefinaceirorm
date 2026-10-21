@@ -6,27 +6,26 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
-# Os backups têm dados de clientes: ficam só no repositório PRIVADO iatrenilson/rw-backups,
-# nunca neste repositório (que é público por causa do GitHub Pages).
-# BACKUP_DEPLOY_KEY = chave SSH com escrita só no rw-backups (deploy key).
+# Os backups têm dados de clientes e este repositório é público (GitHub Pages).
+# Por isso cada backup é salvo TRANCADO com o cadeado .github/backup-cert.pem;
+# só a chave guardada no Google Drive do dono abre:
+#   openssl cms -decrypt -binary -inform DER -in ARQUIVO.tar.gz.enc -inkey CHAVE.pem | tar -xz
 jobs:
   backup:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rw-backups
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: iatrenilson/rw-backups
-          ssh-key: ${{ secrets.BACKUP_DEPLOY_KEY }}
-          path: rw-backups
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Exportar dados do Supabase
         run: |
-          mkdir -p backups
+          echo "DIA=$(date +%Y-%m-%d)" >> "$GITHUB_ENV"
+          DIA=$(date +%Y-%m-%d)
+          DADOS="$RUNNER_TEMP/dados"
+          mkdir -p "$DADOS"
 
           TABLES=("delay_clientes" "delay_transacoes" "delay_share_links" "clientes" "financeiro" "profiles" "wallet_transactions")
 
@@ -35,8 +34,8 @@ jobs:
               "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/${TABLE}?select=*" \
               -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
               -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-              > "backups/${TABLE}_$(date +%Y-%m-%d).json"
-            echo "Exportado: ${TABLE}"
+              > "$DADOS/${TABLE}_${DIA}.json"
+            echo "Exportado: ${TABLE} ($(wc -c < "$DADOS/${TABLE}_${DIA}.json") bytes)"
           done
 
           # Check auth users
@@ -44,10 +43,23 @@ jobs:
             "${{ secrets.VITE_SUPABASE_URL }}/auth/v1/admin/users?per_page=50" \
             -H "apikey: ${{ secrets.SUPABASE_SERVICE_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
-            > "backups/auth_users_$(date +%Y-%m-%d).json"
+            > "$DADOS/auth_users_${DIA}.json"
           echo "Auth users exportado"
 
-      - name: Salvar backup no repositório privado
+          if grep -qs '"Invalid API key"' "$DADOS"/*.json; then
+            echo "::warning::Supabase recusou a chave (SUPABASE_SERVICE_KEY): o backup de hoje não tem os dados."
+          fi
+
+      - name: Trancar o backup
+        run: |
+          mkdir -p backups
+          tar -czf "$RUNNER_TEMP/backup.tar.gz" -C "$RUNNER_TEMP/dados" .
+          openssl cms -encrypt -binary -aes256 -outform DER \
+            -in "$RUNNER_TEMP/backup.tar.gz" \
+            -out "backups/backup_${DIA}.tar.gz.enc" \
+            .github/backup-cert.pem
+
+      - name: Salvar backup no repositório
         run: |
           git config user.name "Backup Bot"
           git config user.email "backup@rwinvestimentos.com.br"
