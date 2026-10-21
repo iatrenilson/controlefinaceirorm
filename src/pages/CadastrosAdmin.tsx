@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
 import { CADASTRO_GERAL_ATIVO } from "@/lib/constants";
-import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, ClipboardList, Upload, Share2, ToggleLeft, ToggleRight, PlusCircle } from "lucide-react";
+import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, ClipboardList, ChevronLeft, ChevronRight, Upload, Share2, ToggleLeft, ToggleRight, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,12 +94,18 @@ const checkboxStyle = (checked: boolean): React.CSSProperties => ({
 interface Colaborador { id: string; nome: string; token: string; ativo: boolean; created_at: string; }
 
 // ── Lista de prova ────────────────────────────────────────────────────────
-const DIAS_SEMANA = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+// Provas só às quartas. Para a quarta Q: o que foi cadastrado de sábado (Q-4) até terça (Q-1)
+// sai para emissão na quarta; de quarta até sexta (Q+2), para emissão no sábado.
+// Cadastro de sábado em diante já entra na lista da quarta seguinte.
 const SERVICO_LISTA: Record<string, string> = { "SINARM CAC": "CR", "SINARM POSSE": "Posse", "SINARM PORTE": "Porte" };
 const PARTICULAS = ["da", "de", "do", "das", "dos", "e"];
 
+const somaDias = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+// quarta da semana (domingo a sábado) que contém o dia
+const quartaDaSemana = (d: Date) => somaDias(d, 3 - d.getDay());
 const diaLocal = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const diaMes = (d: Date) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 
 // "RICARDO DE MATOS CUNHA" → "Ricardo de Matos Cunha"
 const nomeProprio = (nome: string) =>
@@ -125,49 +131,47 @@ function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
   cadastros: CacCadastro[];
   colaboradores: Colaborador[];
 }) {
-  const [data, setData] = useState(() => diaLocal(new Date()));
+  const [quarta, setQuarta] = useState(() => quartaDaSemana(new Date()));
   const [local, setLocal] = useState(() => { try { return localStorage.getItem("lista_prova_local") ?? "JULIET"; } catch { return "JULIET"; } });
   const [desmarcados, setDesmarcados] = useState<string[]>([]);
-  const [extras, setExtras] = useState<string[]>([]);
-  const [obs, setObs] = useState<Record<string, string>>({});
-  const [buscaExtra, setBuscaExtra] = useState("");
   const [editado, setEditado] = useState<string | null>(null);
 
   useEffect(() => { try { localStorage.setItem("lista_prova_local", local); } catch { /* sem storage */ } }, [local]);
 
+  // sempre abre na semana atual, com a lista montada de novo
+  useEffect(() => {
+    if (!open) return;
+    setQuarta(quartaDaSemana(new Date()));
+    setDesmarcados([]);
+    setEditado(null);
+  }, [open]);
+
   const nomeColab = (c: CacCadastro) => colaboradores.find(x => x.token === c.colaborador_token)?.nome.trim() || "";
 
-  const clientes = cadastros
-    .filter(c => diaLocal(new Date(c.created_at)) === data || extras.includes(c.id))
+  const sabado = somaDias(quarta, -4), terca = somaDias(quarta, -1), sexta = somaDias(quarta, 2);
+  const diaDo = (c: CacCadastro) => diaLocal(new Date(c.created_at));
+  const daSemana = cadastros
+    .filter(c => diaDo(c) >= diaLocal(sabado) && diaDo(c) <= diaLocal(sexta))
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  const selecionados = clientes.filter(c => !desmarcados.includes(c.id));
+  const grupos = [
+    { titulo: "Emissão na quarta", de: sabado, ate: terca, nota: "", itens: daSemana.filter(c => diaDo(c) <= diaLocal(terca)) },
+    { titulo: "Emissão no sábado", de: quarta, ate: sexta, nota: "Emissão no sábado", itens: daSemana.filter(c => diaDo(c) > diaLocal(terca)) },
+  ];
+  const selecionados = grupos.flatMap(g => g.itens.filter(c => !desmarcados.includes(c.id)).map(c => ({ c, nota: g.nota })));
 
-  const [ano, mes, dia] = data.split("-");
-  const semana = DIAS_SEMANA[new Date(+ano, +mes - 1, +dia).getDay()];
   const gerado = [
-    `📍 LISTA DE PROVA ${semana}${local.trim() ? ` NO ${local.trim()}` : ""} (${dia}.${mes}.${ano.slice(2)})`,
-    ...selecionados.map((c, i) => {
-      const colab = nomeColab(c);
-      const nota = (obs[c.id] || "").trim();
-      return [`${i + 1}) ${nomeProprio(c.nome)}`, colab && `(${colab})`, servicoDaLista(c), nota && `[${nota}]`].filter(Boolean).join(" ");
-    }),
+    `📍 LISTA DE PROVA QUARTA${local.trim() ? ` NO ${local.trim()}` : ""} (${diaMes(quarta).replace("/", ".")}.${String(quarta.getFullYear()).slice(2)})`,
+    ...selecionados.map(({ c, nota }, i) =>
+      [`${i + 1}) ${nomeProprio(c.nome)}`, nomeColab(c) && `(${nomeColab(c)})`, servicoDaLista(c), nota && `[${nota}]`].filter(Boolean).join(" ")),
   ].join("\n\n");
 
-  // o texto pode ser ajustado à mão; volta a ser montado quando muda dia, local, clientes ou observações
+  // o texto pode ser ajustado à mão; volta a ser montado quando muda semana, local ou clientes
   useEffect(() => { setEditado(null); }, [gerado]);
   const texto = editado ?? gerado;
 
-  const trocarDia = (v: string) => {
-    if (!v) return;
-    setData(v); setDesmarcados([]); setExtras([]); setBuscaExtra("");
-  };
+  const mudarSemana = (n: number) => { setQuarta(q => somaDias(q, n)); setDesmarcados([]); };
   const alternar = (id: string) => setDesmarcados(l => l.includes(id) ? l.filter(x => x !== id) : [...l, id]);
-
-  const cpfBusca = buscaExtra.replace(/\D/g, "");
-  const resultadosExtra = buscaExtra.trim()
-    ? cadastros.filter(c => !clientes.some(x => x.id === c.id) &&
-        (norm(c.nome).includes(norm(buscaExtra)) || (cpfBusca.length > 0 && (c.cpf || "").replace(/\D/g, "").includes(cpfBusca)))).slice(0, 6)
-    : [];
+  const estaSemana = diaLocal(quarta) === diaLocal(quartaDaSemana(new Date()));
 
   const copiar = () => navigator.clipboard.writeText(texto).then(
     () => toast.success("Lista copiada! É só colar no WhatsApp."),
@@ -177,7 +181,7 @@ function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardList className="h-4 w-4 text-primary" />
@@ -185,61 +189,52 @@ function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Dia da prova ({semana})</Label>
-              <Input type="date" value={data} onChange={e => trocarDia(e.target.value)} className="h-9 text-sm" />
+          <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 p-2">
+            <Button variant="ghost" size="icon" onClick={() => mudarSemana(-7)} title="Semana anterior" className="h-8 w-8 shrink-0">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex-1 min-w-0 text-center">
+              <p className="text-sm font-semibold">Prova de quarta, {diaMes(quarta)}/{quarta.getFullYear()}</p>
+              <p className="text-[11px] text-muted-foreground">
+                Cadastros de {diaMes(sabado)} a {diaMes(sexta)}{estaSemana ? " · esta semana" : ""}
+              </p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Local</Label>
-              <Input value={local} onChange={e => setLocal(e.target.value.toUpperCase())} placeholder="EX: JULIET" className="h-9 text-sm" />
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => mudarSemana(7)} title="Próxima semana" className="h-8 w-8 shrink-0">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">Cadastros dos colaboradores neste dia ({selecionados.length} na lista)</Label>
-            {clientes.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border">Nenhum cadastro neste dia.</p>
-            ) : clientes.map(c => {
-              const marcado = !desmarcados.includes(c.id);
-              return (
-                <div key={c.id} className={`rounded-lg border p-2.5 space-y-2 transition-colors ${marcado ? "border-primary/30 bg-primary/5" : "border-border/60 opacity-60"}`}>
-                  <div className="flex items-start gap-2.5 cursor-pointer" onClick={() => alternar(c.id)}>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs shrink-0">Local</Label>
+            <Input value={local} onChange={e => setLocal(e.target.value.toUpperCase())} placeholder="EX: JULIET" className="h-8 text-sm" />
+          </div>
+
+          {grupos.map(g => (
+            <div key={g.titulo} className="space-y-2">
+              <Label className="text-xs">
+                {g.titulo} <span className="font-normal text-muted-foreground">· cadastros de {diaMes(g.de)} a {diaMes(g.ate)} ({g.itens.length})</span>
+              </Label>
+              {g.itens.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3 rounded-lg border border-dashed border-border">Nenhum cadastro.</p>
+              ) : g.itens.map(c => {
+                const marcado = !desmarcados.includes(c.id);
+                return (
+                  <div key={c.id} onClick={() => alternar(c.id)}
+                    className={`flex items-start gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors ${marcado ? "border-primary/30 bg-primary/5" : "border-border/60 opacity-60"}`}>
                     <div style={checkboxStyle(marcado)} className="mt-0.5">
                       {marcado && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{nomeProprio(c.nome)}</p>
-                      <p className="text-[11px] text-muted-foreground">{[nomeColab(c), servicoDaLista(c)].filter(Boolean).join(" · ") || "Sem serviço marcado"}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {[nomeColab(c), servicoDaLista(c), new Date(c.created_at).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })].filter(Boolean).join(" · ")}
+                      </p>
                     </div>
                   </div>
-                  {marcado && (
-                    <Input value={obs[c.id] || ""} onChange={e => setObs(o => ({ ...o, [c.id]: e.target.value }))}
-                      placeholder="Observação (opcional) — ex: Emissão no sábado" className="h-8 text-xs" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input value={buscaExtra} onChange={e => setBuscaExtra(e.target.value)} placeholder="Adicionar cliente de outro dia (nome ou CPF)..." className="pl-8 h-9 text-sm" />
+                );
+              })}
             </div>
-            {resultadosExtra.map(c => (
-              <button key={c.id} type="button" onClick={() => { setExtras(l => [...l, c.id]); setBuscaExtra(""); }}
-                className="w-full text-left px-3 py-2 rounded-md border border-border/60 hover:bg-muted text-sm transition-colors">
-                <span className="font-medium">{nomeProprio(c.nome)}</span>
-                <span className="text-[11px] text-muted-foreground ml-2">
-                  {new Date(c.created_at).toLocaleDateString("pt-BR")}{nomeColab(c) ? ` · ${nomeColab(c)}` : ""}
-                </span>
-              </button>
-            ))}
-            {buscaExtra.trim() && resultadosExtra.length === 0 && (
-              <p className="text-xs text-muted-foreground px-1">Nenhum cliente encontrado.</p>
-            )}
-          </div>
+          ))}
 
           <div className="space-y-1">
             <Label className="text-xs">Texto da lista (dá para ajustar antes de copiar)</Label>
