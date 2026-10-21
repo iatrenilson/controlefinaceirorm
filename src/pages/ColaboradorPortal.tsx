@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
+import { lerLaudo } from "@/lib/lerDocumento";
 import { toast } from "sonner";
 
 const GOLD = "#c9a227";
@@ -80,6 +81,7 @@ export default function ColaboradorPortal() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingPsico, setUploadingPsico] = useState(false);
+  const [lendoLaudo, setLendoLaudo] = useState(false);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
 
@@ -110,6 +112,20 @@ export default function ColaboradorPortal() {
     if (!file) return;
     setForm(f => ({ ...f, psicoFile: file, psicoUrl: null }));
     setUploadingPsico(true);
+    // lê nome e CPF do avaliado enquanto o arquivo sobe; só preenche campos vazios
+    setLendoLaudo(true);
+    lerLaudo(file)
+      .then(d => {
+        if (!d.nome && !d.cpf) { toast.info("Não encontrei nome e CPF no laudo. Preencha à mão."); return; }
+        setForm(f => ({
+          ...f,
+          nome: f.nome.trim() || !d.nome ? f.nome : d.nome,
+          cpf: f.cpf.trim() || !d.cpf ? f.cpf : maskCpf(d.cpf),
+        }));
+        toast.success(d.nome && d.cpf ? "Nome e CPF preenchidos a partir do laudo." : d.nome ? "Nome preenchido a partir do laudo." : "CPF preenchido a partir do laudo.");
+      })
+      .catch(() => toast.info("Não consegui ler o laudo. Preencha nome e CPF à mão."))
+      .finally(() => setLendoLaudo(false));
     const ext = file.name.split(".").pop() || "pdf";
     const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
@@ -242,6 +258,44 @@ export default function ColaboradorPortal() {
         </div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          {/* Psicológico */}
+          <div>
+            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Psicológico</label>
+            <label style={{
+              display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
+              border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
+              borderRadius:12, padding:"28px 16px", cursor:"pointer",
+              background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
+              transition:"all .2s",
+            }}>
+              <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
+              {uploadingPsico ? (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
+                </>
+              ) : form.psicoUrl ? (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
+                  <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
+                </>
+              ) : (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
+                  <span style={{ color:"#7a6a48", fontSize:11 }}>Nome e CPF são preenchidos a partir do laudo</span>
+                </>
+              )}
+            </label>
+            {lendoLaudo && <p style={{ color:GOLD, fontSize:11, margin:"6px 0 0", textAlign:"center" }}>Lendo nome e CPF do laudo...</p>}
+          </div>
           {/* Nome */}
           <div>
             <label style={labelStyle}>Nome completo {!form.nome.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
@@ -301,42 +355,6 @@ export default function ColaboradorPortal() {
                 <CheckboxOpt key={a} checked={form.armas.includes(a)} onClick={() => toggle("armas", a)} label={a} />
               ))}
             </div>
-          </div>
-          {/* Psicológico */}
-          <div>
-            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Psicológico</label>
-            <label style={{
-              display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
-              border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
-              borderRadius:12, padding:"28px 16px", cursor:"pointer",
-              background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
-              transition:"all .2s",
-            }}>
-              <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
-              {uploadingPsico ? (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
-                </>
-              ) : form.psicoUrl ? (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
-                  <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
-                </>
-              ) : (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
-                </>
-              )}
-            </label>
           </div>
 
           <button onClick={salvar} disabled={saving || uploadingPsico} style={{

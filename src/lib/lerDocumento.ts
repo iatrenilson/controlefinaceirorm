@@ -372,13 +372,20 @@ async function textoEPaginasDoPDF(pdfjs: any, bytes: Uint8Array, renderizar: boo
     for (let n = 1; n <= Math.min(pdf.numPages, 3); n++) {
       const page = await pdf.getPage(n);
       const tc = await page.getTextContent();
-      const linhas = new Map<number, { x: number; s: string }[]>();
-      for (const it of tc.items as { str: string; transform: number[] }[]) {
+      const linhas = new Map<number, { x: number; w: number; h: number; s: string }[]>();
+      for (const it of tc.items as { str: string; transform: number[]; width: number; height: number }[]) {
         if (!it.str?.trim()) continue;
         const y = Math.round(it.transform[5] / 3);
-        (linhas.get(y) ?? linhas.set(y, []).get(y)!).push({ x: it.transform[4], s: it.str });
+        (linhas.get(y) ?? linhas.set(y, []).get(y)!).push({ x: it.transform[4], w: it.width, h: it.height || Math.abs(it.transform[3]) || 10, s: it.str });
       }
-      for (const y of [...linhas.keys()].sort((a, b) => b - a)) texto += linhas.get(y)!.sort((a, b) => a.x - b.x).map(i => i.s).join(" ") + "\n";
+      // pedaços colados da mesma palavra ("Tr" + "indade") se juntam sem espaço
+      for (const y of [...linhas.keys()].sort((a, b) => b - a)) {
+        const itens = linhas.get(y)!.sort((a, b) => a.x - b.x);
+        texto += itens.map((it, k) => {
+          const ant = itens[k - 1];
+          return (ant && it.x - (ant.x + ant.w) > Math.max(0.8, ant.h * 0.2) ? " " : "") + it.s;
+        }).join("").replace(/\s+/g, " ").trim() + "\n";
+      }
       if (renderizar && n <= 2) {
         const vp = page.getViewport({ scale: 2.5 });
         const c = document.createElement("canvas");
@@ -392,6 +399,71 @@ async function textoEPaginasDoPDF(pdfjs: any, bytes: Uint8Array, renderizar: boo
     return { texto, paginas };
   } finally {
     await pdf.destroy();
+  }
+}
+
+// ─── Laudo psicológico: nome e CPF do avaliado ──────────────────────────────
+
+const ROTULO_LAUDO = /\b(Sexo|Estado\s+Civil|Escolaridade|Idade|CPF|Profiss[ãa]o|RG|Data|Naturalidade|Nacionalidade|Endere[çc]o)\b\s*:?/i;
+const antesDoRotulo = (s: string) => { const k = s.search(ROTULO_LAUDO); return (k >= 0 ? s.slice(0, k) : s).trim(); };
+
+// O laudo tem "Nome" e "CPF" da clínica, do avaliado e da psicóloga: vale o bloco "Identificação do Avaliado"
+export function camposDoLaudo(texto: string): { nome?: string; cpf?: string } {
+  const L = texto.split("\n").map(l => l.replace(/[|]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
+  const ini = Math.max(0, L.findIndex(l => /IDENTIFICA[ÇC][ÃA]O\s+DO\s+AVALIAD/i.test(l)));
+  const r: { nome?: string; cpf?: string } = {};
+  for (let i = ini; i < L.length && !r.nome; i++) {
+    const m = L[i].match(/\bNome(?:\s+completo)?\s*:\s*(.*)$/i);
+    if (!m) continue;
+    let nome = antesDoRotulo(m[1]);
+    // o nome longo quebra na célula: a continuação vem na linha seguinte, às vezes junto de "Sexo: ..."
+    const cont = L[i + 1] ? antesDoRotulo(L[i + 1]) : "";
+    if (cont && /^[A-Za-zÀ-ÖØ-öø-ÿ' ]+$/.test(cont) && !/\bNome\b/i.test(L[i + 1])) nome += " " + cont;
+    nome = nome.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' ]/g, " ").replace(/\s+/g, " ").trim();
+    if (nome.split(" ").length >= 2 && !/CL[IÍ]NICA|CONSULT[OÓ]RIO|LTDA|INSTITUTO/i.test(nome)) r.nome = nome.toUpperCase();
+  }
+  const resto = L.slice(ini).join("\n");
+  for (const m of resto.matchAll(/\d{3}\s?\.\s?\d{3}\s?\.\s?\d{3}\s?[-–]\s?\d{2}(?!\d)/g)) {
+    const d = m[0].replace(/\D/g, "");
+    if (cpfValido(d)) { r.cpf = d; break; }
+  }
+  return r;
+}
+
+export async function lerLaudo(file: File, progresso?: (msg: string) => void): Promise<{ nome?: string; cpf?: string }> {
+  const ehPDF = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  let imagens: (HTMLImageElement | HTMLCanvasElement)[] = [];
+  let url = "";
+  try {
+    progresso?.("Lendo o laudo...");
+    if (ehPDF) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const pdfjs = await carregarScript(PDFJS, "pdfjsLib").then(lib => { lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; return lib; });
+      const { texto } = await textoEPaginasDoPDF(pdfjs, bytes.slice(), false);
+      const r = camposDoLaudo(texto);
+      if (r.nome && r.cpf) return r;
+      imagens = (await textoEPaginasDoPDF(pdfjs, bytes.slice(), true)).paginas; // laudo escaneado
+    } else {
+      url = URL.createObjectURL(file);
+      imagens = [await carregarImagem(url)];
+    }
+    const Tesseract = await carregarScript(TESSERACT, "Tesseract");
+    const worker = await Tesseract.createWorker("por");
+    const r: { nome?: string; cpf?: string } = {};
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: "6" });
+      for (let i = 0; i < imagens.length && !(r.nome && r.cpf); i++) {
+        progresso?.(`Lendo o laudo... ${i + 1}/${imagens.length}`);
+        const { data } = await worker.recognize(prepararParaOCR(imagens[i]));
+        const c = camposDoLaudo(data.text);
+        r.nome ||= c.nome; r.cpf ||= c.cpf;
+      }
+    } finally {
+      await worker.terminate();
+    }
+    return r;
+  } finally {
+    if (url) URL.revokeObjectURL(url);
   }
 }
 
