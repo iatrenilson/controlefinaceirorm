@@ -1,14 +1,32 @@
 import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const forbidden = () =>
+  new Response(JSON.stringify({ error: "Acesso negado" }), {
+    status: 403,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Admins only: the site's public anon key also passes the default JWT check,
+    // so look up who the token belongs to
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    const { data: { user } } = await supabaseClient.auth.getUser(token);
+    if (!user) return forbidden();
+
     const body = await req.json().catch(() => ({}));
     const customSql: string | null = body.sql ?? null;
 
@@ -16,6 +34,13 @@ Deno.serve(async (req) => {
     const conn = await pool.connect();
 
     try {
+      // Check user_roles directly rather than has_role: the live database has two has_role overloads
+      const { rows: adminRows } = await conn.queryArray(
+        "SELECT 1 FROM public.user_roles WHERE user_id = $1 AND role = 'admin'",
+        [user.id]
+      );
+      if (!adminRows.length) return forbidden();
+
       // If custom SQL provided, execute it and return
       if (customSql) {
         const result = await conn.queryArray(customSql);
