@@ -260,7 +260,10 @@ export default function ColaboradorPortal() {
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           {/* Psicológico */}
           <div>
-            <label style={{ ...labelStyle, marginBottom:8, display:"block" }}>Psicológico</label>
+            <label style={{ ...labelStyle, marginBottom:4, display:"block" }}>Psicológico</label>
+            <p style={{ color:"#ffffff", fontSize:14, fontWeight:700, lineHeight:1.4, margin:"0 0 10px" }}>
+              Ao anexar o laudo psicológico, nome e CPF são preenchidos automaticamente.
+            </p>
             <label style={{
               display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
               border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
@@ -290,7 +293,6 @@ export default function ColaboradorPortal() {
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
                   <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
-                  <span style={{ color:"#7a6a48", fontSize:11 }}>Nome e CPF são preenchidos a partir do laudo</span>
                 </>
               )}
             </label>
