@@ -6,15 +6,23 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
+# Os backups têm dados de clientes: ficam só no repositório PRIVADO iatrenilson/rw-backups,
+# nunca neste repositório (que é público por causa do GitHub Pages).
+# BACKUP_DEPLOY_KEY = chave SSH com escrita só no rw-backups (deploy key).
 jobs:
   backup:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rw-backups
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: iatrenilson/rw-backups
+          ssh-key: ${{ secrets.BACKUP_DEPLOY_KEY }}
+          path: rw-backups
 
       - name: Exportar dados do Supabase
         run: |
@@ -39,7 +47,7 @@ jobs:
             > "backups/auth_users_$(date +%Y-%m-%d).json"
           echo "Auth users exportado"
 
-      - name: Salvar backup no repositório
+      - name: Salvar backup no repositório privado
         run: |
           git config user.name "Backup Bot"
           git config user.email "backup@rwinvestimentos.com.br"
