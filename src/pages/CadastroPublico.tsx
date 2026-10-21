@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
+import { CADASTRO_GERAL_ATIVO, WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
 import { toast } from "sonner";
 
 const MIGRATION_SQL = `
@@ -155,6 +155,20 @@ export default function CadastroPublico() {
   };
 
   const gold = "#c9a227";
+
+  if (!CADASTRO_GERAL_ATIVO) return (
+    <div className="bg-background" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
+      <div style={{ width: "100%", maxWidth: 440, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(201,162,39,0.2)", borderRadius: 20, padding: "28px 24px", textAlign: "center" }}>
+        <p style={{ color: gold, fontSize: 11, letterSpacing: "0.15em", fontWeight: 600, textTransform: "uppercase", margin: "0 0 16px" }}>✦ Cadastro</p>
+        <p style={{ color: "#e5e5e5", fontSize: 15, fontWeight: 600, margin: "0 0 8px" }}>Este link de cadastro está suspenso.</p>
+        <p style={{ color: "#a3a3a3", fontSize: 13, margin: "0 0 20px" }}>Peça o link de cadastro para quem está te atendendo.</p>
+        <a href={whatsappUrl(WHATSAPP_NUMBER, "Olá! Preciso do link para fazer meu cadastro.")} target="_blank" rel="noopener noreferrer"
+          style={{ display: "inline-block", padding: "10px 20px", background: "#25d366", color: "#fff", borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+          Falar com a Assessoria
+        </a>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-background" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "24px 16px" }}>

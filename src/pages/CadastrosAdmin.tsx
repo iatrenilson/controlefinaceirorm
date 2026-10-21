@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
+import { CADASTRO_GERAL_ATIVO } from "@/lib/constants";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, Upload, Share2, ToggleLeft, ToggleRight, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -541,20 +542,35 @@ export default function CadastrosAdmin() {
         <>
 
         {/* Link */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-center gap-3">
-              <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground mb-0.5">Link para enviar ao cliente</p>
-                <p className="text-sm font-mono text-primary truncate">{LINK_CADASTRO}</p>
+        {CADASTRO_GERAL_ATIVO ? (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-3">
+                <UserPlus className="h-4 w-4 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-0.5">Link para enviar ao cliente</p>
+                  <p className="text-sm font-mono text-primary truncate">{LINK_CADASTRO}</p>
+                </div>
+                <button onClick={copiarLink} className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity">
+                  <Copy className="h-3.5 w-3.5" />Copiar
+                </button>
               </div>
-              <button onClick={copiarLink} className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity">
-                <Copy className="h-3.5 w-3.5" />Copiar
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-border/40 bg-muted/10">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-3">
+                <UserPlus className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-0.5">Link geral de cadastro <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 text-[10px] font-semibold">SUSPENSO</span></p>
+                  <p className="text-sm font-mono text-muted-foreground/60 truncate line-through">{LINK_CADASTRO}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Use os links dos colaboradores (aba Colaboradores).</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filtro por colaborador ativo */}
         {filtroColab && (
