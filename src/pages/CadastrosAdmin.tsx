@@ -27,6 +27,7 @@ interface CacCadastro {
   psicologico_url: string | null;
   created_at: string;
   colaborador_token?: string | null;
+  emissao_sabado?: boolean | null;
 }
 
 const MIGRATION_SQL = `
@@ -36,6 +37,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS cidade TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS estado TEXT;
 ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS colaborador_token TEXT;
+ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS emissao_sabado BOOLEAN;
 CREATE TABLE IF NOT EXISTS public.colaboradores (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   nome TEXT NOT NULL,
@@ -97,6 +99,7 @@ interface Colaborador { id: string; nome: string; token: string; ativo: boolean;
 // Provas só às quartas. Para a quarta Q: o que foi cadastrado de sábado (Q-4) até terça (Q-1)
 // sai para emissão na quarta; de quarta até sexta (Q+2), para emissão no sábado.
 // Cadastro de sábado em diante já entra na lista da quarta seguinte.
+// Isso é só o padrão: clicando em "Sábado" na lista, a escolha fica salva no cadastro (emissao_sabado).
 const SERVICO_LISTA: Record<string, string> = { "SINARM CAC": "CR", "SINARM POSSE": "Posse", "SINARM PORTE": "Porte" };
 const PARTICULAS = ["da", "de", "do", "das", "dos", "e"];
 
@@ -125,11 +128,12 @@ const servicoDaLista = (c: CacCadastro) => {
   ].filter(Boolean).join(" ");
 };
 
-function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
+function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores, onSabado }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   cadastros: CacCadastro[];
   colaboradores: Colaborador[];
+  onSabado: (id: string, sabado: boolean) => void;
 }) {
   const [quarta, setQuarta] = useState(() => quartaDaSemana(new Date()));
   const [local, setLocal] = useState(() => { try { return localStorage.getItem("lista_prova_local") ?? "JULIET"; } catch { return "JULIET"; } });
@@ -153,16 +157,17 @@ function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
   const daSemana = cadastros
     .filter(c => diaDo(c) >= diaLocal(sabado) && diaDo(c) <= diaLocal(sexta))
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  const grupos = [
-    { titulo: "Emissão na quarta", de: sabado, ate: terca, nota: "", itens: daSemana.filter(c => diaDo(c) <= diaLocal(terca)) },
-    { titulo: "Emissão no sábado", de: quarta, ate: sexta, nota: "Emissão no sábado", itens: daSemana.filter(c => diaDo(c) > diaLocal(terca)) },
-  ];
-  const selecionados = grupos.flatMap(g => g.itens.filter(c => !desmarcados.includes(c.id)).map(c => ({ c, nota: g.nota })));
+  // a escolha feita na lista vale mais que a regra da data
+  const ehSabado = (c: CacCadastro) => c.emissao_sabado ?? diaDo(c) > diaLocal(terca);
+  const incluidos = daSemana.filter(c => !desmarcados.includes(c.id));
+  // no texto saem primeiro os de emissão na quarta, depois os do sábado
+  const selecionados = [...incluidos.filter(c => !ehSabado(c)), ...incluidos.filter(ehSabado)];
+  const qtdSabado = incluidos.filter(ehSabado).length;
 
   const gerado = [
     `📍 LISTA DE PROVA QUARTA${local.trim() ? ` NO ${local.trim()}` : ""} (${diaMes(quarta).replace("/", ".")}.${String(quarta.getFullYear()).slice(2)})`,
-    ...selecionados.map(({ c, nota }, i) =>
-      [`${i + 1}) ${nomeProprio(c.nome)}`, nomeColab(c) && `(${nomeColab(c)})`, servicoDaLista(c), nota && `[${nota}]`].filter(Boolean).join(" ")),
+    ...selecionados.map((c, i) =>
+      [`${i + 1}) ${nomeProprio(c.nome)}`, nomeColab(c) && `(${nomeColab(c)})`, servicoDaLista(c), ehSabado(c) && "[Emissão no sábado]"].filter(Boolean).join(" ")),
   ].join("\n\n");
 
   // o texto pode ser ajustado à mão; volta a ser montado quando muda semana, local ou clientes
@@ -209,32 +214,41 @@ function ListaProvaDialog({ open, onOpenChange, cadastros, colaboradores }: {
             <Input value={local} onChange={e => setLocal(e.target.value.toUpperCase())} placeholder="EX: JULIET" className="h-8 text-sm" />
           </div>
 
-          {grupos.map(g => (
-            <div key={g.titulo} className="space-y-2">
+          <div className="space-y-2">
+            <div>
               <Label className="text-xs">
-                {g.titulo} <span className="font-normal text-muted-foreground">· cadastros de {diaMes(g.de)} a {diaMes(g.ate)} ({g.itens.length})</span>
+                Clientes da semana <span className="font-normal text-muted-foreground">· {incluidos.length - qtdSabado} na quarta · {qtdSabado} no sábado</span>
               </Label>
-              {g.itens.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3 rounded-lg border border-dashed border-border">Nenhum cadastro.</p>
-              ) : g.itens.map(c => {
-                const marcado = !desmarcados.includes(c.id);
-                return (
-                  <div key={c.id} onClick={() => alternar(c.id)}
-                    className={`flex items-start gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors ${marcado ? "border-primary/30 bg-primary/5" : "border-border/60 opacity-60"}`}>
-                    <div style={checkboxStyle(marcado)} className="mt-0.5">
-                      {marcado && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{nomeProprio(c.nome)}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {[nomeColab(c), servicoDaLista(c), new Date(c.created_at).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              <p className="text-[11px] text-muted-foreground mt-0.5">Clique em <b>Sábado</b> nos clientes que ficam para emissão no sábado.</p>
             </div>
-          ))}
+            {daSemana.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4 rounded-lg border border-dashed border-border">Nenhum cadastro nesta semana.</p>
+            ) : daSemana.map(c => {
+              const marcado = !desmarcados.includes(c.id);
+              const sab = ehSabado(c);
+              return (
+                <div key={c.id} onClick={() => alternar(c.id)}
+                  className={`flex items-center gap-2.5 rounded-lg border p-2.5 cursor-pointer transition-colors ${marcado ? "border-primary/30 bg-primary/5" : "border-border/60 opacity-60"}`}>
+                  <div style={checkboxStyle(marcado)}>
+                    {marcado && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7L10 1" stroke="#0a0b0f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{nomeProprio(c.nome)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {[nomeColab(c), servicoDaLista(c), new Date(c.created_at).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  {marcado && (
+                    <button type="button" onClick={e => { e.stopPropagation(); onSabado(c.id, !sab); }}
+                      title={sab ? "Emissão no sábado (clique para voltar para a quarta)" : "Marcar emissão no sábado"}
+                      className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-semibold transition-colors ${sab ? "bg-sky-500 border-sky-500 text-white" : "border-border text-muted-foreground hover:border-sky-500/60 hover:text-sky-400"}`}>
+                      {sab && <Check className="h-3 w-3" />}Sábado
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           <div className="space-y-1">
             <Label className="text-xs">Texto da lista (dá para ajustar antes de copiar)</Label>
@@ -517,6 +531,13 @@ export default function CadastrosAdmin() {
     toast.success("Todos os cadastros excluídos.");
     setDeletandoTodos(false);
     carregar();
+  };
+
+  // Lista de Prova: marca/desmarca emissão no sábado e salva no cadastro
+  const marcarSabado = async (id: string, sabado: boolean) => {
+    setCadastros(l => l.map(c => c.id === id ? { ...c, emissao_sabado: sabado } : c));
+    const { error } = await supabase.from("cac_cadastros").update({ emissao_sabado: sabado }).eq("id", id);
+    if (error) { toast.error("Não consegui salvar: " + error.message); carregar(); }
   };
 
   const filtrados = cadastros
@@ -839,7 +860,7 @@ export default function CadastrosAdmin() {
       )}
       </main>
 
-      <ListaProvaDialog open={listaOpen} onOpenChange={setListaOpen} cadastros={cadastros} colaboradores={colaboradores} />
+      <ListaProvaDialog open={listaOpen} onOpenChange={setListaOpen} cadastros={cadastros} colaboradores={colaboradores} onSabado={marcarSabado} />
 
       {/* Dialog de cadastro manual */}
       <Dialog open={novoOpen} onOpenChange={v => { handleNovoOpenChange(v); if (!v) resetNovo(); }}>
