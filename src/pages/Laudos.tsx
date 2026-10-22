@@ -843,7 +843,16 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
                 })}
                 {laudoTipo === "sinarm" && (
                   <div className="flex items-center gap-1.5 pl-1">
-                    <Switch checked={sinarmPorte} onCheckedChange={setSinarmPorte} />
+                    <Switch checked={sinarmPorte} onCheckedChange={v => {
+                      setSinarmPorte(v);
+                      // A chave Porte também marca/desmarca "Porte" na Finalidade (Fundamentação)
+                      setForm(p => ({
+                        ...p,
+                        finalidade: v
+                          ? (p.finalidade.includes("porte") ? p.finalidade : [...p.finalidade, "porte"])
+                          : p.finalidade.filter(x => x !== "porte"),
+                      }));
+                    }} />
                     <span className="text-muted-foreground">Porte</span>
                   </div>
                 )}
