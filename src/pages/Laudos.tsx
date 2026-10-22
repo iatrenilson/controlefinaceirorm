@@ -1213,6 +1213,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
               <div>
                 <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wide mb-2">
                   Pontuação no Alvo Multicolorido
+                  {(sinarmPorte || form.finalidade.includes("porte")) && <span className="text-primary"> * obrigatória no Porte</span>}
                 </p>
                 <div className="w-full sm:w-48">
                   <Popover open={coloridoOpen} onOpenChange={setColoridoOpen}>
@@ -1277,6 +1278,9 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
             if (!form.notaTeorica) { toast.error("Preencha a Nota da Prova Teórica."); return; }
             if (!form.notaPistola && !form.notaRevolver && !form.notaRifle && !form.notaEspingarda) {
               toast.error("Preencha ao menos uma Pontuação no Alvo Silhueta."); return;
+            }
+            if (laudoTipo === "sinarm" && (sinarmPorte || form.finalidade.includes("porte")) && !form.notaMulticolorido) {
+              toast.error("Para Porte, preencha a Pontuação no Alvo Multicolorido."); return;
             }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
