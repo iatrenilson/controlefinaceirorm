@@ -151,7 +151,18 @@ export default function ColaboradorPortal() {
     if (uploadingPsico)        { toast.error("Aguarde o upload."); return; }
     setSaving(true);
     if (tela === "novo") {
-      // Abre WhatsApp ANTES do await (evita bloqueio do navegador)
+      // Salva PRIMEIRO; a confirmação no WhatsApp só sai depois de salvo.
+      // (Antes abria o WhatsApp antes de salvar e, no celular, o cadastro podia se perder.)
+      const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
+        p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
+        p_numero: form.numero, p_complemento: form.complemento, p_bairro: form.bairro,
+        p_cidade: form.cidade, p_estado: form.estado,
+        p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
+        p_psicologico_url: form.psicoUrl,
+      });
+      if (error) { toast.error("Cadastro NÃO foi salvo: " + error.message + " Tente de novo."); setSaving(false); return; }
+      toast.success("Cliente cadastrado!");
+
       const linhas = [
         "✅ *Confirmação de Cadastro*",
         "",
@@ -164,17 +175,9 @@ export default function ColaboradorPortal() {
         form.armas.length ? `*Armas:* ${form.armas.join(", ")}` : null,
         form.psicoUrl ? `\n📄 *Psicológico:*\n${form.psicoUrl}` : null,
       ].filter(l => l !== null).join("\n");
-      window.open(whatsappUrl(WHATSAPP_NUMBER, linhas), "_blank");
-
-      const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
-        p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
-        p_numero: form.numero, p_complemento: form.complemento, p_bairro: form.bairro,
-        p_cidade: form.cidade, p_estado: form.estado,
-        p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
-        p_psicologico_url: form.psicoUrl,
-      });
-      if (error) { toast.error("Erro: " + error.message); setSaving(false); return; }
-      toast.success("Cliente cadastrado!");
+      const url = whatsappUrl(WHATSAPP_NUMBER, linhas);
+      // Se o navegador bloquear a janela nova (comum no iPhone depois de salvar), abre na mesma aba
+      if (!window.open(url, "_blank")) window.location.href = url;
     } else {
       const { error } = await supabase.rpc("update_cac_cadastro_by_token", {
         p_token: token, p_id: editandoId, p_nome: form.nome, p_cpf: form.cpf,
