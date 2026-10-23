@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { useAppContext } from "@/hooks/useAppContext";
 import { format, parseISO } from "date-fns";
 
 interface Notification {
@@ -17,22 +18,24 @@ interface Notification {
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  // Usuário já conhecido pelo app: sem getUser() (ida ao servidor que segurava as outras buscas da página)
+  const { user } = useAppContext();
 
   const fetchNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: allNotifs } = await supabase
-      .from("notifications")
-      .select("*")
-      .or(`target_user_id.is.null,target_user_id.eq.${user.id}`)
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    const { data: readStatus } = await supabase
-      .from("user_notifications")
-      .select("notification_id, lida")
-      .eq("user_id", user.id);
+    const [{ data: allNotifs }, { data: readStatus }] = await Promise.all([
+      supabase
+        .from("notifications")
+        .select("*")
+        .or(`target_user_id.is.null,target_user_id.eq.${user.id}`)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("user_notifications")
+        .select("notification_id, lida")
+        .eq("user_id", user.id),
+    ]);
 
     const readMap = new Map((readStatus || []).map((r: any) => [r.notification_id, r.lida]));
 
@@ -55,10 +58,10 @@ const NotificationBell = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const markAsRead = async (notifId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase
@@ -71,7 +74,6 @@ const NotificationBell = () => {
   };
 
   const markAllAsRead = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     const unread = notifications.filter((n) => !n.lida);

@@ -78,6 +78,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     setDataLoading(true);
 
+    // Admin/moderador lembrado neste navegador: a tela abre na hora e a conferência no
+    // servidor atualiza em segundo plano (antes cada página esperava ~1,6 s por ela)
+    const CACHE_PAPEIS = "rw_papeis_v1";
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_PAPEIS) || "null");
+      if (c && c.userId === user.id && (c.isAdmin || c.isModerator)) {
+        setIsAdmin(!!c.isAdmin);
+        setIsModerator(!!c.isModerator);
+        setIsRestricted(!!c.isRestricted);
+        setSubscriptionExpiresAt(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString());
+        setPlanName("admin");
+        setDataLoading(false);
+      }
+    } catch { /* sem cache: espera o servidor */ }
+
     // Fetch roles first — if admin/moderator, skip subscription check entirely
     supabase.from("user_roles").select("role").eq("user_id", user.id)
       .then(async (rolesResult) => {
@@ -87,9 +102,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         if (!rolesResult.error && rolesResult.data) {
           userIsAdmin = rolesResult.data.some((r) => r.role === "admin");
           userIsModerator = rolesResult.data.some((r) => r.role === "moderator");
+          const userIsRestricted = rolesResult.data.some((r) => r.role === ("restrito" as any));
           setIsAdmin(userIsAdmin);
           setIsModerator(userIsModerator);
-          setIsRestricted(rolesResult.data.some((r) => r.role === ("restrito" as any)));
+          setIsRestricted(userIsRestricted);
+          try {
+            localStorage.setItem(CACHE_PAPEIS, JSON.stringify({
+              userId: user.id, isAdmin: userIsAdmin, isModerator: userIsModerator, isRestricted: userIsRestricted,
+            }));
+          } catch { /* navegador sem localStorage */ }
         }
 
         // Admins/moderators always have access — skip subscription check

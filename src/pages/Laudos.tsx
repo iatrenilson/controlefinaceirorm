@@ -675,7 +675,13 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
       supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("nome")
         .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
 
-    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(carregar);
+    // Carrega já: a lista não espera a conferência do banco (ela levava segundos toda vez).
+    // A conferência roda só uma vez por navegador — ao mudar o MIGRATION_SQL, troque a versão do flag.
+    carregar();
+    const FLAG = "laudos_migration_v1";
+    if (!localStorage.getItem(FLAG))
+      supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
+        .finally(() => { localStorage.setItem(FLAG, "1"); carregar(); });
 
     // Atualiza automaticamente quando chega novo cadastro
     const channel = supabase.channel("cac_cadastros_laudos")

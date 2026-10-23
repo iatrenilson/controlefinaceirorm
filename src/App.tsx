@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import type { ComponentType } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import DigitalClock from "@/components/DigitalClock";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,29 +13,56 @@ import { AppProvider, useAppContext } from "@/hooks/useAppContext";
 import { PaywallScreen } from "@/components/PaywallScreen";
 import { TrialBanner } from "@/components/TrialBanner";
 import { supabase } from "@/integrations/supabase/client";
-import Dashboard from "./pages/Dashboard";
-import Index from "./pages/Index";
-import Emprestimos from "./pages/Emprestimos";
-import Relatorios from "./pages/Relatorios";
-import Admin from "./pages/Admin";
-import DelayEsportivo from "./pages/DelayEsportivo";
-import DelayDashboard from "./pages/DelayDashboard";
-import Configuracoes from "./pages/Configuracoes";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import Perfil from "./pages/Perfil";
-import NotFound from "./pages/NotFound";
-import DelayAddClient from "./pages/DelayAddClient";
-import DelayViewer from "./pages/DelayViewer";
-import Declaracoes from "./pages/Declaracoes";
-import Laudos from "./pages/Laudos";
-import CadastroPublico from "./pages/CadastroPublico";
-import CarteiraCliente from "./pages/CarteiraCliente";
-import CarteiraDIgital from "./pages/CarteiraDIgital";
-import CadastrosAdmin from "./pages/CadastrosAdmin";
-import DocsCR from "./pages/DocsCR";
-import ImageToPdf from "./pages/ImageToPdf";
-import ColaboradorPortal from "./pages/ColaboradorPortal";
+
+// Cada página vira um arquivo separado: o site abre baixando só a página aberta
+// (antes baixava o site inteiro, ~2 MB, para abrir qualquer tela)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pagina = (importar: () => Promise<{ default: ComponentType<any> }>) =>
+  lazy(() => importar()
+    .then(m => { sessionStorage.removeItem("rw_recarregou"); return m; })
+    .catch(() => {
+      // Depois de publicar uma versão nova os arquivos antigos somem: recarrega uma vez para pegar os novos
+      if (!sessionStorage.getItem("rw_recarregou")) {
+        sessionStorage.setItem("rw_recarregou", "1");
+        window.location.reload();
+        return new Promise<never>(() => {});
+      }
+      return {
+        default: () => (
+          <div className="min-h-screen flex items-center justify-center bg-background p-6 text-center">
+            <p className="text-muted-foreground">Não foi possível carregar esta tela. Confira a internet e recarregue a página.</p>
+          </div>
+        ),
+      };
+    }));
+
+const Dashboard = pagina(() => import("./pages/Dashboard"));
+const Index = pagina(() => import("./pages/Index"));
+const Emprestimos = pagina(() => import("./pages/Emprestimos"));
+const Relatorios = pagina(() => import("./pages/Relatorios"));
+const Admin = pagina(() => import("./pages/Admin"));
+const DelayEsportivo = pagina(() => import("./pages/DelayEsportivo"));
+const DelayDashboard = pagina(() => import("./pages/DelayDashboard"));
+const Configuracoes = pagina(() => import("./pages/Configuracoes"));
+const Auth = pagina(() => import("./pages/Auth"));
+const ResetPassword = pagina(() => import("./pages/ResetPassword"));
+const Perfil = pagina(() => import("./pages/Perfil"));
+const NotFound = pagina(() => import("./pages/NotFound"));
+const DelayAddClient = pagina(() => import("./pages/DelayAddClient"));
+const DelayViewer = pagina(() => import("./pages/DelayViewer"));
+const Declaracoes = pagina(() => import("./pages/Declaracoes"));
+const Laudos = pagina(() => import("./pages/Laudos"));
+const CadastroPublico = pagina(() => import("./pages/CadastroPublico"));
+const CarteiraCliente = pagina(() => import("./pages/CarteiraCliente"));
+const CarteiraDIgital = pagina(() => import("./pages/CarteiraDIgital"));
+const CadastrosAdmin = pagina(() => import("./pages/CadastrosAdmin"));
+const DocsCR = pagina(() => import("./pages/DocsCR"));
+const ImageToPdf = pagina(() => import("./pages/ImageToPdf"));
+const ColaboradorPortal = pagina(() => import("./pages/ColaboradorPortal"));
+
+const Carregando = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Carregando...</p></div>
+);
 
 const AdminRoute = ({ children }: { children?: React.ReactNode }) => {
   const { isAdmin, loading } = useAppContext();
@@ -99,6 +127,7 @@ const ProtectedLayout = () => {
             <DigitalClock />
             <NotificationBell />
           </div>
+          <Suspense fallback={<Carregando />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/financeiro" element={<Index />} />
@@ -117,6 +146,7 @@ const ProtectedLayout = () => {
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </div>
         </div>
       </div>
@@ -132,6 +162,7 @@ const AppRoutes = () => {
   }
 
   return (
+    <Suspense fallback={<Carregando />}>
     <Routes>
       <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -142,6 +173,7 @@ const AppRoutes = () => {
       <Route path="/area/:token" element={<ColaboradorPortal />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
+    </Suspense>
   );
 };
 

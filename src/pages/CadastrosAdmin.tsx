@@ -407,7 +407,13 @@ export default function CadastrosAdmin() {
   }, []);
 
   useEffect(() => {
-    supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).finally(() => { carregar(); carregarColaboradores(); });
+    // Carrega já: a lista não espera a conferência do banco (ela levava segundos toda vez).
+    // A conferência roda só uma vez por navegador — ao mudar o MIGRATION_SQL, troque a versão do flag.
+    carregar(); carregarColaboradores();
+    const FLAG = "cadastros_admin_migration_v1";
+    if (!localStorage.getItem(FLAG))
+      supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
+        .finally(() => { localStorage.setItem(FLAG, "1"); carregar(); carregarColaboradores(); });
 
     const channel = supabase.channel("cac_cadastros_admin")
       .on("postgres_changes", { event: "*", schema: "public", table: "cac_cadastros" }, carregar)

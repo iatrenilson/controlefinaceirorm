@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { usuarioAtual } from "@/lib/usuarioAtual";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -1176,7 +1177,7 @@ export default function Declaracoes() {
   const [restoreKey, setRestoreKey] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    usuarioAtual().then(user => setUserId(user?.id ?? null));
   }, []);
 
   // Migração: adiciona owner_id e atualiza RLS — roda só uma vez por browser
@@ -1470,7 +1471,7 @@ END $$;`
   const saveClientesToCloud = useCallback(async (list: Cliente[]): Promise<boolean> => {
     if (list.length === 0) return true;
     try {
-      const { data: { user: me } } = await supabase.auth.getUser();
+      const me = await usuarioAtual();
       const myId = me?.id ?? "";
       const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       const rows = list.map(c => ({
@@ -1682,7 +1683,7 @@ END $$;`
 
   const fetchClientes = useCallback(async () => {
     try {
-      const { data: { user: me } } = await supabase.auth.getUser();
+      const me = await usuarioAtual();
       const myId = me?.id ?? "";
       if (!myId) return;
       // Busca apenas clientes do próprio usuário
@@ -1731,7 +1732,7 @@ END $$;`
         try { localStorage.setItem(`sinarm_backup_${myId}`, JSON.stringify(clientes)); } catch {}
 
         // Migra dados antigos do user_metadata se existirem
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await usuarioAtual();
         const oldCloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
         if (oldCloud.length > 0) {
           const merged = [...clientes];
@@ -1750,7 +1751,7 @@ END $$;`
         }
       } else if (!error && rows && rows.length === 0) {
         // Banco retornou vazio sem erro = nenhum cliente cadastrado
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await usuarioAtual();
         const cloud: Cliente[] = user?.user_metadata?.decl_clientes ?? [];
         if (cloud.length > 0) {
           const saved = await saveClientesToCloud(cloud);
@@ -1824,7 +1825,7 @@ END $$;`
       if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
       await fetchClientes();
       // Carrega docs de todos os clientes para exibir nos cards
-      const { data: { user: me2 } } = await supabase.auth.getUser();
+      const me2 = await usuarioAtual();
       if (me2?.id) {
         const { data: allDocs } = await supabase.from("declaracao_docs_cr").select("*");
         if (allDocs && allDocs.length > 0) {
@@ -1922,7 +1923,7 @@ END $$;`
           if (!retry || retry.length === 0) throw new Error("Sem permissão para atualizar este cliente. Verifique se você está logado corretamente.");
         }
       } else {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const currentUser = await usuarioAtual();
         const ownerId = currentUser?.id ?? userId;
         const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: ownerId });
         if (error) throw error;
@@ -1960,7 +1961,7 @@ END $$;`
   };
   const excluirCliente = async (id: string) => {
     if (!confirm("Excluir este cliente?")) return;
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await usuarioAtual();
     if (!user?.id) return;
     const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id).eq("owner_id", user.id);
     if (!error) setClientes(prev => prev.filter(c => c.id !== id));
