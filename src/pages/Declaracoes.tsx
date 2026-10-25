@@ -1097,15 +1097,20 @@ const SERVICOS_CONTRATO: Array<{ key: string; label: string; texto: (f: FormCont
   { key: "craf_renovacao", label: "Renovação do registro + CRAF",     texto: () => "Renovação do registro de arma de fogo e do respectivo CRAF;" },
 ];
 
-// O que o valor do contrato já cobre (o contratado providencia e paga); todos vêm marcados
-const INCLUSOS_CONTRATO: Array<{ key: string; label: string; texto: (qtdPedidos: number) => string }> = [
-  { key: "psico",   label: "Exame psicológico",           texto: () => "o exame de aptidão psicológica para o manuseio de arma de fogo;" },
-  { key: "tecnica", label: "Teste de capacidade técnica", texto: () => "o teste de capacidade técnica para o manuseio de arma de fogo;" },
-  { key: "clube",   label: "Clube de tiro (1 ano)",       texto: () => "a filiação do(a) CONTRATANTE a clube de tiro, pelo período de 1 (um) ano;" },
+// O que o valor do contrato já cobre (o contratado providencia e paga); todos vêm marcados.
+// "curto" é o nome usado na cláusula de desistência (6.3)
+const INCLUSOS_CONTRATO: Array<{ key: string; label: string; texto: (qtdPedidos: number) => string; curto: (qtdPedidos: number) => string }> = [
+  { key: "psico",   label: "Exame psicológico",           texto: () => "o exame de aptidão psicológica para o manuseio de arma de fogo;",
+    curto: () => "o exame de aptidão psicológica" },
+  { key: "tecnica", label: "Teste de capacidade técnica", texto: () => "o teste de capacidade técnica para o manuseio de arma de fogo;",
+    curto: () => "o teste de capacidade técnica" },
+  { key: "clube",   label: "Clube de tiro (1 ano)",       texto: () => "a filiação do(a) CONTRATANTE a clube de tiro, pelo período de 1 (um) ano;",
+    curto: () => "a filiação ao clube de tiro" },
   { key: "gru",     label: "Taxa do serviço (GRU)",
     texto: n => n > 1
       ? "as taxas dos serviços cobradas pela Polícia Federal, pagas por meio de GRU (Guia de Recolhimento da União);"
-      : "a taxa do serviço cobrada pela Polícia Federal, paga por meio de GRU (Guia de Recolhimento da União);" },
+      : "a taxa do serviço cobrada pela Polícia Federal, paga por meio de GRU (Guia de Recolhimento da União);",
+    curto: n => (n > 1 ? "as taxas GRU" : "a taxa GRU") },
 ];
 
 // Formas de pagamento com um clique: o texto vai para a cláusula 5.1 e ainda pode ser editado no campo
@@ -1350,8 +1355,15 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   // ── Cláusula 6 – Vigência e rescisão ──
   await clausula("CLÁUSULA 6 – DA VIGÊNCIA E DA RESCISÃO");
   await par([t("6.1. Este contrato vigora desde a sua assinatura até a decisão final da Polícia Federal sobre os pedidos contratados e a entrega dos respectivos documentos ao(à) CONTRATANTE.")]);
-  await par([t(`6.2. Qualquer das partes poderá rescindir o contrato mediante comunicação por escrito, inclusive por WhatsApp ou e-mail. Nesse caso, serão devidos os valores proporcionais aos serviços já executados${inclusos.length ? ", somados às despesas do item 5.2 já pagas pelo CONTRATADO" : ""}, e eventual saldo pago antecipadamente será devolvido em até 10 (dez) dias úteis.`)]);
-  await par([t("6.3. Na rescisão, o CONTRATADO entregará ao(à) CONTRATANTE os protocolos, os documentos e as informações sobre o andamento dos pedidos.")]);
+  await par([t("6.2. Qualquer das partes poderá rescindir o contrato mediante comunicação por escrito, inclusive por WhatsApp ou e-mail.")]);
+  // Desistência do cliente: sem devolução, em negrito para ficar bem visível (o contratado já pagou os itens do 5.2)
+  const curtos = inclusos.map(i => i.curto(escolhidos.length));
+  const arcaCom = curtos.length
+    ? ` e arca com ${curtos.length > 1 ? curtos.slice(0, -1).join(", ") + " e " + curtos[curtos.length - 1] : curtos[0]}` : "";
+  await par([t("6.3. Em caso de desistência ou rescisão por iniciativa do(a) CONTRATANTE, "), n("os valores pagos não serão devolvidos"),
+    t(`. O(A) CONTRATANTE declara estar ciente de que, com a contratação, o CONTRATADO inicia a prestação dos serviços${arcaCom}, razão pela qual esses valores não têm como ser restituídos.`)]);
+  await par([t(`6.4. Se a rescisão partir do CONTRATADO, sem culpa do(a) CONTRATANTE, serão devolvidos os valores correspondentes aos serviços ainda não executados${inclusos.length ? ", descontadas as despesas do item 5.2 já pagas" : ""}, em até 10 (dez) dias úteis.`)]);
+  await par([t("6.5. Na rescisão, o CONTRATADO entregará ao(à) CONTRATANTE os protocolos, os documentos e as informações sobre o andamento dos pedidos.")]);
 
   // ── Cláusula 7 – Dados pessoais ──
   await clausula("CLÁUSULA 7 – DA PROTEÇÃO DE DADOS");
