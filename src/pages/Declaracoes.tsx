@@ -1054,7 +1054,7 @@ interface FormContrato {
   cpf: string; rg: string; endereco: string; cep: string; cidadeUf: string;
   telefone: string; email: string;
   servicos: string[]; categoriaCR: string; identificacaoArma: string;
-  valorTotal: string; formaPagamento: string;
+  valorTotal: string; formaPagamento: string; inclusos: string[];
   foro: string; local: string; data: string;
 }
 
@@ -1097,12 +1097,23 @@ const SERVICOS_CONTRATO: Array<{ key: string; label: string; texto: (f: FormCont
   { key: "craf_renovacao", label: "Renovação do registro + CRAF",     texto: () => "Renovação do registro de arma de fogo e do respectivo CRAF;" },
 ];
 
+// O que o valor do contrato já cobre (o contratado providencia e paga); todos vêm marcados
+const INCLUSOS_CONTRATO: Array<{ key: string; label: string; texto: (qtdPedidos: number) => string }> = [
+  { key: "psico",   label: "Exame psicológico",           texto: () => "o exame de aptidão psicológica para o manuseio de arma de fogo;" },
+  { key: "tecnica", label: "Teste de capacidade técnica", texto: () => "o teste de capacidade técnica para o manuseio de arma de fogo;" },
+  { key: "clube",   label: "Clube de tiro (1 ano)",       texto: () => "a filiação do(a) CONTRATANTE a clube de tiro, pelo período de 1 (um) ano;" },
+  { key: "gru",     label: "Taxa do serviço (GRU)",
+    texto: n => n > 1
+      ? "as taxas dos serviços cobradas pela Polícia Federal, pagas por meio de GRU (Guia de Recolhimento da União);"
+      : "a taxa do serviço cobrada pela Polícia Federal, paga por meio de GRU (Guia de Recolhimento da União);" },
+];
+
 function novoFormContrato(): FormContrato {
   return {
     nome: "", nacionalidade: "Brasileiro(a)", estadoCivil: "", profissao: "", cpf: "", rg: "",
     endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
     servicos: [], categoriaCR: "Atirador Desportivo", identificacaoArma: "",
-    valorTotal: "", formaPagamento: "",
+    valorTotal: "", formaPagamento: "", inclusos: INCLUSOS_CONTRATO.map(i => i.key),
     foro: "Manaus/AM", local: "Manaus/AM", data: format(getSiteDate(), "yyyy-MM-dd"),
   };
 }
@@ -1195,7 +1206,8 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   const { W, ML, CW } = layout;
   let y = layout.startY;
   const FS = 10, LH = 5;
-  const novaPagina = async () => { doc.addPage(); layout = await aplicarLayoutPassarinho(doc, semLogo); y = layout.startY; };
+  // O rodapé deixa a fonte em 7,5: volta ao tamanho do texto, senão o parágrafo que continua na página nova sai miúdo
+  const novaPagina = async () => { doc.addPage(); layout = await aplicarLayoutPassarinho(doc, semLogo); y = layout.startY; doc.setFontSize(FS); };
   const garantir = async (h: number) => { if (y + h > layout.footerY - 8) await novaPagina(); };
 
   type Seg = { text: string; bold?: boolean };
@@ -1292,7 +1304,7 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   // ── Cláusula 3 – Obrigações do contratante ──
   await clausula("CLÁUSULA 3 – DAS OBRIGAÇÕES DO(A) CONTRATANTE");
   await par([t("3.1. Fornecer informações verdadeiras e documentos autênticos, válidos e completos, respondendo pela veracidade de tudo o que apresentar.")]);
-  await par([t("3.2. Realizar, às suas expensas, os exames e avaliações exigidos, como o laudo de aptidão psicológica e o de capacidade técnica para o manuseio de arma de fogo, e comparecer pessoalmente sempre que a Polícia Federal assim exigir.")]);
+  await par([t("3.2. Comparecer pessoalmente, nas datas e nos locais agendados, aos exames e testes exigidos e a qualquer outro ato que dependa da sua presença, inclusive perante a Polícia Federal.")]);
   await par([t("3.3. Atender às solicitações de documentos e informações do CONTRATADO no menor prazo possível, especialmente quando houver exigência com prazo fixado pela Polícia Federal.")]);
   await par([t("3.4. Efetuar os pagamentos na forma e nos prazos previstos neste contrato.")]);
   await par([t("3.5. Comunicar ao CONTRATADO qualquer alteração em seus dados cadastrais e qualquer notificação recebida diretamente da Polícia Federal.")]);
@@ -1310,13 +1322,28 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   await par([t("5.1. Pelos serviços contratados, o(a) CONTRATANTE pagará ao CONTRATADO o valor total de "),
     n(`R$ ${fmtReais(total)} (${valorPorExtenso(total)})`),
     t(forma ? `, da seguinte forma: ${forma.replace(/\.$/, "")}.` : ".")]);
-  await par([t("5.2. Não estão incluídos no valor acima, correndo por conta do(a) CONTRATANTE, as taxas públicas (GRU), os exames e laudos, as certidões, os custos com clube de tiro e quaisquer despesas de terceiros, salvo acordo por escrito em contrário.")]);
-  await par([t("5.3. O indeferimento do pedido pela Polícia Federal não gera devolução dos valores referentes aos serviços já prestados, ressalvados os casos de falha do CONTRATADO.")]);
+  const inclusos = INCLUSOS_CONTRATO.filter(i => f.inclusos.includes(i.key));
+  let itemValor = 2;
+  if (inclusos.length) {
+    await par([t(`5.${itemValor++}. Estão incluídos no valor acima, e serão providenciados e pagos pelo CONTRATADO, sem custo adicional para o(a) CONTRATANTE:`)], ML, CW, 1);
+    for (let i = 0; i < inclusos.length; i++) {
+      let txt = inclusos[i].texto(escolhidos.length);
+      if (i === inclusos.length - 1) txt = txt.replace(/;$/, ".");
+      await par([n(`${String.fromCharCode(97 + i)}) `), t(txt)], ML + 6, CW - 6, 0.6);
+    }
+    y += 1.6;
+    await par([t(`5.${itemValor++}. Outras despesas, não listadas no item 5.2, não estão incluídas no valor deste contrato.`)]);
+  } else {
+    await par([t(`5.${itemValor++}. Não estão incluídos no valor acima as taxas, os exames e as demais despesas necessárias aos pedidos, que correm por conta do(a) CONTRATANTE.`)]);
+  }
+  // Despesas que o contratado já pagou não voltam ao cliente (indeferimento ou rescisão)
+  const despesasPagas = inclusos.length ? " e às despesas do item 5.2 já pagas pelo CONTRATADO" : "";
+  await par([t(`5.${itemValor++}. O indeferimento do pedido pela Polícia Federal não gera devolução dos valores referentes aos serviços já prestados${despesasPagas}, ressalvados os casos de falha do CONTRATADO.`)]);
 
   // ── Cláusula 6 – Vigência e rescisão ──
   await clausula("CLÁUSULA 6 – DA VIGÊNCIA E DA RESCISÃO");
   await par([t("6.1. Este contrato vigora desde a sua assinatura até a decisão final da Polícia Federal sobre os pedidos contratados e a entrega dos respectivos documentos ao(à) CONTRATANTE.")]);
-  await par([t("6.2. Qualquer das partes poderá rescindir o contrato mediante comunicação por escrito, inclusive por WhatsApp ou e-mail. Nesse caso, serão devidos os valores proporcionais aos serviços já executados, e eventual saldo pago antecipadamente será devolvido em até 10 (dez) dias úteis.")]);
+  await par([t(`6.2. Qualquer das partes poderá rescindir o contrato mediante comunicação por escrito, inclusive por WhatsApp ou e-mail. Nesse caso, serão devidos os valores proporcionais aos serviços já executados${inclusos.length ? ", somados às despesas do item 5.2 já pagas pelo CONTRATADO" : ""}, e eventual saldo pago antecipadamente será devolvido em até 10 (dez) dias úteis.`)]);
   await par([t("6.3. Na rescisão, o CONTRATADO entregará ao(à) CONTRATANTE os protocolos, os documentos e as informações sobre o andamento dos pedidos.")]);
 
   // ── Cláusula 7 – Dados pessoais ──
@@ -1336,21 +1363,25 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   await par([t("E, por estarem de acordo, as partes assinam o presente contrato eletronicamente, por meio de assinatura digital (gov.br ou ICP-Brasil), que tem plena validade jurídica.")]);
 
   // ── Local, data e assinaturas (bloco junto na mesma página) ──
-  await garantir(78);
+  await garantir(66);
   const dataExt = f.data ? format(parseISO(f.data), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "";
   y += 3;
   doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
   doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
-  y += 24;
-  doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
-  for (const [papel, nome, cpf] of [["CONTRATANTE", f.nome, f.cpf], ["CONTRATADO", ct.nome, ct.cpf]]) {
-    doc.line(W / 2 - 55, y, W / 2 + 55, y);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
-    doc.text(nome.trim().toUpperCase(), W / 2, y + 4.5, { align: "center" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
-    doc.text(`${papel}${cpf ? ` · CPF ${cpf}` : ""}`, W / 2, y + 8.8, { align: "center" });
-    doc.text("Assinatura digital (gov.br ou ICP-Brasil)", W / 2, y + 12.6, { align: "center" });
-    y += 30;
+  // Padrão dos outros PDFs: rótulo com a linha ao lado (mesma cor do layout); nome e CPF embaixo da linha
+  const assinaturas = [["contratante", f.nome, f.cpf], ["contratado", ct.nome, ct.cpf]];
+  const rotulo = (papel: string) => `Assinatura digital (.gov.br ou ICP-Brasil) ${papel}: `;
+  const x0 = ML + Math.max(...assinaturas.map(([papel]) => larguraHelv(rotulo(papel), false, FS)));
+  const x1 = W - layout.MR, meio = (x0 + x1) / 2;
+  for (const [papel, nome, cpf] of assinaturas) {
+    y += 26;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
+    doc.text(rotulo(papel), ML, y);
+    doc.line(x0, y - 0.5, x1, y - 0.5);
+    const nomeUp = nome.trim().toUpperCase();
+    doc.setFont("helvetica", "bold"); doc.setFontSize(Math.min(9, (9 * (x1 - x0)) / larguraHelv(nomeUp, true, 9)));
+    doc.text(nomeUp, meio, y + 4.5, { align: "center" });
+    if (cpf) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(`CPF ${cpf}`, meio, y + 8.6, { align: "center" }); }
   }
 
   const nomeArq = titleCase((f.nome || "Cliente").toLowerCase());
@@ -3641,6 +3672,23 @@ END $$;`
               <div className="space-y-1">
                 <Label className="text-xs">Forma e vencimentos</Label>
                 <Input className="h-9 text-sm" placeholder="ex.: à vista no PIX" value={formContrato.formaPagamento} onChange={e => setFormC("formaPagamento", e.target.value)} />
+              </div>
+            </div>
+
+            {/* O que o valor já cobre (vai no contrato como "incluído no valor") */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Incluso no valor</p>
+              <div className="flex flex-wrap gap-2">
+                {INCLUSOS_CONTRATO.map(s => {
+                  const on = formContrato.inclusos.includes(s.key);
+                  return (
+                    <button key={s.key} type="button"
+                      onClick={() => setFormC("inclusos", on ? formContrato.inclusos.filter(x => x !== s.key) : [...formContrato.inclusos, s.key])}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+                      {on ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}{s.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
