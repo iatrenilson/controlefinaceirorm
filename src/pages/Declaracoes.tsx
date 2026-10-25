@@ -1681,6 +1681,7 @@ END $$;`
   const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
   const [parsendoCNH, setParsendoCNH] = useState(false);
   const [progressoDoc, setProgressoDoc] = useState("");
+  const [arrastandoDoc, setArrastandoDoc] = useState(false);
   const cNHFileRef = useRef<HTMLInputElement>(null);
   // Documentos CR
   const [docsCliente, setDocsCliente] = useState<Map<string, DocCRItem[]>>(new Map());
@@ -1737,6 +1738,15 @@ END $$;`
       setProgressoDoc("");
     }
   }, []);
+
+  // Arquivo arrastado para a área "Importar CNH ou RG": aceita o mesmo que o botão (PDF ou foto)
+  const soltarDocumento = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setArrastandoDoc(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f || parsendoCNH) return;
+    if (f.type === "application/pdf" || f.type.startsWith("image/") || /\.(pdf|jpe?g|png|webp|heic|heif)$/i.test(f.name)) importarDocumento(f);
+    else sonnerToast.error("Arquivo não aceito: arraste o PDF ou uma foto da CNH/RG.");
+  };
 
   // ─── Documentos CR ────────────────────────────────────────────────────────
   const fetchDocsCR = useCallback(async (clienteId: string) => {
@@ -3044,6 +3054,9 @@ END $$;`
         <DialogContent
           className="max-w-2xl max-h-[90vh] overflow-y-auto"
           onInteractOutside={e => e.preventDefault()}
+          // Arquivo solto fora da área de importar: o navegador abriria o arquivo e o formulário seria perdido
+          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "none"; }}
+          onDrop={e => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
@@ -3157,10 +3170,13 @@ END $$;`
           )}
           <div className="space-y-4 py-2">
             {/* Importar CNH */}
-            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-primary/40 bg-primary/5">
+            <div className={`flex items-center justify-between p-3 rounded-xl border border-dashed transition-colors ${arrastandoDoc ? "border-primary bg-primary/15" : "border-primary/40 bg-primary/5"}`}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; if (!arrastandoDoc) setArrastandoDoc(true); }}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastandoDoc(false); }}
+              onDrop={soltarDocumento}>
               <div>
-                <p className="text-xs font-semibold text-primary">Importar CNH ou RG</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação</p>
+                <p className="text-xs font-semibold text-primary">{arrastandoDoc ? "Solte o arquivo aqui" : "Importar CNH ou RG"}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Arraste aqui ou selecione: PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação</p>
               </div>
               <Button type="button" size="sm" variant="outline"
                 className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
