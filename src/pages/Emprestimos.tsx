@@ -165,6 +165,12 @@ const Emprestimos = () => {
     setLoading(false);
   };
 
+  // Guarda também o que acabou de mudar na tela (pagamento/juros), para não voltar a data antiga ao reabrir
+  useEffect(() => {
+    if (loading) return;
+    try { sessionStorage.setItem("emprestimos_cache", JSON.stringify(clientes)); } catch {}
+  }, [clientes, loading]);
+
   const fetchWallet = async () => {
     if (!user) return;
     const { data, error } = await supabase
@@ -601,49 +607,60 @@ const Emprestimos = () => {
   };
 
 
-  const handlePagarJuros = async (id: string) => {
+  // Pagamento e juros: a tela atualiza na hora do clique e o banco grava em seguida,
+  // um clique de cada vez e na ordem. (Antes a tela só mudava depois de 5-6 idas ao
+  // servidor, e um novo clique usava a data antiga — saía a mensagem do clique anterior.)
+  const filaRef = useRef<Promise<void>>(Promise.resolve());
+  const naFila = (trabalho: () => Promise<void>) => {
+    filaRef.current = filaRef.current.then(trabalho).catch((e) => console.error("[emprestimos] gravação:", e));
+  };
+
+  // Lê o saldo do banco na hora (nunca o da tela, que pode estar atrasado), credita e registra
+  const creditarCarteira = async (valor: number, tipo: string, descricao: string) => {
+    if (!user) return;
+    const { data } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
+    const saldoAtual = data ? Math.max(0, Number(data.saldo) || 0) : 0;
+    const novoSaldo = saldoAtual + valor;
+    const { error } = await supabase.from("wallets").update({ saldo: novoSaldo }).eq("user_id", user.id);
+    if (error) throw error;
+    await logTransaction(tipo, valor, saldoAtual, novoSaldo, descricao);
+    setSaldo(novoSaldo);
+  };
+
+  // O banco recusou: avisa e volta a tela para o que está gravado
+  const falhouGravar = (titulo: string, error: unknown) => {
+    toast({ title: titulo, description: getSafeErrorMessage(error), variant: "destructive" });
+    fetchClientes();
+    fetchWallet();
+  };
+
+  const ordenarPorPagamento = (lista: Cliente[]) =>
+    [...lista].sort((a, b) => a.dataPagamento.localeCompare(b.dataPagamento));
+
+  const handlePagarJuros = (id: string) => {
     const cliente = clientes.find((c) => c.id === id);
     if (!cliente || !user) return;
 
     const valorJuros = cliente.valor * (cliente.juros / 100);
-
-    // Calcula nova data e mensagem ANTES dos awaits (contexto de gesto do usuário)
-    const pagDate = parseISO(cliente.dataPagamento);
-    const novaData = addDays(pagDate, getDiasPeriodo(cliente.periodicidade));
+    const novaData = addDays(parseISO(cliente.dataPagamento), getDiasPeriodo(cliente.periodicidade));
     const novaDataPagamento = format(novaData, "yyyy-MM-dd");
-    const msgConfirmacao = gerarMensagemConfirmacaoJuros(cliente, novaDataPagamento);
     // Copia imediatamente enquanto ainda está no contexto de clique do usuário
-    navigator.clipboard.writeText(msgConfirmacao).catch(() => {});
+    navigator.clipboard.writeText(gerarMensagemConfirmacaoJuros(cliente, novaDataPagamento)).catch(() => {});
 
-    // Busca saldo atual do banco para evitar estado desatualizado
-    const { data: walletData } = await supabase.from("wallets").select("saldo").eq("user_id", user.id).maybeSingle();
-    const saldoAtual = walletData ? Math.max(0, Number(walletData.saldo) || 0) : 0;
-
-    const { error: updateError } = await supabase
-      .from("clientes")
-      .update({ data_pagamento: novaDataPagamento })
-      .eq("id", id);
-
-    if (updateError) {
-      toast({ title: "Erro ao atualizar data", description: getSafeErrorMessage(updateError), variant: "destructive" });
-      return;
-    }
-
-    const newSaldo = saldoAtual + valorJuros;
-    const { error } = await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
-    if (error) {
-      toast({ title: "Erro ao registrar pagamento de juros", description: getSafeErrorMessage(error), variant: "destructive" });
-      return;
-    }
-
-    await logTransaction("pagamento_juros", valorJuros, saldoAtual, newSaldo, `Juros recebidos de ${cliente.nome}`);
-    setSaldo(newSaldo);
-    fetchClientes();
-    fetchTransactions();
+    setClientes((prev) => ordenarPorPagamento(prev.map((c) => (c.id === id ? { ...c, dataPagamento: novaDataPagamento } : c))));
+    setSaldo((s) => s + valorJuros);
     toast({ title: "Juros recebidos! 📋 Mensagem copiada", description: `R$ ${valorJuros.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} creditado. Mensagem de confirmação copiada para o cliente.` });
+
+    naFila(async () => {
+      const { error } = await supabase.from("clientes").update({ data_pagamento: novaDataPagamento }).eq("id", id);
+      if (error) { falhouGravar("Erro ao atualizar data", error); return; }
+      try { await creditarCarteira(valorJuros, "pagamento_juros", `Juros recebidos de ${cliente.nome}`); }
+      catch (e) { falhouGravar("Erro ao registrar pagamento de juros", e); return; }
+      fetchTransactions();
+    });
   };
 
-  const handlePagar = async (id: string) => {
+  const handlePagar = (id: string) => {
     const cliente = clientes.find((c) => c.id === id);
     if (!cliente || !user) return;
 
@@ -656,30 +673,28 @@ const Emprestimos = () => {
       const novaData = addMonths(parseISO(cliente.dataPagamento), 1);
       const novaDataStr = format(novaData, "yyyy-MM-dd");
       const proxFmt = format(novaData, "dd/MM/yyyy");
+      const descricao = `Parcela ${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas} recebida de ${cliente.nome}`;
 
       // Copia imediatamente enquanto ainda está no contexto de clique do usuário
       navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela, proxFmt)).catch(() => {});
 
-      const { error } = await supabase
-        .from("clientes")
-        .update({ parcela_atual: novaParcelaAtual, data_pagamento: novaDataStr })
-        .eq("id", id);
-
-      if (error) {
-        toast({ title: "Erro ao registrar parcela", description: getSafeErrorMessage(error), variant: "destructive" });
-        return;
-      }
-
-      const newSaldo = saldo + valorParcela;
-      await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
-      await logTransaction("pagamento", valorParcela, saldo, newSaldo,
-        `Parcela ${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas} recebida de ${cliente.nome}`);
-      setSaldo(newSaldo);
-      fetchClientes();
-      fetchTransactions();
+      setClientes((prev) => ordenarPorPagamento(prev.map((c) =>
+        (c.id === id ? { ...c, parcelaAtual: novaParcelaAtual, dataPagamento: novaDataStr } : c))));
+      setSaldo((s) => s + valorParcela);
       toast({
         title: `Parcela recebida! 📋 Mensagem copiada (${cliente.parcelas - novaParcelaAtual}/${cliente.parcelas})`,
         description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Próximo vencimento: ${proxFmt}`,
+      });
+
+      naFila(async () => {
+        const { error } = await supabase
+          .from("clientes")
+          .update({ parcela_atual: novaParcelaAtual, data_pagamento: novaDataStr })
+          .eq("id", id);
+        if (error) { falhouGravar("Erro ao registrar parcela", error); return; }
+        try { await creditarCarteira(valorParcela, "pagamento", descricao); }
+        catch (e) { falhouGravar("Erro ao registrar parcela", e); return; }
+        fetchTransactions();
       });
       return;
     }
@@ -688,21 +703,20 @@ const Emprestimos = () => {
     // Copia imediatamente enquanto ainda está no contexto de clique do usuário
     navigator.clipboard.writeText(gerarMensagemConfirmacaoPagamento(cliente.nome, valorParcela)).catch(() => {});
 
-    await archiveCliente(cliente, "pago");
-    const { error } = await supabase.from("clientes").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao registrar pagamento", description: getSafeErrorMessage(error), variant: "destructive" });
-      return;
-    }
-
-    const newSaldo = saldo + valorParcela;
-    await supabase.from("wallets").update({ saldo: newSaldo }).eq("user_id", user.id);
-    await logTransaction("pagamento", valorParcela, saldo, newSaldo,
-      `Pagamento final recebido de ${cliente.nome} (${cliente.parcelas}/${cliente.parcelas})`);
-    setSaldo(newSaldo);
-    fetchClientes();
-    fetchTransactions();
+    setClientes((prev) => prev.filter((c) => c.id !== id));
+    setSaldo((s) => s + valorParcela);
     toast({ title: "Empréstimo quitado! 📋 Mensagem copiada 🎉", description: `R$ ${valorParcela.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebidos. Mensagem de agradecimento copiada para o cliente.` });
+
+    naFila(async () => {
+      await archiveCliente(cliente, "pago");
+      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      if (error) { falhouGravar("Erro ao registrar pagamento", error); return; }
+      try {
+        await creditarCarteira(valorParcela, "pagamento",
+          `Pagamento final recebido de ${cliente.nome} (${cliente.parcelas}/${cliente.parcelas})`);
+      } catch (e) { falhouGravar("Erro ao registrar pagamento", e); return; }
+      fetchTransactions();
+    });
   };
 
   const stats = useMemo(() => {
