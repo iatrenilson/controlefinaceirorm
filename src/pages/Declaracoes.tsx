@@ -1316,10 +1316,13 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   // ── Cláusula 3 – Obrigações do contratante ──
   await clausula("CLÁUSULA 3 – DAS OBRIGAÇÕES DO(A) CONTRATANTE");
   await par([t("3.1. Fornecer informações verdadeiras e documentos autênticos, válidos e completos, respondendo pela veracidade de tudo o que apresentar.")]);
-  await par([t("3.2. Comparecer pessoalmente, nas datas e nos locais agendados, aos exames e testes exigidos e a qualquer outro ato que dependa da sua presença, inclusive perante a Polícia Federal.")]);
-  await par([t("3.3. Atender às solicitações de documentos e informações do CONTRATADO no menor prazo possível, especialmente quando houver exigência com prazo fixado pela Polícia Federal.")]);
-  await par([t("3.4. Efetuar os pagamentos na forma e nos prazos previstos neste contrato.")]);
-  await par([t("3.5. Comunicar ao CONTRATADO qualquer alteração em seus dados cadastrais e qualquer notificação recebida diretamente da Polícia Federal.")]);
+  // Antecedentes: se o cliente omitir inquérito/processo e o pedido for indeferido, a culpa não é do contratado (em negrito)
+  await par([t("3.2. O(A) CONTRATANTE declara, sob as penas da lei, que não está respondendo a inquérito policial nem a processo criminal. Se essa declaração não for verdadeira, ou se o(a) CONTRATANTE passar a responder a inquérito ou processo durante a análise, e isso causar o indeferimento de qualquer pedido, "),
+    n("o CONTRATADO não terá culpa nem responsabilidade, e os valores pagos não serão devolvidos"), t(".")]);
+  await par([t("3.3. Comparecer pessoalmente, nas datas e nos locais agendados, aos exames e testes exigidos e a qualquer outro ato que dependa da sua presença, inclusive perante a Polícia Federal.")]);
+  await par([t("3.4. Atender às solicitações de documentos e informações do CONTRATADO no menor prazo possível, especialmente quando houver exigência com prazo fixado pela Polícia Federal.")]);
+  await par([t("3.5. Efetuar os pagamentos na forma e nos prazos previstos neste contrato.")]);
+  await par([t("3.6. Comunicar ao CONTRATADO qualquer alteração em seus dados cadastrais e qualquer notificação recebida diretamente da Polícia Federal.")]);
 
   // ── Cláusula 4 – Natureza do serviço ──
   await clausula("CLÁUSULA 4 – DA NATUREZA DO SERVIÇO");
