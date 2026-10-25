@@ -1048,6 +1048,315 @@ async function gerarPDFCraf(nome: string, anexosRaw: Array<{ label: string; data
 }
 
 // ─── Botão copiar ─────────────────────────────────────────────────────────
+// ─── Contrato de prestação de serviços de assessoria bélica ──────────────────
+interface FormContrato {
+  nome: string; nacionalidade: string; estadoCivil: string; profissao: string;
+  cpf: string; rg: string; endereco: string; cep: string; cidadeUf: string;
+  telefone: string; email: string;
+  servicos: string[]; categoriaCR: string; identificacaoArma: string;
+  valorTotal: string; formaPagamento: string;
+  foro: string; local: string; data: string;
+}
+
+// Dados do contratado (a assessoria) ficam no banco (app_config), nunca no código:
+// o repositório e o site são públicos
+interface DadosContratado {
+  nome: string; nacionalidade: string; estadoCivil: string; cpf: string; rg: string;
+  endereco: string; cep: string; cidadeUf: string; telefone: string; email: string;
+}
+const CONTRATADO_VAZIO: DadosContratado = {
+  nome: "", nacionalidade: "", estadoCivil: "", cpf: "", rg: "",
+  endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
+};
+const SQL_APP_CONFIG = `
+CREATE TABLE IF NOT EXISTS public.app_config (
+  chave TEXT PRIMARY KEY,
+  valor JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='app_config' AND policyname='app_config_select') THEN
+    CREATE POLICY "app_config_select" ON public.app_config FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='app_config' AND policyname='app_config_admin') THEN
+    CREATE POLICY "app_config_admin" ON public.app_config FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+  END IF;
+END $$;
+NOTIFY pgrst, 'reload schema';
+`.trim();
+
+// Serviços oferecidos (ordem e texto do PDF); o CR recebe a categoria escolhida
+const SERVICOS_CONTRATO: Array<{ key: string; label: string; texto: (f: FormContrato) => string }> = [
+  { key: "cr",             label: "Concessão de CR",
+    texto: f => `Concessão de Certificado de Registro (CR) de pessoa física, na categoria ${(f.categoriaCR || "Atirador Desportivo").trim()};` },
+  { key: "aquisicao",      label: "Autorização de aquisição de arma", texto: () => "Autorização de aquisição de arma de fogo;" },
+  { key: "registro",       label: "Registro de arma + CRAF",          texto: () => "Registro de arma de fogo e emissão do respectivo CRAF;" },
+  { key: "guia",           label: "Guia de trânsito / tráfego",       texto: () => "Emissão de guia de trânsito ou guia de tráfego, conforme o procedimento aplicável;" },
+  { key: "cr_renovacao",   label: "Renovação de CR",                  texto: () => "Renovação de Certificado de Registro (CR);" },
+  { key: "craf_renovacao", label: "Renovação do registro + CRAF",     texto: () => "Renovação do registro de arma de fogo e do respectivo CRAF;" },
+];
+
+function novoFormContrato(): FormContrato {
+  return {
+    nome: "", nacionalidade: "Brasileiro(a)", estadoCivil: "", profissao: "", cpf: "", rg: "",
+    endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
+    servicos: [], categoriaCR: "Atirador Desportivo", identificacaoArma: "",
+    valorTotal: "", formaPagamento: "",
+    foro: "Manaus/AM", local: "Manaus/AM", data: format(getSiteDate(), "yyyy-MM-dd"),
+  };
+}
+
+// "1.500,00" / "1500" / "1500,5" / "1.500" → número
+function lerValor(v: string): number | null {
+  let s = (v || "").replace(/[R$\s]/g, "");
+  if (!s) return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/\.\d{3}$/.test(s)) s = s.replace(/\./g, "");
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+}
+const fmtReais = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// 1500 → "mil e quinhentos reais"; 1999,99 → "mil novecentos e noventa e nove reais e noventa e nove centavos"
+function valorPorExtenso(valor: number): string {
+  const U = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze",
+    "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+  const D = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+  const C = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+  const ate999 = (n: number): string => {
+    if (n === 100) return "cem";
+    const partes: string[] = [];
+    if (n >= 100) partes.push(C[Math.floor(n / 100)]);
+    const r = n % 100;
+    if (r) partes.push(r < 20 ? U[r] : D[Math.floor(r / 10)] + (r % 10 ? " e " + U[r % 10] : ""));
+    return partes.join(" e ");
+  };
+  const inteiro = (n: number): string => {
+    if (n === 0) return "zero";
+    const mi = Math.floor(n / 1e6), mil = Math.floor((n % 1e6) / 1000), resto = n % 1000;
+    const grupos: string[] = [];
+    if (mi) grupos.push(mi === 1 ? "um milhão" : ate999(mi) + " milhões");
+    if (mil) grupos.push(mil === 1 ? "mil" : ate999(mil) + " mil");
+    if (resto) grupos.push(ate999(resto));
+    if (grupos.length === 1) return grupos[0];
+    // "e" antes do último grupo quando ele é menor que cem ou centena exata: mil e quinhentos, dois mil e vinte
+    const ultimo = resto || mil;
+    const ultimoTxt = grupos.pop()!;
+    return grupos.join(" ") + (ultimo < 100 || ultimo % 100 === 0 ? " e " : " ") + ultimoTxt;
+  };
+  const reais = Math.floor(valor + 1e-9), centavos = Math.round((valor - reais) * 100);
+  const txtReais = reais === 0 ? "" : reais === 1 ? "um real"
+    : inteiro(reais) + (reais % 1e6 === 0 ? " de reais" : " reais");
+  const txtCent = centavos === 0 ? "" : inteiro(centavos) + (centavos === 1 ? " centavo" : " centavos");
+  return [txtReais, txtCent].filter(Boolean).join(" e ") || "zero reais";
+}
+
+// Larguras reais da Helvetica (tabela AFM, caracteres 32–255, em milésimos do tamanho da fonte):
+// são as que o leitor de PDF usa. O getTextWidth do jsPDF mede até ~4% a menos nas maiúsculas,
+// e com isso palavras como "CONTRATANTE" ficavam grudadas na seguinte.
+const AFM_HELV = "278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500";
+const AFM_HELV_B = "278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556";
+const AFM_EXTRA: Record<string, [number, number]> = { "–": [556, 556], "—": [1000, 1000], "’": [222, 278], "“": [333, 500], "”": [333, 500] };
+let _afm: [number[], number[]] | null = null;
+// Largura do texto em mm, no tamanho de fonte (pt) informado
+function larguraHelv(s: string, bold: boolean, pt: number): number {
+  _afm ??= [AFM_HELV.split(",").map(Number), AFM_HELV_B.split(",").map(Number)];
+  const tab = _afm[bold ? 1 : 0];
+  let w = 0;
+  for (const ch of s) {
+    const c = ch.charCodeAt(0);
+    w += c >= 32 && c <= 255 ? tab[c - 32] : (AFM_EXTRA[ch]?.[bold ? 1 : 0] ?? 556);
+  }
+  return (w * pt) / 1000 * (25.4 / 72);
+}
+
+// Qualificação no estilo de contrato: só entra o que estiver preenchido (sem linhas em branco)
+function qualificacao(p: DadosContratado & { profissao?: string }, generico: boolean): string {
+  const a = (masc: string) => (generico ? `${masc}(a)` : masc);
+  const minusc = (s?: string) => (s || "").trim().toLowerCase();
+  const local = [p.endereco, p.cep && `CEP ${p.cep}`, p.cidadeUf].map(s => (s || "").trim()).filter(Boolean).join(", ");
+  return [
+    minusc(p.nacionalidade), minusc(p.estadoCivil), minusc(p.profissao),
+    p.cpf && `${a("inscrito")} no CPF sob o nº ${p.cpf}`,
+    p.rg && `${a("portador")} do RG nº ${p.rg}`,
+    local && `${a("residente e domiciliado")} em ${local}`,
+    p.telefone && `telefone/WhatsApp ${p.telefone}`,
+    p.email && `e-mail ${p.email}`,
+  ].filter(Boolean).join(", ");
+}
+
+async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = false) {
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+
+  let layout = await aplicarLayoutPassarinho(doc, semLogo);
+  const { W, ML, CW } = layout;
+  let y = layout.startY;
+  const FS = 10, LH = 5;
+  const novaPagina = async () => { doc.addPage(); layout = await aplicarLayoutPassarinho(doc, semLogo); y = layout.startY; };
+  const garantir = async (h: number) => { if (y + h > layout.footerY - 8) await novaPagina(); };
+
+  type Seg = { text: string; bold?: boolean };
+  type Palavra = { text: string; style: string; w: number; colado: boolean };
+  // Quebra em linhas (mesma lógica do writeInlinePara), para poder trocar de página no meio do parágrafo
+  const linhasDe = (segs: Seg[], maxW: number) => {
+    const palavras: Palavra[] = [];
+    const pt = doc.getFontSize();
+    for (const s of segs) {
+      const style = s.bold ? "bold" : "normal";
+      for (const t of s.text.split(/\s+/).filter(Boolean))
+        palavras.push({ text: t, style, w: larguraHelv(t, !!s.bold, pt), colado: /^[,.:;!?)\]]/.test(t) });
+    }
+    const esp = larguraHelv(" ", false, pt);
+    const linhas: Array<{ ps: Palavra[]; w: number }> = [];
+    let cur = { ps: [] as Palavra[], w: 0 };
+    for (const p of palavras) {
+      const need = cur.w + (cur.ps.length && !p.colado ? esp : 0) + p.w;
+      if (cur.ps.length && need > maxW) { linhas.push(cur); cur = { ps: [p], w: p.w }; }
+      else { cur.w = need; cur.ps.push(p); }
+    }
+    if (cur.ps.length) linhas.push(cur);
+    return { linhas, esp };
+  };
+  const desenhar = (l: { ps: Palavra[]; w: number }, esp: number, x: number, maxW: number, justificar: boolean) => {
+    let gaps = 0;
+    for (let i = 1; i < l.ps.length; i++) if (!l.ps[i].colado) gaps++;
+    // Linha muito curta (palavra longa, como um e-mail, foi para a linha de baixo): não estica
+    const esticar = justificar && gaps > 0 && l.w >= maxW * 0.8;
+    const gapW = esp + (esticar ? (maxW - l.w) / gaps : 0);
+    let cx = x;
+    l.ps.forEach((p, i) => {
+      doc.setFont("helvetica", p.style);
+      doc.text(p.text, cx, y);
+      if (i < l.ps.length - 1) cx += p.w + (l.ps[i + 1].colado ? 0 : gapW);
+    });
+  };
+  const par = async (segs: Seg[], x = ML, w = CW, depois = 2.2) => {
+    doc.setFontSize(FS);
+    const { linhas, esp } = linhasDe(segs, w);
+    for (let i = 0; i < linhas.length; i++) {
+      await garantir(LH);
+      desenhar(linhas[i], esp, x, w, i < linhas.length - 1);
+      y += LH;
+    }
+    y += depois;
+  };
+  const t = (text: string): Seg => ({ text });
+  const n = (text: string): Seg => ({ text, bold: true });
+  const clausula = async (titulo: string) => {
+    await garantir(LH * 4);
+    y += 2;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
+    doc.text(titulo, ML, y);
+    y += 6;
+  };
+
+  // ── Título ──
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13.5);
+  doc.text("CONTRATO DE PRESTAÇÃO DE SERVIÇOS", W / 2, y, { align: "center" }); y += 6.5;
+  doc.text("DE ASSESSORIA BÉLICA", W / 2, y, { align: "center" }); y += 10;
+
+  // ── Partes ──
+  await par([n("CONTRATANTE: "), n(f.nome.trim().toUpperCase()), t(", " + qualificacao(f, true) + ".")]);
+  await par([n("CONTRATADO: "), n(ct.nome.trim().toUpperCase()), t(", " + qualificacao(ct, false) + ", que atua sob o nome PASSARINHO ASSESSORIA BÉLICA.")]);
+  await par([t("As partes acima identificadas têm entre si justo e contratado o presente contrato de prestação de serviços, que se regerá pelas cláusulas a seguir.")], ML, CW, 1);
+
+  // ── Cláusula 1 – Objeto ──
+  await clausula("CLÁUSULA 1 – DO OBJETO");
+  await par([t("1.1. O presente contrato tem por objeto a prestação, pelo CONTRATADO, de serviços de "),
+    n("assessoria documental, protocolo, acompanhamento e diligências administrativas lícitas perante a Polícia Federal"),
+    t(", buscando o deferimento dos pedidos do(a) CONTRATANTE expressamente selecionados a seguir:")], ML, CW, 1);
+  const escolhidos = SERVICOS_CONTRATO.filter(s => f.servicos.includes(s.key));
+  for (let i = 0; i < escolhidos.length; i++) {
+    let txt = escolhidos[i].texto(f);
+    if (i === escolhidos.length - 1) txt = txt.replace(/;$/, ".");
+    await par([n(`${String.fromCharCode(97 + i)}) `), t(txt)], ML + 6, CW - 6, 0.6);
+  }
+  y += 1.6;
+  let item = 2;
+  if (f.identificacaoArma.trim())
+    await par([t(`1.${item++}. Arma objeto do(s) pedido(s): ${f.identificacaoArma.trim()}.`)]);
+  await par([t(`1.${item++}. Os serviços compreendem: a orientação sobre os documentos e requisitos exigidos e a conferência da documentação (assessoria documental); o preenchimento e o protocolo dos requerimentos nos sistemas oficiais (protocolo); o acompanhamento do andamento dos pedidos (acompanhamento); e o atendimento às exigências formuladas pela Polícia Federal relativas aos pedidos contratados (diligências administrativas).`)]);
+  await par([t(`1.${item++}. Não estão incluídos neste contrato os serviços não listados no item 1.1, os recursos administrativos, os novos pedidos após eventual indeferimento e quaisquer medidas judiciais, que dependerão de novo ajuste entre as partes, bem como os atos privativos de advogado.`)]);
+
+  // ── Cláusula 2 – Obrigações do contratado ──
+  await clausula("CLÁUSULA 2 – DAS OBRIGAÇÕES DO CONTRATADO");
+  await par([t("2.1. Executar os serviços com zelo, diligência e dentro da legalidade, empregando os meios adequados para buscar o deferimento dos pedidos.")]);
+  await par([t("2.2. Informar ao(à) CONTRATANTE, de forma clara, quais documentos, exames e comparecimentos são necessários para cada pedido.")]);
+  await par([t("2.3. Protocolar os requerimentos após receber a documentação completa e os pagamentos devidos, fornecendo ao(à) CONTRATANTE o número do protocolo.")]);
+  await par([t("2.4. Acompanhar os pedidos até a decisão da Polícia Federal, mantendo o(a) CONTRATANTE informado(a) sobre exigências, decisões e prazos.")]);
+  await par([t("2.5. Guardar sigilo sobre os dados e documentos recebidos, utilizando-os somente para a execução deste contrato.")]);
+
+  // ── Cláusula 3 – Obrigações do contratante ──
+  await clausula("CLÁUSULA 3 – DAS OBRIGAÇÕES DO(A) CONTRATANTE");
+  await par([t("3.1. Fornecer informações verdadeiras e documentos autênticos, válidos e completos, respondendo pela veracidade de tudo o que apresentar.")]);
+  await par([t("3.2. Realizar, às suas expensas, os exames e avaliações exigidos, como o laudo de aptidão psicológica e o de capacidade técnica para o manuseio de arma de fogo, e comparecer pessoalmente sempre que a Polícia Federal assim exigir.")]);
+  await par([t("3.3. Atender às solicitações de documentos e informações do CONTRATADO no menor prazo possível, especialmente quando houver exigência com prazo fixado pela Polícia Federal.")]);
+  await par([t("3.4. Efetuar os pagamentos na forma e nos prazos previstos neste contrato.")]);
+  await par([t("3.5. Comunicar ao CONTRATADO qualquer alteração em seus dados cadastrais e qualquer notificação recebida diretamente da Polícia Federal.")]);
+
+  // ── Cláusula 4 – Natureza do serviço ──
+  await clausula("CLÁUSULA 4 – DA NATUREZA DO SERVIÇO");
+  await par([t("4.1. A obrigação do CONTRATADO é de meio, e não de resultado. A análise e a decisão sobre os pedidos competem exclusivamente à Polícia Federal, razão pela qual o CONTRATADO não garante o deferimento nem o prazo de conclusão da análise.")]);
+  await par([t("4.2. O CONTRATADO não responde por demora, exigências, indisponibilidade de sistemas, mudanças nas normas ou indeferimentos decorrentes da atuação da Polícia Federal ou de fatos alheios à sua atuação, respondendo, porém, por falhas próprias na prestação do serviço.")]);
+  await par([t("4.3. O protocolo do pedido não autoriza, por si só, a aquisição, a posse, o porte ou o transporte de arma de fogo.")]);
+
+  // ── Cláusula 5 – Valor ──
+  await clausula("CLÁUSULA 5 – DO VALOR E DA FORMA DE PAGAMENTO");
+  const total = lerValor(f.valorTotal) ?? 0;
+  const forma = f.formaPagamento.trim();
+  await par([t("5.1. Pelos serviços contratados, o(a) CONTRATANTE pagará ao CONTRATADO o valor total de "),
+    n(`R$ ${fmtReais(total)} (${valorPorExtenso(total)})`),
+    t(forma ? `, da seguinte forma: ${forma.replace(/\.$/, "")}.` : ".")]);
+  await par([t("5.2. Não estão incluídos no valor acima, correndo por conta do(a) CONTRATANTE, as taxas públicas (GRU), os exames e laudos, as certidões, os custos com clube de tiro e quaisquer despesas de terceiros, salvo acordo por escrito em contrário.")]);
+  await par([t("5.3. O indeferimento do pedido pela Polícia Federal não gera devolução dos valores referentes aos serviços já prestados, ressalvados os casos de falha do CONTRATADO.")]);
+
+  // ── Cláusula 6 – Vigência e rescisão ──
+  await clausula("CLÁUSULA 6 – DA VIGÊNCIA E DA RESCISÃO");
+  await par([t("6.1. Este contrato vigora desde a sua assinatura até a decisão final da Polícia Federal sobre os pedidos contratados e a entrega dos respectivos documentos ao(à) CONTRATANTE.")]);
+  await par([t("6.2. Qualquer das partes poderá rescindir o contrato mediante comunicação por escrito, inclusive por WhatsApp ou e-mail. Nesse caso, serão devidos os valores proporcionais aos serviços já executados, e eventual saldo pago antecipadamente será devolvido em até 10 (dez) dias úteis.")]);
+  await par([t("6.3. Na rescisão, o CONTRATADO entregará ao(à) CONTRATANTE os protocolos, os documentos e as informações sobre o andamento dos pedidos.")]);
+
+  // ── Cláusula 7 – Dados pessoais ──
+  await clausula("CLÁUSULA 7 – DA PROTEÇÃO DE DADOS");
+  await par([t("7.1. Os dados pessoais e documentos do(a) CONTRATANTE serão tratados exclusivamente para a execução deste contrato e para o cumprimento de obrigações legais, nos termos da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados), sendo compartilhados apenas com a Polícia Federal e com terceiros indispensáveis à prestação do serviço.")]);
+
+  // ── Cláusula 8 – Disposições gerais ──
+  await clausula("CLÁUSULA 8 – DISPOSIÇÕES GERAIS");
+  await par([t("8.1. O CONTRATADO não é servidor nem possui vínculo com a Polícia Federal, não promete qualquer facilidade ou prioridade perante agentes públicos, e nenhum valor deste contrato se destina a pagamento a servidor público.")]);
+  await par([t("8.2. Este contrato não envolve a compra, a venda, a guarda ou o transporte de armas e munições pelo CONTRATADO.")]);
+  await par([t("8.3. Quando necessário, o(a) CONTRATANTE outorgará procuração específica ao CONTRATADO, em documento separado.")]);
+  await par([t("8.4. As comunicações entre as partes poderão ser feitas pelos telefones (WhatsApp) e e-mails indicados neste contrato.")]);
+
+  // ── Cláusula 9 – Foro ──
+  await clausula("CLÁUSULA 9 – DO FORO");
+  await par([t(`9.1. Fica eleito o foro da comarca de ${(f.foro || "Manaus/AM").trim()} para dirimir quaisquer questões oriundas deste contrato, ressalvado o direito do(a) CONTRATANTE de demandar no foro de seu domicílio, quando aplicável.`)]);
+  await par([t("E, por estarem de acordo, as partes assinam o presente contrato eletronicamente, por meio de assinatura digital (gov.br ou ICP-Brasil), que tem plena validade jurídica.")]);
+
+  // ── Local, data e assinaturas (bloco junto na mesma página) ──
+  await garantir(78);
+  const dataExt = f.data ? format(parseISO(f.data), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "";
+  y += 3;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
+  doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
+  y += 24;
+  doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
+  for (const [papel, nome, cpf] of [["CONTRATANTE", f.nome, f.cpf], ["CONTRATADO", ct.nome, ct.cpf]]) {
+    doc.line(W / 2 - 55, y, W / 2 + 55, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9.5);
+    doc.text(nome.trim().toUpperCase(), W / 2, y + 4.5, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
+    doc.text(`${papel}${cpf ? ` · CPF ${cpf}` : ""}`, W / 2, y + 8.8, { align: "center" });
+    doc.text("Assinatura digital (gov.br ou ICP-Brasil)", W / 2, y + 12.6, { align: "center" });
+    y += 30;
+  }
+
+  const nomeArq = titleCase((f.nome || "Cliente").toLowerCase());
+  return await salvarPDF(doc, `Contrato de Assessoria - ${nomeArq}.pdf`);
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -1990,6 +2299,56 @@ END $$;`
 
   // Diálogo 4 — DSA
   const [dialogDSAOpen, setDialogDSAOpen] = useState(false);
+
+  // ── Contrato de assessoria ──
+  const [dialogContratoOpen, setDialogContratoOpen] = useState(false);
+  const [formContrato, setFormContrato] = useState<FormContrato>(novoFormContrato);
+  const [buscaContrato, setBuscaContrato] = useState("");
+  const [contratado, setContratado] = useState<DadosContratado>(CONTRATADO_VAZIO);
+  const [editandoContratado, setEditandoContratado] = useState(false);
+  const [gerandoContrato, setGerandoContrato] = useState(false);
+  const setFormC = <K extends keyof FormContrato>(k: K, v: FormContrato[K]) => setFormContrato(p => ({ ...p, [k]: v }));
+  const setContratadoCampo = (k: keyof DadosContratado, v: string) => setContratado(p => ({ ...p, [k]: v }));
+
+  const abrirContrato = async () => {
+    setFormContrato(novoFormContrato()); setBuscaContrato(""); setDialogContratoOpen(true);
+    // Tabela de configuração: criada uma vez por navegador (só o admin consegue criar)
+    const FLAG = "app_config_migration_v1";
+    if (!localStorage.getItem(FLAG)) {
+      await supabase.functions.invoke("run-migration", { body: { sql: SQL_APP_CONFIG } }).catch(() => {});
+      localStorage.setItem(FLAG, "1");
+    }
+    const { data } = await supabase.from("app_config" as any).select("valor").eq("chave", "contratado").maybeSingle();
+    const salvo = (data as any)?.valor as Partial<DadosContratado> | undefined;
+    if (salvo?.nome) { setContratado({ ...CONTRATADO_VAZIO, ...salvo }); setEditandoContratado(false); }
+    else setEditandoContratado(true);
+  };
+
+  const salvarContratado = async () => {
+    if (!contratado.nome.trim()) { alert("Preencha ao menos o nome do contratado."); return; }
+    const { error } = await supabase.from("app_config" as any)
+      .upsert({ chave: "contratado", valor: contratado, updated_at: new Date().toISOString() });
+    if (error) { sonnerToast.error("Não foi possível salvar: " + error.message); return; }
+    sonnerToast.success("Dados do contratado salvos.");
+    setEditandoContratado(false);
+  };
+
+  const preencherContratante = (c: Cliente) => {
+    setFormContrato(p => ({
+      ...p,
+      nome: (c.nome || "").toUpperCase(),
+      estadoCivil: c.estadoCivil || "",
+      profissao: c.profissao || "",
+      cpf: c.cpf || "",
+      rg: [c.rg, (c.orgaoEmissor || "").replace("-", "/")].filter(Boolean).join(" "),
+      endereco: [c.endereco, c.numero ? `número ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", "),
+      cep: c.cep || "",
+      cidadeUf: [c.cidade, c.estado].filter(Boolean).join("/"),
+      telefone: c.telefone || "",
+      email: c.email || "",
+    }));
+    setBuscaContrato("");
+  };
   const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
@@ -2079,6 +2438,7 @@ END $$;`
               { label: "DSA",                           action: () => { setFormDSA(EMPTY_FORM_DSA); setDialogDSAOpen(true); } },
               { label: "Declaração de Residência",      action: () => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); } },
               { label: "Docs Emissão de CRAF",          action: () => { setCrafNome(""); clearNotaFiscal(); clearAutorizacaoCompra(); clearCnhCraf(); setDialogCrafOpen(true); } },
+              { label: "Contrato de Assessoria",        action: () => { abrirContrato(); } },
             { label: "Imagem para PDF",               action: () => navigate("/imagem-para-pdf") },
             ].map(({ label, action }) => (
               <button
@@ -3160,6 +3520,211 @@ END $$;`
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Contrato de prestação de serviços de assessoria bélica ── */}
+      <Dialog open={dialogContratoOpen} onOpenChange={setDialogContratoOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Contrato de Prestação de Serviços de Assessoria Bélica</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Busca do cliente cadastrado → preenche o contratante */}
+            <div className="space-y-1">
+              <Label className="text-xs text-primary font-semibold">Buscar cliente cadastrado (nome ou CPF)</Label>
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="h-9 text-sm pl-8 border-primary/40 bg-primary/5" placeholder="Digite o nome ou o CPF do cliente…"
+                  value={buscaContrato} onChange={e => setBuscaContrato(e.target.value)} />
+              </div>
+              {(() => {
+                const q = buscaContrato.trim();
+                if (q.length < 2) return null;
+                const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+                const dig = q.replace(/\D/g, "");
+                const achados = clientes.filter(c => sem(c.nome || "").includes(sem(q)) ||
+                  (dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig))).slice(0, 8);
+                if (!achados.length) return <p className="text-[11px] text-muted-foreground px-1">Nenhum cliente encontrado.</p>;
+                return (
+                  <div className="rounded-md border border-border bg-popover shadow-md max-h-56 overflow-y-auto">
+                    {achados.map(c => (
+                      <button key={c.id} type="button" onClick={() => preencherContratante(c)}
+                        className="w-full text-left px-3 py-2 hover:bg-primary/10 border-b border-border/40 last:border-0">
+                        <p className="text-sm font-medium">{c.nome}</p>
+                        {c.cpf && <p className="text-[11px] text-muted-foreground">{c.cpf}</p>}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Contratante */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Contratante (cliente)</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Nome completo</Label>
+                <Input className="h-9 text-sm uppercase" value={formContrato.nome} onChange={e => setFormC("nome", e.target.value)} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1"><Label className="text-xs">Nacionalidade</Label>
+                  <Input className="h-9 text-sm" value={formContrato.nacionalidade} onChange={e => setFormC("nacionalidade", e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Estado civil</Label>
+                  <Input className="h-9 text-sm" value={formContrato.estadoCivil} onChange={e => setFormC("estadoCivil", e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Profissão</Label>
+                  <Input className="h-9 text-sm" value={formContrato.profissao} onChange={e => setFormC("profissao", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">CPF</Label>
+                  <Input className="h-9 text-sm font-mono" value={formContrato.cpf} onChange={e => setFormC("cpf", maskCpf(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">RG (com órgão)</Label>
+                  <Input className="h-9 text-sm" placeholder="0000000-0 SSP/AM" value={formContrato.rg} onChange={e => setFormC("rg", e.target.value)} /></div>
+              </div>
+              <div className="space-y-1"><Label className="text-xs">Endereço</Label>
+                <Input className="h-9 text-sm" placeholder="Rua, número, complemento, bairro" value={formContrato.endereco} onChange={e => setFormC("endereco", e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">CEP</Label>
+                  <Input className="h-9 text-sm font-mono" value={formContrato.cep} onChange={e => setFormC("cep", maskCep(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Cidade/UF</Label>
+                  <Input className="h-9 text-sm" placeholder="Manaus/AM" value={formContrato.cidadeUf} onChange={e => setFormC("cidadeUf", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">Telefone/WhatsApp</Label>
+                  <Input className="h-9 text-sm" value={formContrato.telefone} onChange={e => setFormC("telefone", maskTelefone(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">E-mail</Label>
+                  <Input className="h-9 text-sm" value={formContrato.email} onChange={e => setFormC("email", e.target.value)} /></div>
+              </div>
+            </div>
+
+            {/* Serviços */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Serviços do contrato</p>
+              <div className="flex flex-wrap gap-2">
+                {SERVICOS_CONTRATO.map(s => {
+                  const on = formContrato.servicos.includes(s.key);
+                  return (
+                    <button key={s.key} type="button"
+                      onClick={() => setFormC("servicos", on ? formContrato.servicos.filter(x => x !== s.key) : [...formContrato.servicos, s.key])}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+                      {on ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}{s.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {formContrato.servicos.includes("cr") && (
+                <div className="space-y-1"><Label className="text-xs">Categoria do CR</Label>
+                  <Input className="h-9 text-sm" placeholder="ex.: Atirador Desportivo" value={formContrato.categoriaCR} onChange={e => setFormC("categoriaCR", e.target.value)} /></div>
+              )}
+            </div>
+
+            {/* Valor */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Valor total do contrato (R$)</Label>
+                <Input className="h-9 text-sm" inputMode="decimal" placeholder="1.500,00" value={formContrato.valorTotal} onChange={e => setFormC("valorTotal", e.target.value)} />
+                {(() => {
+                  const v = lerValor(formContrato.valorTotal);
+                  return v !== null && v > 0
+                    ? <p className="text-[11px] text-muted-foreground">R$ {fmtReais(v)} ({valorPorExtenso(v)})</p> : null;
+                })()}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Forma e vencimentos</Label>
+                <Input className="h-9 text-sm" placeholder="ex.: à vista no PIX" value={formContrato.formaPagamento} onChange={e => setFormC("formaPagamento", e.target.value)} />
+              </div>
+            </div>
+
+            {/* Campos opcionais do contrato */}
+            <details className="rounded-md border border-border/60 p-3">
+              <summary className="text-xs font-semibold cursor-pointer select-none">Mais detalhes (opcional): arma, foro, local e data</summary>
+              <div className="space-y-3 mt-3">
+                <div className="space-y-1"><Label className="text-xs">Arma do pedido (espécie, marca, modelo, calibre e nº de série) — só entra no contrato se preencher</Label>
+                  <Input className="h-9 text-sm" value={formContrato.identificacaoArma} onChange={e => setFormC("identificacaoArma", e.target.value)} /></div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1"><Label className="text-xs">Foro</Label>
+                    <Input className="h-9 text-sm" value={formContrato.foro} onChange={e => setFormC("foro", e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Local</Label>
+                    <Input className="h-9 text-sm" value={formContrato.local} onChange={e => setFormC("local", e.target.value)} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Data</Label>
+                    <Input className="h-9 text-sm" type="date" value={formContrato.data} onChange={e => setFormC("data", e.target.value)} /></div>
+                </div>
+              </div>
+            </details>
+
+            {/* Contratado (a assessoria) — fica salvo no banco, não no código */}
+            <div className="rounded-md border border-border/60 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Contratado (assessoria)</p>
+                {!editandoContratado && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setEditandoContratado(true)}>
+                    <Pencil className="h-3 w-3" />Editar
+                  </Button>
+                )}
+              </div>
+              {!editandoContratado ? (
+                <p className="text-xs text-muted-foreground">{contratado.nome}{contratado.cpf ? ` · CPF ${contratado.cpf}` : ""}</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted-foreground">Preencha uma vez e salve: fica guardado no sistema para os próximos contratos.</p>
+                  <div className="space-y-1"><Label className="text-xs">Nome completo</Label>
+                    <Input className="h-9 text-sm uppercase" value={contratado.nome} onChange={e => setContratadoCampo("nome", e.target.value.toUpperCase())} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><Label className="text-xs">Nacionalidade</Label>
+                      <Input className="h-9 text-sm" value={contratado.nacionalidade} onChange={e => setContratadoCampo("nacionalidade", e.target.value)} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Estado civil</Label>
+                      <Input className="h-9 text-sm" value={contratado.estadoCivil} onChange={e => setContratadoCampo("estadoCivil", e.target.value)} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><Label className="text-xs">CPF</Label>
+                      <Input className="h-9 text-sm font-mono" value={contratado.cpf} onChange={e => setContratadoCampo("cpf", maskCpf(e.target.value))} /></div>
+                    <div className="space-y-1"><Label className="text-xs">RG (com órgão)</Label>
+                      <Input className="h-9 text-sm" value={contratado.rg} onChange={e => setContratadoCampo("rg", e.target.value)} /></div>
+                  </div>
+                  <div className="space-y-1"><Label className="text-xs">Endereço</Label>
+                    <Input className="h-9 text-sm" value={contratado.endereco} onChange={e => setContratadoCampo("endereco", e.target.value)} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><Label className="text-xs">CEP</Label>
+                      <Input className="h-9 text-sm font-mono" value={contratado.cep} onChange={e => setContratadoCampo("cep", e.target.value)} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Cidade/UF</Label>
+                      <Input className="h-9 text-sm" value={contratado.cidadeUf} onChange={e => setContratadoCampo("cidadeUf", e.target.value)} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1"><Label className="text-xs">Telefone/WhatsApp</Label>
+                      <Input className="h-9 text-sm" value={contratado.telefone} onChange={e => setContratadoCampo("telefone", e.target.value)} /></div>
+                    <div className="space-y-1"><Label className="text-xs">E-mail</Label>
+                      <Input className="h-9 text-sm" value={contratado.email} onChange={e => setContratadoCampo("email", e.target.value)} /></div>
+                  </div>
+                  <Button size="sm" className="h-8 text-xs" onClick={salvarContratado}>Salvar dados do contratado</Button>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogContratoOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" disabled={gerandoContrato} onClick={async () => {
+              if (!formContrato.nome.trim()) { alert("Busque o cliente ou preencha o nome do contratante."); return; }
+              if (!formContrato.cpf.trim()) { alert("Preencha o CPF do contratante."); return; }
+              if (!formContrato.servicos.length) { alert("Escolha ao menos um serviço."); return; }
+              const total = lerValor(formContrato.valorTotal);
+              if (total === null || total <= 0) { alert("Informe o valor do contrato."); return; }
+              if (!contratado.nome.trim()) { alert("Preencha e salve os dados do contratado (assessoria)."); return; }
+              setGerandoContrato(true);
+              try {
+                const ok = await gerarPDFContrato(formContrato, contratado, semLogo);
+                if (ok) setDialogContratoOpen(false);
+              } finally { setGerandoContrato(false); }
+            }}><Download className="h-3.5 w-3.5" />{gerandoContrato ? "Gerando…" : "Gerar PDF"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
