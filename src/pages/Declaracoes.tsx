@@ -2405,18 +2405,21 @@ END $$;`
     }));
     setBuscaContrato(""); setBuscaAberta(false);
   };
-  // Lista da busca: ao clicar mostra todos; digitando, primeiro quem começa com o texto, depois sobrenomes e CPF
+  // Lista da busca: ao clicar mostra todos; digitando, primeiro quem começa com o texto, depois quem tem
+  // uma palavra começando com cada parte digitada (sobrenomes), depois CPF
   const achadosContrato = (() => {
     if (!buscaAberta) return [];
     const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
     const q = sem(buscaContrato.trim()), dig = buscaContrato.replace(/\D/g, "");
     if (!q) return clientes;
+    const partesQ = q.split(/[^a-z0-9]+/).filter(Boolean);
     const ordem = (c: Cliente) => {
       const nm = sem(c.nome || "");
-      if (nm.startsWith(q)) return 0;
-      if (nm.split(/\s+/).some(p => p.startsWith(q))) return 1;
-      if (nm.includes(q)) return 2;
-      return dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig) ? 3 : -1;
+      // Marcações como "(PARADO)" no começo do nome não atrapalham a busca pela inicial
+      if (nm.replace(/^(\([^)]*\)\s*)+/, "").startsWith(q)) return 0;
+      const palavras = nm.split(/[^a-z0-9]+/);
+      if (partesQ.length && partesQ.every(pq => palavras.some(p => p.startsWith(pq)))) return 1;
+      return dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig) ? 2 : -1;
     };
     return clientes.map(c => ({ c, o: ordem(c) })).filter(x => x.o >= 0).sort((a, b) => a.o - b.o).map(x => x.c);
   })();
