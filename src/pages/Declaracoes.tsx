@@ -1108,12 +1108,19 @@ const INCLUSOS_CONTRATO: Array<{ key: string; label: string; texto: (qtdPedidos:
       : "a taxa do serviço cobrada pela Polícia Federal, paga por meio de GRU (Guia de Recolhimento da União);" },
 ];
 
+// Formas de pagamento com um clique: o texto vai para a cláusula 5.1 e ainda pode ser editado no campo
+const FORMAS_PAGAMENTO = [
+  { label: "PIX",    texto: "à vista, via PIX" },
+  { label: "Cartão", texto: "no cartão de crédito" },
+  { label: "Boleto", texto: "por boleto bancário" },
+];
+
 function novoFormContrato(): FormContrato {
   return {
     nome: "", nacionalidade: "Brasileiro(a)", estadoCivil: "", profissao: "", cpf: "", rg: "",
     endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
     servicos: [], categoriaCR: "Atirador Desportivo", identificacaoArma: "",
-    valorTotal: "", formaPagamento: "", inclusos: INCLUSOS_CONTRATO.map(i => i.key),
+    valorTotal: "1.950,00", formaPagamento: "", inclusos: INCLUSOS_CONTRATO.map(i => i.key), // valor padrão: dá para apagar e digitar outro
     foro: "Manaus/AM", local: "Manaus/AM", data: format(getSiteDate(), "yyyy-MM-dd"),
   };
 }
@@ -3662,7 +3669,7 @@ END $$;`
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Valor total do contrato (R$)</Label>
-                <Input className="h-9 text-sm" inputMode="decimal" placeholder="1.500,00" value={formContrato.valorTotal} onChange={e => setFormC("valorTotal", e.target.value)} />
+                <Input className="h-9 text-sm" inputMode="decimal" placeholder="1.950,00" value={formContrato.valorTotal} onFocus={e => e.target.select()} onChange={e => setFormC("valorTotal", e.target.value)} />
                 {(() => {
                   const v = lerValor(formContrato.valorTotal);
                   return v !== null && v > 0
@@ -3670,8 +3677,20 @@ END $$;`
                 })()}
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Forma e vencimentos</Label>
-                <Input className="h-9 text-sm" placeholder="ex.: à vista no PIX" value={formContrato.formaPagamento} onChange={e => setFormC("formaPagamento", e.target.value)} />
+                <Label className="text-xs">Forma de pagamento</Label>
+                <Input className="h-9 text-sm" placeholder="escolha abaixo ou escreva" value={formContrato.formaPagamento} onChange={e => setFormC("formaPagamento", e.target.value)} />
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {FORMAS_PAGAMENTO.map(fp => {
+                    const on = formContrato.formaPagamento === fp.texto;
+                    return (
+                      <button key={fp.label} type="button"
+                        onClick={() => setFormC("formaPagamento", on ? "" : fp.texto)}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+                        {fp.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
