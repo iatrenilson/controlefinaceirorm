@@ -2359,6 +2359,7 @@ END $$;`
   const [dialogContratoOpen, setDialogContratoOpen] = useState(false);
   const [formContrato, setFormContrato] = useState<FormContrato>(novoFormContrato);
   const [buscaContrato, setBuscaContrato] = useState("");
+  const [buscaAberta, setBuscaAberta] = useState(false);
   const [contratado, setContratado] = useState<DadosContratado>(CONTRATADO_VAZIO);
   const [editandoContratado, setEditandoContratado] = useState(false);
   const [gerandoContrato, setGerandoContrato] = useState(false);
@@ -2366,7 +2367,7 @@ END $$;`
   const setContratadoCampo = (k: keyof DadosContratado, v: string) => setContratado(p => ({ ...p, [k]: v }));
 
   const abrirContrato = async () => {
-    setFormContrato(novoFormContrato()); setBuscaContrato(""); setDialogContratoOpen(true);
+    setFormContrato(novoFormContrato()); setBuscaContrato(""); setBuscaAberta(false); setDialogContratoOpen(true);
     // Tabela de configuração: criada uma vez por navegador (só o admin consegue criar)
     const FLAG = "app_config_migration_v1";
     if (!localStorage.getItem(FLAG)) {
@@ -2402,8 +2403,23 @@ END $$;`
       telefone: c.telefone || "",
       email: c.email || "",
     }));
-    setBuscaContrato("");
+    setBuscaContrato(""); setBuscaAberta(false);
   };
+  // Lista da busca: ao clicar mostra todos; digitando, primeiro quem começa com o texto, depois sobrenomes e CPF
+  const achadosContrato = (() => {
+    if (!buscaAberta) return [];
+    const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    const q = sem(buscaContrato.trim()), dig = buscaContrato.replace(/\D/g, "");
+    if (!q) return clientes;
+    const ordem = (c: Cliente) => {
+      const nm = sem(c.nome || "");
+      if (nm.startsWith(q)) return 0;
+      if (nm.split(/\s+/).some(p => p.startsWith(q))) return 1;
+      if (nm.includes(q)) return 2;
+      return dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig) ? 3 : -1;
+    };
+    return clientes.map(c => ({ c, o: ordem(c) })).filter(x => x.o >= 0).sort((a, b) => a.o - b.o).map(x => x.c);
+  })();
   const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
@@ -3600,28 +3616,25 @@ END $$;`
               <div className="relative">
                 <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input className="h-9 text-sm pl-8 border-primary/40 bg-primary/5" placeholder="Digite o nome ou o CPF do cliente…"
-                  value={buscaContrato} onChange={e => setBuscaContrato(e.target.value)} />
-              </div>
-              {(() => {
-                const q = buscaContrato.trim();
-                if (q.length < 2) return null;
-                const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-                const dig = q.replace(/\D/g, "");
-                const achados = clientes.filter(c => sem(c.nome || "").includes(sem(q)) ||
-                  (dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig))).slice(0, 8);
-                if (!achados.length) return <p className="text-[11px] text-muted-foreground px-1">Nenhum cliente encontrado.</p>;
-                return (
-                  <div className="rounded-md border border-border bg-popover shadow-md max-h-56 overflow-y-auto">
-                    {achados.map(c => (
+                  value={buscaContrato}
+                  onClick={() => setBuscaAberta(true)}
+                  onChange={e => { setBuscaContrato(e.target.value); setBuscaAberta(true); }}
+                  onBlur={() => setTimeout(() => setBuscaAberta(false), 200)}
+                  onKeyDown={e => { if (e.key === "Enter" && achadosContrato.length) { e.preventDefault(); preencherContratante(achadosContrato[0]); } }} />
+                {/* Lista por cima do formulário; o mouseDown não tira o foco da busca, senão o clique no cliente se perde */}
+                {buscaAberta && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover shadow-md max-h-64 overflow-y-auto"
+                    onMouseDown={e => e.preventDefault()}>
+                    {achadosContrato.length ? achadosContrato.map(c => (
                       <button key={c.id} type="button" onClick={() => preencherContratante(c)}
                         className="w-full text-left px-3 py-2 hover:bg-primary/10 border-b border-border/40 last:border-0">
                         <p className="text-sm font-medium">{c.nome}</p>
                         {c.cpf && <p className="text-[11px] text-muted-foreground">{c.cpf}</p>}
                       </button>
-                    ))}
+                    )) : <p className="text-[11px] text-muted-foreground px-3 py-2">Nenhum cliente encontrado.</p>}
                   </div>
-                );
-              })()}
+                )}
+              </div>
             </div>
 
             {/* Contratante */}
