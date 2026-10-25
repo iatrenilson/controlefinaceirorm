@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getSafeErrorMessage } from "@/lib/safe-error";
+import { casaComBusca } from "@/lib/buscaCliente";
 
 interface Cliente {
   id: string;
@@ -1248,7 +1249,7 @@ const Emprestimos = () => {
                 <div className="space-y-3 md:hidden">
                   {clientes
                     .filter((c) => {
-                      const matchNome = c.nome.toLowerCase().includes(busca.toLowerCase());
+                      const matchNome = casaComBusca(c.nome, null, busca);
                       const atrasado = isPast(parseISO(c.dataPagamento));
                       const matchStatus = filtroStatus === "todos" || (filtroStatus === "atrasado" && atrasado) || (filtroStatus === "em_dia" && !atrasado);
                       return matchNome && matchStatus;
@@ -1389,7 +1390,7 @@ const Emprestimos = () => {
                     <TableBody>
                       {clientes
                         .filter((c) => {
-                          const matchNome = c.nome.toLowerCase().includes(busca.toLowerCase());
+                          const matchNome = casaComBusca(c.nome, null, busca);
                           const atrasado = isPast(parseISO(c.dataPagamento));
                           const matchStatus = filtroStatus === "todos" || (filtroStatus === "atrasado" && atrasado) || (filtroStatus === "em_dia" && !atrasado);
                           return matchNome && matchStatus;

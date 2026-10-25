@@ -11,7 +11,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { cn, norm } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { buscarClientes } from "@/lib/buscaCliente";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -775,9 +776,7 @@ ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
     toast.success(`Dados de ${c.nome} preenchidos.`);
   };
 
-  const cadFiltrados = cadSearch.trim()
-    ? cadastros.filter(c => norm(c.nome).includes(norm(cadSearch)) || (c.cpf || "").includes(cadSearch))
-    : cadastros;
+  const cadFiltrados = buscarClientes(cadastros, cadSearch);
 
   // Seleciona registro SINARM/SIGMA - sem auto-preencher notas
   const setArma = (key: "pistola" | "revolver" | "rifle" | "espingarda", val: SistReg) => {

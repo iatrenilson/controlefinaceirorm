@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { norm } from "@/lib/utils";
+import { buscarClientes, casaComBusca } from "@/lib/buscaCliente";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, FileText, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
@@ -300,9 +301,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const sinarmFiltrados = sinarmBusca.trim()
-    ? sinarmList.filter(c => norm(c.nome).includes(norm(sinarmBusca)) || (c.cpf ?? "").includes(sinarmBusca))
-    : sinarmList;
+  const sinarmFiltrados = buscarClientes(sinarmList, sinarmBusca);
 
   const selecionarSinarm = (c: SinarmCliente) => {
     setNome(c.nome);
@@ -773,7 +772,7 @@ GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
     toast.success("Cliente removido.");
   };
 
-  const filtrados = clientes.filter(c => norm(c.nome).includes(norm(busca)));
+  const filtrados = clientes.filter(c => casaComBusca(c.nome, c.cpf, busca));
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto">

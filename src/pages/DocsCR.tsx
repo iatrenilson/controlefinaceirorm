@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileCheck2, FileX2, Search, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { casaComBusca } from "@/lib/buscaCliente";
 
 const DOCS_CR = [
   { id: "ant_federal",       label: "Certidão negativa de antecedentes criminais da Justiça Federal",              tag: "" },
@@ -32,6 +33,7 @@ interface DocCRItem {
 interface ClienteRow {
   id: string;
   nome: string;
+  cpf: string;
 }
 
 export default function DocsCR() {
@@ -45,10 +47,10 @@ export default function DocsCR() {
     try {
       const { data: rows } = await supabase
         .from("declaracao_clientes")
-        .select("id, nome")
+        .select("id, nome, cpf")
         .order("nome", { ascending: true });
 
-      const lista: ClienteRow[] = (rows ?? []).map(r => ({ id: r.id, nome: r.nome ?? "" }));
+      const lista: ClienteRow[] = (rows ?? []).map(r => ({ id: r.id, nome: r.nome ?? "", cpf: r.cpf ?? "" }));
       setClientes(lista);
 
       if (lista.length > 0) {
@@ -80,9 +82,7 @@ export default function DocsCR() {
 
   useEffect(() => { fetchDados(); }, [fetchDados]);
 
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase())
-  );
+  const clientesFiltrados = clientes.filter(c => casaComBusca(c.nome, c.cpf, busca));
 
   const totalDocs = DOCS_CR.length;
   const completos = clientes.filter(c => (docsCliente.get(c.id) ?? []).length === totalDocs).length;
@@ -139,7 +139,7 @@ export default function DocsCR() {
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar cliente..."
+              placeholder="Buscar por nome ou CPF..."
               value={busca}
               onChange={e => setBusca(e.target.value)}
               className="pl-8 h-9"

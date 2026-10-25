@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
 import { lerDocumento, lerComprovanteEndereco } from "@/lib/lerDocumento";
+import { casaComBusca } from "@/lib/buscaCliente";
+import { BuscaCliente } from "@/components/BuscaCliente";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1494,30 +1496,14 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-// ─── Seletor de cliente reutilizável ──────────────────────────────────────
+// ─── Seletor de cliente reutilizável (pesquisa igual à de Laudos) ─────────
 function ClienteSelector({ clientes, label, onSelect }: {
   clientes: Cliente[];
   label: string;
   onSelect: (c: Cliente) => void;
 }) {
   if (clientes.length === 0) return null;
-  return (
-    <div className="space-y-1">
-      <Label className="text-xs text-primary font-semibold">{label}</Label>
-      <Select onValueChange={(id) => { const c = clientes.find(x => x.id === id); if (c) onSelect(c); }}>
-        <SelectTrigger className="h-9 text-sm border-primary/40 bg-primary/5">
-          <SelectValue placeholder="— Selecionar cliente cadastrado —" />
-        </SelectTrigger>
-        <SelectContent>
-          {clientes.map(c => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.nome} {c.cpf ? `· ${c.cpf}` : ""}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
+  return <BuscaCliente clientes={clientes} label={label} onSelect={onSelect} />;
 }
 
 // ─── Helpers DB ────────────────────────────────────────────────────────────
@@ -2474,8 +2460,6 @@ END $$;`
   // ── Contrato de assessoria ──
   const [dialogContratoOpen, setDialogContratoOpen] = useState(false);
   const [formContrato, setFormContrato] = useState<FormContrato>(novoFormContrato);
-  const [buscaContrato, setBuscaContrato] = useState("");
-  const [buscaAberta, setBuscaAberta] = useState(false);
   const [contratado, setContratado] = useState<DadosContratado>(CONTRATADO_VAZIO);
   const [editandoContratado, setEditandoContratado] = useState(false);
   const [gerandoContrato, setGerandoContrato] = useState(false);
@@ -2483,7 +2467,7 @@ END $$;`
   const setContratadoCampo = (k: keyof DadosContratado, v: string) => setContratado(p => ({ ...p, [k]: v }));
 
   const abrirContrato = async () => {
-    setFormContrato(novoFormContrato()); setBuscaContrato(""); setBuscaAberta(false); setDialogContratoOpen(true);
+    setFormContrato(novoFormContrato()); setDialogContratoOpen(true);
     // Tabela de configuração: criada uma vez por navegador (só o admin consegue criar)
     const FLAG = "app_config_migration_v1";
     if (!localStorage.getItem(FLAG)) {
@@ -2519,26 +2503,7 @@ END $$;`
       telefone: c.telefone || "",
       email: c.email || "",
     }));
-    setBuscaContrato(""); setBuscaAberta(false);
   };
-  // Lista da busca: ao clicar mostra todos; digitando, primeiro quem começa com o texto, depois quem tem
-  // uma palavra começando com cada parte digitada (sobrenomes), depois CPF
-  const achadosContrato = (() => {
-    if (!buscaAberta) return [];
-    const sem = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-    const q = sem(buscaContrato.trim()), dig = buscaContrato.replace(/\D/g, "");
-    if (!q) return clientes;
-    const partesQ = q.split(/[^a-z0-9]+/).filter(Boolean);
-    const ordem = (c: Cliente) => {
-      const nm = sem(c.nome || "");
-      // Marcações como "(PARADO)" no começo do nome não atrapalham a busca pela inicial
-      if (nm.replace(/^(\([^)]*\)\s*)+/, "").startsWith(q)) return 0;
-      const palavras = nm.split(/[^a-z0-9]+/);
-      if (partesQ.length && partesQ.every(pq => palavras.some(p => p.startsWith(pq)))) return 1;
-      return dig.length >= 3 && (c.cpf || "").replace(/\D/g, "").includes(dig) ? 2 : -1;
-    };
-    return clientes.map(c => ({ c, o: ordem(c) })).filter(x => x.o >= 0).sort((a, b) => a.o - b.o).map(x => x.c);
-  })();
   const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
@@ -2766,7 +2731,7 @@ END $$;`
                       </tr>
                     </thead>
                     <tbody>
-                      {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente))).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
+                      {[...clientes].filter(c => casaComBusca(c.nome, c.cpf, buscaCliente)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
                         const docs = docsCliente.get(c.id) ?? [];
                         const ok = docs.length;
                         const cor = ok === DOCS_CR.length ? "text-green-400" : ok > 0 ? "text-yellow-400" : "text-muted-foreground";
@@ -2799,7 +2764,7 @@ END $$;`
                 </div>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente)) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
+                  {[...clientes].filter(c => casaComBusca(c.nome, c.cpf, buscaCliente) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
@@ -3005,7 +2970,7 @@ END $$;`
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-28 text-center">Status</span>
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider w-14 text-center">Ações</span>
                   </div>
-                  {[...clientes].filter(c => norm(c.nome).includes(norm(buscaCliente)) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
+                  {[...clientes].filter(c => casaComBusca(c.nome, c.cpf, buscaCliente) && (!filtroStatusBadge || (c.status ?? "doc") === filtroStatusBadge)).sort((a, b) => {
                     const order: Record<string, number> = { doc: 0, docaut: 1, analise: 2, craf: 3, autor: 4, deferido: 5, completo: 6 };
                     const sa = order[a.status ?? "doc"] ?? 0;
                     const sb = order[b.status ?? "doc"] ?? 0;
@@ -3726,31 +3691,7 @@ END $$;`
           </DialogHeader>
           <div className="space-y-4 py-2">
             {/* Busca do cliente cadastrado → preenche o contratante */}
-            <div className="space-y-1">
-              <Label className="text-xs text-primary font-semibold">Buscar cliente cadastrado (nome ou CPF)</Label>
-              <div className="relative">
-                <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input className="h-9 text-sm pl-8 border-primary/40 bg-primary/5" placeholder="Digite o nome ou o CPF do cliente…"
-                  value={buscaContrato}
-                  onClick={() => setBuscaAberta(true)}
-                  onChange={e => { setBuscaContrato(e.target.value); setBuscaAberta(true); }}
-                  onBlur={() => setTimeout(() => setBuscaAberta(false), 200)}
-                  onKeyDown={e => { if (e.key === "Enter" && achadosContrato.length) { e.preventDefault(); preencherContratante(achadosContrato[0]); } }} />
-                {/* Lista por cima do formulário; o mouseDown não tira o foco da busca, senão o clique no cliente se perde */}
-                {buscaAberta && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover shadow-md max-h-64 overflow-y-auto"
-                    onMouseDown={e => e.preventDefault()}>
-                    {achadosContrato.length ? achadosContrato.map(c => (
-                      <button key={c.id} type="button" onClick={() => preencherContratante(c)}
-                        className="w-full text-left px-3 py-2 hover:bg-primary/10 border-b border-border/40 last:border-0">
-                        <p className="text-sm font-medium">{c.nome}</p>
-                        {c.cpf && <p className="text-[11px] text-muted-foreground">{c.cpf}</p>}
-                      </button>
-                    )) : <p className="text-[11px] text-muted-foreground px-3 py-2">Nenhum cliente encontrado.</p>}
-                  </div>
-                )}
-              </div>
-            </div>
+            <BuscaCliente clientes={clientes} label="Buscar cliente cadastrado (nome ou CPF)" onSelect={preencherContratante} />
 
             {/* Contratante */}
             <div className="space-y-2">

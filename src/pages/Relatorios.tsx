@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { casaComBusca } from "@/lib/buscaCliente";
 
 interface Cliente {
   id: string;
@@ -139,7 +140,7 @@ const Relatorios = () => {
     const now = new Date();
     return clientes.filter((c) => {
       // Client name filter
-      if (filtroCliente && !c.nome.toLowerCase().includes(filtroCliente.toLowerCase())) return false;
+      if (filtroCliente && !casaComBusca(c.nome, null, filtroCliente)) return false;
 
       // Status filter
       const atrasado = isPast(parseISO(c.dataPagamento));

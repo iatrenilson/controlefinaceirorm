@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { norm } from "@/lib/utils";
+import { casaComBusca } from "@/lib/buscaCliente";
 import { CADASTRO_GERAL_ATIVO } from "@/lib/constants";
 import { Copy, Link, UserPlus, Search, Users, Pencil, Trash2, Check, X, FileDown, ClipboardPen, ClipboardList, ChevronLeft, ChevronRight, Upload, Share2, ToggleLeft, ToggleRight, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -548,7 +549,7 @@ export default function CadastrosAdmin() {
 
   const filtrados = cadastros
     .filter(c => !filtroColab || c.colaborador_token === filtroColab.token)
-    .filter(c => !busca.trim() || norm(c.nome).includes(norm(busca)) || (c.cpf || "").includes(busca));
+    .filter(c => casaComBusca(c.nome, c.cpf, busca));
 
   const fmtData = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
