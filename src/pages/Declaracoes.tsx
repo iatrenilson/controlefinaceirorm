@@ -5,7 +5,7 @@ import { usuarioAtual } from "@/lib/usuarioAtual";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
-import { lerDocumento } from "@/lib/lerDocumento";
+import { lerDocumento, lerComprovanteEndereco } from "@/lib/lerDocumento";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1412,6 +1412,41 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   return await salvarPDF(doc, `Contrato de Assessoria - ${nomeArq}.pdf`);
 }
 
+// Caixa "Importar ..." do cadastro do cliente: aceita PDF ou foto pelo botão ou arrastando o arquivo para ela
+function CaixaImportar({ titulo, descricao, lendo, progresso, onArquivo }: {
+  titulo: string; descricao: string; lendo: boolean; progresso: string; onArquivo: (f: File) => void;
+}) {
+  const [arrastando, setArrastando] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const soltar = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setArrastando(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f || lendo) return;
+    if (f.type === "application/pdf" || f.type.startsWith("image/") || /\.(pdf|jpe?g|png|webp|heic|heif)$/i.test(f.name)) onArquivo(f);
+    else sonnerToast.error("Arquivo não aceito: arraste um PDF ou uma foto.");
+  };
+  return (
+    <div className={`flex items-center justify-between gap-3 p-3 rounded-xl border border-dashed transition-colors ${arrastando ? "border-primary bg-primary/15" : "border-primary/40 bg-primary/5"}`}
+      onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; if (!arrastando) setArrastando(true); }}
+      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastando(false); }}
+      onDrop={soltar}>
+      <div>
+        <p className="text-xs font-semibold text-primary">{arrastando ? "Solte o arquivo aqui" : titulo}</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">{descricao}</p>
+      </div>
+      <Button type="button" size="sm" variant="outline"
+        className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10 shrink-0"
+        onClick={() => ref.current?.click()}
+        disabled={lendo}>
+        <Paperclip className="h-3.5 w-3.5" />
+        {lendo ? (progresso || "Lendo...") : "Selecionar arquivo"}
+      </Button>
+      <input ref={ref} type="file" accept="application/pdf,image/*" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) onArquivo(f); e.target.value = ""; }} />
+    </div>
+  );
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -1681,8 +1716,8 @@ END $$;`
   const [mostrarSenhaClubeForm, setMostrarSenhaClubeForm] = useState(false);
   const [parsendoCNH, setParsendoCNH] = useState(false);
   const [progressoDoc, setProgressoDoc] = useState("");
-  const [arrastandoDoc, setArrastandoDoc] = useState(false);
-  const cNHFileRef = useRef<HTMLInputElement>(null);
+  const [lendoComprovante, setLendoComprovante] = useState(false);
+  const [progressoComprovante, setProgressoComprovante] = useState("");
   // Documentos CR
   const [docsCliente, setDocsCliente] = useState<Map<string, DocCRItem[]>>(new Map());
   const [uploadingDocTipo, setUploadingDocTipo] = useState<string | null>(null);
@@ -1739,14 +1774,54 @@ END $$;`
     }
   }, []);
 
-  // Arquivo arrastado para a área "Importar CNH ou RG": aceita o mesmo que o botão (PDF ou foto)
-  const soltarDocumento = (e: React.DragEvent) => {
-    e.preventDefault(); e.stopPropagation(); setArrastandoDoc(false);
-    const f = e.dataTransfer.files?.[0];
-    if (!f || parsendoCNH) return;
-    if (f.type === "application/pdf" || f.type.startsWith("image/") || /\.(pdf|jpe?g|png|webp|heic|heif)$/i.test(f.name)) importarDocumento(f);
-    else sonnerToast.error("Arquivo não aceito: arraste o PDF ou uma foto da CNH/RG.");
-  };
+  // Comprovante de residência: endereço lido da conta e completado pelo ViaCEP (rua por extenso, bairro com acento,
+  // cidade e UF). O endereço tem que bater com o comprovante: rua e bairro do ViaCEP só entram quando são os mesmos
+  // da conta (o CEP pode ser da rua principal ou do condomínio); senão vale o que está na conta.
+  const importarComprovante = useCallback(async (file: File) => {
+    setLendoComprovante(true);
+    setProgressoComprovante("Abrindo comprovante...");
+    try {
+      const d = await lerComprovanteEndereco(file, setProgressoComprovante);
+      if (!d.cep && !d.logradouro) {
+        sonnerToast.warning("Não consegui ler o endereço. Envie o PDF da conta (do aplicativo ou site da empresa) ou uma foto mais nítida.");
+        return;
+      }
+      const via = d.cep ? await buscarCep(d.cep) : null;
+      const TIPOS = /^(RUA|AVENIDA|ALAMEDA|TRAVESSA|BECO|ESTRADA|RODOVIA|CONJUNTO|CONDOMINIO|LARGO|VILA|PRACA)$/;
+      const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+      // palavras que identificam o nome (numeral romano e número contam: "BERMUDAS I" não é "BERMUDAS")
+      const palavras = (s: string) => norm(s).filter(p => !TIPOS.test(p) && !/^(DE|DA|DO|DAS|DOS|E)$/.test(p) && (p.length >= 3 || /^([IVX]+|\d+)$/.test(p)));
+      // "COL SANTO ANTONIO" = "Colônia Santo Antônio"; "TRAVESSA BERMUDAS I" ≠ "Rua Bermudas"
+      const bate = (conta?: string, viacep?: string) => {
+        if (!conta || !viacep) return false;
+        const ta = norm(conta)[0], tb = norm(viacep)[0];
+        if (TIPOS.test(ta ?? "") && TIPOS.test(tb ?? "") && ta !== tb) return false;
+        const a = palavras(conta), b = palavras(viacep);
+        return a.length > 0 && a.every(p => b.some(q => q.startsWith(p))) && b.every(q => a.some(p => q.startsWith(p)));
+      };
+      const rua = via?.logradouro && (!d.logradouro || bate(d.logradouro, via.logradouro)) ? via.logradouro : d.logradouro;
+      const bairro = via?.bairro && (!d.bairro || bate(d.bairro, via.bairro)) ? via.bairro : d.bairro;
+      const iniciais = (s: string) => titleCase(s.toLowerCase());
+      const novos: Partial<ClienteForm> = {};
+      if (d.cep) novos.cep = maskCep(d.cep);
+      if (rua) novos.endereco = iniciais(rua);
+      if (d.numero) novos.numero = d.numero;
+      if (d.complemento) novos.complemento = d.complemento.toUpperCase();
+      if (bairro) novos.bairro = iniciais(bairro);
+      const cidade = via?.localidade || (d.cidade ? iniciais(d.cidade) : "");
+      if (cidade) novos.cidade = cidade;
+      const uf = via?.uf || d.uf;
+      if (uf) novos.estado = uf.toUpperCase();
+      setFormCliente(prev => ({ ...prev, ...novos }));
+      sonnerToast.success(`✓ ${Object.keys(novos).length} campo(s) do endereço preenchido(s) pelo comprovante. Confira antes de salvar.`
+        + (d.numero ? "" : " Número não encontrado no comprovante: preencha à mão."));
+    } catch (err) {
+      sonnerToast.error("Erro ao ler o comprovante: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLendoComprovante(false);
+      setProgressoComprovante("");
+    }
+  }, []);
 
   // ─── Documentos CR ────────────────────────────────────────────────────────
   const fetchDocsCR = useCallback(async (clienteId: string) => {
@@ -3169,24 +3244,14 @@ END $$;`
             </div>
           )}
           <div className="space-y-4 py-2">
-            {/* Importar CNH */}
-            <div className={`flex items-center justify-between p-3 rounded-xl border border-dashed transition-colors ${arrastandoDoc ? "border-primary bg-primary/15" : "border-primary/40 bg-primary/5"}`}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; if (!arrastandoDoc) setArrastandoDoc(true); }}
-              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastandoDoc(false); }}
-              onDrop={soltarDocumento}>
-              <div>
-                <p className="text-xs font-semibold text-primary">{arrastandoDoc ? "Solte o arquivo aqui" : "Importar CNH ou RG"}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Arraste aqui ou selecione: PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação</p>
-              </div>
-              <Button type="button" size="sm" variant="outline"
-                className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-                onClick={() => cNHFileRef.current?.click()}
-                disabled={parsendoCNH}>
-                <Paperclip className="h-3.5 w-3.5" />
-                {parsendoCNH ? (progressoDoc || "Lendo...") : "Selecionar arquivo"}
-              </Button>
-              <input ref={cNHFileRef} type="file" accept="application/pdf,image/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) importarDocumento(f); e.target.value = ""; }} />
+            {/* Importar documentos: preenchem o cadastro (PDF ou foto, pelo botão ou arrastando) */}
+            <div className="space-y-2">
+              <CaixaImportar titulo="Importar CNH ou RG"
+                descricao="Arraste aqui ou selecione: PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação"
+                lendo={parsendoCNH} progresso={progressoDoc} onArquivo={importarDocumento} />
+              <CaixaImportar titulo="Importar comprovante de residência"
+                descricao="Arraste aqui ou selecione: conta de luz ou água (PDF ou foto) — preenche CEP, endereço, número, complemento, bairro e cidade"
+                lendo={lendoComprovante} progresso={progressoComprovante} onArquivo={importarComprovante} />
             </div>
             {/* Nome */}
             <div className="space-y-1">

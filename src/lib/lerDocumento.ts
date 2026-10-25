@@ -531,3 +531,236 @@ export async function lerDocumento(file: File, progresso?: (msg: string) => void
     urls.forEach(u => URL.revokeObjectURL(u));
   }
 }
+
+// ─── Comprovante de residência: endereço ────────────────────────────────────
+// Formatos vistos nas contas de Manaus (texto como o pdf.js monta as linhas):
+//   Amazonas Energia: "AL GENEBRA, 08, QD-G4" / "PONTA NEGRA Consulte pela Chave..." / "69.037-225 - MANAUS - AM Chave..."
+//   Âmbar Energia:    "R. WALDIR NORMANDO , 106 BL-2A USAR P/ DÉBITO..." / "PLANALTO, AME 106 - Número da UC..." /
+//                     "ZONA CENTRO-OESTE - CEP 69.044-236 - MANAUS - AM ..."
+//   Águas de Manaus:  "RUA CONDE MARANHAO-20-CIDADE NOVA - MUNDO NOVO-MANAUS-" / "AM-CEP:69005000", ou
+//                     "RUA BENJAMIN CONSTANT-112-PETROPOLIS-MANAUS-AM-Cep:" com o número no fim da linha de baixo
+//   Declaração do site: "... na RUA BENTO FERNANDES, Nº 77, AME 77- TANCREDO NEVES, Cep: 69.087-671– MANAUS-AM"
+// O endereço da própria empresa (CNPJ na linha ou na de baixo, ou CEP da sede) é ignorado.
+
+export interface DadosEndereco {
+  cep?: string; logradouro?: string; numero?: string; complemento?: string; bairro?: string; cidade?: string; uf?: string;
+}
+
+const RE_LOGRADOURO = /(?:^|[^A-Za-zÀ-ÿ])((?:RUA|R\.|AVENIDA|AV\.?|ALAMEDA|AL\.?|TRAVESSA|TRAV\.?|TV\.?|BECO|BC\.?|ESTRADA|ESTR\.?|EST\.?|RODOVIA|ROD\.?|CONJUNTO|CONJ\.?|CJ\.?|CONDOM[IÍ]NIO|COND\.?|RESIDENCIAL|PRA[CÇ]A|P[CÇ]A\.?|LARGO|LG\.?|VILA|VL\.?|VIELA|PASSAGEM|LADEIRA|RAMAL)\s+[A-ZÀ-Ý0-9].*)$/i;
+// Cabeçalho da empresa: a busca da rua do cliente não sobe além dele
+const RE_CABECALHO_EMPRESA = /CNPJ|INSC\.?\s*ESTADUAL|INSCRI[ÇC][ÃA]O\s+ESTADUAL|\bS\/A\b/i;
+// O OCR às vezes troca o ponto do CEP por vírgula ("69,093-415")
+const RE_CEP_ROTULO = /\bCEP\s*[:.-]?\s*(\d{2}[.,]?\d{3}\s?-?\s?\d{3})(?!\d)/i;
+const RE_CEP_SOLTO = /(?<!\d)(\d{2}[.,]\d{3}-\d{3}|\d{5}-\d{3})(?!\d)/;
+const RE_CEP_QUALQUER = /(?<!\d)(\d{2}[.,]?\d{3}-?\d{3})(?!\d)/;
+const CEP_NO_FIM = /\bCEP\s*[:.-]?\s*$/i;
+// Sedes da Âmbar/Amazonas Energia e da Águas de Manaus: o CEP delas sai em toda conta
+const CEP_EMPRESA = new Set(["69058807", "69035093"]);
+// Linhas entre a rua e o CEP que não são bairro (rótulos da conta)
+const NAO_BAIRRO = /CONSULTE|CHAVE|C[ÓO]DIGO|M[ÊE]S|NOTA|DATA|VIA\b|PAGAMENTO|FATURA|EMISS|VENCIMENTO|TOTAL|VALOR|CLIENTE|CONSUMO|LEITURA|MEDIDOR|CPF|CNPJ|ENDERE|REFER|CLASSE|TARIFA|MATR[ÍI]CULA|INSTALA/i;
+// Palavras da conta que grudam no fim do endereço ("106 BL-2A USAR P/ DÉBITO AUTOMÁTICO")
+const RE_RUIDO = /^(USAR|D[ÉE]BITO|AUTOM[ÁA]TICO|N[ÚU]MERO|UC|VENCIMENTO|M[ÊE]S|FATURAD\w*|TARIFA|NOTA|S[ÉE]RIE|DATA|EMISS\w*|CONSULTE|CHAVE|PROTOCOLO|C[ÓO]DIGO|REFER\w*|TOTAL|VALOR|CPF|CNPJ|MATR[ÍI]CULA|CLIENTE|CONSUMO|LEITURA|MEDIDOR)$/i;
+
+// Corta o que vem depois de códigos, datas e rótulos colados na mesma linha ("QD-G4 2550775-3 01/2026" -> "QD-G4");
+// endereço em maiúsculas para na primeira palavra com minúsculas ("PONTA NEGRA Consulte pela..." -> "PONTA NEGRA")
+function semLixo(s: string): string {
+  const tokens = s.trim().split(/\s+/).filter(Boolean);
+  const emMaiusculas = !!tokens[0] && tokens[0] === tokens[0].toUpperCase() && /[A-ZÀ-Ý0-9]/.test(tokens[0]);
+  const out: string[] = [];
+  for (const t of tokens) {
+    if (/^\d{2}\/\d{2,4}(\/\d{4})?$|^\d{6,}$|^\d{5,}-\d$|^R\$/.test(t)) break;
+    if (RE_RUIDO.test(t.replace(/[.:,;]+$/, ""))) break;
+    if (emMaiusculas && /[a-zà-ÿ]/.test(t) && !/^N[º°o]\.?$/.test(t)) break;
+    out.push(t);
+  }
+  return out.join(" ").replace(/[\s,;–-]+$/, "").trim();
+}
+
+// "RUA X, Nº 77, AME 77- BAIRRO, MANAUS-AM" / "RUA X-112-BAIRRO-MANAUS-AM" -> rua, número, complemento, bairro, cidade, UF
+function partesDoEndereco(txt: string): DadosEndereco {
+  const r: DadosEndereco = {};
+  const t = txt.replace(new RegExp(RE_CEP_ROTULO.source, "gi"), " - ").replace(new RegExp(RE_CEP_SOLTO.source, "g"), " - ");
+  // Com vírgulas, o hífen só separa quando tem espaço do lado ("AME 77- TANCREDO NEVES"); sem vírgulas (água), todo hífen separa
+  const sep = t.includes(",") ? /\s*,\s*|\s+[-–]\s*|\s*[-–]\s+|–/ : /\s*[-–,]\s*/;
+  const partes = t.split(sep).map(semLixo).filter(Boolean);
+  if (!partes.length) return r;
+  const NUM = String.raw`(\d{1,6}|\d{1,3}(?:\.\d{3})+)`;
+  const ehNumero = (s: string) => new RegExp(`^(?:N[º°O.]?\\s*)?${NUM}[A-Z]?$|^S\\/?N$`, "i").test(s);
+  const ehCompl = (s: string) => /\d|S\/N/i.test(s) || s.length <= 2 || /^(APTO?|APT|AP|AME|CASA|BLOCO|BL|QD|QUADRA|LT|LOTE|TORRE|SALA|ANDAR|FUNDOS|FDS|CONJ|COND|KM|LOJA|BOX|C)\b/i.test(s);
+  const cidUf = (s: string) => s.match(new RegExp(`^([A-ZÀ-Ý][A-Za-zÀ-ÿ' ]+?)(?:\\s*[/-]\\s*|\\s+)(${UF})$`, "i"));
+  r.logradouro = partes[0];
+  let k = 1;
+  // número sozinho ("Nº 77", "2880", "4.400"), ou seguido do complemento na mesma parte ("106 BL-2A")
+  const numComResto = partes[k]?.match(new RegExp(`^(?:N[º°O.]?\\s*)?${NUM}\\s+(.+)$`, "i"));
+  if (partes[k] && ehNumero(partes[k])) { r.numero = partes[k].replace(/^N[º°O.]?\s*/i, "").replace(/\./g, ""); k++; }
+  else if (numComResto) { r.numero = numComResto[1].replace(/\./g, ""); partes[k] = numComResto[2]; }
+  else {
+    // Número dentro da rua, sem vírgula ("AV TORQUATO TAPAJOS 204 TORRE B", "LG PRETO S/N AME S/N"): antes dele vêm
+    // tipo + nome (2 palavras ou mais), para não pegar ruas de nome numérico ("RUA 7 DE SETEMBRO 123")
+    const pals = partes[0].split(" ");
+    const x = pals.findIndex((p, idx) => idx >= 2 && /^(\d{1,5}[A-Z]?|S\/N)$/i.test(p));
+    if (x >= 2) {
+      r.logradouro = pals.slice(0, x).join(" ").replace(/\s+N[º°O.]?$/i, "");
+      r.numero = pals[x].toUpperCase();
+      const resto = pals.slice(x + 1).join(" ");
+      if (resto) partes.splice(1, 0, resto);
+    }
+  }
+  let fim = partes.length;
+  for (let x = partes.length - 1; x >= k; x--) {
+    const cu = cidUf(partes[x]);
+    if (cu) { r.cidade = cu[1].trim(); r.uf = cu[2].toUpperCase(); fim = x; break; }
+    if (new RegExp(`^(${UF})$`, "i").test(partes[x])) {
+      r.uf = partes[x].toUpperCase();
+      if (x - 1 >= k && !ehCompl(partes[x - 1])) { r.cidade = partes[x - 1]; fim = x - 1; } else fim = x;
+      break;
+    }
+  }
+  const compl: string[] = [], bairros: string[] = [];
+  for (const p of partes.slice(k, fim)) (ehCompl(p) ? compl : bairros).push(p);
+  if (bairros.length) r.bairro = bairros[0];
+  const resto = [...compl, ...bairros.slice(1)];
+  if (resto.length) r.complemento = resto.join(" - ");
+  return r;
+}
+
+// Tipo do logradouro por extenso: "AL GENEBRA" -> "ALAMEDA GENEBRA", "R. WALDIR NORMANDO" -> "RUA WALDIR NORMANDO"
+// ("LG" fica como está: pode ser Largo ou Lago)
+const TIPO_POR_EXTENSO: [RegExp, string][] = [
+  [/^R\.?$/, "RUA"], [/^AV\.?$/, "AVENIDA"], [/^AL\.?$/, "ALAMEDA"], [/^(TV|TRAV)\.?$/, "TRAVESSA"], [/^BC\.?$/, "BECO"],
+  [/^(EST|ESTR)\.?$/, "ESTRADA"], [/^ROD\.?$/, "RODOVIA"], [/^(CONJ|CJ)\.?$/, "CONJUNTO"], [/^COND\.?$/, "CONDOMÍNIO"],
+  [/^VL\.?$/, "VILA"], [/^P[CÇ]A\.?$/, "PRAÇA"],
+];
+
+export function extrairEndereco(texto: string): DadosEndereco {
+  const r = enderecoDoTexto(texto);
+  if (r.logradouro) {
+    const [tipo, ...nome] = r.logradouro.split(" ");
+    const extenso = TIPO_POR_EXTENSO.find(([re]) => re.test(tipo.toUpperCase()));
+    if (extenso && nome.length) r.logradouro = [extenso[1], ...nome].join(" ");
+  }
+  return r;
+}
+
+function enderecoDoTexto(texto: string): DadosEndereco {
+  const L = texto.split(/\n/).map(l => l.replace(/[|[\]{}“”"]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
+  // "Cep:" no fim da linha: o número vem na linha de baixo, às vezes depois de outro texto ("PIS(...) R$ 0,00 69063010")
+  const linhaDoCep = (i: number) => {
+    if (!CEP_NO_FIM.test(L[i]) || !L[i + 1]) return L[i];
+    const n = L[i + 1].match(RE_CEP_QUALQUER);
+    return n ? `${L[i]} ${L[i + 1].slice(n.index)}` : L[i];
+  };
+  // A linha da rua mais perto acima do CEP; havendo mais de uma ("LG PRETO S/N" e "LG PRETO", ou a rua e o
+  // "COND RESID ..."), vale a que tem número ou S/N
+  const ruaAcima = (i: number) => {
+    const achadas: { j: number; rua: string }[] = [];
+    for (let k = i; k >= Math.max(0, i - 8); k--) {
+      if (k < i && RE_CABECALHO_EMPRESA.test(L[k]) && !/CPF/i.test(L[k])) break;
+      const m = L[k].match(RE_LOGRADOURO);
+      if (m) achadas.push({ j: k, rua: m[1] });
+    }
+    return achadas.find(a => /\d|S\/N/i.test(a.rua)) ?? achadas[0] ?? null;
+  };
+
+  // CEPs do documento, tirando o da empresa: CNPJ na linha ou na de baixo (o "CPF/CNPJ" do cliente não conta),
+  // razão social logo acima, ou CEP da sede
+  const cnpj = (s: string) => /CNPJ/i.test(s) && !/CPF/i.test(s);
+  let melhor: { i: number; cep: string; nota: number } | null = null;
+  for (let i = 0; i < L.length; i++) {
+    const linha = linhaDoCep(i);
+    const m = linha.match(RE_CEP_ROTULO) ?? linha.match(RE_CEP_SOLTO);
+    if (!m) continue;
+    const cep = m[1].replace(/\D/g, "");
+    if (cep.length !== 8 || /^0+$/.test(cep) || CEP_EMPRESA.has(cep)) continue;
+    if (cnpj(linha) || cnpj(L[i + 1] ?? "") || /\bS\/A\b|\bS\.A\.?(?:\s|$)|LTDA|EIRELI/i.test(`${L[i - 1] ?? ""} ${L[i - 2] ?? ""}`)) continue;
+    const nota = (ruaAcima(i) ? 2 : 0) + (cep.startsWith("69") ? 1 : 0);
+    if (!melhor || nota > melhor.nota) melhor = { i, cep, nota };
+  }
+  if (!melhor) return {};
+  const { i, cep } = melhor;
+  const linhaCep = linhaDoCep(i);
+  // Cidade/UF na linha do CEP ("69.037-225 - MANAUS - AM Chave de acesso...", "CEP 69.044-236 - MANAUS - AM 2546653-4")
+  const cidadeDaLinha = () => {
+    const resto = linhaCep.replace(RE_CEP_ROTULO, " ").replace(RE_CEP_SOLTO, " ");
+    const m = resto.match(new RegExp(`(?:^|[^A-Za-zÀ-ÿ])([A-ZÀ-Ý][A-ZÀ-Ý' ]{1,40}?)\\s*[-/–]\\s*(${UF})(?![A-Za-zÀ-ÿ])`));
+    return m ? { cidade: m[1].trim(), uf: m[2] } : {};
+  };
+  const achou = ruaAcima(i);
+  if (!achou) return { cep, ...cidadeDaLinha() };
+  const { j, rua } = achou;
+
+  // Endereço inteiro numa linha (água, declaração), às vezes quebrado na linha de baixo
+  if (j === i || (j === i - 1 && (/[-,–]\s*$/.test(L[j]) || new RegExp(`^(${UF})\\b|^N[º°O]`, "i").test(L[i])))) {
+    const junto = j === i ? (rua + (linhaCep.length > L[i].length ? linhaCep.slice(L[i].length) : ""))
+      : rua + (/-\s*$/.test(rua) ? "" : " ") + linhaCep;
+    return { cep, ...partesDoEndereco(junto) };
+  }
+
+  // Conta de luz: rua/número/complemento numa linha, bairro numa das de baixo ("PLANALTO, AME 106"), CEP + cidade/UF depois
+  const r: DadosEndereco = { cep, ...partesDoEndereco(rua) };
+  delete r.cidade; delete r.uf;
+  if (r.bairro) { r.complemento = r.complemento ? `${r.complemento} - ${r.bairro}` : r.bairro; delete r.bairro; }
+  for (let k = j + 1; k < i; k++) {
+    const partes = semLixo(L[k]).split(/\s*,\s*|\s+[-–]\s*|\s*[-–]\s+/).filter(Boolean);
+    if (!partes.length || !/^[A-ZÀ-Ý][A-ZÀ-Ý' .]{2,}$/.test(partes[0]) || NAO_BAIRRO.test(partes[0])) continue;
+    // "COL TERRA NOVA COND RESID ALLEGRO CLUBE": bairro antes, condomínio vai para o complemento
+    const cond = partes[0].match(/^(.+?)\s+((?:COND|CONJ|CJ|RESID|RESIDENCIAL|EDIF|ED)\b.*)$/);
+    r.bairro = cond ? cond[1] : partes[0];
+    const extra = [...(cond ? [cond[2]] : []), ...partes.slice(1).filter(p => /\d/.test(p))];
+    if (extra.length) r.complemento = [r.complemento, ...extra].filter(Boolean).join(" - ");
+    break;
+  }
+  return { ...r, ...cidadeDaLinha() };
+}
+
+// Lê o comprovante (PDF com texto, PDF escaneado ou foto) e devolve o endereço; o OCR só roda se o texto não trouxer o CEP
+export async function lerComprovanteEndereco(file: File, progresso?: (msg: string) => void): Promise<DadosEndereco> {
+  const ehPDF = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  let imagens: (HTMLImageElement | HTMLCanvasElement)[] = [];
+  let url = "";
+  try {
+    progresso?.("Abrindo comprovante...");
+    const tesseractPromise = carregarScript(TESSERACT, "Tesseract");
+    if (ehPDF) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const pdfjs = await carregarScript(PDFJS, "pdfjsLib").then(lib => { lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; return lib; });
+      const { texto } = await textoEPaginasDoPDF(pdfjs, bytes.slice(), false);
+      const r = extrairEndereco(texto);
+      if (r.cep && r.logradouro) return r;
+      imagens = (await textoEPaginasDoPDF(pdfjs, bytes.slice(), true)).paginas; // conta escaneada ou foto dentro do PDF
+    } else {
+      url = URL.createObjectURL(file);
+      imagens = [await carregarImagem(url)];
+    }
+    if (!imagens.length) return {};
+    const Tesseract = await tesseractPromise;
+    progresso?.("Preparando leitura...");
+    const worker = await Tesseract.createWorker("por");
+    let melhor: DadosEndereco = {};
+    try {
+      // Conta comprida (foto ou página inteira): o endereço fica no alto, então a metade de cima vai primeiro, ampliada
+      const preparadas = imagens.flatMap(img => {
+        if (img.height <= img.width * 1.25) return [prepararParaOCR(img)];
+        const topo = document.createElement("canvas");
+        topo.width = img.width; topo.height = Math.round(img.height / 2);
+        topo.getContext("2d")!.drawImage(img, 0, 0);
+        return [prepararParaOCR(topo), prepararParaOCR(img)];
+      });
+      for (const [passada, psm] of [[1, "6"], [2, "11"]] as const) {
+        await worker.setParameters({ tessedit_pageseg_mode: psm });
+        for (let i = 0; i < preparadas.length; i++) {
+          progresso?.(`Lendo comprovante... ${passada === 1 ? "" : "(revisão) "}${i + 1}/${preparadas.length}`);
+          const { data } = await worker.recognize(preparadas[i]);
+          const r = extrairEndereco(data.text);
+          if (r.cep && r.logradouro) return r;
+          if (Object.keys(r).length > Object.keys(melhor).length) melhor = r;
+        }
+      }
+    } finally {
+      await worker.terminate();
+    }
+    return melhor;
+  } finally {
+    if (url) URL.revokeObjectURL(url);
+  }
+}
