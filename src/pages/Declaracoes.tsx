@@ -1910,7 +1910,7 @@ END $$;`
     return new Promise(resolve => { loteSubTipoResolveRef.current = resolve; });
   }
 
-  const uploadEmLote = useCallback(async (clienteId: string, files: FileList) => {
+  const uploadEmLote = useCallback(async (clienteId: string, files: FileList | File[]) => {
     setUploadingLote(true);
     const arr = Array.from(files);
     const naoReconhecidos: string[] = [];
@@ -1931,6 +1931,31 @@ END $$;`
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadDocCR]);
+
+  // Arquivo arrastado para os Documentos CR: solto num documento, entra como aquele documento (igual ao botão dele);
+  // solto na caixa de "vários arquivos", cada um vai pelo nome (detecção automática). Aceita o mesmo que os botões.
+  const [arrastandoDocCR, setArrastandoDocCR] = useState<string | null>(null);
+  const arrastarSobreDocCR = (e: React.DragEvent, alvo: string) => {
+    e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy";
+    if (arrastandoDocCR !== alvo) setArrastandoDocCR(alvo);
+  };
+  const sairDoArrasteDocCR = (e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastandoDocCR(null);
+  };
+  const soltarDocCR = async (e: React.DragEvent, alvo: string) => {
+    e.preventDefault(); e.stopPropagation(); setArrastandoDocCR(null);
+    if (!editandoId) return;
+    const arquivos = Array.from(e.dataTransfer.files ?? []);
+    const validos = arquivos.filter(f => f.type === "application/pdf" || f.type.startsWith("image/") || /\.(pdf|jpe?g|png|webp)$/i.test(f.name));
+    if (validos.length < arquivos.length) sonnerToast.warning("Só PDF ou foto (JPG, PNG): os outros arquivos ficaram de fora.");
+    if (!validos.length) return;
+    if (alvo === "lote") { await uploadEmLote(editandoId, validos); return; }
+    if (validos.length > 1) sonnerToast.info("Um documento por vez: usei o primeiro arquivo. Para vários, solte na caixa de cima.");
+    const precisaSubTipo = alvo === "comp_residencia" || alvo === "comp_2_end" || alvo === "comp_ocupacao";
+    const subTipo = precisaSubTipo ? await pedirSubTipoLote(validos[0].name, alvo) : undefined;
+    if (precisaSubTipo && !subTipo) return; // fechou a escolha do tipo: não envia (igual ao botão)
+    await uploadDocCR(editandoId, alvo, validos[0], subTipo);
+  };
 
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
   // Retorna true se salvou com sucesso, false caso contrário
@@ -3165,23 +3190,29 @@ END $$;`
               </button>
               {abaDocsForm && (
                 <div className="mt-2 space-y-1 rounded-lg border border-border/40 bg-muted/10 p-2">
-                  {/* Envio em lote */}
+                  {/* Envio em lote (clique ou arraste os arquivos para cá) */}
                   <button type="button" disabled={uploadingLote}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-2 text-[11px] text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-50 mb-2"
-                    onClick={() => docLoteRef.current?.click()}>
+                    className={`w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-[11px] transition-colors disabled:opacity-50 mb-2 ${arrastandoDocCR === "lote" ? "border-primary bg-primary/15 text-primary" : "border-primary/30 text-primary/70 hover:border-primary/60 hover:text-primary hover:bg-primary/5"}`}
+                    onClick={() => docLoteRef.current?.click()}
+                    onDragOver={e => arrastarSobreDocCR(e, "lote")} onDragLeave={sairDoArrasteDocCR} onDrop={e => soltarDocCR(e, "lote")}>
                     <Upload className="h-3 w-3" />
-                    {uploadingLote ? "Enviando..." : "Enviar vários arquivos de uma vez (detecção automática)"}
+                    {uploadingLote ? "Enviando..." : arrastandoDocCR === "lote" ? "Solte os arquivos aqui (detecção automática)"
+                      : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
                   {DOCS_CR.map((doc, i) => {
                     const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
                     const uploading = uploadingDocTipo === doc.id;
+                    const alvo = arrastandoDocCR === doc.id;
                     return (
-                      <div key={doc.id} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 ${item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}>
+                      <div key={doc.id}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${alvo ? "bg-primary/15 border border-primary ring-1 ring-primary/40" : item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}
+                        onDragOver={e => arrastarSobreDocCR(e, doc.id)} onDragLeave={sairDoArrasteDocCR} onDrop={e => soltarDocCR(e, doc.id)}>
                         <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
                         {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
-                          {item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
+                          {alvo ? <p className="text-[9px] text-primary font-semibold">Solte o arquivo aqui{item ? " (substitui o atual)" : ""}</p>
+                            : item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {item && (
