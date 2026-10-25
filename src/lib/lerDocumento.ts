@@ -213,6 +213,14 @@ export function extrairCampos(texto: string): DadosDocumento {
         for (const parte of c.split(/\s\/\s/)) { const n = nomeDe(parte); if (n && !nomes.includes(n)) nomes.push(n); }
         if (nomes.length >= 2) break;
       }
+      // RG/CIN: o OCR às vezes devolve o 1º nome da filiação ANTES do rótulo (verso da CIN digital: saía só o pai).
+      // Faltando nome, vale o começo da linha do rótulo ou a linha de cima, se não for o nome do titular ("NOME" logo acima)
+      if (!ehCNH && nomes.length < 2 && !/\bNOME\b/i.test(L[i - 1] ?? "") && !/\bNOME\b/i.test(L[i - 2] ?? "")) {
+        for (const c of [l.slice(0, l.search(/FILIA[ÇCG][ÃA]O|FILIATION/i)), L[i - 1] ?? ""]) {
+          const n = nomeDe(c);
+          if (n && !nomes.includes(n) && semAcento(n) !== semAcento(r.nome ?? "")) { nomes.unshift(n); break; }
+        }
+      }
       filiacao(r, nomes);
       // CNH-e é imagem limpa: um nome só significa que o documento só tem um dos pais
       if (ehCNH && nomes.length === 1) r.filiacaoUnica = true;
