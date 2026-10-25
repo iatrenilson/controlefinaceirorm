@@ -1384,19 +1384,16 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   await par([t(`9.1. Fica eleito o foro da comarca de ${(f.foro || "Manaus/AM").trim()} para dirimir quaisquer questões oriundas deste contrato, ressalvado o direito do(a) CONTRATANTE de demandar no foro de seu domicílio, quando aplicável.`)]);
   await par([t("E, por estarem de acordo, as partes assinam o presente contrato eletronicamente, por meio de assinatura digital (gov.br ou ICP-Brasil), que tem plena validade jurídica.")]);
 
-  // ── Local, data e assinaturas (bloco junto na mesma página) ──
-  await garantir(66);
-  const dataExt = f.data ? format(parseISO(f.data), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "";
-  y += 3;
-  doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
-  doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
-  // Padrão dos outros PDFs: rótulo com a linha ao lado (mesma cor do layout); nome e CPF embaixo da linha
+  // ── Assinaturas e, embaixo delas, local e data (bloco junto na mesma página) ──
+  // Padrão dos outros PDFs: rótulo com a linha ao lado (mesma cor do layout); nome e CPF embaixo da linha.
+  // Cada linha tem ~3 cm livres acima para o carimbo da assinatura digital (gov.br) de cada parte
+  await garantir(98);
   const assinaturas = [["contratante", f.nome, f.cpf], ["contratado", ct.nome, ct.cpf]];
   const rotulo = (papel: string) => `Assinatura digital (.gov.br ou ICP-Brasil) ${papel}: `;
   const x0 = ML + Math.max(...assinaturas.map(([papel]) => larguraHelv(rotulo(papel), false, FS)));
   const x1 = W - layout.MR, meio = (x0 + x1) / 2;
   for (const [papel, nome, cpf] of assinaturas) {
-    y += 26;
+    y += 32;
     doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
     doc.text(rotulo(papel), ML, y);
     doc.line(x0, y - 0.5, x1, y - 0.5);
@@ -1404,7 +1401,12 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
     doc.setFont("helvetica", "bold"); doc.setFontSize(Math.min(9, (9 * (x1 - x0)) / larguraHelv(nomeUp, true, 9)));
     doc.text(nomeUp, meio, y + 4.5, { align: "center" });
     if (cpf) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(`CPF ${cpf}`, meio, y + 8.6, { align: "center" }); }
+    y += 9;
   }
+  const dataExt = f.data ? format(parseISO(f.data), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "";
+  y += 14;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
+  doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
 
   const nomeArq = titleCase((f.nome || "Cliente").toLowerCase());
   return await salvarPDF(doc, `Contrato de Assessoria - ${nomeArq}.pdf`);
