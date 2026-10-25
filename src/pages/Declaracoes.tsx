@@ -1910,7 +1910,18 @@ END $$;`
     return new Promise(resolve => { loteSubTipoResolveRef.current = resolve; });
   }
 
-  const uploadEmLote = useCallback(async (clienteId: string, files: FileList | File[]) => {
+  // Cliente novo ainda não tem id: os documentos escolhidos ficam pendentes e são enviados logo depois de salvar
+  const [docsPendentes, setDocsPendentes] = useState<Map<string, { file: File; subTipo?: string }>>(new Map());
+  const enviarDocCR = async (tipo: string, file: File, subTipo?: string) => {
+    if (editandoId) return uploadDocCR(editandoId, tipo, file, subTipo);
+    setDocsPendentes(prev => new Map(prev).set(tipo, { file, subTipo }));
+  };
+  const enviarPendentes = async (clienteId: string) => {
+    for (const [tipo, { file, subTipo }] of docsPendentes) await uploadDocCR(clienteId, tipo, file, subTipo);
+    setDocsPendentes(new Map());
+  };
+
+  const uploadEmLote = async (files: FileList | File[]) => {
     setUploadingLote(true);
     const arr = Array.from(files);
     const naoReconhecidos: string[] = [];
@@ -1921,16 +1932,17 @@ END $$;`
       if (tipo === "comp_residencia" || tipo === "comp_2_end" || tipo === "comp_ocupacao") {
         subTipo = await pedirSubTipoLote(file.name, tipo);
       }
-      await uploadDocCR(clienteId, tipo, file, subTipo);
+      await enviarDocCR(tipo, file, subTipo);
     }
     setUploadingLote(false);
+    const ok = arr.length - naoReconhecidos.length;
+    const feito = editandoId ? "enviados" : "separados (vão ser enviados ao salvar o cliente)";
     if (naoReconhecidos.length > 0) {
-      sonnerToast.warning(`${arr.length - naoReconhecidos.length} enviados. Não reconhecidos: ${naoReconhecidos.join(", ")}`);
+      sonnerToast.warning(`${ok} ${feito}. Não reconhecidos: ${naoReconhecidos.join(", ")}`);
     } else {
-      sonnerToast.success(`${arr.length} documento(s) enviados com sucesso!`);
+      sonnerToast.success(`${ok} documento(s) ${feito}.`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadDocCR]);
+  };
 
   // Arquivo arrastado para os Documentos CR: solto num documento, entra como aquele documento (igual ao botão dele);
   // solto na caixa de "vários arquivos", cada um vai pelo nome (detecção automática). Aceita o mesmo que os botões.
@@ -1944,17 +1956,16 @@ END $$;`
   };
   const soltarDocCR = async (e: React.DragEvent, alvo: string) => {
     e.preventDefault(); e.stopPropagation(); setArrastandoDocCR(null);
-    if (!editandoId) return;
     const arquivos = Array.from(e.dataTransfer.files ?? []);
     const validos = arquivos.filter(f => f.type === "application/pdf" || f.type.startsWith("image/") || /\.(pdf|jpe?g|png|webp)$/i.test(f.name));
     if (validos.length < arquivos.length) sonnerToast.warning("Só PDF ou foto (JPG, PNG): os outros arquivos ficaram de fora.");
     if (!validos.length) return;
-    if (alvo === "lote") { await uploadEmLote(editandoId, validos); return; }
+    if (alvo === "lote") { await uploadEmLote(validos); return; }
     if (validos.length > 1) sonnerToast.info("Um documento por vez: usei o primeiro arquivo. Para vários, solte na caixa de cima.");
     const precisaSubTipo = alvo === "comp_residencia" || alvo === "comp_2_end" || alvo === "comp_ocupacao";
     const subTipo = precisaSubTipo ? await pedirSubTipoLote(validos[0].name, alvo) : undefined;
     if (precisaSubTipo && !subTipo) return; // fechou a escolha do tipo: não envia (igual ao botão)
-    await uploadDocCR(editandoId, alvo, validos[0], subTipo);
+    await enviarDocCR(alvo, validos[0], subTipo);
   };
 
   // Salva clientes na tabela compartilhada declaracao_clientes (acessível por admin e moderador)
@@ -2338,6 +2349,7 @@ END $$;`
 
   const abrirNovoCliente = () => {
     setEditandoId(null);
+    setDocsPendentes(new Map());
     setFormCliente(EMPTY_CLIENTE);
     setMostrarClubeSection(false);
     setMostrarSenhaClubeForm(false);
@@ -2345,6 +2357,7 @@ END $$;`
   };
   const abrirEditarCliente = (c: Cliente) => {
     setEditandoId(c.id);
+    setDocsPendentes(new Map());
     const { id: _id, ...rest } = c;
     setFormCliente(rest);
     const temClube = !!(c.nomeClube || c.loginClube || c.senhaClube);
@@ -2390,7 +2403,8 @@ END $$;`
       status2: formCliente.status2 ?? "doc",
       updated_at: new Date().toISOString(),
     };
-    const doSave = async (p: typeof payload) => {
+    // devolve o id do cliente (o novo vem do insert, para os documentos pendentes irem para ele)
+    const doSave = async (p: typeof payload): Promise<string | null> => {
       if (editandoId) {
         // .select("id") makes Supabase return the updated rows so we can detect 0-row silent failures
         const { data: updated, error } = await supabase
@@ -2413,15 +2427,23 @@ END $$;`
           if (err2) throw err2;
           if (!retry || retry.length === 0) throw new Error("Sem permissão para atualizar este cliente. Verifique se você está logado corretamente.");
         }
+        return editandoId;
       } else {
         const currentUser = await usuarioAtual();
         const ownerId = currentUser?.id ?? userId;
-        const { error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: ownerId });
+        const { data: novo, error } = await supabase.from("declaracao_clientes").insert({ ...p, owner_id: ownerId }).select("id").single();
         if (error) throw error;
+        return (novo as { id?: string } | null)?.id ?? null;
       }
     };
+    // Cliente novo salvo: manda os documentos que ficaram pendentes no cadastro
+    const mandarPendentes = async (id: string | null) => {
+      if (editandoId || !id || docsPendentes.size === 0) return;
+      const tid = sonnerToast.loading(`Enviando ${docsPendentes.size} documento(s)...`);
+      try { await enviarPendentes(id); } finally { sonnerToast.dismiss(tid); }
+    };
     try {
-      await doSave(payload);
+      await mandarPendentes(await doSave(payload));
       setDialogClienteOpen(false);
       toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
       await fetchClientes();
@@ -2435,7 +2457,7 @@ END $$;`
           });
           // Wait for PostgREST schema cache to reload
           await new Promise(r => setTimeout(r, 2500));
-          await doSave(payload);
+          await mandarPendentes(await doSave(payload));
           setDialogClienteOpen(false);
           toast({ title: editandoId ? "Cliente atualizado!" : "Cliente cadastrado!" });
           await fetchClientes();
@@ -3160,19 +3182,19 @@ END $$;`
               {editandoId ? "Editar Cliente" : "Cadastrar Cliente"}
             </DialogTitle>
           </DialogHeader>
-          {/* ── Documentos CR ── */}
-          {editandoId && (
+          {/* ── Documentos CR (no cadastro novo, ficam pendentes e vão junto ao salvar) ── */}
+          {(
             <div className="mt-1">
               <input ref={docUploadRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
                 onChange={e => {
                   const f = e.target.files?.[0];
-                  if (f && docUploadTipo && editandoId) uploadDocCR(editandoId, docUploadTipo, f, subTipoPendente || undefined);
+                  if (f && docUploadTipo) enviarDocCR(docUploadTipo, f, subTipoPendente || undefined);
                   e.target.value = "";
                   setSubTipoPendente("");
                 }} />
               <input ref={docLoteRef} type="file" accept=".pdf,.jpg,.jpeg,.png" multiple className="hidden"
                 onChange={e => {
-                  if (e.target.files && editandoId) uploadEmLote(editandoId, e.target.files);
+                  if (e.target.files) uploadEmLote(e.target.files);
                   e.target.value = "";
                 }} />
               <button type="button"
@@ -3182,7 +3204,7 @@ END $$;`
                   <FileText className="h-3.5 w-3.5" />
                   Documentos CR
                   {(() => {
-                    const ok = (docsCliente.get(editandoId) ?? []).length;
+                    const ok = editandoId ? (docsCliente.get(editandoId) ?? []).length : docsPendentes.size;
                     return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
                   })()}
                 </span>
@@ -3200,21 +3222,31 @@ END $$;`
                       : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
                   {DOCS_CR.map((doc, i) => {
-                    const item = (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id);
+                    const item = editandoId ? (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id) : undefined;
+                    const pendente = editandoId ? undefined : docsPendentes.get(doc.id);
                     const uploading = uploadingDocTipo === doc.id;
                     const alvo = arrastandoDocCR === doc.id;
                     return (
                       <div key={doc.id}
-                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${alvo ? "bg-primary/15 border border-primary ring-1 ring-primary/40" : item ? "bg-green-500/10 border border-green-500/20" : "bg-muted/20"}`}
+                        className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${alvo ? "bg-primary/15 border border-primary ring-1 ring-primary/40" : item ? "bg-green-500/10 border border-green-500/20" : pendente ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/20"}`}
                         onDragOver={e => arrastarSobreDocCR(e, doc.id)} onDragLeave={sairDoArrasteDocCR} onDrop={e => soltarDocCR(e, doc.id)}>
                         <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
-                        {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" /> : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
+                        {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
+                          : pendente ? <FileCheck2 className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+                          : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
                         <div className="flex-1 min-w-0">
-                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : "text-foreground/70"}`}>{doc.label}</p>
-                          {alvo ? <p className="text-[9px] text-primary font-semibold">Solte o arquivo aqui{item ? " (substitui o atual)" : ""}</p>
-                            : item && <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>}
+                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : pendente ? "text-amber-300" : "text-foreground/70"}`}>{doc.label}</p>
+                          {alvo ? <p className="text-[9px] text-primary font-semibold">Solte o arquivo aqui{item || pendente ? " (substitui o atual)" : ""}</p>
+                            : item ? <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>
+                            : pendente && <p className="text-[9px] text-amber-300/80 truncate">{pendente.file.name} — vai ser enviado ao salvar o cliente</p>}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
+                          {pendente && (
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Tirar"
+                              onClick={() => setDocsPendentes(prev => { const m = new Map(prev); m.delete(doc.id); return m; })}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
                           {item && (
                             <>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-blue-400 hover:text-blue-300" title="Visualizar"
@@ -3245,7 +3277,7 @@ END $$;`
                                 <Download className="h-3 w-3" />
                               </Button>
                               <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Remover"
-                                onClick={() => deleteDocCR(editandoId, doc.id, item.storagePath)}>
+                                onClick={() => deleteDocCR(editandoId!, doc.id, item.storagePath)}>
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </>
