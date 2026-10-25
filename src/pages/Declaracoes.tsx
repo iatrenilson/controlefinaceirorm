@@ -265,6 +265,32 @@ async function buscarCep(cepMasked: string): Promise<{ logradouro: string; bairr
   } catch { return null; }
 }
 
+// ─── Foto vira PDF ───────────────────────────────────────────────────────────
+// Comprovante enviado como foto é anexado já em PDF: uma página A4 com a imagem inteira centralizada
+// (lado maior até 2000 px, JPEG 85%: legível e leve). createImageBitmap já aplica a rotação da foto do celular.
+async function fotoParaPDF(file: File): Promise<File> {
+  const bmp = await createImageBitmap(file);
+  try {
+    const escala = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * escala); c.height = Math.round(bmp.height * escala);
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: c.width > c.height ? "landscape" : "portrait", compress: true });
+    const pw = doc.internal.pageSize.getWidth(), ph = doc.internal.pageSize.getHeight(), margem = 8;
+    const k = Math.min((pw - 2 * margem) / c.width, (ph - 2 * margem) / c.height);
+    const w = c.width * k, h = c.height * k;
+    doc.addImage(c.toDataURL("image/jpeg", 0.85), "JPEG", (pw - w) / 2, (ph - h) / 2, w, h);
+    return new File([doc.output("blob")], file.name.replace(/\.[^.]+$/, "") + ".pdf", { type: "application/pdf" });
+  } finally {
+    bmp.close();
+  }
+}
+
 // ─── Redimensiona imagem ─────────────────────────────────────────────────────
 async function fitImageToPage(
   dataUrl: string,
@@ -1832,6 +1858,11 @@ END $$;`
   const uploadDocCR = useCallback(async (clienteId: string, tipo: string, file: File, subTipo?: string) => {
     setUploadingDocTipo(tipo);
     try {
+      // Comprovante de residência (e o do 2º endereço) enviado como foto: anexa já convertido em PDF
+      if ((tipo === "comp_residencia" || tipo === "comp_2_end") && (file.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(file.name))) {
+        try { file = await fotoParaPDF(file); }
+        catch { sonnerToast.warning("Não consegui converter a foto em PDF; ela foi anexada como imagem."); }
+      }
       const ext = file.name.split(".").pop() ?? "pdf";
       const docDef = DOCS_CR.find(d => d.id === tipo);
       const displayName = docDef

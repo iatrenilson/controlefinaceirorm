@@ -554,8 +554,9 @@ const RE_CEP_ROTULO = /\bCEP\s*[:.-]?\s*(\d{2}[.,]?\d{3}\s?-?\s?\d{3})(?!\d)/i;
 const RE_CEP_SOLTO = /(?<!\d)(\d{2}[.,]\d{3}-\d{3}|\d{5}-\d{3})(?!\d)/;
 const RE_CEP_QUALQUER = /(?<!\d)(\d{2}[.,]?\d{3}-?\d{3})(?!\d)/;
 const CEP_NO_FIM = /\bCEP\s*[:.-]?\s*$/i;
-// Sedes da Âmbar/Amazonas Energia e da Águas de Manaus: o CEP delas sai em toda conta
-const CEP_EMPRESA = new Set(["69058807", "69035093"]);
+// Sedes da Âmbar/Amazonas Energia e da Águas de Manaus: o CEP delas sai em toda conta (no OCR, às vezes com um dígito trocado)
+const CEP_EMPRESA = ["69058807", "69035093"];
+const ehCepDeEmpresa = (cep: string) => CEP_EMPRESA.some(e => [...e].filter((d, k) => d !== cep[k]).length <= 1);
 // Linhas entre a rua e o CEP que não são bairro (rótulos da conta)
 const NAO_BAIRRO = /CONSULTE|CHAVE|C[ÓO]DIGO|M[ÊE]S|NOTA|DATA|VIA\b|PAGAMENTO|FATURA|EMISS|VENCIMENTO|TOTAL|VALOR|CLIENTE|CONSUMO|LEITURA|MEDIDOR|CPF|CNPJ|ENDERE|REFER|CLASSE|TARIFA|MATR[ÍI]CULA|INSTALA/i;
 // Palavras da conta que grudam no fim do endereço ("106 BL-2A USAR P/ DÉBITO AUTOMÁTICO")
@@ -639,8 +640,12 @@ export function extrairEndereco(texto: string): DadosEndereco {
     const extenso = TIPO_POR_EXTENSO.find(([re]) => re.test(tipo.toUpperCase()));
     if (extenso && nome.length) r.logradouro = [extenso[1], ...nome].join(" ");
   }
+  for (const k of Object.keys(r) as (keyof DadosEndereco)[]) if (!r[k]) delete r[k];
   return r;
 }
+
+// Linha só de complemento, entre a rua e o CEP ("APTO 312", "BLOCO 2")
+const RE_LINHA_COMPLEMENTO = /^(APTO?|APT|AP|BLOCO|BL|CASA|QD|QUADRA|LT|LOTE|TORRE|SALA|ANDAR|FUNDOS|KM|LOJA|BOX|EDIF[IÍ]CIO|ED)\b/i;
 
 function enderecoDoTexto(texto: string): DadosEndereco {
   const L = texto.split(/\n/).map(l => l.replace(/[|[\]{}“”"]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
@@ -662,18 +667,20 @@ function enderecoDoTexto(texto: string): DadosEndereco {
     return achadas.find(a => /\d|S\/N/i.test(a.rua)) ?? achadas[0] ?? null;
   };
 
-  // CEPs do documento, tirando o da empresa: CNPJ na linha ou na de baixo (o "CPF/CNPJ" do cliente não conta),
-  // razão social logo acima, ou CEP da sede
-  const cnpj = (s: string) => /CNPJ/i.test(s) && !/CPF/i.test(s);
-  let melhor: { i: number; cep: string; nota: number } | null = null;
+  // CEPs do documento, tirando o da empresa: CNPJ na linha, na de baixo ou nas 3 de cima (o "CPF/CNPJ" do cliente
+  // não conta), razão social logo acima, ou CEP da sede. "CEP:" com o número ilegível (o OCR leu um dígito a mais)
+  // ainda serve para achar o endereço, só que sem o CEP
+  const cnpj = (s?: string) => !!s && /CNPJ/i.test(s) && !/CPF/i.test(s);
+  let melhor: { i: number; cep?: string; nota: number } | null = null;
   for (let i = 0; i < L.length; i++) {
     const linha = linhaDoCep(i);
     const m = linha.match(RE_CEP_ROTULO) ?? linha.match(RE_CEP_SOLTO);
-    if (!m) continue;
-    const cep = m[1].replace(/\D/g, "");
-    if (cep.length !== 8 || /^0+$/.test(cep) || CEP_EMPRESA.has(cep)) continue;
-    if (cnpj(linha) || cnpj(L[i + 1] ?? "") || /\bS\/A\b|\bS\.A\.?(?:\s|$)|LTDA|EIRELI/i.test(`${L[i - 1] ?? ""} ${L[i - 2] ?? ""}`)) continue;
-    const nota = (ruaAcima(i) ? 2 : 0) + (cep.startsWith("69") ? 1 : 0);
+    let cep = m?.[1].replace(/\D/g, "");
+    if (cep && (cep.length !== 8 || /^0+$/.test(cep))) cep = undefined;
+    if (!cep && !/\bCEP\b/i.test(linha)) continue;
+    if (cep && ehCepDeEmpresa(cep)) continue;
+    if ([linha, L[i + 1], L[i - 1], L[i - 2], L[i - 3]].some(cnpj) || /\bS\/A\b|\bS\.A\.?(?:\s|$)|LTDA|EIRELI/i.test(`${L[i - 1] ?? ""} ${L[i - 2] ?? ""}`)) continue;
+    const nota = (ruaAcima(i) ? 2 : 0) + (cep ? 2 : 0) + (cep?.startsWith("69") ? 1 : 0);
     if (!melhor || nota > melhor.nota) melhor = { i, cep, nota };
   }
   if (!melhor) return {};
@@ -696,21 +703,85 @@ function enderecoDoTexto(texto: string): DadosEndereco {
     return { cep, ...partesDoEndereco(junto) };
   }
 
-  // Conta de luz: rua/número/complemento numa linha, bairro numa das de baixo ("PLANALTO, AME 106"), CEP + cidade/UF depois
+  // Rua/número numa linha e o resto embaixo, até o CEP: complemento em linha própria ("APTO 312"), depois
+  // bairro, prédio ou complemento e cidade ("PLANALTO, AME 106", "CENTRO - SMART DOWNTOWN - MANAUS")
   const r: DadosEndereco = { cep, ...partesDoEndereco(rua) };
   delete r.cidade; delete r.uf;
   if (r.bairro) { r.complemento = r.complemento ? `${r.complemento} - ${r.bairro}` : r.bairro; delete r.bairro; }
+  const juntarCompl = (...p: string[]) => { r.complemento = [r.complemento, ...p].filter(Boolean).join(" - "); };
   for (let k = j + 1; k < i; k++) {
-    const partes = semLixo(L[k]).split(/\s*,\s*|\s+[-–]\s*|\s*[-–]\s+/).filter(Boolean);
+    const linha = semLixo(L[k]);
+    if (!linha) continue;
+    if (RE_LINHA_COMPLEMENTO.test(linha)) { juntarCompl(linha); continue; }
+    if (r.bairro) continue;
+    const partes = linha.split(/\s*,\s*|\s+[-–]\s*|\s*[-–]\s+/).filter(Boolean);
     if (!partes.length || !/^[A-ZÀ-Ý][A-ZÀ-Ý' .]{2,}$/.test(partes[0]) || NAO_BAIRRO.test(partes[0])) continue;
     // "COL TERRA NOVA COND RESID ALLEGRO CLUBE": bairro antes, condomínio vai para o complemento
     const cond = partes[0].match(/^(.+?)\s+((?:COND|CONJ|CJ|RESID|RESIDENCIAL|EDIF|ED)\b.*)$/);
     r.bairro = cond ? cond[1] : partes[0];
-    const extra = [...(cond ? [cond[2]] : []), ...partes.slice(1).filter(p => /\d/.test(p))];
-    if (extra.length) r.complemento = [r.complemento, ...extra].filter(Boolean).join(" - ");
-    break;
+    const resto = partes.slice(1);
+    // três partes ou mais: a última é a cidade ("... - MANAUS")
+    if (resto.length >= 2 && /^[A-ZÀ-Ý][A-ZÀ-Ý' ]+$/.test(resto[resto.length - 1])) r.cidade = resto.pop();
+    juntarCompl(...(cond ? [cond[2]] : []), ...resto.filter(p => /\d|^[A-ZÀ-Ý]{2}/.test(p)));
   }
   return { ...r, ...cidadeDaLinha() };
+}
+
+// Recorte do bloco do endereço (da linha da rua até a do CEP) na imagem original, ampliado e com contraste esticado:
+// a letra miúda de foto de conta em papel térmico ("1908" saía "19") é bem melhor lida assim do que na página inteira
+type Fonte = CanvasImageSource & { width: number; height: number };
+type Caixa = { x0: number; y0: number; x1: number; y1: number };
+function recorteDoEndereco(data: any, fonte: Fonte, escala: number): HTMLCanvasElement | null {
+  const linhas: { text: string; bbox: Caixa; words: { bbox: Caixa }[] }[] =
+    (data?.blocks ?? []).flatMap((b: any) => (b.paragraphs ?? []).flatMap((p: any) => p.lines ?? []))
+      .map((l: any) => ({ text: String(l.text ?? "").trim(), bbox: l.bbox, words: l.words ?? [] })); // o texto vem com "\n" no fim
+  // de baixo para cima: o bloco do cliente vem depois do cabeçalho da empresa
+  for (let c = linhas.length - 1; c >= 0; c--) {
+    if (!/\bCEP\b/i.test(linhas[c].text)) continue;
+    const digitos = linhas[c].text.replace(/\D/g, "");
+    if (digitos.length >= 8 && ehCepDeEmpresa(digitos.slice(0, 8))) continue;
+    const acima = linhas.slice(Math.max(0, c - 5), c);
+    if (acima.some(l => /CNPJ/i.test(l.text) && !/CPF/i.test(l.text))) continue;
+    const r = acima.findIndex(l => RE_LOGRADOURO.test(l.text));
+    if (r < 0) continue;
+    const bloco = [...acima.slice(r), linhas[c]];
+    const alturas = bloco.map(l => l.bbox.y1 - l.bbox.y0).sort((a, b) => a - b);
+    const altura = alturas[Math.floor(alturas.length / 2)];
+    // Só a coluna do endereço: em cada linha, as palavras até o primeiro vão grande (a coluna da direita fica de fora)
+    const fimDaColuna = (l: (typeof bloco)[number]) => {
+      const ws = [...l.words].sort((a, b) => a.bbox.x0 - b.bbox.x0);
+      if (!ws.length) return l.bbox.x1;
+      let fim = ws[0].bbox.x1;
+      for (const w of ws.slice(1)) { if (w.bbox.x0 - fim > altura * 2.5) break; fim = w.bbox.x1; }
+      return fim;
+    };
+    const x0 = Math.min(...bloco.map(l => l.bbox.x0)), x1 = Math.max(...bloco.map(fimDaColuna));
+    const y0 = bloco[0].bbox.y0, y1 = bloco[bloco.length - 1].bbox.y1;
+    const margem = altura * 0.35;
+    const ox = Math.max(0, (x0 - margem) / escala), oy = Math.max(0, (y0 - margem) / escala);
+    const ow = Math.min(fonte.width - ox, (x1 - x0 + 2 * margem) / escala), oh = Math.min(fonte.height - oy, (y1 - y0 + 2 * margem) / escala);
+    if (ow < 20 || oh < 10) return null;
+    // letra com uns 36 px de altura, que é onde o OCR lê melhor
+    const z = Math.max(1, Math.min(3.5, 36 / (altura / escala), 3600 / ow));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(ow * z); cv.height = Math.round(oh * z);
+    const ctx = cv.getContext("2d")!;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(fonte, ox, oy, ow, oh, 0, 0, cv.width, cv.height);
+    // tons de cinza; o contraste vai do 2% mais escuro ao 2% mais claro (papel desbotado, sombra da foto)
+    const d = ctx.getImageData(0, 0, cv.width, cv.height), p = d.data, hist = new Array(256).fill(0);
+    for (let i = 0; i < p.length; i += 4) { const g = Math.round(0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]); p[i] = g; hist[g]++; }
+    const total = p.length / 4;
+    let lo = 0, hi = 255, acc = 0;
+    while (lo < 255 && (acc += hist[lo]) < total * 0.02) lo++;
+    acc = 0;
+    while (hi > 0 && (acc += hist[hi]) < total * 0.02) hi--;
+    const f = hi > lo ? 255 / (hi - lo) : 1;
+    for (let i = 0; i < p.length; i += 4) { const g = Math.max(0, Math.min(255, (p[i] - lo) * f)); p[i] = p[i + 1] = p[i + 2] = g; }
+    ctx.putImageData(d, 0, 0);
+    return cv;
+  }
+  return null;
 }
 
 // Lê o comprovante (PDF com texto, PDF escaneado ou foto) e devolve o endereço; o OCR só roda se o texto não trouxer o CEP
@@ -737,23 +808,32 @@ export async function lerComprovanteEndereco(file: File, progresso?: (msg: strin
     progresso?.("Preparando leitura...");
     const worker = await Tesseract.createWorker("por");
     let melhor: DadosEndereco = {};
+    const nota = (r: DadosEndereco) => (r.cep ? 2 : 0) + (r.logradouro ? 2 : 0) + (r.numero ? 1 : 0) + (r.bairro ? 1 : 0) + (r.complemento ? 0.5 : 0);
     try {
       // Conta comprida (foto ou página inteira): o endereço fica no alto, então a metade de cima vai primeiro, ampliada
-      const preparadas = imagens.flatMap(img => {
-        if (img.height <= img.width * 1.25) return [prepararParaOCR(img)];
+      const fontes: Fonte[] = imagens.flatMap(img => {
+        if (img.height <= img.width * 1.25) return [img];
         const topo = document.createElement("canvas");
         topo.width = img.width; topo.height = Math.round(img.height / 2);
         topo.getContext("2d")!.drawImage(img, 0, 0);
-        return [prepararParaOCR(topo), prepararParaOCR(img)];
+        return [topo, img];
       });
       for (const [passada, psm] of [[1, "6"], [2, "11"]] as const) {
-        await worker.setParameters({ tessedit_pageseg_mode: psm });
-        for (let i = 0; i < preparadas.length; i++) {
-          progresso?.(`Lendo comprovante... ${passada === 1 ? "" : "(revisão) "}${i + 1}/${preparadas.length}`);
-          const { data } = await worker.recognize(preparadas[i]);
-          const r = extrairEndereco(data.text);
-          if (r.cep && r.logradouro) return r;
-          if (Object.keys(r).length > Object.keys(melhor).length) melhor = r;
+        for (let i = 0; i < fontes.length; i++) {
+          progresso?.(`Lendo comprovante... ${passada === 1 ? "" : "(revisão) "}${i + 1}/${fontes.length}`);
+          await worker.setParameters({ tessedit_pageseg_mode: psm });
+          const prep = prepararParaOCR(fontes[i]);
+          const { data } = await worker.recognize(prep, {}, { text: true, blocks: true });
+          let r = extrairEndereco(data.text);
+          // Achou o bloco do endereço: lê de novo só ele, ampliado; o que sair melhor manda, o outro completa
+          const recorte = recorteDoEndereco(data, fontes[i], prep.width / fontes[i].width);
+          if (recorte) {
+            await worker.setParameters({ tessedit_pageseg_mode: "6" });
+            const z = extrairEndereco((await worker.recognize(recorte)).data.text);
+            r = nota(z) >= nota(r) ? { ...r, ...z } : { ...z, ...r };
+          }
+          if (r.cep && r.logradouro && r.numero) return r;
+          if (nota(r) > nota(melhor)) melhor = r;
         }
       }
     } finally {
