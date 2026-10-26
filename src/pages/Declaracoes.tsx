@@ -1712,18 +1712,9 @@ END $$;`
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [buscaCliente, setBuscaCliente] = useState("");
   const [filtroStatusBadge, setFiltroStatusBadge] = useState<ClienteStatus | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
-    const saved = localStorage.getItem("decl_view_mode") as "grid" | "list";
-    if (saved) return saved;
-    return window.innerWidth < 640 ? "grid" : "list";
-  });
-  const toggleViewMode = () => {
-    setViewMode(prev => {
-      const next = prev === "grid" ? "list" : "grid";
-      localStorage.setItem("decl_view_mode", next);
-      return next;
-    });
-  };
+  // Abre sempre em grade (pedido do usuário); o botão troca para lista só até sair da página
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const toggleViewMode = () => setViewMode(prev => (prev === "grid" ? "list" : "grid"));
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [formCliente, setFormCliente] = useState<ClienteForm>(EMPTY_CLIENTE);
   const [savingCliente, setSavingCliente] = useState(false);
