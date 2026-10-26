@@ -70,13 +70,14 @@ function datasTolerantes(s: string): string[] {
 // 4 maiúsculas ou mais ("orLEILSON"); começando e terminando em maiúscula, até metade minúscula ("JosE"); e os
 // conectores (de, da, dos...) valem em qualquer caixa no meio do nome.
 // Rótulos como "Nome" e "Data" continuam fora, e palavra sem vogal ("ZFPS CD", lixo da foto) quebra a sequência.
+// comFim: mantém o conector ou a letra solta do fim ("…OLIVEIRA DO N"), que é onde cola a continuação da linha de baixo
 const VOGAL = /[AEIOUYÀ-ÆÈ-ÏÒ-ÖÙ-Ý]/;
-function nomeDe(linha: string): string | undefined {
+function nomeDe(linha: string, comFim = false): string | undefined {
   const tokens = linha.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'\s]/g, " ").split(/\s+/).filter(Boolean);
   let melhor: string[] = [], atual: string[] = [];
   // letra solta só vale no meio do nome ("REGINA APARECIDA DOS R FERRAZ", sobrenome abreviado no documento)
   const fechar = () => {
-    while (atual.length && (CONECTORES.has(atual[atual.length - 1]) || atual[atual.length - 1].length === 1)) atual.pop();
+    while (!comFim && atual.length && (CONECTORES.has(atual[atual.length - 1]) || atual[atual.length - 1].length === 1)) atual.pop();
     if (atual.length > melhor.length) melhor = atual;
     atual = [];
   };
@@ -265,6 +266,7 @@ export function extrairCampos(texto: string): DadosDocumento {
       const novo = (n: string) => !nomes.some(x => semAcento(x).replace(/ /g, "") === semAcento(n).replace(/ /g, ""));
       const resto = l.replace(/.*?(FILIA[ÇCG][ÃA]O|FILIATION)\s*:?/i, "");
       let ultimo = -1; // nome da linha anterior, que pode continuar nesta
+      let linhaCheia: string | undefined; // essa linha com o fim que o nome descarta ("…OLIVEIRA DO N")
       let pendente: string | undefined;
       for (const c of [resto, ...depois(i, 8)]) {
         if (/[ÓO]RG[ÃA]O|EXPEDIDOR|NACIONALIDADE|NATURAL|OBSERVA|ASSINATURA|LOCAL|DATA|CPF|REGISTRO|CATEGORIA|VALIDADE|PERMISS[ÃA]O|\bACC\b|CAT\.?\s*HAB/i.test(c)) break;
@@ -277,13 +279,15 @@ export function extrairCampos(texto: string): DadosDocumento {
           const antes = nomes.length;
           for (const n of achados) if (novo(n)) nomes.push(n);
           ultimo = nomes.length > antes ? nomes.length - 1 : -1;
+          linhaCheia = nomeDe(c, true);
           continue;
         }
         const pedaco = ultimo >= 0 ? pedacoDe(c) : undefined;
         pendente = undefined;
-        if (pedaco && cnhAntiga && nomes[ultimo].length >= 25 && nomes[ultimo].length <= 30) {
-          // CNH antiga: a linha cheia (27 letras) continua na de baixo
-          nomes[ultimo] = colarQuebra(nomes[ultimo], pedaco);
+        if (pedaco && cnhAntiga && linhaCheia && linhaCheia.length >= 25 && linhaCheia.length <= 30) {
+          // CNH antiga: a linha cheia (27 letras) continua na de baixo, às vezes no meio da palavra
+          // ("ELINALDO JOSE OLIVEIRA DO N" / "ASCIMENTO" = DO NASCIMENTO)
+          nomes[ultimo] = colarQuebra(linhaCheia, pedaco);
         } else if (pedaco && !ehCNH && pedaco.length === 1 && pedaco[0].length >= 4 && !NAO_E_NOME.test(pedaco[0])) {
           pendente = pedaco[0];
           continue;
