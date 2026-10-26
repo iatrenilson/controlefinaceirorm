@@ -21,6 +21,9 @@ const DOCS_CR = [
 ] as const;
 
 type DocCRTipo = typeof DOCS_CR[number]["id"];
+// Quantos dos 12 documentos o cliente tem (documento de tipo antigo fora da lista, como "doc_ident", não conta)
+const TIPOS_DOCS_CR = new Set<string>(DOCS_CR.map(d => d.id));
+const qtdDocsCR = (docs: { tipo: string }[]) => new Set(docs.map(d => d.tipo).filter(t => TIPOS_DOCS_CR.has(t))).size;
 
 interface DocCRItem {
   id: string;
@@ -85,12 +88,12 @@ export default function DocsCR() {
   const clientesFiltrados = clientes.filter(c => casaComBusca(c.nome, c.cpf, busca));
 
   const totalDocs = DOCS_CR.length;
-  const completos = clientes.filter(c => (docsCliente.get(c.id) ?? []).length === totalDocs).length;
+  const completos = clientes.filter(c => qtdDocsCR(docsCliente.get(c.id) ?? []) === totalDocs).length;
   const parciais = clientes.filter(c => {
-    const n = (docsCliente.get(c.id) ?? []).length;
+    const n = qtdDocsCR(docsCliente.get(c.id) ?? []);
     return n > 0 && n < totalDocs;
   }).length;
-  const sem = clientes.filter(c => (docsCliente.get(c.id) ?? []).length === 0).length;
+  const sem = clientes.filter(c => qtdDocsCR(docsCliente.get(c.id) ?? []) === 0).length;
 
   return (
     <div className="p-4 space-y-4">
@@ -169,7 +172,7 @@ export default function DocsCR() {
                   <tbody>
                     {clientesFiltrados.map(c => {
                       const docs = docsCliente.get(c.id) ?? [];
-                      const ok = docs.length;
+                      const ok = qtdDocsCR(docs);
                       const cor = ok === DOCS_CR.length ? "text-green-400" : ok > 0 ? "text-yellow-400" : "text-muted-foreground";
                       return (
                         <tr key={c.id} className="border-b border-border/20 hover:bg-muted/10">

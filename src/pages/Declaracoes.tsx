@@ -37,6 +37,10 @@ const DOCS_CR = [
   { id: "decl_habitualidade", label: "Comprovante de habitualidade de tiro desportivo",                            tag: "" },
 ] as const;
 type DocCRTipo = typeof DOCS_CR[number]["id"];
+// Quantos dos 12 documentos o cliente tem. Documento de tipo antigo que saiu da lista ("doc_ident", Documento de
+// Identificação Pessoal) continua no banco mas não aparece nem conta: fazia o cliente com 11 mostrar 12/12
+const TIPOS_DOCS_CR = new Set<string>(DOCS_CR.map(d => d.id));
+const qtdDocsCR = (docs: { tipo: string }[]) => new Set(docs.map(d => d.tipo).filter(t => TIPOS_DOCS_CR.has(t))).size;
 interface DocCRItem { id: string; tipo: DocCRTipo; fileName: string; storagePath: string; fileUrl: string; }
 type DocCRRow = { id: string; cliente_id: string; tipo: string; file_name: string | null; storage_path: string | null; file_url: string | null };
 const toDocCRItem = (r: DocCRRow): DocCRItem => ({
@@ -2774,7 +2778,7 @@ END $$;`
                     <tbody>
                       {[...clientes].filter(c => casaComBusca(c.nome, c.cpf, buscaCliente)).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => {
                         const docs = docsCliente.get(c.id) ?? [];
-                        const ok = docs.length;
+                        const ok = qtdDocsCR(docs);
                         const cor = ok === DOCS_CR.length ? "text-green-400" : ok > 0 ? "text-yellow-400" : "text-muted-foreground";
                         return (
                           <tr key={c.id} className="border-b border-border/20 hover:bg-muted/10">
@@ -2962,7 +2966,7 @@ END $$;`
                         )}
                         {(() => {
                           const docs = docsCliente.get(c.id) ?? [];
-                          const ok = docs.length;
+                          const ok = qtdDocsCR(docs);
                           const total = DOCS_CR.length;
                           const cor = ok === total ? "border-green-500/40 text-green-400" : ok > 0 ? "border-yellow-500/40 text-yellow-400" : "border-border/30 text-muted-foreground";
                           return (
@@ -3198,7 +3202,7 @@ END $$;`
                   <FileText className="h-3.5 w-3.5" />
                   Documentos CR
                   {(() => {
-                    const ok = editandoId ? (docsCliente.get(editandoId) ?? []).length : docsPendentes.size;
+                    const ok = editandoId ? qtdDocsCR(docsCliente.get(editandoId) ?? []) : docsPendentes.size;
                     return ok > 0 ? <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${ok === DOCS_CR.length ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>{ok}/{DOCS_CR.length}</span> : null;
                   })()}
                 </span>
