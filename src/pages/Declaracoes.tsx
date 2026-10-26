@@ -37,6 +37,19 @@ const DOCS_CR = [
   { id: "decl_habitualidade", label: "Comprovante de habitualidade de tiro desportivo",                            tag: "" },
 ] as const;
 type DocCRTipo = typeof DOCS_CR[number]["id"];
+// Tipos de comprovante de ocupação lícita com o texto exato da lista do Portal PF: o tipo escolhido ao anexar vai no
+// nome do arquivo ("Comprovante de ocupação lícita ou aposentadoria - Contracheque ou holerite ou CTPS.pdf") e a
+// extensão Passarinho escolhe a mesma opção ao anexar no portal
+const TIPOS_OCUPACAO_PF = [
+  "Contracheque ou holerite ou CTPS",
+  "Registros municipais ou DECORE (3 meses)",
+  "OAB e certidão de regularidade do ano vigente",
+  "Ficha cadastral simplificada da Junta Comercial ou comprovante de inscrição e situação cadastral do CNPJ (60 dias)",
+  "CCMEI e DASN-SIMEI ou DAS-MEI (60 dias)",
+  "Comprovante de rendimento do INSS (60 dias)",
+  "Comprovante de rendimento ou similar de instituição pública",
+  "Outros",
+];
 // Quantos dos 12 documentos o cliente tem. Documento de tipo antigo que saiu da lista ("doc_ident", Documento de
 // Identificação Pessoal) continua no banco mas não aparece nem conta: fazia o cliente com 11 mostrar 12/12
 const TIPOS_DOCS_CR = new Set<string>(DOCS_CR.map(d => d.id));
@@ -3353,14 +3366,10 @@ END $$;`
                   <SelectValue placeholder="Selecione o tipo de documento..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="contracheque">Contracheque / Holerite / CTPS</SelectItem>
-                  <SelectItem value="registros municipais">Registros Municipais / DECORE</SelectItem>
-                  <SelectItem value="oab">OAB</SelectItem>
-                  <SelectItem value="junta comercial">Junta Comercial / CNPJ</SelectItem>
-                  <SelectItem value="ccmei">MEI / DAS-MEI / CCMEI</SelectItem>
-                  <SelectItem value="inss">INSS (aposentadoria)</SelectItem>
-                  <SelectItem value="instituicao publica">Instituição Pública</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
+                  {/* mesmo texto da lista do Portal PF (TIPOS_OCUPACAO_PF); o valor continua o mesmo de antes */}
+                  {["contracheque", "registros municipais", "oab", "junta comercial", "ccmei", "inss", "instituicao publica", "outros"].map((v, i) => (
+                    <SelectItem key={v} value={v}>{TIPOS_OCUPACAO_PF[i]}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -3692,10 +3701,7 @@ END $$;`
             <p className="text-[11px] text-muted-foreground truncate">{loteSubTipoArquivo}</p>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            {(loteSubTipoDocId === "comp_ocupacao"
-              ? ["Contracheque", "DECORE", "OAB", "Junta Comercial", "MEI / CCMEI", "INSS", "Instituição Pública", "Outros"]
-              : ["Telefone", "Energia", "Água", "Gás"]
-            ).map(sub => (
+            {(loteSubTipoDocId === "comp_ocupacao" ? TIPOS_OCUPACAO_PF : ["Telefone", "Energia", "Água", "Gás"]).map(sub => (
               <button key={sub} type="button"
                 className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
                 onClick={() => {
@@ -3717,10 +3723,7 @@ END $$;`
             <DialogTitle className="text-sm">Tipo de comprovante</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            {(docUploadTipo === "comp_ocupacao"
-              ? ["Contracheque", "DECORE", "OAB", "Junta Comercial", "MEI / CCMEI", "INSS", "Instituição Pública", "Outros"]
-              : ["Telefone", "Energia", "Água", "Gás"]
-            ).map(tipo => (
+            {(docUploadTipo === "comp_ocupacao" ? TIPOS_OCUPACAO_PF : ["Telefone", "Energia", "Água", "Gás"]).map(tipo => (
               <button key={tipo} type="button"
                 className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
                 onClick={() => {
