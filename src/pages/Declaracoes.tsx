@@ -1114,15 +1114,16 @@ END $$;
 NOTIFY pgrst, 'reload schema';
 `.trim();
 
-// Serviços oferecidos (ordem e texto do PDF); o CR recebe a categoria escolhida
-const SERVICOS_CONTRATO: Array<{ key: string; label: string; texto: (f: FormContrato) => string }> = [
-  { key: "cr",             label: "Concessão de CR",
+// Serviços oferecidos (ordem e texto do PDF); o CR recebe a categoria escolhida. "prefixo" abre o nome do arquivo
+// ("CR Contrato de Assessoria - Fulano", como o usuário nomeia os contratos)
+const SERVICOS_CONTRATO: Array<{ key: string; label: string; prefixo: string; texto: (f: FormContrato) => string }> = [
+  { key: "cr",             label: "Concessão de CR",                  prefixo: "CR",
     texto: f => `Concessão de Certificado de Registro (CR) de pessoa física, na categoria ${(f.categoriaCR || "Atirador Desportivo").trim()};` },
-  { key: "aquisicao",      label: "Autorização de aquisição de arma", texto: () => "Autorização de aquisição de arma de fogo;" },
-  { key: "registro",       label: "Registro de arma + CRAF",          texto: () => "Registro de arma de fogo e emissão do respectivo CRAF;" },
-  { key: "guia",           label: "Guia de trânsito / tráfego",       texto: () => "Emissão de guia de trânsito ou guia de tráfego, conforme o procedimento aplicável;" },
-  { key: "cr_renovacao",   label: "Renovação de CR",                  texto: () => "Renovação de Certificado de Registro (CR);" },
-  { key: "craf_renovacao", label: "Renovação do registro + CRAF",     texto: () => "Renovação do registro de arma de fogo e do respectivo CRAF;" },
+  { key: "aquisicao",      label: "Autorização de aquisição de arma", prefixo: "Autorização",    texto: () => "Autorização de aquisição de arma de fogo;" },
+  { key: "registro",       label: "Registro de arma + CRAF",          prefixo: "CRAF",           texto: () => "Registro de arma de fogo e emissão do respectivo CRAF;" },
+  { key: "guia",           label: "Guia de trânsito / tráfego",       prefixo: "Guia",           texto: () => "Emissão de guia de trânsito ou guia de tráfego, conforme o procedimento aplicável;" },
+  { key: "cr_renovacao",   label: "Renovação de CR",                  prefixo: "Renovação CR",   texto: () => "Renovação de Certificado de Registro (CR);" },
+  { key: "craf_renovacao", label: "Renovação do registro + CRAF",     prefixo: "Renovação CRAF", texto: () => "Renovação do registro de arma de fogo e do respectivo CRAF;" },
 ];
 
 // O que o valor do contrato já cobre (o contratado providencia e paga); todos vêm marcados.
@@ -1436,8 +1437,10 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
   doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
 
+  // "CR Contrato de Assessoria - Fulano"; com mais de um serviço, "CR + Autorização Contrato de Assessoria - Fulano"
   const nomeArq = titleCase((f.nome || "Cliente").toLowerCase());
-  return await salvarPDF(doc, `Contrato de Assessoria - ${nomeArq}.pdf`);
+  const prefixo = escolhidos.map(s => s.prefixo).join(" + ");
+  return await salvarPDF(doc, `${prefixo ? prefixo + " " : ""}Contrato de Assessoria - ${nomeArq}.pdf`);
 }
 
 // Caixa "Importar ..." do cadastro do cliente: aceita PDF ou foto pelo botão ou arrastando o arquivo para ela
