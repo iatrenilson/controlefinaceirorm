@@ -57,6 +57,10 @@ const NOMES_CACA: Record<string, string> = {
   comp_filiacao: "Comprovante de filiação a entidade de caça",
   decl_habitualidade: "Documento expedido pelo Ibama para abate a fauna invasora",
 };
+// Título do documento do cliente: o 11 e o 12 salvos como caça (ou escolhidos como caça, no cadastro novo) mostram o
+// nome de caça do Portal PF no lugar do de tiro desportivo
+const rotuloDocCR = (doc: { id: string; label: string }, nomeArquivo?: string, subTipo?: string) =>
+  NOMES_CACA[doc.id] && (subTipo === "Caça" || nomeArquivo?.startsWith(NOMES_CACA[doc.id])) ? NOMES_CACA[doc.id] : doc.label;
 // Documentos que perguntam o tipo ao anexar, com as opções de cada um (null: não pergunta)
 const opcoesSubTipo = (docId: string): string[] | null =>
   docId === "comp_ocupacao" ? TIPOS_OCUPACAO_PF
@@ -2826,7 +2830,7 @@ END $$;`
                               return (
                                 <td key={d.id} className="px-1 py-2 text-center">
                                   {item
-                                    ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" title={`${d.label} — ${item.fileName}`}><FileCheck2 className="h-3.5 w-3.5 text-green-400 mx-auto" /></a>
+                                    ? <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" title={`${rotuloDocCR(d, item.fileName)} — ${item.fileName}`}><FileCheck2 className="h-3.5 w-3.5 text-green-400 mx-auto" /></a>
                                     : <FileX2 className="h-3.5 w-3.5 text-red-400/40 mx-auto" />}
                                 </td>
                               );
@@ -3026,7 +3030,7 @@ END $$;`
                                           {item
                                             ? <FileCheck2 className="h-3 w-3 text-green-400 flex-shrink-0" />
                                             : <FileX2 className="h-3 w-3 text-red-400/50 flex-shrink-0" />}
-                                          <span className={`text-[10px] leading-tight ${item ? "text-green-300" : "text-foreground/60"}`}>{d.label}</span>
+                                          <span className={`text-[10px] leading-tight ${item ? "text-green-300" : "text-foreground/60"}`}>{rotuloDocCR(d, item?.fileName)}</span>
                                         </div>
                                       );
                                     })}
@@ -3271,7 +3275,7 @@ END $$;`
                           : pendente ? <FileCheck2 className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
                           : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
                         <div className="flex-1 min-w-0">
-                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : pendente ? "text-amber-300" : "text-foreground/70"}`}>{doc.label}</p>
+                          <p className={`text-[11px] leading-tight ${item ? "text-green-300" : pendente ? "text-amber-300" : "text-foreground/70"}`}>{rotuloDocCR(doc, item?.fileName, pendente?.subTipo)}</p>
                           {alvo ? <p className="text-[9px] text-primary font-semibold">Solte o arquivo aqui{item || pendente ? " (substitui o atual)" : ""}</p>
                             : item ? <p className="text-[9px] text-muted-foreground truncate">{item.fileName}</p>
                             : pendente && <p className="text-[9px] text-amber-300/80 truncate">{pendente.file.name} — vai ser enviado ao salvar o cliente</p>}
