@@ -3181,7 +3181,8 @@ END $$;`
       {/* ── Dialog: Cadastro de Cliente ── */}
       <Dialog open={dialogClienteOpen} onOpenChange={setDialogClienteOpen}>
         <DialogContent
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          // minmax(0,1fr): nome de arquivo comprido não alarga a janela (cortava a lixeira e o enviar dos documentos)
+          className="max-w-2xl max-h-[90vh] overflow-y-auto grid-cols-[minmax(0,1fr)]"
           onInteractOutside={e => e.preventDefault()}
           // Arquivo solto fora da área de importar: o navegador abriria o arquivo e o formulário seria perdido
           onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "none"; }}
