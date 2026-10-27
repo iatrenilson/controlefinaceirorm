@@ -649,40 +649,13 @@ const Laudos = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Garante tabela, carrega e mantém cadastros atualizados em tempo real
+  // Carrega e mantém cadastros atualizados em tempo real
   useEffect(() => {
-    const MIGRATION_SQL = `
-CREATE TABLE IF NOT EXISTS public.cac_cadastros (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome TEXT NOT NULL,
-  cpf TEXT, endereco TEXT, numero TEXT, complemento TEXT, bairro TEXT,
-  tipo_sinarm TEXT, armas TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.cac_cadastros ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_insert') THEN
-    CREATE POLICY "cac_cad_insert" ON public.cac_cadastros FOR INSERT TO anon, authenticated WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_select') THEN
-    CREATE POLICY "cac_cad_select" ON public.cac_cadastros FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
-  END IF;
-END $$;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
-`.trim();
-
     const carregar = () =>
       supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("nome")
         .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
 
-    // Carrega já: a lista não espera a conferência do banco (ela levava segundos toda vez).
-    // A conferência roda só uma vez por navegador — ao mudar o MIGRATION_SQL, troque a versão do flag.
     carregar();
-    const FLAG = "laudos_migration_v1";
-    if (!localStorage.getItem(FLAG))
-      supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
-        .finally(() => { localStorage.setItem(FLAG, "1"); carregar(); });
 
     // Atualiza automaticamente quando chega novo cadastro
     const channel = supabase.channel("cac_cadastros_laudos")

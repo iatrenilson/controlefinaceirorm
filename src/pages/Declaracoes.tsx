@@ -1138,24 +1138,6 @@ const CONTRATADO_VAZIO: DadosContratado = {
   nome: "", nacionalidade: "", estadoCivil: "", cpf: "", rg: "",
   endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
 };
-const SQL_APP_CONFIG = `
-CREATE TABLE IF NOT EXISTS public.app_config (
-  chave TEXT PRIMARY KEY,
-  valor JSONB NOT NULL DEFAULT '{}'::jsonb,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='app_config' AND policyname='app_config_select') THEN
-    CREATE POLICY "app_config_select" ON public.app_config FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='app_config' AND policyname='app_config_admin') THEN
-    CREATE POLICY "app_config_admin" ON public.app_config FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
-  END IF;
-END $$;
-NOTIFY pgrst, 'reload schema';
-`.trim();
-
 // Serviços oferecidos (ordem e texto do PDF); o CR recebe a categoria escolhida. "prefixo" abre o nome do arquivo
 // ("CR Contrato de Assessoria - Fulano", como o usuário nomeia os contratos)
 const SERVICOS_CONTRATO: Array<{ key: string; label: string; prefixo: string; texto: (f: FormContrato) => string }> = [
@@ -1630,87 +1612,14 @@ export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
   const [userId, setUserId] = useState<string | null>(null);
-  const [restoreKey, setRestoreKey] = useState(0);
 
   useEffect(() => {
     usuarioAtual().then(user => setUserId(user?.id ?? null));
   }, []);
 
-  // Migração: adiciona owner_id e atualiza RLS — roda só uma vez por browser
-  useEffect(() => {
-    if (localStorage.getItem("schema_migration_v4")) return;
-    supabase.functions.invoke("run-migration", {
-      body: {
-        sql: `DO $$ BEGIN
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id);
-  DROP POLICY IF EXISTS "Admins and moderators can select declaracao_clientes" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Admins and moderators can insert declaracao_clientes" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Admins and moderators can update declaracao_clientes" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Admins and moderators can delete declaracao_clientes" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Owners or admins insert" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Owners or admins select" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Owners or admins update" ON public.declaracao_clientes;
-  DROP POLICY IF EXISTS "Owners or admins delete" ON public.declaracao_clientes;
-  CREATE POLICY "dc_select" ON public.declaracao_clientes FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  CREATE POLICY "dc_insert" ON public.declaracao_clientes FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'moderator'));
-  CREATE POLICY "dc_update" ON public.declaracao_clientes FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  CREATE POLICY "dc_delete" ON public.declaracao_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'admin') OR (public.has_role(auth.uid(), 'moderator') AND owner_id = auth.uid()));
-  PERFORM pg_notify('pgrst', 'reload schema');
-  UPDATE public.declaracao_clientes
-    SET owner_id = (SELECT id FROM auth.users WHERE email = 'iat.renilson.martins@gmail.com' LIMIT 1)
-    WHERE owner_id IS NULL;
-END $$;`
-      }
-    }).then(() => localStorage.setItem("schema_migration_v4", "1")).catch(() => {});
-  }, []);
-
-  // Migração v5: adiciona colunas de nascimento, telefone, profissão e campos clube
-  useEffect(() => {
-    if (localStorage.getItem("schema_migration_v5")) return;
-    supabase.functions.invoke("run-migration", {
-      body: {
-        sql: `DO $$ BEGIN
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento    TEXT NOT NULL DEFAULT 'AM';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS telefone         TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS profissao        TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS email            TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube       TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube      TEXT NOT NULL DEFAULT '';
-  ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube      TEXT NOT NULL DEFAULT '';
-  PERFORM pg_notify('pgrst', 'reload schema');
-END $$;`
-      }
-    }).then(() => localStorage.setItem("schema_migration_v5", "1")).catch(() => {});
-  }, []);
-
-  // Migração v7: adiciona tipo_ocupacao (v7 para forçar rerun caso v6 tenha falhado silenciosamente)
-  useEffect(() => {
-    if (localStorage.getItem("schema_migration_v7")) return;
-    supabase.functions.invoke("run-migration", {
-      body: { sql: `ALTER TABLE public.declaracao_clientes ADD COLUMN IF NOT EXISTS tipo_ocupacao TEXT NOT NULL DEFAULT '';` }
-    }).then(({ error }) => {
-      if (!error) localStorage.setItem("schema_migration_v7", "1");
-    }).catch(() => {});
-  }, []);
-
-  // Correção única: restaura clientes do admin que foram incorretamente migrados para parabellum
-  useEffect(() => {
-    if (!isAdmin || !userId) return;
-    const FLAG = "owner_restore_v2";
-    if (localStorage.getItem(FLAG)) return;
-    supabase.functions.invoke("run-migration", {
-      body: {
-        sql: `UPDATE public.declaracao_clientes
-  SET owner_id = (SELECT id FROM auth.users WHERE email = 'iat.renilson.martins@gmail.com' LIMIT 1)
-  WHERE owner_id = (SELECT id FROM auth.users WHERE email = 'parabellum.assessoria7@gmail.com' LIMIT 1)
-    AND nome NOT ILIKE '%PATRIK%FERNANDES%GOMES%';`
-      }
-    }).then(() => {
-      localStorage.setItem(FLAG, "1");
-      setRestoreKey(k => k + 1);
-    }).catch(() => {});
-  }, [isAdmin, userId]);
+  // O site não roda mais comandos de configuração do banco ao abrir: tabelas, colunas e regras já existem (76 itens
+  // conferidos em 27/10/2026). Eles rodavam de novo em todo navegador sem histórico e faziam o banco recarregar a
+  // estrutura, peso à toa na máquina pequena. Só sobram os de recuperação ao salvar cliente (coluna faltando).
 
   // Auto-provisiona papel de moderador para glendaleite88@gmail.com
   useEffect(() => {
@@ -2317,50 +2226,6 @@ END $$;`
 
   useEffect(() => {
     const init = async () => {
-      // Só roda migração se ainda não foi feita neste browser (evita pg_notify a cada carregamento)
-      const migDone = localStorage.getItem("dc_migration_v4");
-      if (!migDone) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: "DO $$ BEGIN ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS local_nascimento TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS uf_nascimento TEXT NOT NULL DEFAULT 'AM'; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS nome_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS login_clube TEXT NOT NULL DEFAULT ''; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS senha_clube TEXT NOT NULL DEFAULT ''; PERFORM pg_notify('pgrst', 'reload schema'); END $$;" },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_v4", "1");
-        await new Promise(r => setTimeout(r, 2000));
-      }
-      const mig5Done = localStorage.getItem("dc_migration_v5");
-      if (!mig5Done) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS email TEXT; ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS telefone TEXT;" },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_v5", "1");
-      }
-      const mig6Done = localStorage.getItem("dc_migration_v6");
-      if (!mig6Done) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: "ALTER TABLE declaracao_clientes ADD COLUMN IF NOT EXISTS profissao TEXT;" },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_v6", "1");
-      }
-      const migDocsCR = localStorage.getItem("dc_migration_docs_cr");
-      if (!migDocsCR) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: `CREATE TABLE IF NOT EXISTS declaracao_docs_cr (id UUID DEFAULT gen_random_uuid() PRIMARY KEY, cliente_id TEXT NOT NULL, tipo TEXT NOT NULL, file_name TEXT NOT NULL, storage_path TEXT NOT NULL, file_url TEXT NOT NULL DEFAULT '', uploaded_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(cliente_id, tipo)); ALTER TABLE declaracao_docs_cr ENABLE ROW LEVEL SECURITY; DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='auth_all_docs_cr' AND tablename='declaracao_docs_cr') THEN CREATE POLICY auth_all_docs_cr ON declaracao_docs_cr TO authenticated USING (true) WITH CHECK (true); END IF; END $$; INSERT INTO storage.buckets (id, name, public, file_size_limit) VALUES ('cac-docs', 'cac-docs', true, 52428800) ON CONFLICT DO NOTHING;` },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_docs_cr", "1");
-      }
-      const migDocsCRv2 = localStorage.getItem("dc_migration_docs_cr_v2");
-      if (!migDocsCRv2) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_insert' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_insert ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_select' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_update' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_update ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'cac-docs'); END IF; IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='cac_docs_delete' AND tablename='objects' AND schemaname='storage') THEN CREATE POLICY cac_docs_delete ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'cac-docs'); END IF; END $$;` },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_docs_cr_v2", "1");
-      }
-      const migDocsCRv4 = localStorage.getItem("dc_migration_docs_cr_v4");
-      if (!migDocsCRv4) {
-        await supabase.functions.invoke("run-migration", {
-          body: { sql: `DROP POLICY IF EXISTS cac_docs_public_select ON storage.objects;` },
-        }).catch(() => {});
-        localStorage.setItem("dc_migration_docs_cr_v4", "1");
-      }
       // Limpa cache inválido (pode ter sido gravado como [] por erro anterior)
       const cached = sessionStorage.getItem("decl_clientes_cache");
       if (cached === "[]") sessionStorage.removeItem("decl_clientes_cache");
@@ -2381,7 +2246,7 @@ END $$;`
       }
     };
     init();
-  }, [fetchClientes, restoreKey]);
+  }, [fetchClientes]);
 
   const setC = (field: keyof ClienteForm, value: string) =>
     setFormCliente(prev => ({ ...prev, [field]: value }));
@@ -2554,12 +2419,6 @@ END $$;`
 
   const abrirContrato = async () => {
     setFormContrato(novoFormContrato()); setDialogContratoOpen(true);
-    // Tabela de configuração: criada uma vez por navegador (só o admin consegue criar)
-    const FLAG = "app_config_migration_v1";
-    if (!localStorage.getItem(FLAG)) {
-      await supabase.functions.invoke("run-migration", { body: { sql: SQL_APP_CONFIG } }).catch(() => {});
-      localStorage.setItem(FLAG, "1");
-    }
     const { data } = await supabase.from("app_config" as any).select("valor").eq("chave", "contratado").maybeSingle();
     const salvo = (data as any)?.valor as Partial<DadosContratado> | undefined;
     if (salvo?.nome) { setContratado({ ...CONTRATADO_VAZIO, ...salvo }); setEditandoContratado(false); }

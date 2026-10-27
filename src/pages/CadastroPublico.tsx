@@ -3,46 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { CADASTRO_GERAL_ATIVO, WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
 import { toast } from "sonner";
 
-const MIGRATION_SQL = `
-CREATE TABLE IF NOT EXISTS public.cac_cadastros (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome TEXT NOT NULL,
-  cpf TEXT,
-  endereco TEXT,
-  numero TEXT,
-  complemento TEXT,
-  bairro TEXT,
-  cidade TEXT,
-  estado TEXT,
-  tipo_sinarm TEXT,
-  armas TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.cac_cadastros ENABLE ROW LEVEL SECURITY;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_insert') THEN
-    CREATE POLICY "cac_cad_insert" ON public.cac_cadastros FOR INSERT TO anon, authenticated WITH CHECK (true);
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='cac_cadastros' AND policyname='cac_cad_select') THEN
-    CREATE POLICY "cac_cad_select" ON public.cac_cadastros FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'moderator'));
-  END IF;
-END $$;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS tipo_sinarm TEXT;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS armas TEXT;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS psicologico_url TEXT;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS cidade TEXT;
-ALTER TABLE public.cac_cadastros ADD COLUMN IF NOT EXISTS estado TEXT;
-INSERT INTO storage.buckets (id, name, public) VALUES ('psicologicos', 'psicologicos', true) ON CONFLICT (id) DO NOTHING;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='psico_select') THEN
-    CREATE POLICY "psico_select" ON storage.objects FOR SELECT USING (bucket_id = 'psicologicos');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='psico_insert') THEN
-    CREATE POLICY "psico_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'psicologicos');
-  END IF;
-END $$;
-`.trim();
-
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"] as const;
 const ARMAS_OPTS   = ["Pistola", "Revólver", "Rifle", "Espingarda"] as const;
 
@@ -75,14 +35,6 @@ export default function CadastroPublico() {
     return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
   };
 
-  const migrated = () => {
-    const FLAG = "cac_cadastros_migration_v4";
-    if (localStorage.getItem(FLAG)) return Promise.resolve();
-    return supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } })
-      .then(() => localStorage.setItem(FLAG, "1"))
-      .catch(() => {});
-  };
-
   const handlePsicoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -91,7 +43,6 @@ export default function CadastroPublico() {
     setPsicoUrl(null);
     setPsicoExt(ext);
     setUploadingPsico(true);
-    await migrated();
     const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
     if (!error) {
@@ -147,11 +98,9 @@ export default function CadastroPublico() {
     toast.success("Cadastro concluído! Formulário pronto para novo cliente.");
 
     // Salva no Supabase em segundo plano
-    migrated().then(() =>
-      supabase.from("cac_cadastros").insert(snap).then(({ error }) => {
-        if (error) toast.error("Erro ao salvar cadastro: " + error.message);
-      })
-    );
+    supabase.from("cac_cadastros").insert(snap).then(({ error }) => {
+      if (error) toast.error("Erro ao salvar cadastro: " + error.message);
+    });
   };
 
   const gold = "#c9a227";

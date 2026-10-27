@@ -20,61 +20,6 @@ type TipoKey = "cr" | "craf" | "gt" | "cert";
 interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
 interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
-const MIGRATION_SQL = `
-DO $$ BEGIN
-  CREATE TABLE IF NOT EXISTS public.carteira_clientes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nome TEXT NOT NULL, telefone TEXT, cpf TEXT,
-    owner_id UUID REFERENCES auth.users(id),
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  );
-  ALTER TABLE public.carteira_clientes ENABLE ROW LEVEL SECURITY;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_clientes' AND policyname='cc_sel') THEN CREATE POLICY "cc_sel" ON public.carteira_clientes FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND owner_id=auth.uid())); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_clientes' AND policyname='cc_ins') THEN CREATE POLICY "cc_ins" ON public.carteira_clientes FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND owner_id=auth.uid())); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_clientes' AND policyname='cc_upd') THEN CREATE POLICY "cc_upd" ON public.carteira_clientes FOR UPDATE TO authenticated USING (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND owner_id=auth.uid())); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_clientes' AND policyname='cc_del') THEN CREATE POLICY "cc_del" ON public.carteira_clientes FOR DELETE TO authenticated USING (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND owner_id=auth.uid())); END IF;
-  CREATE TABLE IF NOT EXISTS public.carteira_docs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    carteira_cliente_id UUID REFERENCES public.carteira_clientes(id) ON DELETE CASCADE,
-    tipo TEXT NOT NULL, arquivo_path TEXT, arquivo_nome TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(carteira_cliente_id, tipo)
-  );
-  ALTER TABLE public.carteira_docs ENABLE ROW LEVEL SECURITY;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_sel') THEN CREATE POLICY "cd_sel" ON public.carteira_docs FOR SELECT TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_ins') THEN CREATE POLICY "cd_ins" ON public.carteira_docs FOR INSERT TO authenticated WITH CHECK (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_upd') THEN CREATE POLICY "cd_upd" ON public.carteira_docs FOR UPDATE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='carteira_docs' AND policyname='cd_del') THEN CREATE POLICY "cd_del" ON public.carteira_docs FOR DELETE TO authenticated USING (EXISTS(SELECT 1 FROM public.carteira_clientes c WHERE c.id=carteira_cliente_id AND (public.has_role(auth.uid(),'admin') OR (public.has_role(auth.uid(),'moderator') AND c.owner_id=auth.uid())))); END IF;
-  PERFORM pg_notify('pgrst','reload schema');
-END $$;
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID) RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $fn$ DECLARE result JSON; BEGIN SELECT json_build_object('id',c.id,'nome',c.nome,'docs',COALESCE((SELECT json_agg(json_build_object('id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,'data_expedicao',d.data_expedicao,'data_validade',d.data_validade,'numero_serie',d.numero_serie,'nome_arma',d.nome_arma,'sort_order',d.sort_order) ORDER BY d.tipo,d.sort_order,d.created_at) FROM public.carteira_docs d WHERE d.carteira_cliente_id=c.id),'[]'::json)) INTO result FROM public.carteira_clientes c WHERE c.id=p_id; RETURN result; END; $fn$;
-GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
-GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-  VALUES ('carteira-docs', 'carteira-docs', true, 52428800, NULL)
-  ON CONFLICT (id) DO UPDATE SET public = true;
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_public_select') THEN
-    CREATE POLICY "carteira_docs_public_select" ON storage.objects FOR SELECT TO public USING (bucket_id = 'carteira-docs');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_insert') THEN
-    CREATE POLICY "carteira_docs_auth_insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'carteira-docs');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_update') THEN
-    CREATE POLICY "carteira_docs_auth_update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'carteira-docs');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='carteira_docs_auth_delete') THEN
-    CREATE POLICY "carteira_docs_auth_delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'carteira-docs');
-  END IF;
-END $$;
-ALTER TABLE public.carteira_docs DROP CONSTRAINT IF EXISTS carteira_docs_carteira_cliente_id_tipo_key;
-ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_expedicao TEXT NOT NULL DEFAULT '';
-ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS data_validade TEXT NOT NULL DEFAULT '';
-ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS numero_serie TEXT NOT NULL DEFAULT '';
-ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS nome_arma TEXT NOT NULL DEFAULT '';
-ALTER TABLE public.carteira_docs ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0;
-`.trim();
-
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
@@ -699,7 +644,6 @@ export default function CarteiraDIgital() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [dialog, setDialog] = useState<CartCliente | null | "novo">(null);
-  const [migrated, setMigrated] = useState(false);
 
   const load = async () => {
     const { data: cs } = await supabase.from("carteira_clientes").select("id, nome, telefone, cpf").order("nome");
@@ -726,44 +670,7 @@ export default function CarteiraDIgital() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    const FLAG = "carteira_migration_v8";
-    const FLAG_CPF = "carteira_migration_v9_cpf";
-    const run = async () => {
-      if (!localStorage.getItem(FLAG)) {
-        await supabase.functions.invoke("run-migration", { body: { sql: MIGRATION_SQL } }).catch(() => {});
-        localStorage.setItem(FLAG, "1");
-      }
-      if (!localStorage.getItem(FLAG_CPF)) {
-        await supabase.functions.invoke("run-migration", { body: { sql: `
-CREATE OR REPLACE FUNCTION public.get_carteira_v2(p_id UUID)
-RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE result JSON;
-BEGIN
-  SELECT json_build_object(
-    'id',   c.id, 'nome', c.nome, 'cpf',  c.cpf,
-    'docs', COALESCE((
-      SELECT json_agg(json_build_object(
-        'id',d.id,'tipo',d.tipo,'arquivo_path',d.arquivo_path,'arquivo_nome',d.arquivo_nome,
-        'data_expedicao',d.data_expedicao,'data_validade',d.data_validade,
-        'numero_serie',d.numero_serie,'nome_arma',d.nome_arma,'sort_order',d.sort_order
-      ) ORDER BY d.sort_order NULLS LAST, d.tipo)
-      FROM public.carteira_docs d WHERE d.carteira_cliente_id = c.id
-    ),'[]'::json)
-  ) INTO result FROM public.carteira_clientes c WHERE c.id = p_id;
-  RETURN result;
-END; $$;
-GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO anon;
-GRANT EXECUTE ON FUNCTION public.get_carteira_v2(UUID) TO authenticated;
-        ` } }).catch(() => {});
-        localStorage.setItem(FLAG_CPF, "1");
-      }
-      setMigrated(true);
-    };
-    run();
-  }, []);
-
-  useEffect(() => { if (migrated) load(); }, [migrated]);
+  useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Remover este cliente e todos os documentos?")) return;
