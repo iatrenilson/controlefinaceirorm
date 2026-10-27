@@ -50,6 +50,27 @@ const TIPOS_OCUPACAO_PF = [
   "Comprovante de rendimento ou similar de instituição pública",
   "Outros",
 ];
+// Itens 11 e 12 na Autorização de Compra de caça: o Portal PF pede outros documentos no lugar da filiação a clube de
+// tiro e da habitualidade. Escolhido "Caça" ao anexar, o arquivo leva o nome do documento de caça do portal, e a
+// extensão Passarinho escolhe a opção de caça pelo nome
+const NOMES_CACA: Record<string, string> = {
+  comp_filiacao: "Comprovante de filiação a entidade de caça",
+  decl_habitualidade: "Documento expedido pelo Ibama para abate a fauna invasora",
+};
+// Documentos que perguntam o tipo ao anexar, com as opções de cada um (null: não pergunta)
+const opcoesSubTipo = (docId: string): string[] | null =>
+  docId === "comp_ocupacao" ? TIPOS_OCUPACAO_PF
+    : docId === "comp_residencia" || docId === "comp_2_end" ? ["Telefone", "Energia", "Água", "Gás"]
+    : docId in NOMES_CACA ? ["Tiro desportivo", "Caça"]
+    : null;
+// Itens 11 e 12 em lote ou arrastados: o nome do arquivo já diz se é de caça ou de tiro; só pergunta quando não diz
+const tiroOuCacaPeloNome = (docId: string, nomeArquivo: string): string | undefined => {
+  if (!(docId in NOMES_CACA)) return undefined;
+  const n = norm(nomeArquivo);
+  if (n.includes("caca") || n.includes("ibama") || n.includes("fauna")) return "Caça";
+  if (n.includes("tiro") || n.includes("desportiv") || n.includes("clube")) return "Tiro desportivo";
+  return undefined;
+};
 // Quantos dos 12 documentos o cliente tem. Documento de tipo antigo que saiu da lista ("doc_ident", Documento de
 // Identificação Pessoal) continua no banco mas não aparece nem conta: fazia o cliente com 11 mostrar 12/12
 const TIPOS_DOCS_CR = new Set<string>(DOCS_CR.map(d => d.id));
@@ -1862,9 +1883,11 @@ END $$;`
       }
       const ext = file.name.split(".").pop() ?? "pdf";
       const docDef = DOCS_CR.find(d => d.id === tipo);
-      const displayName = docDef
-        ? `${docDef.label.replace(/[/\\?%*:|"<>]/g, "-")}${subTipo ? ` - ${subTipo}` : ""}.${ext}`
-        : file.name;
+      // 11 e 12: "Caça" troca o nome inteiro pelo do documento de caça; "Tiro desportivo" fica com o nome normal
+      const nomeBase = !docDef ? null
+        : tipo in NOMES_CACA ? (subTipo === "Caça" ? NOMES_CACA[tipo] : docDef.label)
+        : `${docDef.label}${subTipo ? ` - ${subTipo}` : ""}`;
+      const displayName = nomeBase ? `${nomeBase.replace(/[/\\?%*:|"<>]/g, "-")}.${ext}` : file.name;
       const path = `${clienteId}/${tipo}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("cac-docs").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
@@ -1904,7 +1927,8 @@ END $$;`
     if (n.includes("eleitoral"))                                      return "ant_eleitoral";
     if (n.includes("militar"))                                        return "ant_militar";
     if (n.includes("habitualidade") || n.includes("habitual"))        return "decl_habitualidade";
-    if (n.includes("filiacao") || n.includes("filiaca") || n.includes("clube") || n.includes("entidade de tiro")) return "comp_filiacao";
+    if (n.includes("ibama") || n.includes("fauna invasora"))          return "decl_habitualidade"; // 12 de caça
+    if (n.includes("filiacao") || n.includes("filiaca") || n.includes("clube") || n.includes("entidade de tiro") || n.includes("entidade de caca")) return "comp_filiacao";
     if (n.includes("inquerito") || n.includes("processo criminal") || n.includes("nao estar")) return "decl_inquerito";
     if (n.includes("psico") || n.includes("laudo psic") || n.includes("aptidao")) return "laudo_psico";
     if (n.includes("capacidade tecnica") || n.includes("cap tec") || n.includes("cap tecnica")) return "cap_tecnica";
@@ -1940,8 +1964,8 @@ END $$;`
       const tipo = detectarTipoPorNome(file.name);
       if (!tipo) { naoReconhecidos.push(file.name); continue; }
       let subTipo: string | undefined;
-      if (tipo === "comp_residencia" || tipo === "comp_2_end" || tipo === "comp_ocupacao") {
-        subTipo = await pedirSubTipoLote(file.name, tipo);
+      if (opcoesSubTipo(tipo)) {
+        subTipo = tiroOuCacaPeloNome(tipo, file.name) ?? await pedirSubTipoLote(file.name, tipo);
       }
       await enviarDocCR(tipo, file, subTipo);
     }
@@ -1973,8 +1997,8 @@ END $$;`
     if (!validos.length) return;
     if (alvo === "lote") { await uploadEmLote(validos); return; }
     if (validos.length > 1) sonnerToast.info("Um documento por vez: usei o primeiro arquivo. Para vários, solte na caixa de cima.");
-    const precisaSubTipo = alvo === "comp_residencia" || alvo === "comp_2_end" || alvo === "comp_ocupacao";
-    const subTipo = precisaSubTipo ? await pedirSubTipoLote(validos[0].name, alvo) : undefined;
+    const precisaSubTipo = !!opcoesSubTipo(alvo);
+    const subTipo = precisaSubTipo ? (tiroOuCacaPeloNome(alvo, validos[0].name) ?? await pedirSubTipoLote(validos[0].name, alvo)) : undefined;
     if (precisaSubTipo && !subTipo) return; // fechou a escolha do tipo: não envia (igual ao botão)
     await enviarDocCR(alvo, validos[0], subTipo);
   };
@@ -3298,7 +3322,7 @@ END $$;`
                             disabled={uploading}
                             onClick={() => {
                               setDocUploadTipo(doc.id);
-                              if (doc.id === "comp_residencia" || doc.id === "comp_2_end" || doc.id === "comp_ocupacao") {
+                              if (opcoesSubTipo(doc.id)) {
                                 setSubTipoDialogOpen(true);
                               } else {
                                 setTimeout(() => docUploadRef.current?.click(), 0);
@@ -3698,11 +3722,11 @@ END $$;`
       <Dialog open={loteSubTipoDialogOpen} onOpenChange={open => { if (!open) { loteSubTipoResolveRef.current?.(""); loteSubTipoResolveRef.current = null; setLoteSubTipoDialogOpen(false); } }}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm">Tipo de comprovante</DialogTitle>
+            <DialogTitle className="text-sm">{loteSubTipoDocId in NOMES_CACA ? "Tiro desportivo ou caça?" : "Tipo de comprovante"}</DialogTitle>
             <p className="text-[11px] text-muted-foreground truncate">{loteSubTipoArquivo}</p>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            {(loteSubTipoDocId === "comp_ocupacao" ? TIPOS_OCUPACAO_PF : ["Telefone", "Energia", "Água", "Gás"]).map(sub => (
+            {(opcoesSubTipo(loteSubTipoDocId) ?? []).map(sub => (
               <button key={sub} type="button"
                 className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
                 onClick={() => {
@@ -3721,10 +3745,10 @@ END $$;`
       <Dialog open={subTipoDialogOpen} onOpenChange={setSubTipoDialogOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-sm">Tipo de comprovante</DialogTitle>
+            <DialogTitle className="text-sm">{docUploadTipo in NOMES_CACA ? "Tiro desportivo ou caça?" : "Tipo de comprovante"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            {(docUploadTipo === "comp_ocupacao" ? TIPOS_OCUPACAO_PF : ["Telefone", "Energia", "Água", "Gás"]).map(tipo => (
+            {(opcoesSubTipo(docUploadTipo) ?? []).map(tipo => (
               <button key={tipo} type="button"
                 className="w-full text-left rounded-lg border border-border/50 px-4 py-3 text-sm hover:bg-primary/10 hover:border-primary/50 transition-colors"
                 onClick={() => {
