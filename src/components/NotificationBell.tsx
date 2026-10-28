@@ -16,28 +16,34 @@ interface Notification {
   lida: boolean;
 }
 
-// Documentos da Carteira CAC (o link externo do cliente) com a validade vencida. O aviso é calculado na hora a partir
-// das datas, com a regra da página do cliente (última data dd/mm/aaaa do campo; vencido a partir do dia seguinte), e
-// some sozinho quando o documento é renovado. "Visto" fica guardado neste navegador (chave: documento + validade).
-interface DocVencido { chave: string; cliente: string; tipo: string; validade: string; dias: number; }
+// Documentos da Carteira CAC (o link externo do cliente) vencidos ou perto de vencer. O aviso é calculado na hora a
+// partir das datas, com a regra da página do cliente (última data dd/mm/aaaa do campo; vencido a partir do dia
+// seguinte), e some sozinho quando o documento é renovado. Antecedência pedida pelo usuário: GT 1 mês antes, CR e CRAF
+// 3 meses antes; certificado só quando vence. "Visto" fica guardado neste navegador (documento + validade + situação:
+// o aviso "vence em breve" já visto avisa de novo quando o documento vence).
+interface AvisoDoc { chave: string; cliente: string; tipo: string; validade: string; dias: number; vencido: boolean; }
 const ROTULO_TIPO: Record<string, string> = { cr: "CR", craf: "CRAF da Arma", gt: "GT", cert: "Certificado" };
+const MESES_ANTES: Record<string, number> = { gt: 1, cr: 3, craf: 3 };
 const VISTOS_KEY = "carteira_vencidos_vistos";
 const lerVistos = (): string[] => {
   try { return JSON.parse(localStorage.getItem(VISTOS_KEY) || "[]"); } catch { return []; }
 };
 const ultimaData = (validade: string) => (validade.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? "";
-// dias até a validade (negativo = vencido); null sem data
-function diasParaVencer(validade: string): number | null {
+// dias até a validade (negativo = vencido) se já venceu ou entrou no prazo de aviso do tipo; null sem data ou fora do prazo
+function situacaoDoc(tipo: string, validade: string): { dias: number; vencido: boolean } | null {
   const ultima = ultimaData(validade);
   if (!ultima) return null;
   const [d, m, a] = ultima.split("/").map(Number);
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  return Math.ceil((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86400000);
+  const dias = Math.ceil((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86400000);
+  if (dias < 0) return { dias, vencido: true };
+  const meses = MESES_ANTES[tipo];
+  return meses && hoje >= new Date(a, m - 1 - meses, d) ? { dias, vencido: false } : null;
 }
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [vencidos, setVencidos] = useState<DocVencido[]>([]);
+  const [avisos, setAvisos] = useState<AvisoDoc[]>([]);
   const [vistos, setVistos] = useState<string[]>(lerVistos);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -45,35 +51,37 @@ const NotificationBell = () => {
   const { user } = useAppContext();
 
   // Só lê as datas (o que o usuário pode ver na Carteira Digital); nada é gravado no banco
-  const fetchVencidos = async () => {
+  const fetchAvisos = async () => {
     if (!user) return;
     const { data } = await supabase
       .from("carteira_docs" as any)
       .select("id, tipo, data_validade, carteira_clientes(nome)")
       .neq("data_validade", "");
-    const lista: DocVencido[] = [];
+    const lista: AvisoDoc[] = [];
     for (const d of (data ?? []) as any[]) {
-      const dias = diasParaVencer(d.data_validade || "");
-      if (dias === null || dias >= 0) continue;
+      const sit = situacaoDoc(d.tipo, d.data_validade || "");
+      if (!sit) continue;
       lista.push({
-        chave: `${d.id}|${d.data_validade}`,
+        // vencido mantém a chave de antes (documento + validade); o "vence em breve" ganha "|a"
+        chave: `${d.id}|${d.data_validade}` + (sit.vencido ? "" : "|a"),
         cliente: d.carteira_clientes?.nome || "Cliente",
         tipo: ROTULO_TIPO[d.tipo] ?? String(d.tipo).toUpperCase(),
         validade: ultimaData(d.data_validade),
-        dias,
+        ...sit,
       });
     }
-    lista.sort((a, b) => b.dias - a.dias); // o que venceu mais recentemente primeiro
-    setVencidos(lista);
+    // primeiro os já vencidos (o que venceu mais recentemente antes), depois os que vencem mais cedo
+    lista.sort((a, b) => (a.vencido !== b.vencido ? (a.vencido ? -1 : 1) : a.vencido ? b.dias - a.dias : a.dias - b.dias));
+    setAvisos(lista);
   };
 
   const guardarVistos = (chaves: string[]) => {
-    // só guarda os que ainda estão vencidos (renovado ou apagado sai da lista)
-    const novos = [...new Set(chaves)].filter(k => vencidos.some(v => v.chave === k));
+    // só guarda os que ainda estão na lista (renovado ou apagado sai)
+    const novos = [...new Set(chaves)].filter(k => avisos.some(v => v.chave === k));
     setVistos(novos);
     try { localStorage.setItem(VISTOS_KEY, JSON.stringify(novos)); } catch { /* sem storage */ }
   };
-  const abrirVencido = (v: DocVencido) => {
+  const abrirAviso = (v: AvisoDoc) => {
     guardarVistos([...vistos, v.chave]);
     setOpen(false);
     navigate("/carteira-digital");
@@ -107,7 +115,7 @@ const NotificationBell = () => {
 
   useEffect(() => {
     fetchNotifications();
-    fetchVencidos();
+    fetchAvisos();
 
     const channel = supabase
       .channel("notifications-realtime")
@@ -135,7 +143,7 @@ const NotificationBell = () => {
   const markAllAsRead = async () => {
     if (!user) return;
 
-    guardarVistos([...vistos, ...vencidos.map(v => v.chave)]);
+    guardarVistos([...vistos, ...avisos.map(v => v.chave)]);
     const unread = notifications.filter((n) => !n.lida);
     if (unread.length === 0) return;
 
@@ -152,10 +160,10 @@ const NotificationBell = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, lida: true })));
   };
 
-  const unreadCount = notifications.filter((n) => !n.lida).length + vencidos.filter(v => !vistos.includes(v.chave)).length;
+  const unreadCount = notifications.filter((n) => !n.lida).length + avisos.filter(v => !vistos.includes(v.chave)).length;
 
   return (
-    <Popover open={open} onOpenChange={o => { setOpen(o); if (o) fetchVencidos(); }}>
+    <Popover open={open} onOpenChange={o => { setOpen(o); if (o) fetchAvisos(); }}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -180,26 +188,29 @@ const NotificationBell = () => {
         </div>
 
         <ScrollArea className="flex-1 overflow-auto">
-          {vencidos.length > 0 && (
-            <div className="border-b">
-              <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-destructive">
-                Carteira CAC — documentos vencidos
-              </p>
-              {vencidos.map((v) => {
+          {[
+            { lista: avisos.filter(a => a.vencido), titulo: "Carteira CAC — documentos vencidos", cor: "text-destructive", fundo: "bg-destructive/10", ponto: "bg-destructive" },
+            { lista: avisos.filter(a => !a.vencido), titulo: "Carteira CAC — vencem em breve", cor: "text-amber-500", fundo: "bg-amber-500/10", ponto: "bg-amber-500" },
+          ].filter(sec => sec.lista.length > 0).map(sec => (
+            <div key={sec.titulo} className="border-b">
+              <p className={`px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider ${sec.cor}`}>{sec.titulo}</p>
+              {sec.lista.map((v) => {
                 const visto = vistos.includes(v.chave);
                 const dias = Math.abs(v.dias);
+                const nDias = `${dias} ${dias === 1 ? "dia" : "dias"}`;
                 return (
                   <button
                     key={v.chave}
-                    className={`w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors ${!visto ? "bg-destructive/10" : ""}`}
-                    onClick={() => abrirVencido(v)}
+                    className={`w-full text-left px-4 py-2.5 hover:bg-accent/50 transition-colors ${!visto ? sec.fundo : ""}`}
+                    onClick={() => abrirAviso(v)}
                   >
                     <div className="flex items-start gap-2">
-                      {!visto && <span className="mt-1.5 h-2 w-2 rounded-full bg-destructive shrink-0" />}
+                      {!visto && <span className={`mt-1.5 h-2 w-2 rounded-full ${sec.ponto} shrink-0`} />}
                       <div className={!visto ? "" : "ml-[16px]"}>
-                        <p className="text-sm font-semibold">{v.tipo} vencido — {v.cliente}</p>
+                        <p className="text-sm font-semibold">{v.tipo} {v.vencido ? "vencido" : "vence em breve"} — {v.cliente}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Venceu em {v.validade} (há {dias} {dias === 1 ? "dia" : "dias"})
+                          {v.vencido ? `Venceu em ${v.validade} (há ${nDias})`
+                            : `Vence em ${v.validade} (${v.dias === 0 ? "hoje" : `em ${nDias}`})`}
                         </p>
                       </div>
                     </div>
@@ -207,9 +218,9 @@ const NotificationBell = () => {
                 );
               })}
             </div>
-          )}
+          ))}
           {notifications.length === 0 ? (
-            vencidos.length === 0 && (
+            avisos.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Bell className="h-8 w-8 mb-2 opacity-30" />
                 <p className="text-sm">Nenhuma notificação.</p>
