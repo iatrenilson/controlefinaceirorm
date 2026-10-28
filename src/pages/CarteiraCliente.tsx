@@ -590,8 +590,11 @@ export default function CarteiraCliente() {
             </div>
           </a>
 
-          <p style={{ textAlign:"center", color:"#ffffff", fontSize:10, marginTop:20, fontFamily:FONT, letterSpacing:"0.1em" }}>
-            William Bruno Toyoda Hitotuzi
+          {/* Rodapé: e-mail da assessoria (o usuário pediu no lugar do nome) */}
+          <p style={{ textAlign:"center", fontSize:10, marginTop:20, fontFamily:FONT, letterSpacing:"0.1em" }}>
+            <a href="mailto:adm@passarinhoassessoriabelica.com.br" style={{ color:"#ffffff", textDecoration:"none" }}>
+              adm@passarinhoassessoriabelica.com.br
+            </a>
           </p>
         </div>
       </div>
