@@ -3211,15 +3211,6 @@ export default function Declaracoes() {
                 descricao="Arraste aqui ou selecione: conta de luz ou água (PDF ou foto) — preenche CEP, endereço, número, complemento, bairro e cidade"
                 lendo={lendoComprovante} progresso={progressoComprovante} onArquivo={importarComprovante} />
             </div>
-            {/* Nome */}
-            <div className="space-y-1">
-              <Label className="text-xs">Nome Completo *</Label>
-              <div className="flex gap-1.5">
-                <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
-                  value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
-                <CopyButton value={formCliente.nome} />
-              </div>
-            </div>
             {/* Email + Telefone + Profissão */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -3260,6 +3251,15 @@ export default function Declaracoes() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            {/* Nome (logo acima de CPF e RG) */}
+            <div className="space-y-1">
+              <Label className="text-xs">Nome Completo *</Label>
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm uppercase" placeholder="Nome completo"
+                  value={formCliente.nome} onChange={e => setC("nome", e.target.value.toUpperCase())} />
+                <CopyButton value={formCliente.nome} />
+              </div>
             </div>
             {/* CPF + RG */}
             <div className="grid grid-cols-2 gap-3">
