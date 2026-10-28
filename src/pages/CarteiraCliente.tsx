@@ -154,6 +154,20 @@ export default function CarteiraCliente() {
   // Sininho de avisos: documentos vencidos ou perto de vencer, com a mesma regra e os mesmos prazos do sininho do site
   // (lib/avisosCarteira). O número some depois que o cliente abre a lista; volta quando surge aviso novo.
   const [avisosAberto, setAvisosAberto] = useState(false);
+  // Instalar como aplicativo: no Android (Chrome, Edge, Samsung) o botão abre o "Instalar" do próprio navegador e o app
+  // vai para a tela inicial abrindo direto esta carteira; no iPhone a Apple não deixa instalar por botão, então ele
+  // mostra os toques do Safari. Aberto já como aplicativo, o botão não aparece.
+  const [pedidoInstalar, setPedidoInstalar] = useState<any>(null);
+  const [instalado, setInstalado] = useState(() =>
+    window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true);
+  const [ajudaInstalar, setAjudaInstalar] = useState(false);
+  useEffect(() => {
+    const aoPedir = (e: Event) => { e.preventDefault(); setPedidoInstalar(e); };
+    const aoInstalar = () => { setInstalado(true); setPedidoInstalar(null); };
+    window.addEventListener("beforeinstallprompt", aoPedir);
+    window.addEventListener("appinstalled", aoInstalar);
+    return () => { window.removeEventListener("beforeinstallprompt", aoPedir); window.removeEventListener("appinstalled", aoInstalar); };
+  }, []);
   const chaveAvisosVistos = `carteira_avisos_vistos_${id}`;
   const [avisosVistos, setAvisosVistos] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(`carteira_avisos_vistos_${id}`) || "[]"); } catch { return []; }
@@ -293,6 +307,17 @@ export default function CarteiraCliente() {
       validade: ultimaData(d.data_validade || ""), chave: `${d.id ?? d.arquivo_path}|${d.data_validade}${sit.vencido ? "" : "|a"}` }];
   }).sort(ordemAvisos);
   const avisosNovos = avisos.filter(a => !avisosVistos.includes(a.chave)).length;
+  const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const instalarApp = async () => {
+    if (pedidoInstalar) {
+      pedidoInstalar.prompt();
+      const escolha = await pedidoInstalar.userChoice.catch(() => null);
+      if (escolha?.outcome === "accepted") setInstalado(true);
+      setPedidoInstalar(null); // o pedido do navegador só vale uma vez
+      return;
+    }
+    setAjudaInstalar(v => !v);
+  };
   const alternarAvisos = () => {
     const abrir = !avisosAberto;
     setAvisosAberto(abrir);
@@ -381,6 +406,29 @@ export default function CarteiraCliente() {
               </div>
             )}
           </div>
+
+          {/* Instalar o aplicativo */}
+          {!instalado && (
+            <div style={{ marginBottom:12 }}>
+              <button onClick={instalarApp} style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"14px 18px", background:GOLD_DIM,
+                borderRadius:16, border:`1px solid ${GOLD_BORDER}`, cursor:"pointer", textAlign:"left", fontFamily:FONT }}>
+                <span style={{ fontSize:24 }}>📲</span>
+                <span>
+                  <span style={{ display:"block", color:GOLD, fontSize:14, fontWeight:700 }}>Instalar o aplicativo</span>
+                  <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Sua carteira na tela do celular, como um app</span>
+                </span>
+              </button>
+              {ajudaInstalar && (
+                <div style={{ marginTop:8, padding:"12px 16px", background:CARD_BG, borderRadius:12, border:`1px solid ${GOLD_BORDER}`, color:FG, fontSize:12, lineHeight:1.7, fontFamily:FONT }}>
+                  {ehIOS ? (
+                    <>No iPhone, pelo <b>Safari</b>:<br />1. Toque em <b>Compartilhar</b> (o quadrado com a seta ↑)<br />2. Toque em <b>Adicionar à Tela de Início</b><br />3. Toque em <b>Adicionar</b></>
+                  ) : (
+                    <>Toque no menu <b>⋮</b> do navegador e depois em <b>Instalar aplicativo</b> (ou <b>Adicionar à tela inicial</b>).</>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Documentos */}
           <div style={{ background:CARD_BG, borderRadius:16, padding:"16px 18px", marginBottom:12, border:`1px solid ${GOLD_BORDER}` }}>
