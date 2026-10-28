@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { Bell } from "lucide-react";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
+import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -149,6 +151,13 @@ export default function CarteiraCliente() {
     try { localStorage.setItem("carteira_colorir", v ? "1" : "0"); } catch { /* armazenamento bloqueado: vale só nesta visita */ }
   };
   const [baixando, setBaixando] = useState<string | null>(null);
+  // Sininho de avisos: documentos vencidos ou perto de vencer, com a mesma regra e os mesmos prazos do sininho do site
+  // (lib/avisosCarteira). O número some depois que o cliente abre a lista; volta quando surge aviso novo.
+  const [avisosAberto, setAvisosAberto] = useState(false);
+  const chaveAvisosVistos = `carteira_avisos_vistos_${id}`;
+  const [avisosVistos, setAvisosVistos] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(`carteira_avisos_vistos_${id}`) || "[]"); } catch { return []; }
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -275,6 +284,25 @@ export default function CarteiraCliente() {
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .forEach(d => { (docsMap[d.tipo] ??= []).push(d); });
 
+  const avisos = (data.docs ?? []).flatMap(d => {
+    const sit = situacaoDoc(d.tipo, d.data_validade || "");
+    if (!sit) return [];
+    // CRAF e GT: o nome da arma (ou o número de série) diz de qual arma é
+    const arma = d.tipo === "craf" || d.tipo === "gt" ? (d.nome_arma || (d.numero_serie ? `nº ${d.numero_serie}` : "")) : "";
+    return [{ ...sit, tipo: d.tipo, arma, rotulo: ROTULO_TIPO_CARTEIRA[d.tipo] ?? d.tipo.toUpperCase(),
+      validade: ultimaData(d.data_validade || ""), chave: `${d.id ?? d.arquivo_path}|${d.data_validade}${sit.vencido ? "" : "|a"}` }];
+  }).sort(ordemAvisos);
+  const avisosNovos = avisos.filter(a => !avisosVistos.includes(a.chave)).length;
+  const alternarAvisos = () => {
+    const abrir = !avisosAberto;
+    setAvisosAberto(abrir);
+    if (abrir && avisosNovos > 0) {
+      const todos = avisos.map(a => a.chave);
+      setAvisosVistos(todos);
+      try { localStorage.setItem(chaveAvisosVistos, JSON.stringify(todos)); } catch { /* armazenamento bloqueado */ }
+    }
+  };
+
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} />}
@@ -302,10 +330,56 @@ export default function CarteiraCliente() {
         <div style={{ maxWidth:440, margin:"0 auto", padding:"0 14px" }}>
 
           {/* Card cliente */}
-          <div style={{ background:CARD_BG, borderRadius:16, padding:"18px 20px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(12px)" }}>
-            <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Carteira Digital</p>
-            <h1 style={{ color:FG, fontSize:24, fontWeight:800, margin:0, fontFamily:FONT }}>{primeiroNome(data.nome)}</h1>
-            <p style={{ color:FG_MUTED, fontSize:12, margin:"4px 0 0", fontFamily:FONT }}>{data.nome}</p>
+          <div style={{ position:"relative", background:CARD_BG, borderRadius:16, padding:"18px 20px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(12px)" }}>
+            <div style={{ paddingRight:48 }}>
+              <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Carteira Digital</p>
+              <h1 style={{ color:FG, fontSize:24, fontWeight:800, margin:0, fontFamily:FONT }}>{primeiroNome(data.nome)}</h1>
+              <p style={{ color:FG_MUTED, fontSize:12, margin:"4px 0 0", fontFamily:FONT }}>{data.nome}</p>
+            </div>
+
+            {/* Sininho: documentos vencidos ou perto de vencer */}
+            <button onClick={alternarAvisos} aria-label="Avisos de vencimento" title="Avisos de vencimento" aria-expanded={avisosAberto}
+              style={{ position:"absolute", top:16, right:16, width:38, height:38, borderRadius:"50%", border:`1px solid ${GOLD_BORDER}`,
+                background: avisosAberto ? GOLD_DIM : "transparent", color:GOLD, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0 }}>
+              <Bell size={18} />
+              {avisosNovos > 0 && (
+                <span style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, padding:"0 4px", borderRadius:9, background:"#ef4444", color:"#fff",
+                  fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT }}>{avisosNovos}</span>
+              )}
+            </button>
+            {avisosAberto && (
+              <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${GOLD_BORDER}` }}>
+                {avisos.length === 0 ? (
+                  <p style={{ color:FG_MUTED, fontSize:12, margin:0, fontFamily:FONT }}>Nenhum documento vencido ou perto de vencer.</p>
+                ) : (
+                  <>
+                    {[{ vencido: true, titulo: "Vencidos", cor: "#ef4444" }, { vencido: false, titulo: "Vencem em breve", cor: "#f59e0b" }].map(sec => {
+                      const lista = avisos.filter(a => a.vencido === sec.vencido);
+                      if (!lista.length) return null;
+                      return (
+                        <div key={sec.titulo} style={{ marginBottom:8 }}>
+                          <p style={{ color:sec.cor, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:700, fontFamily:FONT }}>{sec.titulo}</p>
+                          {lista.map(a => (
+                            <button key={a.chave}
+                              onClick={() => { setAvisosAberto(false); document.getElementById(`tipo-${a.tipo}`)?.scrollIntoView({ behavior:"smooth", block:"center" }); }}
+                              style={{ display:"flex", alignItems:"flex-start", gap:8, width:"100%", textAlign:"left", background:"transparent", border:"none", padding:"6px 0", cursor:"pointer", fontFamily:FONT }}>
+                              <span style={{ width:8, height:8, borderRadius:"50%", background:sec.cor, marginTop:5, flexShrink:0 }} />
+                              <span style={{ minWidth:0 }}>
+                                <span style={{ display:"block", color:FG, fontSize:13, fontWeight:700 }}>{a.rotulo}{a.arma ? ` — ${a.arma}` : ""}</span>
+                                <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>{textoPrazo(a.validade, a.dias, a.vencido)}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    <a href="https://wa.me/5592993161828" style={{ display:"block", marginTop:4, color:"#5fda8a", fontSize:12, fontWeight:600, textDecoration:"none", fontFamily:FONT }}>
+                      📱 Para renovar, fale com a Passarinho no WhatsApp
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Documentos */}
@@ -319,7 +393,7 @@ export default function CarteiraCliente() {
                 const docList = docsMap[key] ?? [];
                 const temDocs = docList.length > 0;
                 return (
-                  <div key={key} style={{
+                  <div key={key} id={`tipo-${key}`} style={{
                     borderRadius:12,
                     border: temDocs ? `1px solid ${GOLD_BORDER}` : "1px solid rgba(255,255,255,0.06)",
                     background: temDocs ? "rgba(201,162,39,0.05)" : "rgba(255,255,255,0.02)",

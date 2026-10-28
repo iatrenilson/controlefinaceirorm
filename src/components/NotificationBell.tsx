@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/hooks/useAppContext";
 import { format, parseISO } from "date-fns";
+import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
 
 interface Notification {
   id: string;
@@ -16,30 +17,15 @@ interface Notification {
   lida: boolean;
 }
 
-// Documentos da Carteira CAC (o link externo do cliente) vencidos ou perto de vencer. O aviso é calculado na hora a
-// partir das datas, com a regra da página do cliente (última data dd/mm/aaaa do campo; vencido a partir do dia
-// seguinte), e some sozinho quando o documento é renovado. Antecedência pedida pelo usuário: GT 1 mês antes, CR e CRAF
-// 3 meses antes; certificado só quando vence. "Visto" fica guardado neste navegador (documento + validade + situação:
-// o aviso "vence em breve" já visto avisa de novo quando o documento vence).
+// Documentos da Carteira CAC (o link externo do cliente) vencidos ou perto de vencer, calculados na hora a partir das
+// datas (regra e prazos em lib/avisosCarteira, os mesmos do sininho do link externo). Somem sozinhos quando o documento
+// é renovado. "Visto" fica guardado neste navegador (documento + validade + situação: o aviso "vence em breve" já visto
+// avisa de novo quando o documento vence).
 interface AvisoDoc { chave: string; cliente: string; tipo: string; validade: string; dias: number; vencido: boolean; }
-const ROTULO_TIPO: Record<string, string> = { cr: "CR", craf: "CRAF da Arma", gt: "GT", cert: "Certificado" };
-const MESES_ANTES: Record<string, number> = { gt: 1, cr: 3, craf: 3 };
 const VISTOS_KEY = "carteira_vencidos_vistos";
 const lerVistos = (): string[] => {
   try { return JSON.parse(localStorage.getItem(VISTOS_KEY) || "[]"); } catch { return []; }
 };
-const ultimaData = (validade: string) => (validade.match(/\d{2}\/\d{2}\/\d{4}/g) ?? []).pop() ?? "";
-// dias até a validade (negativo = vencido) se já venceu ou entrou no prazo de aviso do tipo; null sem data ou fora do prazo
-function situacaoDoc(tipo: string, validade: string): { dias: number; vencido: boolean } | null {
-  const ultima = ultimaData(validade);
-  if (!ultima) return null;
-  const [d, m, a] = ultima.split("/").map(Number);
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const dias = Math.ceil((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86400000);
-  if (dias < 0) return { dias, vencido: true };
-  const meses = MESES_ANTES[tipo];
-  return meses && hoje >= new Date(a, m - 1 - meses, d) ? { dias, vencido: false } : null;
-}
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -65,13 +51,12 @@ const NotificationBell = () => {
         // vencido mantém a chave de antes (documento + validade); o "vence em breve" ganha "|a"
         chave: `${d.id}|${d.data_validade}` + (sit.vencido ? "" : "|a"),
         cliente: d.carteira_clientes?.nome || "Cliente",
-        tipo: ROTULO_TIPO[d.tipo] ?? String(d.tipo).toUpperCase(),
+        tipo: ROTULO_TIPO_CARTEIRA[d.tipo] ?? String(d.tipo).toUpperCase(),
         validade: ultimaData(d.data_validade),
         ...sit,
       });
     }
-    // primeiro os já vencidos (o que venceu mais recentemente antes), depois os que vencem mais cedo
-    lista.sort((a, b) => (a.vencido !== b.vencido ? (a.vencido ? -1 : 1) : a.vencido ? b.dias - a.dias : a.dias - b.dias));
+    lista.sort(ordemAvisos);
     setAvisos(lista);
   };
 
@@ -196,8 +181,6 @@ const NotificationBell = () => {
               <p className={`px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider ${sec.cor}`}>{sec.titulo}</p>
               {sec.lista.map((v) => {
                 const visto = vistos.includes(v.chave);
-                const dias = Math.abs(v.dias);
-                const nDias = `${dias} ${dias === 1 ? "dia" : "dias"}`;
                 return (
                   <button
                     key={v.chave}
@@ -209,8 +192,7 @@ const NotificationBell = () => {
                       <div className={!visto ? "" : "ml-[16px]"}>
                         <p className="text-sm font-semibold">{v.tipo} {v.vencido ? "vencido" : "vence em breve"} — {v.cliente}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {v.vencido ? `Venceu em ${v.validade} (há ${nDias})`
-                            : `Vence em ${v.validade} (${v.dias === 0 ? "hoje" : `em ${nDias}`})`}
+                          {textoPrazo(v.validade, v.dias, v.vencido)}
                         </p>
                       </div>
                     </div>
