@@ -64,7 +64,7 @@ interface LaudoForm {
   rifle: SistReg;
   espingarda: SistReg;
   dataDecl: string;
-  local: "" | "juliet" | "texas" | "cta";
+  local: "" | "juliet" | "jorge" | "texas" | "cta";
   finalidade: Finalidade[];   // múltipla seleção
   categoria: Categoria[];     // múltipla seleção
   notaTeorica: string;
@@ -364,6 +364,7 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const LOCAIS = [
     { id: "juliet", nome: "Clube de Tiro Juliet Papa", end: "R. Alm. Maximiano, 8 - Dom Pedro, Manaus/AM." },
+    { id: "jorge",  nome: "Clube Jorge Mussa Premium", end: "R. A, 2389 - Chapada, Manaus/AM, 69050-130." },
     { id: "cta",    nome: "CTA Iranduba",              end: "Rodovia AM-070 (Manoel Urbano), km 04 - Iranduba/AM." },
   ];
   // lRowH=12: baseline topo=5mm (visual=2.7mm), base=12-9=3mm → visual igual âœ"
@@ -1040,6 +1041,7 @@ const Laudos = () => {
           <CardContent className="space-y-2">
             {([
               ["juliet", "Clube de Tiro Juliet Papa"],
+              ["jorge",  "Clube Jorge Mussa Premium"],
               ["cta",    "CTA Iranduba"],
             ] as const).map(([id, nome]) => (
               <RadioBtn key={id} checked={form.local === id}
