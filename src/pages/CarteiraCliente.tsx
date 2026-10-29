@@ -479,6 +479,36 @@ export default function CarteiraCliente() {
                     </a>
                   </>
                 )}
+                {/* Avisos de vencimento no celular: no rodapé do sininho, igual ao sino do admin no site */}
+                {pushEstado !== "carregando" && (
+                  <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${GOLD_BORDER}`, fontFamily:FONT }}>
+                    {pushEstado === "ativo" ? (
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+                        <span style={{ color:"#5fda8a", fontSize:12, fontWeight:600 }}>🔔 Avisos no celular ativados (às 9h, 13h e 18h)</span>
+                        <button onClick={desativarAvisosCelular} disabled={pushOcupado}
+                          style={{ background:"transparent", border:"none", padding:0, color:FG_MUTED, fontSize:11, textDecoration:"underline", cursor:"pointer", fontFamily:FONT, flexShrink:0 }}>
+                          desativar
+                        </button>
+                      </div>
+                    ) : pushEstado === "sem" ? (
+                      <p style={{ margin:0, color:FG_MUTED, fontSize:11, lineHeight:1.6 }}>
+                        {ehIOS && !abertoComoApp()
+                          ? "Avisos no iPhone: instale o aplicativo (botão \"Instalar o aplicativo\", logo abaixo) e ative por ele."
+                          : "Este navegador não recebe notificações. Abra o link no Chrome para ativar os avisos."}
+                      </p>
+                    ) : pushEstado === "bloqueado" ? (
+                      <p style={{ margin:0, color:FG_MUTED, fontSize:11, lineHeight:1.6 }}>
+                        🔕 Notificações bloqueadas para esta carteira nas configurações do celular.
+                      </p>
+                    ) : (
+                      <button onClick={ativarAvisosCelular} disabled={pushOcupado}
+                        style={{ width:"100%", height:34, borderRadius:10, border:`1px solid ${GOLD_BORDER}`, background:"transparent", color:GOLD,
+                          fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:FONT }}>
+                        🔔 {pushOcupado ? "Ativando…" : pushEstado === "erro" ? "Não deu certo — tentar de novo" : "Receber avisos de vencimento no celular"}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -502,46 +532,6 @@ export default function CarteiraCliente() {
                     <>Toque no menu <b>⋮</b> do navegador e depois em <b>Instalar aplicativo</b> (ou <b>Adicionar à tela inicial</b>).</>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Avisos de vencimento no celular */}
-          {pushEstado !== "carregando" && (
-            <div style={{ marginBottom:12, padding:"14px 18px", background:CARD_BG, borderRadius:16, border:`1px solid ${GOLD_BORDER}`, fontFamily:FONT }}>
-              {pushEstado === "ativo" ? (
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <span style={{ fontSize:22 }}>🔔</span>
-                  <span style={{ flex:1, minWidth:0 }}>
-                    <span style={{ display:"block", color:"#5fda8a", fontSize:13, fontWeight:700 }}>Avisos ativados neste celular</span>
-                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Você recebe notificação às 9h, 13h e 18h enquanto houver documento vencido</span>
-                  </span>
-                  <button onClick={desativarAvisosCelular} disabled={pushOcupado}
-                    style={{ background:"transparent", border:"none", color:FG_MUTED, fontSize:11, textDecoration:"underline", cursor:"pointer", fontFamily:FONT, flexShrink:0 }}>
-                    desativar
-                  </button>
-                </div>
-              ) : pushEstado === "sem" ? (
-                <p style={{ margin:0, color:FG_MUTED, fontSize:12, lineHeight:1.6 }}>
-                  🔔 {ehIOS && !abertoComoApp()
-                    ? "Para receber os avisos de vencimento no iPhone, instale o aplicativo (botão acima) e ative os avisos por ele."
-                    : "Este navegador não recebe notificações. Abra o link no Chrome para ativar os avisos de vencimento."}
-                </p>
-              ) : pushEstado === "bloqueado" ? (
-                <p style={{ margin:0, color:FG_MUTED, fontSize:12, lineHeight:1.6 }}>
-                  🔕 As notificações estão bloqueadas para esta carteira. Libere nas configurações do celular (Notificações) e abra a carteira de novo.
-                </p>
-              ) : (
-                <button onClick={ativarAvisosCelular} disabled={pushOcupado}
-                  style={{ width:"100%", display:"flex", alignItems:"center", gap:12, background:"transparent", border:"none", padding:0, cursor:"pointer", textAlign:"left", fontFamily:FONT }}>
-                  <span style={{ fontSize:22 }}>🔔</span>
-                  <span>
-                    <span style={{ display:"block", color:GOLD, fontSize:14, fontWeight:700 }}>{pushOcupado ? "Ativando…" : "Ativar avisos de vencimento"}</span>
-                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>
-                      {pushEstado === "erro" ? "Não deu para ativar agora. Toque para tentar de novo." : "Receba uma notificação no celular quando um documento vencer"}
-                    </span>
-                  </span>
-                </button>
               )}
             </div>
           )}
