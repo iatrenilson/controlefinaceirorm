@@ -25,7 +25,15 @@
         }
       }(window.location));
     </script>
-    <script type="module" crossorigin src="/assets/index-BQx32oyo.js"></script>
+    <script type="text/javascript">
+      // Site como aplicativo (o admin instala no celular para receber os avisos de vencimento). A Carteira do cliente
+      // (/carteira/...) usa o manifesto dela, que abre direto no link do cliente.
+      if (window.location.pathname.indexOf('/carteira/') !== 0) {
+        var m = document.createElement('link'); m.rel = 'manifest'; m.href = '/manifest.json'; document.head.appendChild(m);
+        var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = 'Passarinho';
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-aifM_Zrv.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D95OxDl7.css">
   </head>
   <body>
