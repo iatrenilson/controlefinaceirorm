@@ -120,7 +120,7 @@ const ProtectedLayout = () => {
             <SidebarTrigger />
             <div className="flex items-center gap-3">
               <DigitalClock />
-              <NotificationBell />
+              <NotificationBell perguntarAvisos />
             </div>
           </div>
           <div className="hidden lg:flex sticky top-0 z-20 items-center justify-end h-12 border-b bg-card/80 backdrop-blur-sm px-4 gap-4">

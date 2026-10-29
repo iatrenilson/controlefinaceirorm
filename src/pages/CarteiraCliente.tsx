@@ -173,9 +173,10 @@ export default function CarteiraCliente() {
   // documento vencido. "sem": navegador sem suporte (no iPhone, só a carteira instalada na Tela de Início recebe)
   const [pushEstado, setPushEstado] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
   const [pushOcupado, setPushOcupado] = useState(false);
-  // Aberta como aplicativo (instalada na tela de início) e com os avisos desligados: pergunta logo ao abrir, uma vez
-  // neste aparelho. Ligar sozinho não dá (o celular sempre pede a permissão ao dono); o toque em "Ativar avisos" é o
-  // que o iPhone exige para mostrar o "Permitir".
+  // Aberta como aplicativo (instalada na tela de início) e com os avisos desligados: pergunta logo ao abrir, de novo a
+  // cada abertura do aplicativo enquanto estiverem desligados ("Agora não" vale até fechar o aplicativo). Ligar sozinho
+  // não dá (o celular sempre pede a permissão ao dono); o toque em "Ativar avisos" é o que o iPhone exige para mostrar
+  // o "Permitir".
   const chavePerguntouAvisos = `carteira_avisos_perguntado_${id}`;
   const [perguntarAvisos, setPerguntarAvisos] = useState(false);
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function CarteiraCliente() {
     inscricaoAtual().then(sub => {
       setPushEstado(sub ? "ativo" : "inativo");
       if (sub || !abertoComoApp()) return;
-      try { if (localStorage.getItem(chavePerguntouAvisos)) return; } catch { /* armazenamento bloqueado: pergunta */ }
+      try { if (sessionStorage.getItem(chavePerguntouAvisos)) return; } catch { /* armazenamento bloqueado: pergunta */ }
       setPerguntarAvisos(true);
     }).catch(() => setPushEstado("inativo"));
   }, []);
@@ -361,7 +362,7 @@ export default function CarteiraCliente() {
   };
   const responderPerguntaAvisos = (ativar: boolean) => {
     setPerguntarAvisos(false);
-    try { localStorage.setItem(chavePerguntouAvisos, "1"); } catch { /* armazenamento bloqueado */ }
+    try { sessionStorage.setItem(chavePerguntouAvisos, "1"); } catch { /* armazenamento bloqueado */ }
     if (ativar) ativarAvisosCelular();
   };
   const desativarAvisosCelular = async () => {

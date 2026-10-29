@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/hooks/useAppContext";
@@ -28,7 +29,8 @@ const lerVistos = (): string[] => {
   try { return JSON.parse(localStorage.getItem(VISTOS_KEY) || "[]"); } catch { return []; }
 };
 
-const NotificationBell = () => {
+// perguntarAvisos: o layout tem dois sinos (celular e computador); só um deles faz a pergunta ao abrir o aplicativo
+const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boolean }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [avisos, setAvisos] = useState<AvisoDoc[]>([]);
   const [vistos, setVistos] = useState<string[]>(lerVistos);
@@ -40,12 +42,26 @@ const NotificationBell = () => {
   // Admin: avisos de vencimento no celular (notificação push todo dia às 9h, 13h e 18h com a lista dos documentos vencidos;
   // lib/avisosPush). "sem": navegador sem suporte (no iPhone, só o site adicionado à Tela de Início recebe)
   const [pushAdmin, setPushAdmin] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
+  // Site aberto como aplicativo (instalado na tela de início) com os avisos desligados: pergunta logo ao entrar, de novo
+  // a cada abertura do aplicativo enquanto estiverem desligados ("Agora não" vale até fechar o aplicativo)
+  const [perguntaAvisos, setPerguntaAvisos] = useState(false);
   useEffect(() => {
     if (!isAdmin) return;
     if (!pushSuportado()) { setPushAdmin("sem"); return; }
     if (Notification.permission === "denied") { setPushAdmin("bloqueado"); return; }
-    inscricaoAtual().then(sub => setPushAdmin(sub ? "ativo" : "inativo")).catch(() => setPushAdmin("inativo"));
+    inscricaoAtual().then(sub => {
+      setPushAdmin(sub ? "ativo" : "inativo");
+      if (sub || !perguntarAvisos || !abertoComoApp()) return;
+      try { if (sessionStorage.getItem("avisos_admin_perguntado")) return; } catch { /* armazenamento bloqueado: pergunta */ }
+      setPerguntaAvisos(true);
+    }).catch(() => setPushAdmin("inativo"));
   }, [isAdmin]);
+  // os dois sinos do layout ficam iguais quando um deles liga ou desliga os avisos
+  useEffect(() => {
+    const conferir = () => { inscricaoAtual().then(sub => setPushAdmin(sub ? "ativo" : "inativo")).catch(() => {}); };
+    window.addEventListener("avisos-push-mudou", conferir);
+    return () => window.removeEventListener("avisos-push-mudou", conferir);
+  }, []);
   const ativarAvisosCelular = async () => {
     setPushAdmin("carregando");
     try {
@@ -53,6 +69,7 @@ const NotificationBell = () => {
       const { error } = await (supabase as any).rpc("salvar_push_admin", { p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
       if (error) throw error;
       setPushAdmin("ativo");
+      window.dispatchEvent(new Event("avisos-push-mudou"));
     } catch (e) {
       const motivo = e instanceof Error ? e.message : "";
       setPushAdmin(motivo === "bloqueado" ? "bloqueado" : motivo === "sem permissao" ? "inativo" : "erro");
@@ -62,6 +79,12 @@ const NotificationBell = () => {
     const endpoint = await desativarPush();
     if (endpoint) await (supabase as any).rpc("remover_push", { p_endpoint: endpoint });
     setPushAdmin("inativo");
+    window.dispatchEvent(new Event("avisos-push-mudou"));
+  };
+  const responderPerguntaAvisos = (ativar: boolean) => {
+    setPerguntaAvisos(false);
+    try { sessionStorage.setItem("avisos_admin_perguntado", "1"); } catch { /* armazenamento bloqueado */ }
+    if (ativar) ativarAvisosCelular();
   };
 
   // Só lê as datas (o que o usuário pode ver na Carteira Digital); nada é gravado no banco
@@ -176,6 +199,21 @@ const NotificationBell = () => {
   const unreadCount = notifications.filter((n) => !n.lida).length + avisos.filter(v => !vistos.includes(v.chave)).length;
 
   return (
+    <>
+    <Dialog open={perguntaAvisos} onOpenChange={o => { if (!o) responderPerguntaAvisos(false); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>🔔 Ativar avisos de vencimento?</DialogTitle>
+          <DialogDescription>
+            Receba neste celular, às 9h, 13h e 18h, a lista dos documentos vencidos da Carteira CAC.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => responderPerguntaAvisos(false)}>Agora não</Button>
+          <Button onClick={() => responderPerguntaAvisos(true)}>Ativar avisos</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <Popover open={open} onOpenChange={o => { setOpen(o); if (o) fetchAvisos(); }}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
@@ -283,6 +321,7 @@ const NotificationBell = () => {
         )}
       </PopoverContent>
     </Popover>
+    </>
   );
 };
 
