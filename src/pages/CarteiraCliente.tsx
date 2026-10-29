@@ -169,7 +169,7 @@ export default function CarteiraCliente() {
     window.addEventListener("appinstalled", aoInstalar);
     return () => { window.removeEventListener("beforeinstallprompt", aoPedir); window.removeEventListener("appinstalled", aoInstalar); };
   }, []);
-  // Avisos de vencimento no celular (notificação push, lib/avisosPush): enviados todo dia às 9h enquanto houver
+  // Avisos de vencimento no celular (notificação push, lib/avisosPush): enviados às 9h, 13h e 18h enquanto houver
   // documento vencido. "sem": navegador sem suporte (no iPhone, só a carteira instalada na Tela de Início recebe)
   const [pushEstado, setPushEstado] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
   const [pushOcupado, setPushOcupado] = useState(false);
@@ -477,7 +477,7 @@ export default function CarteiraCliente() {
                   <span style={{ fontSize:22 }}>🔔</span>
                   <span style={{ flex:1, minWidth:0 }}>
                     <span style={{ display:"block", color:"#5fda8a", fontSize:13, fontWeight:700 }}>Avisos ativados neste celular</span>
-                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Você recebe uma notificação por dia enquanto houver documento vencido</span>
+                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Você recebe notificação às 9h, 13h e 18h enquanto houver documento vencido</span>
                   </span>
                   <button onClick={desativarAvisosCelular} disabled={pushOcupado}
                     style={{ background:"transparent", border:"none", color:FG_MUTED, fontSize:11, textDecoration:"underline", cursor:"pointer", fontFamily:FONT, flexShrink:0 }}>

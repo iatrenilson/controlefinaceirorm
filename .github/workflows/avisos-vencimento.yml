@@ -1,10 +1,11 @@
 name: Avisos de vencimento (celular)
 
-# Todo dia às 9h de Manaus (13h UTC): notificação no celular de quem ativou os avisos (clientes da Carteira CAC e
-# admin), enquanto houver documento vencido. Rodar à mão serve de teste (por padrão só para o celular do admin).
+# Todo dia às 9h, 13h e 18h de Manaus (13h, 17h e 22h UTC; Manaus não tem horário de verão): notificação no celular
+# de quem ativou os avisos (clientes da Carteira CAC e admin), enquanto houver documento vencido. Rodar à mão serve de
+# teste (por padrão só para o celular do admin).
 on:
   schedule:
-    - cron: "0 13 * * *"
+    - cron: "0 13,17,22 * * *"
   workflow_dispatch:
     inputs:
       so_admin:

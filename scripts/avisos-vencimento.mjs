@@ -1,5 +1,5 @@
 // Aviso diário de documento vencido da Carteira CAC no celular (notificação push), rodado pelo GitHub
-// (.github/workflows/avisos-vencimento.yml) todo dia às 9h de Manaus.
+// (.github/workflows/avisos-vencimento.yml) todo dia às 9h, 13h e 18h de Manaus.
 // - Cliente que ativou os avisos na Carteira dele: recebe enquanto tiver documento vencido.
 // - Admin que ativou no site: recebe a lista de todos os documentos vencidos.
 // Regra igual à de src/lib/avisosCarteira.ts: vale a última data dd/mm/aaaa do campo de validade e o documento conta

@@ -1,5 +1,5 @@
-// Avisos de vencimento no celular (notificação push): ativar e desativar neste aparelho. O envio é diário, às 9h de
-// Manaus, pelo GitHub (.github/workflows/avisos-vencimento.yml), enquanto houver documento vencido; quem ativou fica
+// Avisos de vencimento no celular (notificação push): ativar e desativar neste aparelho. O envio é todo dia às 9h, 13h e
+// 18h de Manaus, pelo GitHub (.github/workflows/avisos-vencimento.yml), enquanto houver documento vencido; quem ativou fica
 // na tabela push_inscricoes (salva pelas funções salvar_push_carteira / salvar_push_admin).
 // Chave pública do par VAPID (a secreta fica só no GitHub, no segredo VAPID_PRIVATE_KEY).
 export const VAPID_PUBLICA = "BF1ME-nzhytUwCwzTP4kuzugmd0CNfZJ46rWHBYICzg3EH8Id_8DhzXyyo3MLbQtmOEWfr-BeLqq72ixUxyX4Bo";

@@ -37,7 +37,7 @@ const NotificationBell = () => {
   // Usuário já conhecido pelo app: sem getUser() (ida ao servidor que segurava as outras buscas da página)
   const { user, isAdmin } = useAppContext();
 
-  // Admin: avisos de vencimento no celular (notificação push todo dia às 9h com a lista dos documentos vencidos;
+  // Admin: avisos de vencimento no celular (notificação push todo dia às 9h, 13h e 18h com a lista dos documentos vencidos;
   // lib/avisosPush). "sem": navegador sem suporte (no iPhone, só o site adicionado à Tela de Início recebe)
   const [pushAdmin, setPushAdmin] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
   useEffect(() => {
@@ -263,7 +263,7 @@ const NotificationBell = () => {
           <div className="border-t px-4 py-2.5 text-xs shrink-0">
             {pushAdmin === "ativo" ? (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-emerald-500 font-medium">🔔 Avisos no celular ativados (todo dia às 9h)</span>
+                <span className="text-emerald-500 font-medium">🔔 Avisos no celular ativados (às 9h, 13h e 18h)</span>
                 <button className="text-muted-foreground underline shrink-0" onClick={desativarAvisosCelular}>desativar</button>
               </div>
             ) : pushAdmin === "sem" ? (
