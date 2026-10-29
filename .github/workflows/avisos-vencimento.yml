@@ -1,0 +1,44 @@
+name: Avisos de vencimento (celular)
+
+# Todo dia às 9h de Manaus (13h UTC): notificação no celular de quem ativou os avisos (clientes da Carteira CAC e
+# admin), enquanto houver documento vencido. Rodar à mão serve de teste (por padrão só para o celular do admin).
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      so_admin:
+        description: "Mandar só para o celular do admin (teste)"
+        type: boolean
+        default: true
+      simular:
+        description: "Só contar, sem mandar nada"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  avisos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/avisos-vencimento.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Preparar
+        run: |
+          mkdir -p /tmp/avisos
+          cp scripts/avisos-vencimento.mjs /tmp/avisos/
+          cd /tmp/avisos && npm init -y > /dev/null && npm install web-push@3.6.7 --no-audit --no-fund --silent
+      - name: Enviar avisos
+        run: node /tmp/avisos/avisos-vencimento.mjs
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SO_ADMIN: ${{ inputs.so_admin }}
+          SIMULAR: ${{ inputs.simular }}

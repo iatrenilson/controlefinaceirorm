@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
+import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp } from "@/lib/avisosPush";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -168,6 +169,15 @@ export default function CarteiraCliente() {
     window.addEventListener("appinstalled", aoInstalar);
     return () => { window.removeEventListener("beforeinstallprompt", aoPedir); window.removeEventListener("appinstalled", aoInstalar); };
   }, []);
+  // Avisos de vencimento no celular (notificação push, lib/avisosPush): enviados todo dia às 9h enquanto houver
+  // documento vencido. "sem": navegador sem suporte (no iPhone, só a carteira instalada na Tela de Início recebe)
+  const [pushEstado, setPushEstado] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
+  const [pushOcupado, setPushOcupado] = useState(false);
+  useEffect(() => {
+    if (!pushSuportado()) { setPushEstado("sem"); return; }
+    if (Notification.permission === "denied") { setPushEstado("bloqueado"); return; }
+    inscricaoAtual().then(sub => setPushEstado(sub ? "ativo" : "inativo")).catch(() => setPushEstado("inativo"));
+  }, []);
   const chaveAvisosVistos = `carteira_avisos_vistos_${id}`;
   const [avisosVistos, setAvisosVistos] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(`carteira_avisos_vistos_${id}`) || "[]"); } catch { return []; }
@@ -186,7 +196,10 @@ export default function CarteiraCliente() {
     fontLink.href = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap";
     addToHead(fontLink);
 
+    const manifestosDoSite: Element[] = [];
     const applyPWA = () => {
+      // o manifesto do site (o do admin, em index.html) não vale aqui: a carteira instala com o dela, que abre neste link
+      document.querySelectorAll('link[rel="manifest"]').forEach(l => { manifestosDoSite.push(l); l.remove(); });
       const iconUrl = `${window.location.origin}/carteira-icon5.png`;
       const manifest = {
         name: "Carteira CAC",
@@ -217,6 +230,7 @@ export default function CarteiraCliente() {
 
     return () => {
       addedEls.forEach(el => { try { document.head.removeChild(el); } catch {} });
+      manifestosDoSite.forEach(l => document.head.appendChild(l));
       if (manifestBlobUrl) URL.revokeObjectURL(manifestBlobUrl);
       document.title = "RW Investimentos Financeiros";
     };
@@ -317,6 +331,31 @@ export default function CarteiraCliente() {
       return;
     }
     setAjudaInstalar(v => !v);
+  };
+  const rpcCarteira = (fn: string, corpo: object) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` },
+    body: JSON.stringify(corpo),
+  }).then(r => { if (!r.ok) throw new Error(`rpc ${r.status}`); });
+  const ativarAvisosCelular = async () => {
+    if (!id) return;
+    setPushOcupado(true);
+    try {
+      const sub = await ativarPush();
+      await rpcCarteira("salvar_push_carteira", { p_carteira: id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      setPushEstado("ativo");
+    } catch (e) {
+      const motivo = e instanceof Error ? e.message : "";
+      setPushEstado(motivo === "bloqueado" ? "bloqueado" : motivo === "sem permissao" ? "inativo" : "erro");
+    } finally { setPushOcupado(false); }
+  };
+  const desativarAvisosCelular = async () => {
+    setPushOcupado(true);
+    try {
+      const endpoint = await desativarPush();
+      if (endpoint) await rpcCarteira("remover_push", { p_endpoint: endpoint }).catch(() => {});
+      setPushEstado("inativo");
+    } finally { setPushOcupado(false); }
   };
   const alternarAvisos = () => {
     const abrir = !avisosAberto;
@@ -426,6 +465,46 @@ export default function CarteiraCliente() {
                     <>Toque no menu <b>⋮</b> do navegador e depois em <b>Instalar aplicativo</b> (ou <b>Adicionar à tela inicial</b>).</>
                   )}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Avisos de vencimento no celular */}
+          {pushEstado !== "carregando" && (
+            <div style={{ marginBottom:12, padding:"14px 18px", background:CARD_BG, borderRadius:16, border:`1px solid ${GOLD_BORDER}`, fontFamily:FONT }}>
+              {pushEstado === "ativo" ? (
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ fontSize:22 }}>🔔</span>
+                  <span style={{ flex:1, minWidth:0 }}>
+                    <span style={{ display:"block", color:"#5fda8a", fontSize:13, fontWeight:700 }}>Avisos ativados neste celular</span>
+                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Você recebe uma notificação por dia enquanto houver documento vencido</span>
+                  </span>
+                  <button onClick={desativarAvisosCelular} disabled={pushOcupado}
+                    style={{ background:"transparent", border:"none", color:FG_MUTED, fontSize:11, textDecoration:"underline", cursor:"pointer", fontFamily:FONT, flexShrink:0 }}>
+                    desativar
+                  </button>
+                </div>
+              ) : pushEstado === "sem" ? (
+                <p style={{ margin:0, color:FG_MUTED, fontSize:12, lineHeight:1.6 }}>
+                  🔔 {ehIOS && !abertoComoApp()
+                    ? "Para receber os avisos de vencimento no iPhone, instale o aplicativo (botão acima) e ative os avisos por ele."
+                    : "Este navegador não recebe notificações. Abra o link no Chrome para ativar os avisos de vencimento."}
+                </p>
+              ) : pushEstado === "bloqueado" ? (
+                <p style={{ margin:0, color:FG_MUTED, fontSize:12, lineHeight:1.6 }}>
+                  🔕 As notificações estão bloqueadas para esta carteira. Libere nas configurações do celular (Notificações) e abra a carteira de novo.
+                </p>
+              ) : (
+                <button onClick={ativarAvisosCelular} disabled={pushOcupado}
+                  style={{ width:"100%", display:"flex", alignItems:"center", gap:12, background:"transparent", border:"none", padding:0, cursor:"pointer", textAlign:"left", fontFamily:FONT }}>
+                  <span style={{ fontSize:22 }}>🔔</span>
+                  <span>
+                    <span style={{ display:"block", color:GOLD, fontSize:14, fontWeight:700 }}>{pushOcupado ? "Ativando…" : "Ativar avisos de vencimento"}</span>
+                    <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>
+                      {pushEstado === "erro" ? "Não deu para ativar agora. Toque para tentar de novo." : "Receba uma notificação no celular quando um documento vencer"}
+                    </span>
+                  </span>
+                </button>
               )}
             </div>
           )}

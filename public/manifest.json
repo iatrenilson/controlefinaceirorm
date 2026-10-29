@@ -1,9 +1,11 @@
 {
-  "name": "Carteira CAC",
-  "short_name": "Carteira CAC",
-  "background_color": "#ffffff",
-  "theme_color": "#c9a227",
-  "display": "browser",
+  "name": "Passarinho Assessoria",
+  "short_name": "Passarinho",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0908",
+  "theme_color": "#d4a730",
   "icons": [
     {
       "src": "/carteira-icon5.png",

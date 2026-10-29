@@ -25,6 +25,14 @@
         }
       }(window.location));
     </script>
+    <script type="text/javascript">
+      // Site como aplicativo (o admin instala no celular para receber os avisos de vencimento). A Carteira do cliente
+      // (/carteira/...) usa o manifesto dela, que abre direto no link do cliente.
+      if (window.location.pathname.indexOf('/carteira/') !== 0) {
+        var m = document.createElement('link'); m.rel = 'manifest'; m.href = '/manifest.json'; document.head.appendChild(m);
+        var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = 'Passarinho';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAppContext } from "@/hooks/useAppContext";
 import { format, parseISO } from "date-fns";
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
+import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, ehIOS, abertoComoApp } from "@/lib/avisosPush";
 
 interface Notification {
   id: string;
@@ -34,7 +35,34 @@ const NotificationBell = () => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   // Usuário já conhecido pelo app: sem getUser() (ida ao servidor que segurava as outras buscas da página)
-  const { user } = useAppContext();
+  const { user, isAdmin } = useAppContext();
+
+  // Admin: avisos de vencimento no celular (notificação push todo dia às 9h com a lista dos documentos vencidos;
+  // lib/avisosPush). "sem": navegador sem suporte (no iPhone, só o site adicionado à Tela de Início recebe)
+  const [pushAdmin, setPushAdmin] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (!pushSuportado()) { setPushAdmin("sem"); return; }
+    if (Notification.permission === "denied") { setPushAdmin("bloqueado"); return; }
+    inscricaoAtual().then(sub => setPushAdmin(sub ? "ativo" : "inativo")).catch(() => setPushAdmin("inativo"));
+  }, [isAdmin]);
+  const ativarAvisosCelular = async () => {
+    setPushAdmin("carregando");
+    try {
+      const sub = await ativarPush();
+      const { error } = await (supabase as any).rpc("salvar_push_admin", { p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      if (error) throw error;
+      setPushAdmin("ativo");
+    } catch (e) {
+      const motivo = e instanceof Error ? e.message : "";
+      setPushAdmin(motivo === "bloqueado" ? "bloqueado" : motivo === "sem permissao" ? "inativo" : "erro");
+    }
+  };
+  const desativarAvisosCelular = async () => {
+    const endpoint = await desativarPush();
+    if (endpoint) await (supabase as any).rpc("remover_push", { p_endpoint: endpoint });
+    setPushAdmin("inativo");
+  };
 
   // Só lê as datas (o que o usuário pode ver na Carteira Digital); nada é gravado no banco
   const fetchAvisos = async () => {
@@ -231,6 +259,28 @@ const NotificationBell = () => {
             </div>
           )}
         </ScrollArea>
+        {isAdmin && pushAdmin !== "carregando" && (
+          <div className="border-t px-4 py-2.5 text-xs shrink-0">
+            {pushAdmin === "ativo" ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-emerald-500 font-medium">🔔 Avisos no celular ativados (todo dia às 9h)</span>
+                <button className="text-muted-foreground underline shrink-0" onClick={desativarAvisosCelular}>desativar</button>
+              </div>
+            ) : pushAdmin === "sem" ? (
+              <span className="text-muted-foreground">
+                {ehIOS() && !abertoComoApp()
+                  ? "Avisos no iPhone: adicione o site à Tela de Início (Compartilhar → Adicionar à Tela de Início) e ative por lá."
+                  : "Este navegador não recebe notificações."}
+              </span>
+            ) : pushAdmin === "bloqueado" ? (
+              <span className="text-muted-foreground">🔕 Notificações bloqueadas para este site nas configurações do celular ou do navegador.</span>
+            ) : (
+              <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={ativarAvisosCelular}>
+                🔔 {pushAdmin === "erro" ? "Não deu certo — tentar de novo" : "Receber avisos de vencimento no celular"}
+              </Button>
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
