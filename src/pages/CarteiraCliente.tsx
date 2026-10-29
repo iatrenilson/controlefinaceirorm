@@ -173,10 +173,20 @@ export default function CarteiraCliente() {
   // documento vencido. "sem": navegador sem suporte (no iPhone, só a carteira instalada na Tela de Início recebe)
   const [pushEstado, setPushEstado] = useState<"carregando" | "ativo" | "inativo" | "bloqueado" | "sem" | "erro">("carregando");
   const [pushOcupado, setPushOcupado] = useState(false);
+  // Aberta como aplicativo (instalada na tela de início) e com os avisos desligados: pergunta logo ao abrir, uma vez
+  // neste aparelho. Ligar sozinho não dá (o celular sempre pede a permissão ao dono); o toque em "Ativar avisos" é o
+  // que o iPhone exige para mostrar o "Permitir".
+  const chavePerguntouAvisos = `carteira_avisos_perguntado_${id}`;
+  const [perguntarAvisos, setPerguntarAvisos] = useState(false);
   useEffect(() => {
     if (!pushSuportado()) { setPushEstado("sem"); return; }
     if (Notification.permission === "denied") { setPushEstado("bloqueado"); return; }
-    inscricaoAtual().then(sub => setPushEstado(sub ? "ativo" : "inativo")).catch(() => setPushEstado("inativo"));
+    inscricaoAtual().then(sub => {
+      setPushEstado(sub ? "ativo" : "inativo");
+      if (sub || !abertoComoApp()) return;
+      try { if (localStorage.getItem(chavePerguntouAvisos)) return; } catch { /* armazenamento bloqueado: pergunta */ }
+      setPerguntarAvisos(true);
+    }).catch(() => setPushEstado("inativo"));
   }, []);
   const chaveAvisosVistos = `carteira_avisos_vistos_${id}`;
   const [avisosVistos, setAvisosVistos] = useState<string[]>(() => {
@@ -349,6 +359,11 @@ export default function CarteiraCliente() {
       setPushEstado(motivo === "bloqueado" ? "bloqueado" : motivo === "sem permissao" ? "inativo" : "erro");
     } finally { setPushOcupado(false); }
   };
+  const responderPerguntaAvisos = (ativar: boolean) => {
+    setPerguntarAvisos(false);
+    try { localStorage.setItem(chavePerguntouAvisos, "1"); } catch { /* armazenamento bloqueado */ }
+    if (ativar) ativarAvisosCelular();
+  };
   const desativarAvisosCelular = async () => {
     setPushOcupado(true);
     try {
@@ -370,6 +385,27 @@ export default function CarteiraCliente() {
   return (
     <>
       {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} />}
+      {perguntarAvisos && pushEstado === "inativo" && (
+        <div role="dialog" aria-modal="true" aria-labelledby="pergunta-avisos-titulo"
+          style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.72)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+          <div style={{ width:"100%", maxWidth:360, padding:"26px 22px 16px", background:CARD_BG, borderRadius:18, border:`1px solid ${GOLD_BORDER}`,
+            boxShadow:"0 20px 50px rgba(0,0,0,0.6)", textAlign:"center", fontFamily:FONT }}>
+            <div style={{ fontSize:40, lineHeight:1, marginBottom:12 }}>🔔</div>
+            <h2 id="pergunta-avisos-titulo" style={{ margin:"0 0 8px", color:FG, fontSize:18, fontWeight:700 }}>Ativar avisos de vencimento?</h2>
+            <p style={{ margin:"0 0 20px", color:"rgba(237,231,217,0.72)", fontSize:13, lineHeight:1.6 }}>
+              Receba uma notificação neste celular às 9h, 13h e 18h quando algum documento da sua carteira vencer.
+            </p>
+            <button onClick={() => responderPerguntaAvisos(true)}
+              style={{ width:"100%", padding:"13px 16px", background:GOLD, color:BG, border:"none", borderRadius:12, fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:FONT }}>
+              Ativar avisos
+            </button>
+            <button onClick={() => responderPerguntaAvisos(false)}
+              style={{ width:"100%", marginTop:6, padding:"10px 16px", background:"transparent", color:FG_MUTED, border:"none", fontSize:13, cursor:"pointer", fontFamily:FONT }}>
+              Agora não
+            </button>
+          </div>
+        </div>
+      )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
 
       <div style={{ ...FULL_BG, padding:"0 0 40px" }}>
