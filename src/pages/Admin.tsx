@@ -1256,7 +1256,7 @@ const Admin = () => {
               const STATUS_LABEL_MAP: Record<string, string> = {
                 doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR Deferido",
                 analise: "CR Análise", autor: "Aut. Análise", craf: "Craf. Análise",
-                doccraf: "Doc Craf", completo: "Concluído",
+                doccraf: "Doc Craf", gt: "GT", completo: "Concluído",
               };
               const completoCount = storageStats.clientesPorStatus["completo"] ?? 0;
               return (
