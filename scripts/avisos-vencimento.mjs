@@ -11,8 +11,17 @@ const CHAVE = process.env.SUPABASE_SERVICE_KEY;
 const VAPID_PUBLICA = process.env.VAPID_PUBLIC_KEY || "BF1ME-nzhytUwCwzTP4kuzugmd0CNfZJ46rWHBYICzg3EH8Id_8DhzXyyo3MLbQtmOEWfr-BeLqq72ixUxyX4Bo";
 const SO_ADMIN = process.env.SO_ADMIN === "true";   // teste manual: só o celular do admin
 const SIMULAR = process.env.SIMULAR === "true";     // só conta, não envia
-if (!CHAVE || !process.env.VAPID_PRIVATE_KEY) { console.error("Faltam os segredos SUPABASE_SERVICE_KEY / VAPID_PRIVATE_KEY"); process.exit(1); }
-webpush.setVapidDetails("mailto:adm@passarinhoassessoriabelica.com.br", VAPID_PUBLICA, process.env.VAPID_PRIVATE_KEY);
+// a chave colada no GitHub pode vir com espaço, quebra de linha ou aspas em volta: tira antes de usar
+const VAPID_PRIVADA = String(process.env.VAPID_PRIVATE_KEY || "").trim().replace(/^["']+|["']+$/g, "").replace(/=+$/, "");
+if (!CHAVE || !VAPID_PRIVADA) { console.error("Faltam os segredos SUPABASE_SERVICE_KEY / VAPID_PRIVATE_KEY"); process.exit(1); }
+if (!/^[A-Za-z0-9_-]{43}$/.test(VAPID_PRIVADA)) {
+  // diagnóstico sem mostrar a chave: tamanho e tipo de caractere errado
+  const invalidos = [...new Set(VAPID_PRIVADA.replace(/[A-Za-z0-9_-]/g, ""))]
+    .map(c => (c === " " ? "espaço" : /[\r\n]/.test(c) ? "quebra de linha" : JSON.stringify(c)));
+  console.error(`VAPID_PRIVATE_KEY inválida: ${VAPID_PRIVADA.length} caracteres (o certo são 43)` + (invalidos.length ? `; caracteres fora do padrão: ${invalidos.join(" ")}` : ""));
+  process.exit(1);
+}
+webpush.setVapidDetails("mailto:adm@passarinhoassessoriabelica.com.br", VAPID_PUBLICA, VAPID_PRIVADA);
 
 const ROTULO = { cr: "CR", craf: "CRAF da Arma", gt: "GT", cert: "Certificado" };
 
