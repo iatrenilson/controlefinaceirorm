@@ -1,0 +1,1 @@
+import{s as o}from"./index-Dai6bNgO.js";async function c(e){try{const{data:a,error:r}=await o.functions.invoke("check-password",{body:{password:e}});return r?(console.error("Error checking password:",r),{leaked:!1,count:0}):a}catch{return{leaked:!1,count:0}}}export{c};
