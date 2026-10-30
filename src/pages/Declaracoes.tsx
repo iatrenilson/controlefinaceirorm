@@ -1470,6 +1470,34 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   return await salvarPDF(doc, `${prefixo ? prefixo + " " : ""}Contrato de Assessoria - ${nomeArq}.pdf`);
 }
 
+// Botão "Anexar ..." dos anexos de uma declaração: abre o seletor ao clicar e também aceita o arquivo arrastado para ele
+function BotaoAnexo({ rotulo, onArquivo }: { rotulo: string; onArquivo: (f: File) => void }) {
+  const [arrastando, setArrastando] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const soltar = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setArrastando(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    if (f.type === "application/pdf" || f.type.startsWith("image/")) onArquivo(f);
+    else sonnerToast.error("Arquivo não aceito: arraste um PDF ou uma foto.");
+  };
+  return (
+    <>
+      <input ref={ref} type="file" accept="image/*,application/pdf" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onArquivo(f); }} />
+      <Button type="button" variant="outline" size="sm"
+        className={`h-9 text-xs gap-1.5 w-full justify-start ${arrastando ? "border-primary border-dashed bg-primary/15 text-primary" : ""}`}
+        onClick={() => ref.current?.click()}
+        onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; if (!arrastando) setArrastando(true); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setArrastando(false); }}
+        onDrop={soltar}>
+        <Paperclip className="h-3.5 w-3.5" />{arrastando ? "Solte o arquivo aqui" : rotulo}
+        {!arrastando && <span className="ml-auto text-[10px] font-normal text-muted-foreground">clique ou arraste</span>}
+      </Button>
+    </>
+  );
+}
+
 // Caixa "Importar ..." do cadastro do cliente: aceita PDF ou foto pelo botão ou arrastando o arquivo para ela
 function CaixaImportar({ titulo, descricao, lendo, progresso, onArquivo }: {
   titulo: string; descricao: string; lendo: boolean; progresso: string; onArquivo: (f: File) => void;
@@ -2499,12 +2527,15 @@ export default function Declaracoes() {
     setSearchParams({}, { replace: true });
   }, [searchParams]);
 
-  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
-    const file = e.target.files?.[0]; if (!file) return;
+  const lerAnexo = (file: File, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
     setName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => setUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
+  };
+  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    lerAnexo(file, setUrl, setName);
   };
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
   const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
@@ -4201,7 +4232,10 @@ export default function Declaracoes() {
 
       {/* ── Dialog 3: Residência ── */}
       <Dialog open={dialogResOpen} onOpenChange={setDialogResOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}
+          // Arquivo solto fora dos botões de anexo: o navegador abriria o arquivo e o formulário seria perdido
+          onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "none"; }}
+          onDrop={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2 pr-6">
               <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -4350,14 +4384,7 @@ export default function Declaracoes() {
                       <button onClick={clearRg}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                     </div>
                   ) : (
-                    <>
-                      <input ref={rgInputRef} type="file" accept="image/*,application/pdf" className="hidden"
-                        onChange={e => handleFileRead(e, setRgDataUrl, setRgNome)} />
-                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                        onClick={() => rgInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Frente)
-                      </Button>
-                    </>
+                    <BotaoAnexo rotulo="Anexar RG (Frente)" onArquivo={f => lerAnexo(f, setRgDataUrl, setRgNome)} />
                   )}
                   {/* RG Verso — aparece sempre (com ou sem frente) */}
                   {rgDataUrl2 ? (
@@ -4367,14 +4394,7 @@ export default function Declaracoes() {
                       <button onClick={clearRg2}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                     </div>
                   ) : (
-                    <>
-                      <input ref={rgInputRef2} type="file" accept="image/*,application/pdf" className="hidden"
-                        onChange={e => handleFileRead(e, setRgDataUrl2, setRgNome2)} />
-                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                        onClick={() => rgInputRef2.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar RG (Verso)
-                      </Button>
-                    </>
+                    <BotaoAnexo rotulo="Anexar RG (Verso)" onArquivo={f => lerAnexo(f, setRgDataUrl2, setRgNome2)} />
                   )}
                 </div>
                 <div className="space-y-1">
@@ -4386,14 +4406,7 @@ export default function Declaracoes() {
                       <button onClick={clearComp}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                     </div>
                   ) : (
-                    <>
-                      <input ref={compInputRef} type="file" accept="image/*,application/pdf" className="hidden"
-                        onChange={e => handleFileRead(e, setCompDataUrl, setCompNome)} />
-                      <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                        onClick={() => compInputRef.current?.click()}>
-                        <Paperclip className="h-3.5 w-3.5" />Anexar Comprovante de Residência
-                      </Button>
-                    </>
+                    <BotaoAnexo rotulo="Anexar Comprovante de Residência" onArquivo={f => lerAnexo(f, setCompDataUrl, setCompNome)} />
                   )}
                 </div>
                 <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">
