@@ -2533,10 +2533,6 @@ export default function Declaracoes() {
     reader.onload = (ev) => setUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
-  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (v: string | null) => void, setName: (v: string) => void) => {
-    const file = e.target.files?.[0]; if (!file) return;
-    lerAnexo(file, setUrl, setName);
-  };
   const clearRg = () => { setRgDataUrl(null); setRgNome(""); if (rgInputRef.current) rgInputRef.current.value = ""; };
   const clearRg2 = () => { setRgDataUrl2(null); setRgNome2(""); if (rgInputRef2.current) rgInputRef2.current.value = ""; };
   const clearComp = () => { setCompDataUrl(null); setCompNome(""); if (compInputRef.current) compInputRef.current.value = ""; };
@@ -4461,14 +4457,7 @@ export default function Declaracoes() {
                     <button onClick={clearNotaFiscal}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                   </div>
                 ) : (
-                  <>
-                    <input ref={notaFiscalRef} type="file" accept="image/*,application/pdf" className="hidden"
-                      onChange={e => handleFileRead(e, setNotaFiscalUrl, setNotaFiscalNome)} />
-                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                      onClick={() => notaFiscalRef.current?.click()}>
-                      <Paperclip className="h-3.5 w-3.5" />Anexar Nota Fiscal
-                    </Button>
-                  </>
+                  <BotaoAnexo rotulo="Anexar Nota Fiscal" onArquivo={f => lerAnexo(f, setNotaFiscalUrl, setNotaFiscalNome)} />
                 )}
               </div>
               <div className="space-y-1">
@@ -4480,14 +4469,7 @@ export default function Declaracoes() {
                     <button onClick={clearAutorizacaoCompra}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                   </div>
                 ) : (
-                  <>
-                    <input ref={autorizacaoCompraRef} type="file" accept="image/*,application/pdf" className="hidden"
-                      onChange={e => handleFileRead(e, setAutorizacaoCompraUrl, setAutorizacaoCompraNome)} />
-                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                      onClick={() => autorizacaoCompraRef.current?.click()}>
-                      <Paperclip className="h-3.5 w-3.5" />Anexar Autorização de Compra
-                    </Button>
-                  </>
+                  <BotaoAnexo rotulo="Anexar Autorização de Compra" onArquivo={f => lerAnexo(f, setAutorizacaoCompraUrl, setAutorizacaoCompraNome)} />
                 )}
               </div>
               <div className="space-y-1">
@@ -4499,14 +4481,7 @@ export default function Declaracoes() {
                     <button onClick={clearCnhCraf}><X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" /></button>
                   </div>
                 ) : (
-                  <>
-                    <input ref={cnhCrafRef} type="file" accept="image/*,application/pdf" className="hidden"
-                      onChange={e => handleFileRead(e, setCnhCrafUrl, setCnhCrafNome)} />
-                    <Button type="button" variant="outline" size="sm" className="h-9 text-xs gap-1.5 w-full justify-start"
-                      onClick={() => cnhCrafRef.current?.click()}>
-                      <Paperclip className="h-3.5 w-3.5" />Anexar CNH
-                    </Button>
-                  </>
+                  <BotaoAnexo rotulo="Anexar CNH" onArquivo={f => lerAnexo(f, setCnhCrafUrl, setCnhCrafNome)} />
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground bg-muted/40 rounded p-2">

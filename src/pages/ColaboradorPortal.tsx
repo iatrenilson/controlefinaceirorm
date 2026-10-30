@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
 import { lerLaudo } from "@/lib/lerDocumento";
 import { toast } from "sonner";
+import { ArrastarArquivo } from "@/components/ArrastarArquivo";
 
 const GOLD = "#c9a227";
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"] as const;
@@ -267,38 +268,40 @@ export default function ColaboradorPortal() {
             <p style={{ color:"#ffffff", fontSize:14, fontWeight:700, lineHeight:1.4, margin:"0 0 10px" }}>
               Ao anexar o laudo psicológico, nome e CPF são preenchidos automaticamente.
             </p>
-            <label style={{
-              display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
-              border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
-              borderRadius:12, padding:"28px 16px", cursor:"pointer",
-              background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
-              transition:"all .2s",
-            }}>
-              <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
-              {uploadingPsico ? (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
-                </>
-              ) : form.psicoUrl ? (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
-                  <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
-                </>
-              ) : (
-                <>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
-                </>
-              )}
-            </label>
+            <ArrastarArquivo className="rounded-xl" desativado={uploadingPsico}>
+              <label style={{
+                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
+                border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
+                borderRadius:12, padding:"28px 16px", cursor:"pointer",
+                background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
+                transition:"all .2s",
+              }}>
+                <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
+                {uploadingPsico ? (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
+                  </>
+                ) : form.psicoUrl ? (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
+                    <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
+                  </>
+                )}
+              </label>
+            </ArrastarArquivo>
             {lendoLaudo && <p style={{ color:GOLD, fontSize:11, margin:"6px 0 0", textAlign:"center" }}>Lendo nome e CPF do laudo...</p>}
           </div>
           {/* Nome */}

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { ArrastarArquivo } from "@/components/ArrastarArquivo";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CacCadastro {
@@ -971,7 +972,7 @@ export default function CadastrosAdmin() {
             {/* Psicológico */}
             <div className="space-y-2">
               <Label className="text-xs">Laudo Psicológico</Label>
-              <div className="flex items-center gap-2">
+              <ArrastarArquivo className="flex items-center gap-2 rounded-md" desativado={uploadingPsico}>
                 <button type="button" onClick={() => psicoInputRef.current?.click()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs font-medium hover:bg-accent transition-colors">
                   <Upload className="h-3.5 w-3.5" />
@@ -983,8 +984,8 @@ export default function CadastrosAdmin() {
                   <button type="button" onClick={() => { setNovoPsicoFile(null); setNovoPsicoUrl(null); }}
                     className="text-xs text-destructive hover:underline">Remover</button>
                 )}
-              </div>
-              <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
+                <input ref={psicoInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleNovoPsico} />
+              </ArrastarArquivo>
             </div>
           </div>
 

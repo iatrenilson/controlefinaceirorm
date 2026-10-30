@@ -4,6 +4,7 @@ import { buscarClientes, casaComBusca } from "@/lib/buscaCliente";
 import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, FileText, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
+import { ArrastarArquivo } from "@/components/ArrastarArquivo";
 
 const BUCKET = "carteira-docs";
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
@@ -419,7 +420,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
               {TIPOS.map(({ key, label, desc }) => {
                 const names = pendingNames[key] ?? [];
                 return (
-                  <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
+                  <ArrastarArquivo key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className={`h-4 w-4 flex-shrink-0 ${names.length > 0 ? "text-primary" : "text-muted-foreground"}`} />
@@ -467,7 +468,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </ArrastarArquivo>
                 );
               })}
             </div>
@@ -480,7 +481,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
               {TIPOS.map(({ key, label, desc }) => {
                 const tipoDocs = docs.filter(d => d.tipo === key);
                 return (
-                  <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
+                  <ArrastarArquivo key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden"
+                    desativado={key === "gt" || uploading === key}>
                     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
                       <div className="flex items-center gap-2 min-w-0">
                         <FileText className={`h-4 w-4 flex-shrink-0 ${tipoDocs.length > 0 ? "text-primary" : "text-muted-foreground"}`} />
@@ -521,7 +523,8 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                               {grupoEntries.map(([arma, gtDocs]) => {
                                 const expanded = expandedArmas[arma] ?? true;
                                 return (
-                                  <div key={arma}>
+                                  <ArrastarArquivo key={arma} aceitar="application/pdf,image/*" desativado={uploading === "gt"}
+                                    onArquivos={([f]) => { setUploadingForArma(arma); handleFile("gt", f, arma); }}>
                                     <div className="flex items-center">
                                       {renamingArma === arma ? (
                                         <input
@@ -577,7 +580,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                                         </div>
                                       </div>
                                     )}
-                                  </div>
+                                  </ArrastarArquivo>
                                 );
                               })}
                             </div>
@@ -621,7 +624,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </ArrastarArquivo>
                 );
               })}
             </div>
