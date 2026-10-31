@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
 import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp } from "@/lib/avisosPush";
+import { useEscComPdf } from "@/hooks/useEscComPdf";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -102,10 +103,12 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
 
   const usarRender = podeColorir && colorido !== "erro";
   const mostrarColorido = usarRender && colorir;
+  const janela = useRef<HTMLDivElement>(null);
+  useEscComPdf(janela); // Esc fecha mesmo depois de clicar no PDF
   return (
-    <div
+    <div ref={janela} tabIndex={-1}
       onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0 }}
+      style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.88)", display:"flex", flexDirection:"column", padding:0, outline:"none" }}
     >
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px", background:"#0d0e13", borderBottom:"1px solid rgba(201,162,39,0.28)", flexShrink:0, gap:12 }}>
         <p style={{ color:"#e8d5a0", fontSize:13, fontWeight:600, margin:0, minWidth:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{nome}</p>

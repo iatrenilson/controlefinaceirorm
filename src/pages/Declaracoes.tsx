@@ -5,6 +5,7 @@ import { usuarioAtual } from "@/lib/usuarioAtual";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEscComPdf } from "@/hooks/useEscComPdf";
 import { lerDocumento, lerComprovanteEndereco } from "@/lib/lerDocumento";
 import { casaComBusca } from "@/lib/buscaCliente";
 import { BuscaCliente } from "@/components/BuscaCliente";
@@ -1620,9 +1621,11 @@ function baixarBlob(blob: Blob, nome: string) {
 
 function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; onClose: () => void }) {
   const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(nome);
+  const janela = useRef<HTMLDivElement>(null);
+  useEscComPdf(janela); // Esc fecha mesmo depois de clicar no PDF
   return (
     <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
-      <DialogContent aria-describedby={undefined} className="max-w-[96vw] w-[96vw] h-[94vh] p-0 gap-0 flex flex-col overflow-hidden">
+      <DialogContent ref={janela} aria-describedby={undefined} className="max-w-[96vw] w-[96vw] h-[94vh] p-0 gap-0 flex flex-col overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 pr-12 border-b border-border/40 flex-shrink-0">
           <DialogTitle className="text-sm font-semibold truncate flex-1">{nome}</DialogTitle>
           <a href={url} download={nome} className="text-xs px-3 py-1.5 rounded-md border border-border/60 hover:bg-muted flex items-center gap-1.5 flex-shrink-0">
