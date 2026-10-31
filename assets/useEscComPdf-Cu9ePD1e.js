@@ -1,0 +1,1 @@
+import{r as n}from"./index-Clwhkj9H.js";function s(e){n.useEffect(()=>{const t=()=>setTimeout(()=>{var o;const r=document.activeElement;r instanceof HTMLIFrameElement&&((o=e.current)!=null&&o.contains(r))&&e.current.focus({preventScroll:!0})},0);return window.addEventListener("blur",t),()=>window.removeEventListener("blur",t)},[e])}export{s as u};
