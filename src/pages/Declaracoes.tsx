@@ -1481,16 +1481,17 @@ interface FormProcuracao {
 }
 // Poderes que vão na procuração (ordem do PDF); só o substabelecimento vem desmarcado
 const PODERES_PROCURACAO: Array<{ key: string; label: string; texto: string }> = [
-  { key: "sistemas", label: "Protocolar e acompanhar no Sinarm CAC / Portal PF",
-    texto: "preencher, protocolar e acompanhar requerimentos nos sistemas eletrônicos da Polícia Federal, em especial o SINARM-CAC e o Portal de Serviços da Polícia Federal (portal.pf.gov.br), sempre que o sistema permitir a atuação de procurador;" },
+  // O Sinarm CAC e o Portal PF só abrem com o gov.br do próprio cliente: o procurador prepara e confere, quem envia é o cliente
+  { key: "sistemas", label: "Preparar e conferir os pedidos (Sinarm CAC / Portal PF)",
+    texto: "preparar e conferir os requerimentos e os documentos que o(a) OUTORGANTE enviará nos sistemas eletrônicos da Polícia Federal, em especial o SINARM-CAC e o Portal de Serviços da Polícia Federal (portal.pf.gov.br), cujo acesso é feito exclusivamente pelo(a) OUTORGANTE, com a sua conta gov.br;" },
   { key: "remoto", label: "Acompanhar o envio pelo gov.br (remoto)",
     texto: "acompanhar e orientar o(a) OUTORGANTE, inclusive de forma remota (por chamada de vídeo, compartilhamento de tela ou mensagens), no preenchimento e no envio de requerimentos pela conta gov.br do(a) próprio(a) OUTORGANTE, sendo o acesso a essa conta e a confirmação do envio feitos pessoalmente pelo(a) OUTORGANTE;" },
   { key: "email", label: "E-mails à PF para tirar dúvidas",
     texto: "enviar e receber e-mails e demais comunicações dirigidas à Polícia Federal, para esclarecer dúvidas, prestar informações e solicitar orientações sobre os processos do(a) OUTORGANTE;" },
   { key: "documentos", label: "Juntar documentos e cumprir exigências",
-    texto: "apresentar, juntar e substituir documentos, cumprir exigências e responder a notificações relativas aos processos do(a) OUTORGANTE;" },
+    texto: "apresentar, juntar e substituir documentos, cumprir exigências e responder a notificações relativas aos processos do(a) OUTORGANTE, nas unidades da Polícia Federal ou por e-mail;" },
   { key: "andamento", label: "Consultar andamento e decisões",
-    texto: "consultar o andamento dos processos, tomar ciência de despachos, exigências e decisões, e obter vistas e cópias dos autos;" },
+    texto: "consultar o andamento dos processos, tomar ciência de despachos, exigências e decisões, e obter vistas e cópias dos autos, nas unidades da Polícia Federal ou por e-mail;" },
   { key: "retirar", label: "Retirar documentos emitidos (CR, CRAF, guias)",
     texto: "requerer, receber e retirar certidões, protocolos, comprovantes e documentos emitidos em nome do(a) OUTORGANTE, como o Certificado de Registro (CR), o CRAF e guias;" },
   { key: "atendimento", label: "Agendar e comparecer à PF",
@@ -1570,7 +1571,7 @@ async function gerarPDFProcuracao(f: FormProcuracao, ct: DadosContratado, semLog
   await par([n("OUTORGADO: "), n(ct.nome.trim().toUpperCase()), t(", " + qualificacao(ct, false) + ", representante da PASSARINHO ASSESSORIA BÉLICA.")]);
 
   await par([n("PODERES: "), t("pelo presente instrumento particular, o(a) OUTORGANTE nomeia e constitui o OUTORGADO seu procurador, para representá-lo(a) "),
-    n("perante a Polícia Federal"), t(", em suas unidades e em seus sistemas eletrônicos, em especial o SINARM-CAC e o Portal de Serviços da Polícia Federal, em todos os processos e pedidos de seu interesse relativos à atividade de colecionador, atirador desportivo e caçador (CAC), como a concessão e a renovação do Certificado de Registro (CR), a autorização de aquisição, o registro e a renovação do registro de arma de fogo (CRAF) e as guias de trânsito ou de tráfego, podendo, para isso:")], ML, CW, 1);
+    n("perante a Polícia Federal"), t(", em suas unidades, por e-mail e pelos demais canais de atendimento, em todos os processos e pedidos de seu interesse relativos à atividade de colecionador, atirador desportivo e caçador (CAC), como a concessão e a renovação do Certificado de Registro (CR), a autorização de aquisição, o registro e a renovação do registro de arma de fogo (CRAF) e as guias de trânsito ou de tráfego, podendo, para isso:")], ML, CW, 1);
   const poderes = PODERES_PROCURACAO.filter(p => f.poderes.includes(p.key));
   for (let i = 0; i < poderes.length; i++) {
     let txt = poderes[i].texto;
