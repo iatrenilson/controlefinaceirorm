@@ -1471,6 +1471,138 @@ async function gerarPDFContrato(f: FormContrato, ct: DadosContratado, semLogo = 
   return await salvarPDF(doc, `${prefixo ? prefixo + " " : ""}Contrato de Assessoria - ${nomeArq}.pdf`);
 }
 
+// ─── Procuração do cliente para o despachante (Polícia Federal: Sinarm CAC e Portal PF) ───────────────
+// O outorgado é o mesmo "contratado" do contrato (dados no banco, app_config). Só o cliente (outorgante) assina.
+interface FormProcuracao {
+  nome: string; nacionalidade: string; estadoCivil: string; profissao: string;
+  cpf: string; rg: string; endereco: string; cep: string; cidadeUf: string;
+  telefone: string; email: string;
+  poderes: string[]; validade: string; local: string; data: string;
+}
+// Poderes que vão na procuração (ordem do PDF); só o substabelecimento vem desmarcado
+const PODERES_PROCURACAO: Array<{ key: string; label: string; texto: string }> = [
+  { key: "sistemas", label: "Protocolar e acompanhar no Sinarm CAC / Portal PF",
+    texto: "preencher, protocolar e acompanhar requerimentos nos sistemas eletrônicos da Polícia Federal, em especial o SINARM-CAC e o Portal de Serviços da Polícia Federal (portal.pf.gov.br), sempre que o sistema permitir a atuação de procurador;" },
+  { key: "remoto", label: "Acompanhar o envio pelo gov.br (remoto)",
+    texto: "acompanhar e orientar o(a) OUTORGANTE, inclusive de forma remota (por chamada de vídeo, compartilhamento de tela ou mensagens), no preenchimento e no envio de requerimentos pela conta gov.br do(a) próprio(a) OUTORGANTE, sendo o acesso a essa conta e a confirmação do envio feitos pessoalmente pelo(a) OUTORGANTE;" },
+  { key: "email", label: "E-mails à PF para tirar dúvidas",
+    texto: "enviar e receber e-mails e demais comunicações dirigidas à Polícia Federal, para esclarecer dúvidas, prestar informações e solicitar orientações sobre os processos do(a) OUTORGANTE;" },
+  { key: "documentos", label: "Juntar documentos e cumprir exigências",
+    texto: "apresentar, juntar e substituir documentos, cumprir exigências e responder a notificações relativas aos processos do(a) OUTORGANTE;" },
+  { key: "andamento", label: "Consultar andamento e decisões",
+    texto: "consultar o andamento dos processos, tomar ciência de despachos, exigências e decisões, e obter vistas e cópias dos autos;" },
+  { key: "retirar", label: "Retirar documentos emitidos (CR, CRAF, guias)",
+    texto: "requerer, receber e retirar certidões, protocolos, comprovantes e documentos emitidos em nome do(a) OUTORGANTE, como o Certificado de Registro (CR), o CRAF e guias;" },
+  { key: "atendimento", label: "Agendar e comparecer à PF",
+    texto: "agendar atendimentos e comparecer às unidades da Polícia Federal para tratar dos processos do(a) OUTORGANTE, acompanhando-o(a) ou não;" },
+  { key: "gru", label: "Emitir GRU",
+    texto: "emitir Guias de Recolhimento da União (GRU) relativas aos serviços requeridos e acompanhar a confirmação do seu pagamento;" },
+  { key: "substabelecer", label: "Pode substabelecer",
+    texto: "substabelecer esta procuração, no todo ou em parte, com reserva de iguais poderes;" },
+];
+const VALIDADES_PROCURACAO = [
+  { label: "1 ano",        texto: "1 (um) ano, contado da data da assinatura" },
+  { label: "Até concluir", texto: "até a conclusão dos processos e pedidos nela referidos" },
+];
+function novoFormProcuracao(): FormProcuracao {
+  return {
+    nome: "", nacionalidade: "Brasileiro(a)", estadoCivil: "", profissao: "", cpf: "", rg: "",
+    endereco: "", cep: "", cidadeUf: "", telefone: "", email: "",
+    poderes: PODERES_PROCURACAO.filter(p => p.key !== "substabelecer").map(p => p.key),
+    validade: VALIDADES_PROCURACAO[0].texto,
+    local: "Manaus/AM", data: format(getSiteDate(), "yyyy-MM-dd"),
+  };
+}
+
+async function gerarPDFProcuracao(f: FormProcuracao, ct: DadosContratado, semLogo = false) {
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+  const { jsPDF } = (window as any).jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+
+  let layout = await aplicarLayoutPassarinho(doc, semLogo);
+  const { W, ML, CW } = layout;
+  let y = layout.startY;
+  const FS = 10, LH = 5;
+  // mesmo texto justificado do contrato (larguraHelv), com troca de página no meio do parágrafo
+  const novaPagina = async () => { doc.addPage(); layout = await aplicarLayoutPassarinho(doc, semLogo); y = layout.startY; doc.setFontSize(FS); };
+  const garantir = async (h: number) => { if (y + h > layout.footerY - 8) await novaPagina(); };
+  type Seg = { text: string; bold?: boolean };
+  type Palavra = { text: string; style: string; w: number; colado: boolean };
+  const par = async (segs: Seg[], x = ML, maxW = CW, depois = 2.2) => {
+    doc.setFontSize(FS);
+    const palavras: Palavra[] = [];
+    for (const s of segs)
+      for (const t of s.text.split(/\s+/).filter(Boolean))
+        palavras.push({ text: t, style: s.bold ? "bold" : "normal", w: larguraHelv(t, !!s.bold, FS), colado: /^[,.:;!?)\]]/.test(t) });
+    const esp = larguraHelv(" ", false, FS);
+    const linhas: Array<{ ps: Palavra[]; w: number }> = [];
+    let cur = { ps: [] as Palavra[], w: 0 };
+    for (const p of palavras) {
+      const need = cur.w + (cur.ps.length && !p.colado ? esp : 0) + p.w;
+      if (cur.ps.length && need > maxW) { linhas.push(cur); cur = { ps: [p], w: p.w }; }
+      else { cur.w = need; cur.ps.push(p); }
+    }
+    if (cur.ps.length) linhas.push(cur);
+    for (let li = 0; li < linhas.length; li++) {
+      await garantir(LH);
+      const l = linhas[li];
+      let gaps = 0;
+      for (let i = 1; i < l.ps.length; i++) if (!l.ps[i].colado) gaps++;
+      const esticar = li < linhas.length - 1 && gaps > 0 && l.w >= maxW * 0.8;
+      const gapW = esp + (esticar ? (maxW - l.w) / gaps : 0);
+      let cx = x;
+      l.ps.forEach((p, i) => {
+        doc.setFont("helvetica", p.style);
+        doc.text(p.text, cx, y);
+        if (i < l.ps.length - 1) cx += p.w + (l.ps[i + 1].colado ? 0 : gapW);
+      });
+      y += LH;
+    }
+    y += depois;
+  };
+  const t = (text: string): Seg => ({ text });
+  const n = (text: string): Seg => ({ text, bold: true });
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13.5);
+  doc.text("PROCURAÇÃO", W / 2, y, { align: "center" }); y += 10;
+
+  await par([n("OUTORGANTE: "), n(f.nome.trim().toUpperCase()), t(", " + qualificacao(f, true) + ".")]);
+  await par([n("OUTORGADO: "), n(ct.nome.trim().toUpperCase()), t(", " + qualificacao(ct, false) + ", representante da PASSARINHO ASSESSORIA BÉLICA.")]);
+
+  await par([n("PODERES: "), t("pelo presente instrumento particular, o(a) OUTORGANTE nomeia e constitui o OUTORGADO seu procurador, para representá-lo(a) "),
+    n("perante a Polícia Federal"), t(", em suas unidades e em seus sistemas eletrônicos, em especial o SINARM-CAC e o Portal de Serviços da Polícia Federal, em todos os processos e pedidos de seu interesse relativos à atividade de colecionador, atirador desportivo e caçador (CAC), como a concessão e a renovação do Certificado de Registro (CR), a autorização de aquisição, o registro e a renovação do registro de arma de fogo (CRAF) e as guias de trânsito ou de tráfego, podendo, para isso:")], ML, CW, 1);
+  const poderes = PODERES_PROCURACAO.filter(p => f.poderes.includes(p.key));
+  for (let i = 0; i < poderes.length; i++) {
+    let txt = poderes[i].texto;
+    if (i === poderes.length - 1) txt = txt.replace(/;$/, ".");
+    await par([n(`${String.fromCharCode(97 + i)}) `), t(txt)], ML + 6, CW - 6, 0.6);
+  }
+  y += 1.6;
+  if (!f.poderes.includes("substabelecer")) await par([t("É vedado o substabelecimento.")]);
+  await par([n("LIMITES: "), t("esta procuração não autoriza o OUTORGADO a utilizar a senha ou a conta gov.br do(a) OUTORGANTE, a adquirir, receber, guardar ou transportar armas de fogo, munições ou acessórios em nome do(a) OUTORGANTE, nem a firmar as declarações pessoais que a lei exige do(a) próprio(a) OUTORGANTE.")]);
+  await par([n("VALIDADE: "), t(`${(f.validade || VALIDADES_PROCURACAO[0].texto).trim().replace(/\.$/, "")}, podendo ser revogada a qualquer tempo pelo(a) OUTORGANTE, mediante comunicação ao OUTORGADO.`)]);
+  await par([t("O(A) OUTORGANTE assina esta procuração eletronicamente, por meio de assinatura digital (gov.br ou ICP-Brasil), que tem plena validade jurídica.")]);
+
+  // Assinatura do outorgante no padrão dos outros PDFs (rótulo com a linha ao lado, ~3 cm livres para o carimbo gov.br)
+  await garantir(64);
+  const rotulo = "Assinatura digital (.gov.br ou ICP-Brasil) outorgante: ";
+  const x0 = ML + larguraHelv(rotulo, false, FS), x1 = W - layout.MR, meio = (x0 + x1) / 2;
+  y += 32;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
+  doc.text(rotulo, ML, y);
+  doc.line(x0, y - 0.5, x1, y - 0.5);
+  const nomeUp = f.nome.trim().toUpperCase();
+  doc.setFont("helvetica", "bold"); doc.setFontSize(Math.min(9, (9 * (x1 - x0)) / larguraHelv(nomeUp, true, 9)));
+  doc.text(nomeUp, meio, y + 4.5, { align: "center" });
+  if (f.cpf) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text(`CPF ${f.cpf}`, meio, y + 8.6, { align: "center" }); }
+  y += 23;
+  const dataExt = f.data ? format(parseISO(f.data), "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : "";
+  doc.setFont("helvetica", "normal"); doc.setFontSize(FS);
+  doc.text(`${(f.local || "Manaus/AM").trim()}, ${dataExt}.`, W - layout.MR, y, { align: "right" });
+
+  return await salvarPDF(doc, `Procuração - ${titleCase((f.nome || "Cliente").toLowerCase())}.pdf`);
+}
+
 // Botão "Anexar ..." dos anexos de uma declaração: abre o seletor ao clicar e também aceita o arquivo arrastado para ele
 function BotaoAnexo({ rotulo, onArquivo }: { rotulo: string; onArquivo: (f: File) => void }) {
   const [arrastando, setArrastando] = useState(false);
@@ -2483,6 +2615,32 @@ export default function Declaracoes() {
       email: c.email || "",
     }));
   };
+  // ── Procuração (cliente → despachante) ──
+  const [dialogProcOpen, setDialogProcOpen] = useState(false);
+  const [formProc, setFormProc] = useState<FormProcuracao>(novoFormProcuracao);
+  const [gerandoProc, setGerandoProc] = useState(false);
+  const setFormP = <K extends keyof FormProcuracao>(k: K, v: FormProcuracao[K]) => setFormProc(p => ({ ...p, [k]: v }));
+  const abrirProcuracao = async () => {
+    setFormProc(novoFormProcuracao()); setDialogProcOpen(true);
+    const { data } = await supabase.from("app_config" as any).select("valor").eq("chave", "contratado").maybeSingle();
+    const salvo = (data as any)?.valor as Partial<DadosContratado> | undefined;
+    if (salvo?.nome) setContratado({ ...CONTRATADO_VAZIO, ...salvo });
+  };
+  const preencherOutorgante = (c: Cliente) => {
+    setFormProc(p => ({
+      ...p,
+      nome: (c.nome || "").toUpperCase(),
+      estadoCivil: c.estadoCivil || "",
+      profissao: c.profissao || "",
+      cpf: c.cpf || "",
+      rg: [c.rg, (c.orgaoEmissor || "").replace("-", "/")].filter(Boolean).join(" "),
+      endereco: [c.endereco, c.numero ? `número ${c.numero}` : "", c.complemento, c.bairro].filter(Boolean).join(", "),
+      cep: c.cep || "",
+      cidadeUf: [c.cidade, c.estado].filter(Boolean).join("/"),
+      telefone: c.telefone || "",
+      email: c.email || "",
+    }));
+  };
   const [formDSA, setFormDSA] = useState<FormDataDSA>(EMPTY_FORM_DSA);
   const setDSA = (field: keyof FormDataDSA, value: string) => setFormDSA(prev => ({ ...prev, [field]: value }));
   const [dsaTipo, setDsaTipo] = useState<"registro" | "aquisicao">("registro");
@@ -2572,6 +2730,7 @@ export default function Declaracoes() {
               { label: "Declaração de Residência",      action: () => { setFormRes(EMPTY_FORM_RES); clearRg(); clearComp(); setDialogResOpen(true); } },
               { label: "Docs Emissão de CRAF",          action: () => { setCrafNome(""); clearNotaFiscal(); clearAutorizacaoCompra(); clearCnhCraf(); setDialogCrafOpen(true); } },
               { label: "Contrato de Assessoria",        action: () => { abrirContrato(); } },
+              { label: "Procuração",                    action: () => { abrirProcuracao(); } },
             { label: "Imagem para PDF",               action: () => navigate("/imagem-para-pdf") },
             ].map(({ label, action }) => (
               <button
@@ -3862,6 +4021,126 @@ export default function Declaracoes() {
                 if (ok) setDialogContratoOpen(false);
               } finally { setGerandoContrato(false); }
             }}><Download className="h-3.5 w-3.5" />{gerandoContrato ? "Gerando…" : "Gerar PDF"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Procuração do cliente para o despachante ── */}
+      <Dialog open={dialogProcOpen} onOpenChange={setDialogProcOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-sm flex items-center gap-2 pr-6">
+              <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="flex-1">Procuração — Polícia Federal (Sinarm CAC e Portal PF)</span>
+              <label className="flex items-center gap-1.5 cursor-pointer select-none ml-auto flex-shrink-0">
+                <span className="text-[10px] font-normal text-muted-foreground whitespace-nowrap">Sem logo</span>
+                <div onClick={() => setSemLogo(v => !v)} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${semLogo ? "bg-amber-500" : "bg-muted"}`}>
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${semLogo ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                </div>
+              </label>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <BuscaCliente clientes={clientes} label="Buscar cliente cadastrado (nome ou CPF)" onSelect={preencherOutorgante} />
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Outorgante (cliente)</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Nome completo</Label>
+                <Input className="h-9 text-sm uppercase" value={formProc.nome} onChange={e => setFormP("nome", e.target.value)} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1"><Label className="text-xs">Nacionalidade</Label>
+                  <Input className="h-9 text-sm" value={formProc.nacionalidade} onChange={e => setFormP("nacionalidade", e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Estado civil</Label>
+                  <Input className="h-9 text-sm" value={formProc.estadoCivil} onChange={e => setFormP("estadoCivil", e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-xs">Profissão</Label>
+                  <Input className="h-9 text-sm" value={formProc.profissao} onChange={e => setFormP("profissao", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">CPF</Label>
+                  <Input className="h-9 text-sm font-mono" value={formProc.cpf} onChange={e => setFormP("cpf", maskCpf(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">RG (com órgão)</Label>
+                  <Input className="h-9 text-sm" placeholder="0000000-0 SSP/AM" value={formProc.rg} onChange={e => setFormP("rg", e.target.value)} /></div>
+              </div>
+              <div className="space-y-1"><Label className="text-xs">Endereço</Label>
+                <Input className="h-9 text-sm" placeholder="Rua, número, complemento, bairro" value={formProc.endereco} onChange={e => setFormP("endereco", e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">CEP</Label>
+                  <Input className="h-9 text-sm font-mono" value={formProc.cep} onChange={e => setFormP("cep", maskCep(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Cidade/UF</Label>
+                  <Input className="h-9 text-sm" placeholder="Manaus/AM" value={formProc.cidadeUf} onChange={e => setFormP("cidadeUf", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs">Telefone/WhatsApp</Label>
+                  <Input className="h-9 text-sm" value={formProc.telefone} onChange={e => setFormP("telefone", maskTelefone(e.target.value))} /></div>
+                <div className="space-y-1"><Label className="text-xs">E-mail</Label>
+                  <Input className="h-9 text-sm" value={formProc.email} onChange={e => setFormP("email", e.target.value)} /></div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">O que você poderá fazer pelo cliente</p>
+              <div className="flex flex-wrap gap-2">
+                {PODERES_PROCURACAO.map(s => {
+                  const on = formProc.poderes.includes(s.key);
+                  return (
+                    <button key={s.key} type="button"
+                      onClick={() => setFormP("poderes", on ? formProc.poderes.filter(x => x !== s.key) : [...formProc.poderes, s.key])}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+                      {on ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}{s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Validade</Label>
+              <Input className="h-9 text-sm" value={formProc.validade} onChange={e => setFormP("validade", e.target.value)} />
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {VALIDADES_PROCURACAO.map(v => {
+                  const on = formProc.validade === v.texto;
+                  return (
+                    <button key={v.label} type="button" onClick={() => setFormP("validade", v.texto)}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Local</Label>
+                <Input className="h-9 text-sm" value={formProc.local} onChange={e => setFormP("local", e.target.value)} /></div>
+              <div className="space-y-1"><Label className="text-xs">Data</Label>
+                <Input className="h-9 text-sm" type="date" value={formProc.data} onChange={e => setFormP("data", e.target.value)} /></div>
+            </div>
+
+            {/* Outorgado: os mesmos dados do Contratado do contrato (guardados no banco) */}
+            <div className="rounded-md border border-border/60 p-3">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Outorgado (procurador)</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {contratado.nome
+                  ? `${contratado.nome}${contratado.cpf ? ` · CPF ${contratado.cpf}` : ""} · representante da Passarinho Assessoria Bélica`
+                  : "Sem dados: preencha o Contratado no Contrato de Assessoria (são os mesmos)."}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setDialogProcOpen(false)}>Cancelar</Button>
+            <Button size="sm" className="h-8 text-xs gap-1.5" disabled={gerandoProc} onClick={async () => {
+              if (!formProc.nome.trim()) { alert("Busque o cliente ou preencha o nome do outorgante."); return; }
+              if (!formProc.cpf.trim()) { alert("Preencha o CPF do outorgante."); return; }
+              if (!formProc.poderes.length) { alert("Escolha ao menos um poder."); return; }
+              if (!contratado.nome.trim()) { alert("Faltam os dados do procurador: preencha o Contratado no Contrato de Assessoria."); return; }
+              setGerandoProc(true);
+              try {
+                const ok = await gerarPDFProcuracao(formProc, contratado, semLogo);
+                if (ok) setDialogProcOpen(false);
+              } finally { setGerandoProc(false); }
+            }}><Download className="h-3.5 w-3.5" />{gerandoProc ? "Gerando…" : "Gerar PDF"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
