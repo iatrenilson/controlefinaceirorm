@@ -777,7 +777,16 @@ export default function CadastrosAdmin() {
                         ))}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                        <p className="text-[10px] text-muted-foreground">{fmtData(c.created_at)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {fmtData(c.created_at)}
+                          {/* quem cadastrou: o colaborador do link usado (sem colaborador = link geral ou cadastro manual) */}
+                          {(() => {
+                            const colab = c.colaborador_token ? colaboradores.find(k => k.token === c.colaborador_token) : null;
+                            return colab
+                              ? <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Colaborador: {colab.nome}</span>
+                              : null;
+                          })()}
+                        </p>
                         {c.psicologico_url && (() => {
                           const ext = c.psicologico_url.split(".").pop()?.split("?")[0] || "pdf";
                           const dlUrl = `${c.psicologico_url}?download=${encodeURIComponent(`${c.nome.toUpperCase()} - Psicológico.${ext}`)}`;
