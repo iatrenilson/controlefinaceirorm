@@ -246,6 +246,8 @@ export default function CadastrosAdmin() {
   const [editandoColab, setEditandoColab] = useState<string | null>(null);
   const [editandoColabNome, setEditandoColabNome] = useState("");
   const [filtroColab, setFiltroColab] = useState<{ token: string; nome: string } | null>(null);
+  // Janela com os clientes do colaborador clicado (Esc fecha)
+  const [clientesColab, setClientesColab] = useState<{ token: string; nome: string } | null>(null);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -613,7 +615,7 @@ export default function CadastrosAdmin() {
                 <Card key={c.id} className={c.ativo ? "" : "opacity-60"}>
                   <CardContent className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setFiltroColab({ token: c.token, nome: c.nome }); setAba("cadastros"); }} title="Ver clientes deste colaborador">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { if (editandoColab !== c.id) setClientesColab({ token: c.token, nome: c.nome }); }} title="Ver clientes deste colaborador">
                         {editandoColab === c.id ? (
                           <div className="flex items-center gap-1.5">
                             <Input
@@ -821,6 +823,42 @@ export default function CadastrosAdmin() {
         </>
       )}
       </main>
+
+      {/* Clientes do colaborador clicado na aba Colaboradores */}
+      <Dialog open={!!clientesColab} onOpenChange={v => { if (!v) setClientesColab(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Clientes de {clientesColab?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const lista = cadastros.filter(c => clientesColab && c.colaborador_token === clientesColab.token);
+            if (!lista.length) return <p className="text-sm text-muted-foreground py-6 text-center">Nenhum cliente cadastrado por este colaborador.</p>;
+            return (
+              <div className="space-y-1.5">
+                <p className="text-xs text-muted-foreground">{lista.length} cliente{lista.length > 1 ? "s" : ""} cadastrado{lista.length > 1 ? "s" : ""}</p>
+                {lista.map(c => (
+                  <button key={c.id} type="button" onClick={() => { setClientesColab(null); abrirEdicao(c); }}
+                    className="w-full text-left rounded-md border border-border/60 px-3 py-2 hover:border-primary/50 hover:bg-primary/5 transition-colors">
+                    <p className="text-sm font-semibold">{c.nome}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {[c.cpf, c.tipo_sinarm, fmtData(c.created_at)].filter(Boolean).join(" · ")}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          <DialogFooter className="mt-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              if (clientesColab) setFiltroColab(clientesColab);
+              setClientesColab(null); setAba("cadastros");
+            }}>Ver na aba Cadastros</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ListaProvaDialog open={listaOpen} onOpenChange={setListaOpen} cadastros={cadastros} colaboradores={colaboradores} onSabado={marcarSabado} />
 
