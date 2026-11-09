@@ -873,7 +873,8 @@ export default function CadastrosAdmin() {
 
       {/* Dialog de cadastro manual */}
       <Dialog open={novoOpen} onOpenChange={v => { handleNovoOpenChange(v); if (!v) resetNovo(); }}>
-        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto">
+        {/* clique fora não fecha (perderia o que foi digitado): fecha só com Esc, X ou Cancelar */}
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto" onInteractOutside={e => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ClipboardPen className="h-4 w-4 text-primary" />
