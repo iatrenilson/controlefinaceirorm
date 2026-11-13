@@ -65,7 +65,7 @@ const rotuloDocCR = (doc: { id: string; label: string }, nomeArquivo?: string, s
 // Documentos que perguntam o tipo ao anexar, com as opções de cada um (null: não pergunta)
 const opcoesSubTipo = (docId: string): string[] | null =>
   docId === "comp_ocupacao" ? TIPOS_OCUPACAO_PF
-    : docId === "comp_residencia" || docId === "comp_2_end" ? ["Telefone", "Energia", "Água", "Gás"]
+    : docId === "comp_residencia" || docId === "comp_2_end" ? ["Telefone", "Luz", "Água", "Gás"]
     : docId in NOMES_CACA ? ["Tiro desportivo", "Caça"]
     : null;
 // Itens 11 e 12 em lote ou arrastados: o nome do arquivo já diz se é de caça ou de tiro; só pergunta quando não diz
