@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, Pencil, Check, X, StickyNote } from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, StickyNote, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,12 @@ const LISTAS_PADRAO = ["CR", "Autorização de Compra", "Renovação de CRAF", "
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const listasIniciais = (): Lista[] => LISTAS_PADRAO.map(nome => ({ id: novoId(), nome, itens: [] }));
 
-function CartaoLista({ lista, onMudar, onExcluir }: {
+function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
   lista: Lista;
   onMudar: (l: Lista) => void;
   onExcluir: () => void;
+  onPegar: (e: React.DragEvent) => void;      // começa a arrastar a lista pela alça
+  onMover: (passo: -1 | 1) => void;           // setas (no celular não dá para arrastar)
 }) {
   const [novo, setNovo] = useState("");
   const [editando, setEditando] = useState<string | null>(null);   // id do item, ou "titulo"
@@ -49,7 +51,7 @@ function CartaoLista({ lista, onMudar, onExcluir }: {
   const pendentes = lista.itens.filter(i => !i.feito).length;
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col" data-cartao onDragEnd={() => window.dispatchEvent(new Event("anotacoes-soltou"))}>
       <CardContent className="p-4 space-y-3 flex-1 flex flex-col">
         <div className="flex items-center gap-2">
           {editando === "titulo" ? (
@@ -57,6 +59,12 @@ function CartaoLista({ lista, onMudar, onExcluir }: {
               onChange={e => setTextoEdit(e.target.value)} onKeyDown={teclaEdicao} onBlur={salvarEdicao} />
           ) : (
             <>
+              <span draggable onDragStart={onPegar} title="Arraste para mudar a lista de lugar"
+                className="-ml-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hidden sm:inline-flex">
+                <GripVertical className="h-4 w-4" />
+              </span>
+              <button onClick={() => onMover(-1)} title="Mover para trás" className="p-0.5 rounded text-muted-foreground hover:bg-accent sm:hidden"><ChevronLeft className="h-4 w-4" /></button>
+              <button onClick={() => onMover(1)} title="Mover para frente" className="p-0.5 rounded text-muted-foreground hover:bg-accent sm:hidden"><ChevronRight className="h-4 w-4" /></button>
               <h2 className="font-bold text-primary flex-1 truncate">{lista.nome}</h2>
               <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                 {pendentes}{lista.itens.length !== pendentes ? ` de ${lista.itens.length}` : ""}
@@ -98,9 +106,6 @@ function CartaoLista({ lista, onMudar, onExcluir }: {
                 ) : (
                   <>
                     <span className={`flex-1 text-sm break-words ${i.feito ? "line-through text-muted-foreground" : ""}`}>{i.texto}</span>
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      {new Date(i.em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                    </span>
                     <button onClick={() => { setEditando(i.id); setTextoEdit(i.texto); }} title="Editar"
                       className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
                     <button onClick={() => onMudar({ ...lista, itens: lista.itens.filter(x => x.id !== i.id) })} title="Apagar"
@@ -121,6 +126,9 @@ export default function Anotacoes() {
   const [salvando, setSalvando] = useState(false);
   const [novaLista, setNovaLista] = useState("");
   const fila = useRef<Promise<unknown>>(Promise.resolve());
+  // Arrastar uma lista (pela alça) e soltar sobre outra: ela passa a ocupar o lugar daquela
+  const [arrastada, setArrastada] = useState<string | null>(null);
+  const [sobre, setSobre] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.from("app_config" as any).select("valor").eq("chave", CHAVE).maybeSingle()
@@ -149,6 +157,22 @@ export default function Anotacoes() {
     setNovaLista("");
   };
 
+  const moverPara = (id: string, destino: number) => {
+    if (!listas) return;
+    const de = listas.findIndex(l => l.id === id);
+    if (de < 0 || destino < 0 || destino >= listas.length || de === destino) return;
+    const novas = [...listas];
+    const [l] = novas.splice(de, 1);
+    novas.splice(destino, 0, l);
+    gravar(novas);
+  };
+
+  useEffect(() => {
+    const fim = () => { setArrastada(null); setSobre(null); };
+    window.addEventListener("anotacoes-soltou", fim);
+    return () => window.removeEventListener("anotacoes-soltou", fim);
+  }, []);
+
   if (!listas) return <div className="p-4 text-sm text-muted-foreground">Carregando…</div>;
 
   return (
@@ -166,10 +190,24 @@ export default function Anotacoes() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 items-start">
-        {listas.map(l => (
-          <CartaoLista key={l.id} lista={l}
-            onMudar={nova => gravar(listas.map(x => (x.id === l.id ? nova : x)))}
-            onExcluir={() => gravar(listas.filter(x => x.id !== l.id))} />
+        {listas.map((l, idx) => (
+          <div key={l.id}
+            className={`rounded-lg transition-all ${arrastada === l.id ? "opacity-40" : ""} ${sobre === l.id && arrastada !== l.id ? "ring-2 ring-primary" : ""}`}
+            onDragOver={e => { if (!arrastada) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (sobre !== l.id) setSobre(l.id); }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setSobre(s => (s === l.id ? null : s)); }}
+            onDrop={e => { if (!arrastada) return; e.preventDefault(); moverPara(arrastada, idx); setArrastada(null); setSobre(null); }}>
+            <CartaoLista lista={l}
+              onMudar={nova => gravar(listas.map(x => (x.id === l.id ? nova : x)))}
+              onExcluir={() => gravar(listas.filter(x => x.id !== l.id))}
+              onPegar={e => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", l.nome);
+                const cartao = (e.currentTarget as HTMLElement).closest("[data-cartao]");
+                if (cartao) e.dataTransfer.setDragImage(cartao, 20, 20);
+                setArrastada(l.id);
+              }}
+              onMover={passo => moverPara(l.id, idx + passo)} />
+          </div>
         ))}
       </div>
     </div>
