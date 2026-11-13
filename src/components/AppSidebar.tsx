@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ClipboardList, Wallet, UserPlus, FolderOpen } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ClipboardList, Wallet, UserPlus, FolderOpen, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -278,6 +278,15 @@ export function AppSidebar() {
                       <NavLink to="/docs-cr" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                         <FolderOpen className="h-[18px] w-[18px]" />
                         <span>Documentos CR</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="Anotações">
+                      <NavLink to="/anotacoes" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <StickyNote className="h-[18px] w-[18px]" />
+                        <span>Anotações</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
