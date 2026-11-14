@@ -5,6 +5,7 @@ import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido"
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
 import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp } from "@/lib/avisosPush";
 import { useEscComPdf } from "@/hooks/useEscComPdf";
+import { guardarCopia, lerCopia, urlsDaCopia, paginasDoPdf, registrarServiceWorker } from "@/lib/carteiraOffline";
 
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -103,6 +104,15 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
 
   const usarRender = podeColorir && colorido !== "erro";
   const mostrarColorido = usarRender && colorir;
+  // Sem internet o documento vem da cópia do aparelho (blob:), que o leitor do Google não abre: desenha as páginas aqui
+  const pdfDaCopia = isPdf && url.startsWith("blob:") && !usarRender;
+  const [paginas, setPaginas] = useState<string[] | "erro" | null>(null);
+  useEffect(() => {
+    if (!pdfDaCopia) return;
+    let vivo = true;
+    paginasDoPdf(url).then(p => { if (vivo) setPaginas(p); }, () => { if (vivo) setPaginas("erro"); });
+    return () => { vivo = false; };
+  }, [url, pdfDaCopia]);
   const janela = useRef<HTMLDivElement>(null);
   useEscComPdf(janela); // Esc fecha mesmo depois de clicar no PDF
   return (
@@ -124,8 +134,14 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
           </button>
         </div>
       </div>
-      <div style={{ flex:1, overflow: usarRender ? "auto" : "hidden", display:"flex", alignItems: usarRender ? "flex-start" : "center", justifyContent:"center", padding:8 }}>
-        {usarRender
+      <div style={{ flex:1, overflow: usarRender || pdfDaCopia ? "auto" : "hidden", display:"flex", flexDirection: pdfDaCopia ? "column" : "row", gap:8, alignItems: usarRender ? "flex-start" : "center", justifyContent: pdfDaCopia ? "flex-start" : "center", padding:8 }}>
+        {pdfDaCopia
+          ? paginas === "erro"
+            ? <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>Não consegui abrir este PDF sem internet.</p>
+            : paginas
+              ? paginas.map((src, i) => <img key={i} src={src} alt={`${nome} – página ${i + 1}`} style={{ width:"100%", height:"auto", display:"block", borderRadius:4, background:"#fff" }} />)
+              : <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>Carregando...</p>
+        : usarRender
           ? colorido
             ? <img src={colorir ? colorido.previa : colorido.previaOriginal} alt={colorir ? `${nome} colorido` : nome}
                 style={{ width:"100%", height:"auto", display:"block", borderRadius:4, background:"#fff" }} />
@@ -145,6 +161,10 @@ export default function CarteiraCliente() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(false);
   const [preview, setPreview] = useState<{ url: string; nome: string; modelo?: ModeloDoc } | null>(null);
+  // Sem internet: data e hora da cópia mostrada, e os documentos guardados no aparelho (endereço original → blob:)
+  const [salvoEm, setSalvoEm] = useState<number | null>(null);
+  const [docsDaCopia, setDocsDaCopia] = useState<Record<string, string>>({});
+  const urlDoc = (path: string) => docsDaCopia[publicUrl(path)] ?? publicUrl(path);
   const [expandedArmas, setExpandedArmas] = useState<Record<string, boolean>>({});
   // A chave fica lembrada neste aparelho até ser desligada
   const [colorir, setColorirEstado] = useState<boolean>(() => {
@@ -252,18 +272,35 @@ export default function CarteiraCliente() {
 
   useEffect(() => {
     if (!id) { setErro(true); setLoading(false); return; }
+    registrarServiceWorker();
+    // Sem resposta em 10 s (sinal fraco na rua) conta como sem internet
+    const parar = new AbortController();
+    const tempo = setTimeout(() => parar.abort(), 10000);
     fetch(`${SUPABASE_URL}/rest/v1/rpc/get_carteira_v2`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` },
       body: JSON.stringify({ p_id: id }),
+      signal: parar.signal,
     })
       .then(r => r.json())
       .then(json => {
         if (!json || !json.nome) setErro(true);
-        else setData(json);
+        else {
+          setData(json);
+          guardarCopia(id, json, (json.docs ?? []).map((d: CartDoc) => publicUrl(d.arquivo_path)));
+        }
         setLoading(false);
       })
-      .catch(() => { setErro(true); setLoading(false); });
+      .catch(async () => {
+        const copia = lerCopia<CarteiraData>(id);
+        if (copia) {
+          setDocsDaCopia(await urlsDaCopia((copia.data.docs ?? []).map(d => publicUrl(d.arquivo_path))));
+          setData(copia.data);
+          setSalvoEm(copia.salvoEm);
+        } else setErro(true);
+        setLoading(false);
+      })
+      .finally(() => clearTimeout(tempo));
   }, [id]);
 
   // Fecha preview com ESC
@@ -277,7 +314,7 @@ export default function CarteiraCliente() {
   useEffect(() => {
     if (!colorir || !data) return;
     for (const d of data.docs ?? []) {
-      if ((d.tipo === "cr" || d.tipo === "craf") && !ehImagem(d.arquivo_nome)) docColorido(publicUrl(d.arquivo_path), d.tipo).catch(() => {});
+      if ((d.tipo === "cr" || d.tipo === "craf") && !ehImagem(d.arquivo_nome)) docColorido(urlDoc(d.arquivo_path), d.tipo).catch(() => {});
     }
   }, [colorir, data]);
 
@@ -311,8 +348,10 @@ export default function CarteiraCliente() {
     <div style={{ ...FULL_BG, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
       <div style={{ textAlign:"center", color:FG_MUTED, maxWidth:320 }}>
         <div style={{ fontSize:48, marginBottom:16 }}>🔍</div>
-        <h2 style={{ color:FG, fontSize:18, marginBottom:8, fontFamily:FONT }}>Carteira não encontrada</h2>
-        <p style={{ fontSize:14, fontFamily:FONT }}>Este link pode estar incorreto ou expirado.</p>
+        <h2 style={{ color:FG, fontSize:18, marginBottom:8, fontFamily:FONT }}>{navigator.onLine ? "Carteira não encontrada" : "Sem internet"}</h2>
+        <p style={{ fontSize:14, fontFamily:FONT }}>{navigator.onLine
+          ? "Este link pode estar incorreto ou expirado."
+          : "Esta carteira ainda não foi aberta com internet neste celular, então não há cópia salva. Conecte-se e abra uma vez."}</p>
         <a href="https://wa.me/5592993161828" style={{ display:"inline-block", marginTop:20, padding:"10px 20px", background:"#25d366", color:"#fff", borderRadius:8, textDecoration:"none", fontSize:14, fontWeight:600, fontFamily:FONT }}>
           📱 Falar com a Assessoria
         </a>
@@ -432,6 +471,13 @@ export default function CarteiraCliente() {
         </div>
 
         <div style={{ maxWidth:440, margin:"0 auto", padding:"0 14px" }}>
+
+          {salvoEm && (
+            <div style={{ background:"rgba(212,167,48,0.10)", border:`1px solid ${GOLD_BORDER}`, borderRadius:12, padding:"10px 14px", marginBottom:12, color:FG, fontSize:12, lineHeight:1.5, fontFamily:FONT }}>
+              📴 <b>Sem internet.</b> Mostrando os documentos salvos neste celular em{" "}
+              {new Date(salvoEm).toLocaleString("pt-BR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }).replace(",", " às")}.
+            </div>
+          )}
 
           {/* Card cliente */}
           <div style={{ position:"relative", background:CARD_BG, borderRadius:16, padding:"18px 20px", marginBottom:12, border:`1px solid ${GOLD_BORDER}`, backdropFilter:"blur(12px)" }}>
@@ -618,7 +664,7 @@ export default function CarteiraCliente() {
                             </button>
                             {/* GTs desta arma */}
                             {expanded && gtDocs.map((doc, i) => {
-                              const url = publicUrl(doc.arquivo_path);
+                              const url = urlDoc(doc.arquivo_path);
                               return (
                                 <div key={doc.id ?? i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, padding:"8px 14px 8px 24px", borderTop:"1px solid rgba(201,162,39,0.06)" }}>
                                   <div style={{ minWidth:0, flex:1 }}>
@@ -654,7 +700,7 @@ export default function CarteiraCliente() {
                         );
                       });
                     })() : docList.map((doc, i) => {
-                      const url = publicUrl(doc.arquivo_path);
+                      const url = urlDoc(doc.arquivo_path);
                       const docKey = doc.id ?? `${key}-${i}`;
                       const modelo: ModeloDoc | undefined = key === "cr" || key === "craf" ? key : undefined;
                       const nomeDoc = doc.arquivo_nome || `${label}.pdf`;

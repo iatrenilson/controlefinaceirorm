@@ -2,10 +2,10 @@
 // Só muda cores: borda decorativa, marca d'água (brasão colorido), brasão no canto (CR) e moldura de cada cartão.
 // O texto continua sendo o do PDF original.
 
-const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-const PDFLIB = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
-const BRASAO = `${import.meta.env.BASE_URL}brasao-colorido.png`;
+export const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+export const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+export const PDFLIB = "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js";
+export const BRASAO = `${import.meta.env.BASE_URL}brasao-colorido.png`;
 
 type RGB = [number, number, number];
 const AZUL: RGB = [0, 39, 118], AMARELO: RGB = [255, 212, 0], VERDE: RGB = [0, 156, 59], AZUL_BORDA: RGB = [36, 90, 170];
@@ -20,21 +20,36 @@ type Matriz = number[];
 interface Ret { x0: number; y0: number; x1: number; y1: number }
 interface Cartao extends Ret { tiras: Ret[] }
 
+// Sem internet, os scripts vêm da cópia que a Carteira do cliente guarda no aparelho (lib/carteiraOffline)
+export async function scriptDaCopia(src: string): Promise<string> {
+  const r = "caches" in window ? await caches.match(src) : undefined;
+  if (!r) throw new Error("sem cópia de " + src);
+  return URL.createObjectURL(new Blob([await r.text()], { type: "text/javascript" }));
+}
+function injetarScript(src: string, global: string): Promise<any> {
+  const w = window as any;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    if (!src.startsWith("blob:")) s.crossOrigin = "anonymous";
+    s.onload = () => (w[global] ? resolve(w[global]) : reject(new Error(`${global} não carregou`)));
+    s.onerror = () => { s.remove(); reject(new Error(`${global} não carregou`)); };
+    document.head.appendChild(s);
+  });
+}
 const scripts: Record<string, Promise<any>> = {};
 function carregarScript(src: string, global: string): Promise<any> {
   const w = window as any;
   if (w[global]) return Promise.resolve(w[global]);
-  scripts[src] ??= new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = src;
-    s.crossOrigin = "anonymous";
-    s.onload = () => (w[global] ? resolve(w[global]) : reject(new Error(`${global} não carregou`)));
-    s.onerror = () => { delete scripts[src]; reject(new Error(`${global} não carregou`)); };
-    document.head.appendChild(s);
-  });
+  scripts[src] ??= injetarScript(src, global)
+    .catch(async erro => injetarScript(await scriptDaCopia(src).catch(() => { throw erro; }), global))
+    .catch(erro => { delete scripts[src]; throw erro; });
   return scripts[src];
 }
-const carregarPDFJS = () => carregarScript(PDFJS, "pdfjsLib").then(lib => { lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER; return lib; });
+export const carregarPDFJS = () => carregarScript(PDFJS, "pdfjsLib").then(async lib => {
+  lib.GlobalWorkerOptions.workerSrc = navigator.onLine ? PDFJS_WORKER : await scriptDaCopia(PDFJS_WORKER).catch(() => PDFJS_WORKER);
+  return lib;
+});
 const carregarPDFLib = () => carregarScript(PDFLIB, "PDFLib");
 
 // onload em vez de img.decode(): o decode() do Chrome só conclui quando a página desenha um quadro
