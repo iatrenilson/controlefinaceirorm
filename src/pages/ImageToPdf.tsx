@@ -93,7 +93,7 @@ export default function ImageToPdf() {
     try {
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
       const { jsPDF } = (window as any).jspdf;
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
       const W = 210, H = 297;
 
       for (let i = 0; i < images.length; i++) {
@@ -108,7 +108,8 @@ export default function ImageToPdf() {
             const x = (W - w) / 2;
             const y = (H - h) / 2;
             const fmt = img.file.type === "image/png" ? "PNG" : "JPEG";
-            doc.addImage(el, fmt, x, y, w, h);
+            // "FAST" comprime a imagem sem perder qualidade: sem isso o jsPDF guarda o PNG cru (3 prints davam 12 MB)
+            doc.addImage(el, fmt, x, y, w, h, undefined, "FAST");
             resolve();
           };
           el.onerror = reject;
