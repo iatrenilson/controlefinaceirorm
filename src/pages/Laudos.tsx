@@ -650,10 +650,10 @@ const Laudos = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Carrega e mantém cadastros atualizados em tempo real
+  // Carrega e mantém cadastros atualizados em tempo real (os mais recentes primeiro na busca)
   useEffect(() => {
     const carregar = () =>
-      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("nome")
+      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("created_at", { ascending: false })
         .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
 
     carregar();
