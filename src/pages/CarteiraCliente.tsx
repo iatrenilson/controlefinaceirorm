@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
-import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp } from "@/lib/avisosPush";
+import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
 import { useEscComPdf } from "@/hooks/useEscComPdf";
 import { guardarCopia, lerCopia, urlsDaCopia, paginasDoPdf, registrarServiceWorker } from "@/lib/carteiraOffline";
 
@@ -30,24 +30,36 @@ function primeiroNome(nome: string) {
 }
 
 
+// Entrega o arquivo ao aparelho. No iPhone o "baixar" do navegador não funciona com a carteira instalada na Tela de
+// Início (nem com arquivo gerado aqui, como a cópia sem internet ou o colorido): abre o compartilhar do iPhone, onde
+// tem "Salvar em Arquivos", WhatsApp etc. Nos outros aparelhos, baixa
+async function entregarArquivo(blob: Blob, nome: string) {
+  if (ehIOS()) {
+    const arquivo = new File([blob], nome, { type: blob.type || (nome.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/png") });
+    if (navigator.canShare?.({ files: [arquivo] })) {
+      try { await navigator.share({ files: [arquivo], title: nome }); return; }
+      catch (e) { if ((e as Error)?.name === "AbortError") return; /* outro erro: tenta baixar */ }
+    }
+  }
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+}
+
 async function baixarArquivo(url: string, nomeArquivo: string) {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  // a cópia guardada no aparelho (blob:, sem internet) baixa direto também no iPhone; abrir em outra aba não funciona
-  if (isIOS && !url.startsWith("blob:")) {
+  // com internet, no iPhone abre o documento numa aba (de lá dá para salvar); a cópia guardada (blob:) vai pelo compartilhar
+  if (ehIOS() && !url.startsWith("blob:")) {
     window.open(url, "_blank");
     return;
   }
   try {
     const res = await fetch(url);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = nomeArquivo;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    await entregarArquivo(await res.blob(), nomeArquivo);
   } catch {
     window.open(url, "_blank");
   }
@@ -60,12 +72,7 @@ async function baixarDoc(url: string, nome: string, modelo?: ModeloDoc) {
   if (modelo && !ehImagem(nome)) {
     const r = await docColorido(url, modelo).catch(() => null);
     if (r) {
-      const blobUrl = URL.createObjectURL(r.pdf);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `${nome.replace(/\.[^.]+$/, "")} - colorido.pdf`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      await entregarArquivo(r.pdf, `${nome.replace(/\.[^.]+$/, "")} - colorido.pdf`);
       return;
     }
   }
