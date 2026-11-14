@@ -41,13 +41,16 @@ const scripts: Record<string, Promise<any>> = {};
 function carregarScript(src: string, global: string): Promise<any> {
   const w = window as any;
   if (w[global]) return Promise.resolve(w[global]);
-  scripts[src] ??= injetarScript(src, global)
-    .catch(async erro => injetarScript(await scriptDaCopia(src).catch(() => { throw erro; }), global))
+  // Com cópia guardada no aparelho (Carteira do cliente), usa ela primeiro: é o mesmo arquivo (endereço com versão) e,
+  // com sinal fraco na rua, o script da internet podia ficar carregando sem fim
+  scripts[src] ??= scriptDaCopia(src)
+    .then(copia => injetarScript(copia, global), () => injetarScript(src, global))
+    .catch(() => injetarScript(src, global))
     .catch(erro => { delete scripts[src]; throw erro; });
   return scripts[src];
 }
 export const carregarPDFJS = () => carregarScript(PDFJS, "pdfjsLib").then(async lib => {
-  lib.GlobalWorkerOptions.workerSrc = navigator.onLine ? PDFJS_WORKER : await scriptDaCopia(PDFJS_WORKER).catch(() => PDFJS_WORKER);
+  lib.GlobalWorkerOptions.workerSrc = await scriptDaCopia(PDFJS_WORKER).catch(() => PDFJS_WORKER);
   return lib;
 });
 const carregarPDFLib = () => carregarScript(PDFLIB, "PDFLib");

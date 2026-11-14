@@ -32,7 +32,8 @@ function primeiroNome(nome: string) {
 
 async function baixarArquivo(url: string, nomeArquivo: string) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  if (isIOS) {
+  // a cópia guardada no aparelho (blob:, sem internet) baixa direto também no iPhone; abrir em outra aba não funciona
+  if (isIOS && !url.startsWith("blob:")) {
     window.open(url, "_blank");
     return;
   }
@@ -84,14 +85,16 @@ function ChaveColorir({ ligada, onChange }: { ligada: boolean; onChange: (v: boo
   );
 }
 
-function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
-  url: string; nome: string; modelo?: ModeloDoc; colorir: boolean; onColorir: (v: boolean) => void; onClose: () => void;
+function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose, semInternet = false }: {
+  url: string; nome: string; modelo?: ModeloDoc; colorir: boolean; onColorir: (v: boolean) => void; onClose: () => void; semInternet?: boolean;
 }) {
   const isPdf = nome.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf") || (!nome.match(/\.(png|jpg|jpeg|gif|webp)$/i) && !url.match(/\.(png|jpg|jpeg|gif|webp)(\?|$)/i));
   const viewerUrl = isPdf
     ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
     : url;
-  const podeColorir = !!modelo && isPdf;
+  // sem internet, documento que não ficou guardado no aparelho só mostra o aviso (a internet ficaria carregando sem fim)
+  const naoGuardado = semInternet && !url.startsWith("blob:");
+  const podeColorir = !!modelo && isPdf && !naoGuardado;
   const [colorido, setColorido] = useState<DocColorido | "erro" | null>(null);
 
   // CR/CRAF: original e colorido saem do mesmo renderizador, na mesma escala, para a chave só trocar as cores
@@ -135,7 +138,9 @@ function PreviewModal({ url, nome, modelo, colorir, onColorir, onClose }: {
         </div>
       </div>
       <div style={{ flex:1, overflow: usarRender || pdfDaCopia ? "auto" : "hidden", display:"flex", flexDirection: pdfDaCopia ? "column" : "row", gap:8, alignItems: usarRender ? "flex-start" : "center", justifyContent: pdfDaCopia ? "flex-start" : "center", padding:8 }}>
-        {pdfDaCopia
+        {naoGuardado
+          ? <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto", textAlign:"center", padding:16 }}>Este documento ainda não foi salvo neste celular. Abra a carteira com internet uma vez para salvar.</p>
+        : pdfDaCopia
           ? paginas === "erro"
             ? <p style={{ color:"#e8d5a0", fontSize:13, margin:"auto" }}>Não consegui abrir este PDF sem internet.</p>
             : paginas
@@ -427,7 +432,7 @@ export default function CarteiraCliente() {
 
   return (
     <>
-      {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} />}
+      {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} semInternet={!!salvoEm} />}
       {perguntarAvisos && pushEstado === "inativo" && (
         <div role="dialog" aria-modal="true" aria-labelledby="pergunta-avisos-titulo"
           style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(0,0,0,0.72)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
