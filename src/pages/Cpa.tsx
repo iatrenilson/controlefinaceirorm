@@ -303,9 +303,10 @@ export default function Cpa() {
   const [salvando, setSalvando] = useState(false);
   const fila = useRef<Promise<unknown>>(Promise.resolve());
   const [chaves, setChaves] = useState<ChavePix[]>([]);
+  const [chavesLidas, setChavesLidas] = useState(false);
   useEffect(() => {
     supabase.from("app_config" as any).select("valor").eq("chave", "cpa_chaves").maybeSingle()
-      .then(({ data }) => setChaves(((data as any)?.valor?.chaves as ChavePix[]) ?? []));
+      .then(({ data }) => { setChaves(((data as any)?.valor?.chaves as ChavePix[]) ?? []); setChavesLidas(true); });
   }, []);
   const gravarChaves = (novas: ChavePix[]) => {
     setChaves(novas);
@@ -316,6 +317,14 @@ export default function Cpa() {
       if (error) toast.error("Não consegui salvar as chaves: " + error.message);
     }).finally(() => setSalvando(false));
   };
+  // Chave já usada numa conta não fica no cadastro (as escolhidas antes dessa regra também saem)
+  useEffect(() => {
+    if (!chavesLidas || !chaves.length) return;
+    const usadas = new Set(Object.values(meses).flatMap(m => Object.values(m).flat())
+      .flatMap(c => [c.pixSaque?.chave, c.pixBau?.chave]).filter(Boolean));
+    if (chaves.some(c => usadas.has(c.chave))) gravarChaves(chaves.filter(c => !usadas.has(c.chave)));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chavesLidas, chaves, meses]);
   const chave = chaveMes(dia);
   const mes = meses[chave];
 
