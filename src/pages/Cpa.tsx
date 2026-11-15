@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks } from "lucide-react";
-import { ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -166,8 +165,6 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
       const bau = cs.reduce((t, c) => t + (c.bau || 0), 0);
       return { dia: d, contas: cs.length, dep, saq, bau, lucro: saq + bau - dep };
     });
-  let acumulado = 0;
-  const grafico = linhas.map(l => ({ ...l, rotulo: `${l.dia.slice(8)}/${l.dia.slice(5, 7)}`, acumulado: (acumulado += l.lucro) }));
   const tot = linhas.reduce((t, l) => ({ dep: t.dep + l.dep, saq: t.saq + l.saq, bau: t.bau + l.bau, lucro: t.lucro + l.lucro, contas: t.contas + l.contas }),
     { dep: 0, saq: 0, bau: 0, lucro: 0, contas: 0 });
   const hoje = dias[diaISO(new Date())] ?? [];
@@ -214,36 +211,6 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
           </Card>
         ))}
       </div>
-
-      <Card>
-        <CardContent className="px-2.5 py-1.5">
-          <p className="text-xs font-semibold">Lucro por dia <span className="text-[10px] font-normal text-foreground/75">(barras) e acumulado (linha dourada)</span></p>
-          {grafico.length === 0 ? (
-            <p className="text-xs text-foreground/75 text-center py-4">Nenhuma conta neste período.</p>
-          ) : (
-            <div className="h-[130px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={grafico} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="rotulo" tick={{ fill: "hsl(40, 12%, 78%)", fontSize: 10 }} height={18} />
-                  {/* o zero sempre aparece: com um dia só, o eixo ia de -147 a -151 */}
-                  <YAxis tick={{ fill: "hsl(40, 12%, 78%)", fontSize: 10 }} width={48}
-                    domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]}
-                    tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : String(v))} />
-                  <ReferenceLine y={0} stroke="hsl(40, 6%, 40%)" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "hsl(20, 10%, 9%)", border: "1px solid hsl(42, 40%, 25%)", borderRadius: 8, fontSize: 12 }}
-                    formatter={(v: number, n: string) => [reais(v), n]} />
-                  <Bar dataKey="lucro" name="Lucro do dia" radius={[3, 3, 0, 0]} maxBarSize={48}>
-                    {grafico.map(g => <Cell key={g.dia} fill={g.lucro >= 0 ? "hsl(145, 63%, 45%)" : "hsl(0, 72%, 55%)"} />)}
-                  </Bar>
-                  <Line type="monotone" dataKey="acumulado" name="Acumulado" stroke="hsl(42, 82%, 52%)" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {linhas.length > 0 && (
         <details className="rounded-lg border border-border/60 bg-card">
