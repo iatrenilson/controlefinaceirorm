@@ -220,7 +220,7 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
           {grafico.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-10">Nenhuma conta neste período.</p>
           ) : (
-            <div className="h-[280px]">
+            <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={grafico} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -243,8 +243,9 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
       </Card>
 
       {linhas.length > 0 && (
-        <Card>
-          <CardContent className="p-0 overflow-x-auto">
+        <details className="rounded-lg border border-border/60 bg-card">
+          <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold">Ver dia a dia ({linhas.length})</summary>
+          <div className="overflow-x-auto border-t border-border/60">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border/60">
@@ -266,15 +267,14 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
       )}
     </div>
   );
 }
 
 export default function Cpa() {
-  const [aba, setAba] = useState<"dia" | "dashboard">("dia");
   const [dia, setDia] = useState(() => diaISO(new Date()));
   const [meses, setMeses] = useState<Record<string, Mes>>({}); // chave do mês → dados
   const [busca, setBusca] = useState("");
@@ -336,17 +336,18 @@ export default function Cpa() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[200px]">
           <h1 className="text-xl font-bold flex items-center gap-2"><Coins className="h-5 w-5 text-primary" />CPA</h1>
-          <p className="text-sm text-muted-foreground">Depósitos, saques e lucro das contas do dia. {salvando ? "Salvando…" : "Tudo salvo."}</p>
+          <p className="text-sm text-muted-foreground">Depósitos, saques e lucro das contas. {salvando ? "Salvando…" : "Tudo salvo."}</p>
         </div>
-        <div className="flex rounded-full border border-border/60 bg-card p-1">
-          {([["dia", "Contas do dia", ListChecks], ["dashboard", "Dashboard", LayoutDashboard]] as const).map(([id, rotulo, Icone]) => (
-            <button key={id} onClick={() => setAba(id)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${aba === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              <Icone className="h-3.5 w-3.5" />{rotulo}
-            </button>
-          ))}
-        </div>
-        {aba === "dia" && <>
+      </div>
+
+      {/* Dashboard sempre no alto da página */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4" />Dashboard</h2>
+        <Dashboard atuais={meses} />
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-border/60 pt-4">
+        <h2 className="flex-1 min-w-[200px] text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><ListChecks className="h-4 w-4" />Contas do dia</h2>
         <div className="flex items-center gap-1 rounded-full border border-border/60 bg-card px-1 py-1">
           <button onClick={() => mudarDia(-1)} className="p-1.5 rounded-full hover:bg-accent" title="Dia anterior"><ChevronLeft className="h-4 w-4" /></button>
           {!hoje && <button onClick={() => setDia(diaISO(new Date()))} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/60 hover:bg-accent">Hoje</button>}
@@ -357,9 +358,7 @@ export default function Cpa() {
         <Button className="gap-1" onClick={() => gravarDia([...contas, { id: novoId(), nome: "", depositos: [], saques: [], bau: 0 }])}>
           <Plus className="h-4 w-4" />Nova conta
         </Button>
-        </>}
       </div>
-      {aba === "dashboard" ? <Dashboard atuais={meses} /> : <>
       <p className="text-sm font-medium first-letter:uppercase -mt-2">{tituloDia}</p>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
@@ -394,7 +393,6 @@ export default function Cpa() {
             onExcluir={() => gravarDia(contas.filter(x => x.id !== c.id))} />
         ))}
       </div>
-      </>}
     </div>
   );
 }
