@@ -234,8 +234,6 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
   const cards = [
     { rotulo: "Lucro de hoje", valor: reais(lucroHoje), cor: cor(lucroHoje), sub: `${plural(hoje.length, "conta")} hoje` },
     { rotulo: "Lucro acumulado", valor: reais(tot.lucro), cor: cor(tot.lucro), sub: `${plural(linhas.length, "dia")} com contas` },
-    { rotulo: "Total depositado", valor: reais(tot.dep), cor: "", sub: plural(tot.contas, "conta") },
-    { rotulo: "Total sacado", valor: reais(tot.saq), cor: "text-sky-400", sub: `+ ${reais(tot.bau)} de baú` },
     { rotulo: "Média de lucro por dia", valor: reais(linhas.length ? tot.lucro / linhas.length : 0), cor: cor(tot.lucro), sub: `${plural(positivos, "dia")} com lucro · ${negativos} com prejuízo` },
     { rotulo: "Retorno sobre depósito", valor: tot.dep ? `${(tot.lucro / tot.dep * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—", cor: cor(tot.lucro), sub: "lucro ÷ depositado" },
     { rotulo: "Melhor dia", valor: melhor ? reais(melhor.lucro) : "—", cor: melhor ? cor(melhor.lucro) : "", sub: melhor ? dataCurta(melhor.dia) : "" },
@@ -254,7 +252,7 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
         ))}
       </div>
 
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         {cards.map(c => (
           <Card key={c.rotulo}>
             <CardContent className="px-2.5 py-1.5">
@@ -356,7 +354,6 @@ export default function Cpa() {
   const totalRet = contas.reduce((t, c) => t + soma(c.saques) + bauDe(c), 0);
   const lucroDia = totalRet - totalDep;
   const comDeposito = contas.filter(c => c.depositos.length).length;
-  const lucroMes = Object.values(mes).flat().reduce((t, c) => t + lucroDe(c), 0);
   const hoje = dia === diaISO(new Date());
   const tituloDia = new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const corLucro = (n: number) => (n > 0 ? "text-green-500" : n < 0 ? "text-red-500" : "");
@@ -366,7 +363,6 @@ export default function Cpa() {
     { rotulo: "Total retorno (saque + baú)", valor: reais(totalRet), cor: "text-sky-400" },
     { rotulo: "Lucro do dia", valor: reais(lucroDia), cor: corLucro(lucroDia) },
     { rotulo: "Média de depósitos", valor: reais(comDeposito ? totalDep / comDeposito : 0), cor: "text-violet-400" },
-    { rotulo: `Lucro em ${new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { month: "long" })}`, valor: reais(lucroMes), cor: corLucro(lucroMes) },
   ];
 
   return (
@@ -392,7 +388,7 @@ export default function Cpa() {
       </div>
       <p className="text-sm font-medium first-letter:uppercase -mt-2">{tituloDia}</p>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {resumo.map(r => (
           <Card key={r.rotulo}>
             <CardContent className="p-3">
