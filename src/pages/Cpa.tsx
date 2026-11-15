@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks, KeyRound, Copy, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks, KeyRound, Copy, MessageSquare, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,8 @@ function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: Chav
 // cada conta e saem do cadastro assim que são usadas numa conta (cada chave serve para um ciclo só)
 function ChavesPix({ chaves, onMudar }: { chaves: ChavePix[]; onMudar: (c: ChavePix[]) => void }) {
   const [nova, setNova] = useState("");
+  const [ver, setVer] = useState(false);       // setinha: mostra as chaves cadastradas
+  const [apagar, setApagar] = useState<string | null>(null);
   const adicionar = () => {
     const chave = nova.trim();
     if (!chave) { toast.error("Digite a chave Pix"); return; }
@@ -87,7 +89,32 @@ function ChavesPix({ chaves, onMudar }: { chaves: ChavePix[]; onMudar: (c: Chave
       <Input className="h-8 text-sm placeholder:text-foreground/45 font-mono flex-1 min-w-[220px]" placeholder="CPF, telefone, e-mail ou aleatória"
         value={nova} onChange={e => setNova(e.target.value)} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
       <Button size="sm" className="h-8 gap-1" onClick={adicionar}><Plus className="h-3.5 w-3.5" />Cadastrar</Button>
-      <span className="text-[11px] text-foreground/75">{chaves.length} cadastrada{chaves.length === 1 ? "" : "s"}</span>
+      <button onClick={() => setVer(v => !v)} title={ver ? "Esconder as chaves" : "Ver as chaves cadastradas"}
+        className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-foreground/75 hover:bg-accent hover:text-foreground">
+        {chaves.length} cadastrada{chaves.length === 1 ? "" : "s"}
+        <ChevronDown className={`h-4 w-4 transition-transform ${ver ? "rotate-180" : ""}`} />
+      </button>
+      {ver && (
+        <div className="basis-full grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4 pt-1">
+          {chaves.length === 0 && <p className="text-xs text-foreground/75">Nenhuma chave cadastrada.</p>}
+          {chaves.map(c => (
+            <div key={c.id} className="flex items-center gap-1.5 rounded-md border border-border/60 px-2 py-1">
+              <KeyRound className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="flex-1 min-w-0 text-xs font-mono font-semibold truncate" title={c.chave}>{c.chave}</span>
+              <button onClick={() => copiar(c.chave)} title="Copiar" className="p-0.5 rounded text-foreground/75 hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+              {apagar === c.id ? (
+                <span className="flex items-center gap-1">
+                  <button onClick={() => { onMudar(chaves.filter(x => x.id !== c.id)); setApagar(null); }}
+                    className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] font-semibold">Excluir</button>
+                  <button onClick={() => setApagar(null)} title="Cancelar" className="p-0.5 rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                </span>
+              ) : (
+                <button onClick={() => setApagar(c.id)} title="Excluir a chave" className="p-0.5 rounded text-foreground/75 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
