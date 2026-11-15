@@ -92,9 +92,9 @@ function LinhaConta({ conta, onMudar, onExcluir }: { conta: Conta; onMudar: (c: 
           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       </div>
       <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })} />
-      <CampoAcumulado rotulo="Saque" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })} />
+      <CampoAcumulado rotulo="Saque conta filha" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })} />
       <div>
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground sm:hidden">Baú</p>
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground sm:hidden">Baú conta mãe</p>
         <Input className="h-9 text-sm" inputMode="decimal" placeholder="0,00" value={bau}
           onChange={e => setBau(e.target.value)} onBlur={salvarBau}
           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
@@ -253,8 +253,8 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border/60">
                   <th className="text-left px-3 py-2">Dia</th><th className="text-right px-3 py-2">Contas</th>
-                  <th className="text-right px-3 py-2">Depositado</th><th className="text-right px-3 py-2">Sacado</th>
-                  <th className="text-right px-3 py-2">Baú</th><th className="text-right px-3 py-2">Lucro</th>
+                  <th className="text-right px-3 py-2">Depositado</th><th className="text-right px-3 py-2">Saque conta filha</th>
+                  <th className="text-right px-3 py-2">Baú conta mãe</th><th className="text-right px-3 py-2">Lucro</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,7 +376,7 @@ export default function Cpa() {
       <div className="space-y-2">
         {contas.length > 0 && (
           <div className="hidden sm:grid sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto] gap-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <span>Nome</span><span>Depósito</span><span>Saque</span><span>Baú</span><span>Lucro</span><span className="w-8" />
+            <span>Nome</span><span>Depósito</span><span>Saque conta filha</span><span>Baú conta mãe</span><span>Lucro</span><span className="w-8" />
           </div>
         )}
         {contas.length === 0 ? (
