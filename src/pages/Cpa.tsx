@@ -15,14 +15,17 @@ interface Lancamento { id: string; valor: number; em: string }
 interface ChavePix { id: string; chave: string; titular: string; banco: string }
 type PapelPix = "pixSaque" | "pixBau";
 interface Conta {
-  id: string; nome: string; depositos: Lancamento[]; saques: Lancamento[]; bau: number;
+  id: string; nome: string; depositos: Lancamento[]; saques: Lancamento[];
+  baus?: Lancamento[]; bau?: number; // bau: valor único das contas lançadas antes do baú acumular
   pixSaque?: ChavePix; pixBau?: ChavePix;
 }
 type Mes = Record<string, Conta[]>; // "AAAA-MM-DD" → contas do dia
 
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const soma = (l: Lancamento[]) => l.reduce((t, x) => t + x.valor, 0);
-const lucroDe = (c: Conta) => soma(c.saques) + (c.bau || 0) - soma(c.depositos);
+const bausDe = (c: Conta): Lancamento[] => c.baus ?? (c.bau ? [{ id: `bau-${c.id}`, valor: c.bau, em: "" }] : []);
+const bauDe = (c: Conta) => soma(bausDe(c));
+const lucroDe = (c: Conta) => soma(c.saques) + bauDe(c) - soma(c.depositos);
 const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 // "1.500,50" / "1500,5" / "320" / "320.5" → número
 function lerValor(v: string): number | null {
@@ -114,7 +117,7 @@ function CampoAcumulado({ rotulo, lancamentos, onMudar, cor, children }: {
           {lancamentos.map(l => (
             <div key={l.id} className="flex items-center gap-2 text-xs px-1">
               <span className="flex-1">{reais(l.valor)}</span>
-              <span className="text-[10px] text-foreground/75">{new Date(l.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="text-[10px] text-foreground/75">{l.em ? new Date(l.em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
               <button onClick={() => onMudar(lancamentos.filter(x => x.id !== l.id))} title="Apagar este lançamento"
                 className="p-0.5 rounded text-foreground/75 hover:text-destructive"><X className="h-3 w-3" /></button>
             </div>
@@ -134,15 +137,9 @@ function LinhaConta({ conta, chaves, onMudar, onExcluir, onTirarChave }: {
     if (!c && antiga) onTirarChave(antiga.chave);
   }} />;
   const [nome, setNome] = useState(conta.nome);
-  const [bau, setBau] = useState(conta.bau ? String(conta.bau).replace(".", ",") : "");
   const [confirmar, setConfirmar] = useState(false);
   useEffect(() => { setNome(conta.nome); }, [conta.nome]);
   const lucro = lucroDe(conta);
-  const salvarBau = () => {
-    const v = bau.trim() ? lerValor(bau) : 0;
-    if (v === null) { toast.error("Valor do baú inválido"); return; }
-    if (v !== (conta.bau || 0)) onMudar({ ...conta, bau: v });
-  };
   return (
     <div className="grid gap-3 rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] sm:items-start">
       <div>
@@ -154,15 +151,8 @@ function LinhaConta({ conta, chaves, onMudar, onExcluir, onTirarChave }: {
       </div>
       <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })} />
       <CampoAcumulado rotulo="Saque conta filha" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })}>{pix("pixSaque")}</CampoAcumulado>
-      <div className="space-y-1.5">
-        <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Baú conta mãe</p>
-        <div className="flex items-center gap-1.5">
-          <Input className="h-9 text-sm placeholder:text-foreground/45 w-24 shrink-0" inputMode="decimal" placeholder="0,00" value={bau}
-            onChange={e => setBau(e.target.value)} onBlur={salvarBau}
-            onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-          <div className="min-w-0 flex-1 flex">{pix("pixBau")}</div>
-        </div>
-      </div>
+      <CampoAcumulado rotulo="Baú conta mãe" cor="text-amber-400" lancamentos={bausDe(conta)}
+        onMudar={l => onMudar({ ...conta, baus: l, bau: undefined })}>{pix("pixBau")}</CampoAcumulado>
       <div>
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Lucro</p>
         <p className={`text-base font-bold pt-1.5 ${lucro > 0 ? "text-green-500" : lucro < 0 ? "text-red-500" : "text-foreground/75"}`}>{reais(lucro)}</p>
@@ -227,7 +217,7 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
     .map(([d, cs]) => {
       const dep = cs.reduce((t, c) => t + soma(c.depositos), 0);
       const saq = cs.reduce((t, c) => t + soma(c.saques), 0);
-      const bau = cs.reduce((t, c) => t + (c.bau || 0), 0);
+      const bau = cs.reduce((t, c) => t + bauDe(c), 0);
       return { dia: d, contas: cs.length, dep, saq, bau, lucro: saq + bau - dep };
     });
   const tot = linhas.reduce((t, l) => ({ dep: t.dep + l.dep, saq: t.saq + l.saq, bau: t.bau + l.bau, lucro: t.lucro + l.lucro, contas: t.contas + l.contas }),
@@ -364,7 +354,7 @@ export default function Cpa() {
   const contas = mes[dia] ?? [];
   const visiveis = contas.filter(c => !busca.trim() || c.nome.toLowerCase().includes(busca.trim().toLowerCase()));
   const totalDep = contas.reduce((t, c) => t + soma(c.depositos), 0);
-  const totalRet = contas.reduce((t, c) => t + soma(c.saques) + (c.bau || 0), 0);
+  const totalRet = contas.reduce((t, c) => t + soma(c.saques) + bauDe(c), 0);
   const lucroDia = totalRet - totalDep;
   const comDeposito = contas.filter(c => c.depositos.length).length;
   const lucroMes = Object.values(mes).flat().reduce((t, c) => t + lucroDe(c), 0);
@@ -397,7 +387,7 @@ export default function Cpa() {
             className="bg-transparent text-sm font-medium px-1 outline-none [color-scheme:dark]" title={tituloDia} />
           <button onClick={() => mudarDia(1)} className="p-1.5 rounded-full hover:bg-accent" title="Próximo dia"><ChevronRight className="h-4 w-4" /></button>
         </div>
-        <Button className="gap-1" onClick={() => gravarDia([...contas, { id: novoId(), nome: "", depositos: [], saques: [], bau: 0 }])}>
+        <Button className="gap-1" onClick={() => gravarDia([...contas, { id: novoId(), nome: "", depositos: [], saques: [], baus: [] }])}>
           <Plus className="h-4 w-4" />Nova conta
         </Button>
       </div>
