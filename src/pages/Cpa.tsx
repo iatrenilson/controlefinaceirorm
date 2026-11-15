@@ -432,12 +432,8 @@ export default function Cpa() {
 
       <div className="space-y-2">
         {contas.length > 0 && (
-          <div className="hidden sm:grid sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] gap-3 px-3 text-sm font-bold uppercase tracking-wide">
-            {/* cada título numa bolha dourada, para destacar */}
-            {["Nome", "Depósito", "Saque conta filha", "Baú conta mãe", "Lucro"].map(t => (
-              <span key={t}><span className="inline-block rounded-full bg-primary px-3 py-1 text-primary-foreground shadow-sm">{t}</span></span>
-            ))}
-            <span className="w-8" />
+          <div className="hidden sm:grid sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] gap-3 px-3 text-sm font-extrabold uppercase tracking-wide text-white">
+            <span>Nome</span><span>Depósito</span><span>Saque conta filha</span><span>Baú conta mãe</span><span>Lucro</span><span className="w-8" />
           </div>
         )}
         {contas.length === 0 ? (
