@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks, KeyRound, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks, KeyRound, Copy, MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -393,6 +393,12 @@ export default function Cpa() {
 
       <div className="flex flex-wrap items-center gap-3 border-t border-border/60 pt-3">
         <h2 className="flex-1 min-w-[200px] text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><ListChecks className="h-4 w-4" />Contas do dia</h2>
+        {/* atalho para o SMSRush (SMS virtual), aberto em outra aba */}
+        <a href="https://smsrush.com.br/dashboard" target="_blank" rel="noopener noreferrer" title="Abrir o SMSRush"
+          className="relative h-9 w-9 shrink-0 rounded-xl bg-[#ff5a14] flex items-center justify-center shadow hover:brightness-110 transition">
+          <MessageSquare className="h-6 w-6 text-white fill-white" />
+          <span className="absolute text-[7px] font-black text-[#ff5a14] leading-none -mt-0.5">SMS</span>
+        </a>
         <div className="flex items-center gap-1 rounded-full border border-border/60 bg-card px-1 py-1">
           <button onClick={() => mudarDia(-1)} className="p-1.5 rounded-full hover:bg-accent" title="Dia anterior"><ChevronLeft className="h-4 w-4" /></button>
           {!hoje && <button onClick={() => setDia(diaISO(new Date()))} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/60 hover:bg-accent">Hoje</button>}
