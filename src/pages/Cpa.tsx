@@ -233,11 +233,11 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
 
   const cards = [
     { rotulo: "Lucro de hoje", valor: reais(lucroHoje), cor: cor(lucroHoje), sub: `${plural(hoje.length, "conta")} hoje` },
-    { rotulo: "Lucro acumulado", valor: reais(tot.lucro), cor: cor(tot.lucro), sub: `${plural(linhas.length, "dia")} com contas` },
-    { rotulo: "Média de lucro por dia", valor: reais(linhas.length ? tot.lucro / linhas.length : 0), cor: cor(tot.lucro), sub: `${plural(positivos, "dia")} com lucro · ${negativos} com prejuízo` },
-    { rotulo: "Retorno sobre depósito", valor: tot.dep ? `${(tot.lucro / tot.dep * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—", cor: cor(tot.lucro), sub: "lucro ÷ depositado" },
-    { rotulo: "Melhor dia", valor: melhor ? reais(melhor.lucro) : "—", cor: melhor ? cor(melhor.lucro) : "", sub: melhor ? dataCurta(melhor.dia) : "" },
-    { rotulo: "Pior dia", valor: pior ? reais(pior.lucro) : "—", cor: pior ? cor(pior.lucro) : "", sub: pior ? dataCurta(pior.dia) : "" },
+    { rotulo: "Lucro acumulado", valor: reais(tot.lucro), cor: "text-amber-400", sub: `${plural(linhas.length, "dia")} com contas` },
+    { rotulo: "Média de lucro por dia", valor: reais(linhas.length ? tot.lucro / linhas.length : 0), cor: "text-violet-400", sub: `${plural(positivos, "dia")} com lucro · ${negativos} com prejuízo` },
+    { rotulo: "Retorno sobre depósito", valor: tot.dep ? `${(tot.lucro / tot.dep * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—", cor: "text-sky-400", sub: "lucro ÷ depositado" },
+    { rotulo: "Melhor dia", valor: melhor ? reais(melhor.lucro) : "—", cor: "text-fuchsia-300", sub: melhor ? dataCurta(melhor.dia) : "" },
+    { rotulo: "Pior dia", valor: pior ? reais(pior.lucro) : "—", cor: "text-orange-400", sub: pior ? dataCurta(pior.dia) : "" },
   ];
 
   return (
