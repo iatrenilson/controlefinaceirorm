@@ -192,46 +192,49 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <h2 className="mr-2 text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4" />Dashboard</h2>
         {PERIODOS.map(p => (
           <button key={p.id} onClick={() => setPeriodo(p.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${periodo === p.id ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${periodo === p.id ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
             {p.rotulo}
           </button>
         ))}
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
         {cards.map(c => (
           <Card key={c.rotulo}>
-            <CardContent className="p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{c.rotulo}</p>
-              <p className={`text-lg font-bold ${c.cor}`}>{c.valor}</p>
-              {c.sub && <p className="text-[11px] text-muted-foreground">{c.sub}</p>}
+            <CardContent className="px-2.5 py-1.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate" title={c.rotulo}>{c.rotulo}</p>
+              <p className={`text-sm font-bold leading-tight ${c.cor}`}>{c.valor}</p>
+              {c.sub && <p className="text-[10px] text-muted-foreground truncate" title={c.sub}>{c.sub}</p>}
             </CardContent>
           </Card>
         ))}
       </div>
 
       <Card>
-        <CardContent className="p-3">
-          <p className="text-sm font-semibold mb-2">Lucro por dia <span className="text-xs font-normal text-muted-foreground">(barras) e acumulado (linha dourada)</span></p>
+        <CardContent className="px-2.5 py-1.5">
+          <p className="text-xs font-semibold">Lucro por dia <span className="text-[10px] font-normal text-muted-foreground">(barras) e acumulado (linha dourada)</span></p>
           {grafico.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-10">Nenhuma conta neste período.</p>
+            <p className="text-xs text-muted-foreground text-center py-4">Nenhuma conta neste período.</p>
           ) : (
-            <div className="h-[200px]">
+            <div className="h-[130px]">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={grafico} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <ComposedChart data={grafico} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="rotulo" tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 11 }} />
-                  <YAxis tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 11 }} width={60}
+                  <XAxis dataKey="rotulo" tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 10 }} height={18} />
+                  {/* o zero sempre aparece: com um dia só, o eixo ia de -147 a -151 */}
+                  <YAxis tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 10 }} width={48}
+                    domain={[(min: number) => Math.min(0, min), (max: number) => Math.max(0, max)]}
                     tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : String(v))} />
                   <ReferenceLine y={0} stroke="hsl(40, 6%, 40%)" />
                   <Tooltip
                     contentStyle={{ backgroundColor: "hsl(20, 10%, 9%)", border: "1px solid hsl(42, 40%, 25%)", borderRadius: 8, fontSize: 12 }}
                     formatter={(v: number, n: string) => [reais(v), n]} />
-                  <Bar dataKey="lucro" name="Lucro do dia" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="lucro" name="Lucro do dia" radius={[3, 3, 0, 0]} maxBarSize={48}>
                     {grafico.map(g => <Cell key={g.dia} fill={g.lucro >= 0 ? "hsl(145, 63%, 45%)" : "hsl(0, 72%, 55%)"} />)}
                   </Bar>
                   <Line type="monotone" dataKey="acumulado" name="Acumulado" stroke="hsl(42, 82%, 52%)" strokeWidth={2} dot={false} />
@@ -332,21 +335,14 @@ export default function Cpa() {
   ];
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <h1 className="text-xl font-bold flex items-center gap-2"><Coins className="h-5 w-5 text-primary" />CPA</h1>
-          <p className="text-sm text-muted-foreground">Depósitos, saques e lucro das contas. {salvando ? "Salvando…" : "Tudo salvo."}</p>
-        </div>
-      </div>
+    <div className="p-3 space-y-3">
+      <h1 className="text-lg font-bold flex items-baseline gap-2"><Coins className="h-4 w-4 text-primary self-center" />CPA
+        <span className="text-xs font-normal text-muted-foreground">{salvando ? "Salvando…" : "Tudo salvo."}</span></h1>
 
-      {/* Dashboard sempre no alto da página */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4" />Dashboard</h2>
-        <Dashboard atuais={meses} />
-      </section>
+      {/* Dashboard sempre no alto da página, compacto para sobrar espaço para as contas */}
+      <Dashboard atuais={meses} />
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-border/60 pt-4">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border/60 pt-3">
         <h2 className="flex-1 min-w-[200px] text-sm font-bold uppercase tracking-wide text-primary flex items-center gap-1.5"><ListChecks className="h-4 w-4" />Contas do dia</h2>
         <div className="flex items-center gap-1 rounded-full border border-border/60 bg-card px-1 py-1">
           <button onClick={() => mudarDia(-1)} className="p-1.5 rounded-full hover:bg-accent" title="Dia anterior"><ChevronLeft className="h-4 w-4" /></button>
