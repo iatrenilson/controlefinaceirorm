@@ -48,7 +48,7 @@ function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: Chav
       <KeyRound className="h-3 w-3 text-primary shrink-0" />
       <span className="text-[11px] font-mono font-semibold truncate" title={valor.chave}>{valor.chave}</span>
       <button onClick={() => copiar(valor.chave)} title="Copiar a chave" className="p-0.5 rounded text-foreground/75 hover:text-primary shrink-0"><Copy className="h-3 w-3" /></button>
-      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta (ela sai também do cadastro)" className="p-0.5 rounded text-foreground/75 hover:text-destructive shrink-0"><X className="h-3 w-3" /></button>
+      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta" className="p-0.5 rounded text-foreground/75 hover:text-destructive shrink-0"><X className="h-3 w-3" /></button>
     </div>
   );
   return (
@@ -61,7 +61,7 @@ function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: Chav
 }
 
 // Cadastro das chaves Pix usadas nos ciclos: só a chave. Elas não ficam listadas aqui; aparecem para escolher em
-// cada conta, e saem do cadastro quando são tiradas da conta (não servem mais depois do ciclo)
+// cada conta e saem do cadastro assim que são usadas numa conta (cada chave serve para um ciclo só)
 function ChavesPix({ chaves, onMudar }: { chaves: ChavePix[]; onMudar: (c: ChavePix[]) => void }) {
   const [nova, setNova] = useState("");
   const adicionar = () => {
@@ -132,9 +132,8 @@ function LinhaConta({ conta, chaves, onMudar, onExcluir, onTirarChave }: {
   conta: Conta; chaves: ChavePix[]; onMudar: (c: Conta) => void; onExcluir: () => void; onTirarChave: (chave: string) => void;
 }) {
   const pix = (papel: PapelPix) => <SeletorPix valor={conta[papel]} chaves={chaves} onMudar={c => {
-    const antiga = conta[papel];
     onMudar({ ...conta, [papel]: c });
-    if (!c && antiga) onTirarChave(antiga.chave);
+    if (c) onTirarChave(c.chave); // chave usada sai do cadastro: cada chave serve para um ciclo só
   }} />;
   const [nome, setNome] = useState(conta.nome);
   const [confirmar, setConfirmar] = useState(false);
