@@ -43,12 +43,21 @@ const copiar = (texto: string) =>
 
 // Chave Pix de uma coluna da conta: escolhida entre as cadastradas; mostra chave, titular e banco, com copiar
 function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: ChavePix[]; onMudar: (c?: ChavePix) => void }) {
+  const [confirmar, setConfirmar] = useState(false);
+  if (valor && confirmar) return (
+    <div className="flex items-center gap-1 rounded-md border border-destructive/50 bg-destructive/10 px-1.5 py-0.5">
+      <span className="text-[11px] font-semibold whitespace-nowrap">Excluir a chave?</span>
+      <button onClick={() => { setConfirmar(false); onMudar(undefined); }}
+        className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] font-semibold">Excluir</button>
+      <button onClick={() => setConfirmar(false)} title="Cancelar" className="p-0.5 rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+    </div>
+  );
   if (valor) return (
     <div className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/5 pl-1.5 pr-0.5 py-0.5 min-w-0 max-w-full">
       <KeyRound className="h-3 w-3 text-primary shrink-0" />
       <span className="text-[11px] font-mono font-semibold truncate" title={valor.chave}>{valor.chave}</span>
       <button onClick={() => copiar(valor.chave)} title="Copiar a chave" className="p-0.5 rounded text-foreground/75 hover:text-primary shrink-0"><Copy className="h-3 w-3" /></button>
-      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta" className="p-0.5 rounded text-foreground/75 hover:text-destructive shrink-0"><X className="h-3 w-3" /></button>
+      <button onClick={() => setConfirmar(true)} title="Tirar a chave desta conta" className="p-0.5 rounded text-foreground/75 hover:text-destructive shrink-0"><X className="h-3 w-3" /></button>
     </div>
   );
   return (
