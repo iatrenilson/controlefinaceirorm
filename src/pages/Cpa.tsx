@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks } from "lucide-react";
+import { ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,163 @@ function LinhaConta({ conta, onMudar, onExcluir }: { conta: Conta; onMudar: (c: 
   );
 }
 
+// ── Dashboard: lucro e totais de um período, somando todos os meses guardados ─────────────────────────────────────
+const PERIODOS = [
+  { id: "7", rotulo: "7 dias" },
+  { id: "30", rotulo: "30 dias" },
+  { id: "mes", rotulo: "Este mês" },
+  { id: "mesPassado", rotulo: "Mês passado" },
+  { id: "tudo", rotulo: "Tudo" },
+] as const;
+type Periodo = typeof PERIODOS[number]["id"];
+
+function intervalo(p: Periodo): [string, string] {
+  const hoje = new Date(); const fim = diaISO(hoje);
+  if (p === "7" || p === "30") { const d = new Date(); d.setDate(d.getDate() - (Number(p) - 1)); return [diaISO(d), fim]; }
+  if (p === "mes") return [`${fim.slice(0, 7)}-01`, fim];
+  if (p === "mesPassado") {
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1), ult = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    return [diaISO(ini), diaISO(ult)];
+  }
+  return ["0000-00-00", "9999-99-99"];
+}
+
+function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [todos, setTodos] = useState<Record<string, Mes> | null>(null);
+  useEffect(() => {
+    supabase.from("app_config" as any).select("chave,valor").like("chave", "cpa_%")
+      .then(({ data, error }) => {
+        if (error) toast.error("Não consegui carregar: " + error.message);
+        const m: Record<string, Mes> = {};
+        for (const r of (data as any[]) ?? []) m[r.chave] = r.valor?.dias ?? {};
+        setTodos(m);
+      });
+  }, []);
+  if (!todos) return <div className="text-sm text-muted-foreground py-6">Carregando…</div>;
+
+  // o que já está na tela (pode ter mudança ainda gravando) vale mais que o lido do banco
+  const dias: Record<string, Conta[]> = {};
+  for (const m of Object.values({ ...todos, ...atuais })) Object.assign(dias, m);
+  const [ini, fim] = intervalo(periodo);
+  const linhas = Object.entries(dias)
+    .filter(([d, cs]) => d >= ini && d <= fim && cs.length)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([d, cs]) => {
+      const dep = cs.reduce((t, c) => t + soma(c.depositos), 0);
+      const saq = cs.reduce((t, c) => t + soma(c.saques), 0);
+      const bau = cs.reduce((t, c) => t + (c.bau || 0), 0);
+      return { dia: d, contas: cs.length, dep, saq, bau, lucro: saq + bau - dep };
+    });
+  let acumulado = 0;
+  const grafico = linhas.map(l => ({ ...l, rotulo: `${l.dia.slice(8)}/${l.dia.slice(5, 7)}`, acumulado: (acumulado += l.lucro) }));
+  const tot = linhas.reduce((t, l) => ({ dep: t.dep + l.dep, saq: t.saq + l.saq, bau: t.bau + l.bau, lucro: t.lucro + l.lucro, contas: t.contas + l.contas }),
+    { dep: 0, saq: 0, bau: 0, lucro: 0, contas: 0 });
+  const hoje = dias[diaISO(new Date())] ?? [];
+  const lucroHoje = hoje.reduce((t, c) => t + lucroDe(c), 0);
+  const positivos = linhas.filter(l => l.lucro > 0).length, negativos = linhas.filter(l => l.lucro < 0).length;
+  type Linha = typeof linhas[number];
+  const melhor = linhas.reduce<Linha | null>((m, l) => (!m || l.lucro > m.lucro ? l : m), null);
+  const pior = linhas.reduce<Linha | null>((m, l) => (!m || l.lucro < m.lucro ? l : m), null);
+  const cor = (n: number) => (n > 0 ? "text-green-500" : n < 0 ? "text-red-500" : "");
+  const dataCurta = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
+
+  const cards = [
+    { rotulo: "Lucro de hoje", valor: reais(lucroHoje), cor: cor(lucroHoje), sub: `${plural(hoje.length, "conta")} hoje` },
+    { rotulo: "Lucro acumulado", valor: reais(tot.lucro), cor: cor(tot.lucro), sub: `${plural(linhas.length, "dia")} com contas` },
+    { rotulo: "Total depositado", valor: reais(tot.dep), cor: "", sub: plural(tot.contas, "conta") },
+    { rotulo: "Total sacado", valor: reais(tot.saq), cor: "text-sky-400", sub: `+ ${reais(tot.bau)} de baú` },
+    { rotulo: "Média de lucro por dia", valor: reais(linhas.length ? tot.lucro / linhas.length : 0), cor: cor(tot.lucro), sub: `${plural(positivos, "dia")} com lucro · ${negativos} com prejuízo` },
+    { rotulo: "Retorno sobre depósito", valor: tot.dep ? `${(tot.lucro / tot.dep * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%` : "—", cor: cor(tot.lucro), sub: "lucro ÷ depositado" },
+    { rotulo: "Melhor dia", valor: melhor ? reais(melhor.lucro) : "—", cor: melhor ? cor(melhor.lucro) : "", sub: melhor ? dataCurta(melhor.dia) : "" },
+    { rotulo: "Pior dia", valor: pior ? reais(pior.lucro) : "—", cor: pior ? cor(pior.lucro) : "", sub: pior ? dataCurta(pior.dia) : "" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5">
+        {PERIODOS.map(p => (
+          <button key={p.id} onClick={() => setPeriodo(p.id)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${periodo === p.id ? "bg-primary text-primary-foreground border-primary" : "border-border/60 bg-card hover:border-primary/50 hover:text-primary"}`}>
+            {p.rotulo}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {cards.map(c => (
+          <Card key={c.rotulo}>
+            <CardContent className="p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{c.rotulo}</p>
+              <p className={`text-lg font-bold ${c.cor}`}>{c.valor}</p>
+              {c.sub && <p className="text-[11px] text-muted-foreground">{c.sub}</p>}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="p-3">
+          <p className="text-sm font-semibold mb-2">Lucro por dia <span className="text-xs font-normal text-muted-foreground">(barras) e acumulado (linha dourada)</span></p>
+          {grafico.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">Nenhuma conta neste período.</p>
+          ) : (
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={grafico} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="rotulo" tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "hsl(40, 6%, 55%)", fontSize: 11 }} width={60}
+                    tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k` : String(v))} />
+                  <ReferenceLine y={0} stroke="hsl(40, 6%, 40%)" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "hsl(20, 10%, 9%)", border: "1px solid hsl(42, 40%, 25%)", borderRadius: 8, fontSize: 12 }}
+                    formatter={(v: number, n: string) => [reais(v), n]} />
+                  <Bar dataKey="lucro" name="Lucro do dia" radius={[3, 3, 0, 0]}>
+                    {grafico.map(g => <Cell key={g.dia} fill={g.lucro >= 0 ? "hsl(145, 63%, 45%)" : "hsl(0, 72%, 55%)"} />)}
+                  </Bar>
+                  <Line type="monotone" dataKey="acumulado" name="Acumulado" stroke="hsl(42, 82%, 52%)" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {linhas.length > 0 && (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border/60">
+                  <th className="text-left px-3 py-2">Dia</th><th className="text-right px-3 py-2">Contas</th>
+                  <th className="text-right px-3 py-2">Depositado</th><th className="text-right px-3 py-2">Sacado</th>
+                  <th className="text-right px-3 py-2">Baú</th><th className="text-right px-3 py-2">Lucro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...linhas].reverse().map(l => (
+                  <tr key={l.dia} className="border-b border-border/30">
+                    <td className="px-3 py-1.5">{new Date(`${l.dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })}</td>
+                    <td className="text-right px-3 py-1.5">{l.contas}</td>
+                    <td className="text-right px-3 py-1.5">{reais(l.dep)}</td>
+                    <td className="text-right px-3 py-1.5 text-sky-400">{reais(l.saq)}</td>
+                    <td className="text-right px-3 py-1.5">{reais(l.bau)}</td>
+                    <td className={`text-right px-3 py-1.5 font-semibold ${cor(l.lucro)}`}>{reais(l.lucro)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function Cpa() {
+  const [aba, setAba] = useState<"dia" | "dashboard">("dia");
   const [dia, setDia] = useState(() => diaISO(new Date()));
   const [meses, setMeses] = useState<Record<string, Mes>>({}); // chave do mês → dados
   const [busca, setBusca] = useState("");
@@ -181,6 +338,15 @@ export default function Cpa() {
           <h1 className="text-xl font-bold flex items-center gap-2"><Coins className="h-5 w-5 text-primary" />CPA</h1>
           <p className="text-sm text-muted-foreground">Depósitos, saques e lucro das contas do dia. {salvando ? "Salvando…" : "Tudo salvo."}</p>
         </div>
+        <div className="flex rounded-full border border-border/60 bg-card p-1">
+          {([["dia", "Contas do dia", ListChecks], ["dashboard", "Dashboard", LayoutDashboard]] as const).map(([id, rotulo, Icone]) => (
+            <button key={id} onClick={() => setAba(id)}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${aba === id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <Icone className="h-3.5 w-3.5" />{rotulo}
+            </button>
+          ))}
+        </div>
+        {aba === "dia" && <>
         <div className="flex items-center gap-1 rounded-full border border-border/60 bg-card px-1 py-1">
           <button onClick={() => mudarDia(-1)} className="p-1.5 rounded-full hover:bg-accent" title="Dia anterior"><ChevronLeft className="h-4 w-4" /></button>
           {!hoje && <button onClick={() => setDia(diaISO(new Date()))} className="px-2.5 py-1 rounded-full text-xs font-semibold border border-border/60 hover:bg-accent">Hoje</button>}
@@ -191,7 +357,9 @@ export default function Cpa() {
         <Button className="gap-1" onClick={() => gravarDia([...contas, { id: novoId(), nome: "", depositos: [], saques: [], bau: 0 }])}>
           <Plus className="h-4 w-4" />Nova conta
         </Button>
+        </>}
       </div>
+      {aba === "dashboard" ? <Dashboard atuais={meses} /> : <>
       <p className="text-sm font-medium first-letter:uppercase -mt-2">{tituloDia}</p>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
@@ -226,6 +394,7 @@ export default function Cpa() {
             onExcluir={() => gravarDia(contas.filter(x => x.id !== c.id))} />
         ))}
       </div>
+      </>}
     </div>
   );
 }
