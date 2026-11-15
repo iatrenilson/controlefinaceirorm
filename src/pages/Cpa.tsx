@@ -432,7 +432,7 @@ export default function Cpa() {
 
       <div className="space-y-2">
         {contas.length > 0 && (
-          <div className="hidden sm:grid sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] gap-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-foreground/75">
+          <div className="hidden sm:grid sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] gap-3 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/30 text-sm font-bold uppercase tracking-wide text-primary">
             <span>Nome</span><span>Depósito</span><span>Saque conta filha</span><span>Baú conta mãe</span><span>Lucro</span><span className="w-8" />
           </div>
         )}
