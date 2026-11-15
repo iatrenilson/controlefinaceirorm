@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, Trash2, X, Check, Coins, LayoutDashboard, ListChecks, KeyRound, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,14 @@ import { toast } from "sonner";
 // (dá para apagar um lançamento errado) e o total é a soma. Guardado em app_config, um documento por mês
 // (chave "cpa_AAAA-MM"), sem tabela nova; só o administrador grava.
 interface Lancamento { id: string; valor: number; em: string }
-interface Conta { id: string; nome: string; depositos: Lancamento[]; saques: Lancamento[]; bau: number }
+// Chave Pix cadastrada (app_config "cpa_chaves"). A conta guarda uma cópia da chave escolhida: apagar a chave do
+// cadastro depois do ciclo não apaga o que ficou registrado na conta
+interface ChavePix { id: string; chave: string; titular: string; banco: string }
+type PapelPix = "pixDeposito" | "pixSaque" | "pixBau";
+interface Conta {
+  id: string; nome: string; depositos: Lancamento[]; saques: Lancamento[]; bau: number;
+  pixDeposito?: ChavePix; pixSaque?: ChavePix; pixBau?: ChavePix;
+}
 type Mes = Record<string, Conta[]>; // "AAAA-MM-DD" → contas do dia
 
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -28,10 +35,87 @@ function lerValor(v: string): number | null {
 }
 const diaISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const chaveMes = (dia: string) => `cpa_${dia.slice(0, 7)}`;
+const copiar = (texto: string) =>
+  navigator.clipboard.writeText(texto).then(() => toast.success("Chave Pix copiada"), () => toast.error("Não consegui copiar"));
+
+// Chave Pix de uma coluna da conta: escolhida entre as cadastradas; mostra chave, titular e banco, com copiar
+function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: ChavePix[]; onMudar: (c?: ChavePix) => void }) {
+  if (valor) return (
+    <div className="flex items-start gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2 py-1">
+      <KeyRound className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-mono font-semibold break-all">{valor.chave}</p>
+        {(valor.titular || valor.banco) && <p className="text-[10px] text-foreground/75 truncate">{[valor.titular, valor.banco].filter(Boolean).join(" · ")}</p>}
+      </div>
+      <button onClick={() => copiar(valor.chave)} title="Copiar a chave" className="p-0.5 rounded text-foreground/75 hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta" className="p-0.5 rounded text-foreground/75 hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+    </div>
+  );
+  return (
+    <select value="" onChange={e => onMudar(chaves.find(c => c.id === e.target.value))}
+      className="w-full h-8 rounded-md border border-dashed border-border bg-background px-2 text-xs text-foreground/75 [color-scheme:dark]">
+      <option value="">{chaves.length ? "+ Chave Pix…" : "Cadastre uma chave Pix acima"}</option>
+      {chaves.map(c => <option key={c.id} value={c.id}>{c.chave}{c.titular ? ` — ${c.titular}` : ""}</option>)}
+    </select>
+  );
+}
+
+// Cadastro das chaves Pix usadas nos ciclos (apaga quando a chave deixa de existir)
+function ChavesPix({ chaves, onMudar }: { chaves: ChavePix[]; onMudar: (c: ChavePix[]) => void }) {
+  const [nova, setNova] = useState({ chave: "", titular: "", banco: "" });
+  const [apagar, setApagar] = useState<string | null>(null);
+  const adicionar = () => {
+    if (!nova.chave.trim()) { toast.error("Digite a chave Pix"); return; }
+    onMudar([...chaves, { id: novoId(), chave: nova.chave.trim(), titular: nova.titular.trim(), banco: nova.banco.trim() }]);
+    setNova({ chave: "", titular: "", banco: "" });
+  };
+  const campo = (k: keyof typeof nova, ph: string, cls: string) => (
+    <Input className={`h-8 text-sm placeholder:text-foreground/45 ${cls}`} placeholder={ph} value={nova[k]}
+      onChange={e => setNova(v => ({ ...v, [k]: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
+  );
+  return (
+    <details className="rounded-lg border border-border/60 bg-card" open>
+      <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold flex items-center gap-1.5">
+        <KeyRound className="h-4 w-4 text-primary" />Chaves Pix ({chaves.length})
+      </summary>
+      <div className="border-t border-border/60 p-3 space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {campo("chave", "Chave Pix (CPF, telefone, e-mail ou aleatória)", "flex-[2] min-w-[220px] font-mono")}
+          {campo("titular", "Titular", "flex-1 min-w-[140px]")}
+          {campo("banco", "Banco", "flex-1 min-w-[110px]")}
+          <Button size="sm" className="h-8 gap-1" onClick={adicionar}><Plus className="h-3.5 w-3.5" />Cadastrar</Button>
+        </div>
+        {chaves.length > 0 && (
+          <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+            {chaves.map(c => (
+              <div key={c.id} className="flex items-center gap-2 rounded-md border border-border/60 px-2 py-1.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-mono font-semibold break-all">{c.chave}</p>
+                  <p className="text-[10px] text-foreground/75 truncate">{[c.titular, c.banco].filter(Boolean).join(" · ") || "—"}</p>
+                </div>
+                <button onClick={() => copiar(c.chave)} title="Copiar" className="p-1 rounded text-foreground/75 hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
+                {apagar === c.id ? (
+                  <span className="flex items-center gap-1">
+                    <button onClick={() => { onMudar(chaves.filter(x => x.id !== c.id)); setApagar(null); }}
+                      className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] font-semibold">Apagar</button>
+                    <button onClick={() => setApagar(null)} className="p-0.5 rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                  </span>
+                ) : (
+                  <button onClick={() => setApagar(c.id)} title="Apagar a chave" className="p-1 rounded text-foreground/75 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-foreground/75">Apagar uma chave daqui não tira ela das contas onde já foi usada.</p>
+      </div>
+    </details>
+  );
+}
 
 // Depósito ou saque: total grande, campo "+ valor" (Enter soma) e a lista de lançamentos ao clicar no total
-function CampoAcumulado({ rotulo, lancamentos, onMudar, cor }: {
-  rotulo: string; lancamentos: Lancamento[]; onMudar: (l: Lancamento[]) => void; cor: string;
+function CampoAcumulado({ rotulo, lancamentos, onMudar, cor, children }: {
+  rotulo: string; lancamentos: Lancamento[]; onMudar: (l: Lancamento[]) => void; cor: string; children?: React.ReactNode;
 }) {
   const [valor, setValor] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -53,6 +137,7 @@ function CampoAcumulado({ rotulo, lancamentos, onMudar, cor }: {
           onChange={e => setValor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") somar(); }} />
         <Button size="sm" variant="outline" className="h-8 px-2" onClick={somar} title={`Somar ao ${rotulo.toLowerCase()}`}><Plus className="h-3.5 w-3.5" /></Button>
       </div>
+      {children}
       {aberto && (
         <div className="rounded-md border border-border/60 p-1.5 space-y-0.5">
           {lancamentos.length === 0 && <p className="text-[11px] text-foreground/75 px-1">Nenhum lançamento.</p>}
@@ -70,7 +155,8 @@ function CampoAcumulado({ rotulo, lancamentos, onMudar, cor }: {
   );
 }
 
-function LinhaConta({ conta, onMudar, onExcluir }: { conta: Conta; onMudar: (c: Conta) => void; onExcluir: () => void }) {
+function LinhaConta({ conta, chaves, onMudar, onExcluir }: { conta: Conta; chaves: ChavePix[]; onMudar: (c: Conta) => void; onExcluir: () => void }) {
+  const pix = (papel: PapelPix) => <SeletorPix valor={conta[papel]} chaves={chaves} onMudar={c => onMudar({ ...conta, [papel]: c })} />;
   const [nome, setNome] = useState(conta.nome);
   const [bau, setBau] = useState(conta.bau ? String(conta.bau).replace(".", ",") : "");
   const [confirmar, setConfirmar] = useState(false);
@@ -82,7 +168,7 @@ function LinhaConta({ conta, onMudar, onExcluir }: { conta: Conta; onMudar: (c: 
     if (v !== (conta.bau || 0)) onMudar({ ...conta, bau: v });
   };
   return (
-    <div className="grid gap-3 rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto] sm:items-start">
+    <div className="grid gap-3 rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] sm:items-start">
       <div>
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Nome</p>
         <Input className="h-9 text-sm placeholder:text-foreground/45 font-semibold uppercase" value={nome} placeholder="Nome da conta"
@@ -90,13 +176,14 @@ function LinhaConta({ conta, onMudar, onExcluir }: { conta: Conta; onMudar: (c: 
           onBlur={() => { if (nome.trim() !== conta.nome) onMudar({ ...conta, nome: nome.trim() }); }}
           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       </div>
-      <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })} />
-      <CampoAcumulado rotulo="Saque conta filha" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })} />
-      <div>
+      <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })}>{pix("pixDeposito")}</CampoAcumulado>
+      <CampoAcumulado rotulo="Saque conta filha" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })}>{pix("pixSaque")}</CampoAcumulado>
+      <div className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Baú conta mãe</p>
         <Input className="h-9 text-sm placeholder:text-foreground/45" inputMode="decimal" placeholder="0,00" value={bau}
           onChange={e => setBau(e.target.value)} onBlur={salvarBau}
           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+        {pix("pixBau")}
       </div>
       <div>
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Lucro</p>
@@ -250,6 +337,20 @@ export default function Cpa() {
   const [busca, setBusca] = useState("");
   const [salvando, setSalvando] = useState(false);
   const fila = useRef<Promise<unknown>>(Promise.resolve());
+  const [chaves, setChaves] = useState<ChavePix[]>([]);
+  useEffect(() => {
+    supabase.from("app_config" as any).select("valor").eq("chave", "cpa_chaves").maybeSingle()
+      .then(({ data }) => setChaves(((data as any)?.valor?.chaves as ChavePix[]) ?? []));
+  }, []);
+  const gravarChaves = (novas: ChavePix[]) => {
+    setChaves(novas);
+    setSalvando(true);
+    fila.current = fila.current.then(async () => {
+      const { error } = await supabase.from("app_config" as any)
+        .upsert({ chave: "cpa_chaves", valor: { chaves: novas }, updated_at: new Date().toISOString() });
+      if (error) toast.error("Não consegui salvar as chaves: " + error.message);
+    }).finally(() => setSalvando(false));
+  };
   const chave = chaveMes(dia);
   const mes = meses[chave];
 
@@ -335,6 +436,8 @@ export default function Cpa() {
         ))}
       </div>
 
+      <ChavesPix chaves={chaves} onMudar={gravarChaves} />
+
       <div className="relative max-w-xs">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-foreground/75 pointer-events-none" />
         <Input className="h-9 text-sm placeholder:text-foreground/45 pl-8" placeholder="Buscar por nome…" value={busca} onChange={e => setBusca(e.target.value)} />
@@ -342,7 +445,7 @@ export default function Cpa() {
 
       <div className="space-y-2">
         {contas.length > 0 && (
-          <div className="hidden sm:grid sm:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto] gap-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-foreground/75">
+          <div className="hidden sm:grid sm:grid-cols-[1.2fr_1fr_1fr_1fr_0.7fr_auto] gap-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-foreground/75">
             <span>Nome</span><span>Depósito</span><span>Saque conta filha</span><span>Baú conta mãe</span><span>Lucro</span><span className="w-8" />
           </div>
         )}
@@ -351,7 +454,7 @@ export default function Cpa() {
         ) : visiveis.length === 0 ? (
           <p className="text-sm text-foreground/75 text-center py-6">Nenhuma conta com esse nome.</p>
         ) : visiveis.map(c => (
-          <LinhaConta key={c.id} conta={c}
+          <LinhaConta key={c.id} conta={c} chaves={chaves}
             onMudar={nova => gravarDia(contas.map(x => (x.id === c.id ? nova : x)))}
             onExcluir={() => gravarDia(contas.filter(x => x.id !== c.id))} />
         ))}
