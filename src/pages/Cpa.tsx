@@ -13,10 +13,10 @@ interface Lancamento { id: string; valor: number; em: string }
 // Chave Pix cadastrada (app_config "cpa_chaves"). A conta guarda uma cópia da chave escolhida: apagar a chave do
 // cadastro depois do ciclo não apaga o que ficou registrado na conta
 interface ChavePix { id: string; chave: string; titular: string; banco: string }
-type PapelPix = "pixDeposito" | "pixSaque" | "pixBau";
+type PapelPix = "pixSaque" | "pixBau";
 interface Conta {
   id: string; nome: string; depositos: Lancamento[]; saques: Lancamento[]; bau: number;
-  pixDeposito?: ChavePix; pixSaque?: ChavePix; pixBau?: ChavePix;
+  pixSaque?: ChavePix; pixBau?: ChavePix;
 }
 type Mes = Record<string, Conta[]>; // "AAAA-MM-DD" → contas do dia
 
@@ -41,75 +41,42 @@ const copiar = (texto: string) =>
 // Chave Pix de uma coluna da conta: escolhida entre as cadastradas; mostra chave, titular e banco, com copiar
 function SeletorPix({ valor, chaves, onMudar }: { valor?: ChavePix; chaves: ChavePix[]; onMudar: (c?: ChavePix) => void }) {
   if (valor) return (
-    <div className="flex items-start gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-2 py-1">
-      <KeyRound className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-mono font-semibold break-all">{valor.chave}</p>
-        {(valor.titular || valor.banco) && <p className="text-[10px] text-foreground/75 truncate">{[valor.titular, valor.banco].filter(Boolean).join(" · ")}</p>}
-      </div>
-      <button onClick={() => copiar(valor.chave)} title="Copiar a chave" className="p-0.5 rounded text-foreground/75 hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
-      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta" className="p-0.5 rounded text-foreground/75 hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+    <div className="flex items-center gap-1 rounded-md border border-primary/40 bg-primary/5 pl-1.5 pr-0.5 py-0.5 min-w-0 max-w-full">
+      <KeyRound className="h-3 w-3 text-primary shrink-0" />
+      <span className="text-[11px] font-mono font-semibold truncate" title={valor.chave}>{valor.chave}</span>
+      <button onClick={() => copiar(valor.chave)} title="Copiar a chave" className="p-0.5 rounded text-foreground/75 hover:text-primary shrink-0"><Copy className="h-3 w-3" /></button>
+      <button onClick={() => onMudar(undefined)} title="Tirar a chave desta conta (ela sai também do cadastro)" className="p-0.5 rounded text-foreground/75 hover:text-destructive shrink-0"><X className="h-3 w-3" /></button>
     </div>
   );
   return (
-    <select value="" onChange={e => onMudar(chaves.find(c => c.id === e.target.value))}
-      className="w-full h-8 rounded-md border border-dashed border-border bg-background px-2 text-xs text-foreground/75 [color-scheme:dark]">
-      <option value="">{chaves.length ? "+ Chave Pix…" : "Cadastre uma chave Pix acima"}</option>
-      {chaves.map(c => <option key={c.id} value={c.id}>{c.chave}{c.titular ? ` — ${c.titular}` : ""}</option>)}
+    <select value="" onChange={e => onMudar(chaves.find(c => c.id === e.target.value))} title="Escolher a chave Pix"
+      className="h-7 max-w-[110px] rounded-md border border-dashed border-border bg-background px-1.5 text-[11px] text-foreground/75 [color-scheme:dark]">
+      <option value="">{chaves.length ? "+ Pix" : "Sem Pix"}</option>
+      {chaves.map(c => <option key={c.id} value={c.id}>{c.chave}</option>)}
     </select>
   );
 }
 
-// Cadastro das chaves Pix usadas nos ciclos (apaga quando a chave deixa de existir)
+// Cadastro das chaves Pix usadas nos ciclos: só a chave. Elas não ficam listadas aqui; aparecem para escolher em
+// cada conta, e saem do cadastro quando são tiradas da conta (não servem mais depois do ciclo)
 function ChavesPix({ chaves, onMudar }: { chaves: ChavePix[]; onMudar: (c: ChavePix[]) => void }) {
-  const [nova, setNova] = useState({ chave: "", titular: "", banco: "" });
-  const [apagar, setApagar] = useState<string | null>(null);
+  const [nova, setNova] = useState("");
   const adicionar = () => {
-    if (!nova.chave.trim()) { toast.error("Digite a chave Pix"); return; }
-    onMudar([...chaves, { id: novoId(), chave: nova.chave.trim(), titular: nova.titular.trim(), banco: nova.banco.trim() }]);
-    setNova({ chave: "", titular: "", banco: "" });
+    const chave = nova.trim();
+    if (!chave) { toast.error("Digite a chave Pix"); return; }
+    if (chaves.some(c => c.chave === chave)) { toast.error("Essa chave já está cadastrada"); return; }
+    onMudar([...chaves, { id: novoId(), chave, titular: "", banco: "" }]);
+    setNova("");
+    toast.success("Chave Pix cadastrada");
   };
-  const campo = (k: keyof typeof nova, ph: string, cls: string) => (
-    <Input className={`h-8 text-sm placeholder:text-foreground/45 ${cls}`} placeholder={ph} value={nova[k]}
-      onChange={e => setNova(v => ({ ...v, [k]: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
-  );
   return (
-    <details className="rounded-lg border border-border/60 bg-card" open>
-      <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold flex items-center gap-1.5">
-        <KeyRound className="h-4 w-4 text-primary" />Chaves Pix ({chaves.length})
-      </summary>
-      <div className="border-t border-border/60 p-3 space-y-2">
-        <div className="flex flex-wrap gap-2">
-          {campo("chave", "Chave Pix (CPF, telefone, e-mail ou aleatória)", "flex-[2] min-w-[220px] font-mono")}
-          {campo("titular", "Titular", "flex-1 min-w-[140px]")}
-          {campo("banco", "Banco", "flex-1 min-w-[110px]")}
-          <Button size="sm" className="h-8 gap-1" onClick={adicionar}><Plus className="h-3.5 w-3.5" />Cadastrar</Button>
-        </div>
-        {chaves.length > 0 && (
-          <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-            {chaves.map(c => (
-              <div key={c.id} className="flex items-center gap-2 rounded-md border border-border/60 px-2 py-1.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-mono font-semibold break-all">{c.chave}</p>
-                  <p className="text-[10px] text-foreground/75 truncate">{[c.titular, c.banco].filter(Boolean).join(" · ") || "—"}</p>
-                </div>
-                <button onClick={() => copiar(c.chave)} title="Copiar" className="p-1 rounded text-foreground/75 hover:text-primary"><Copy className="h-3.5 w-3.5" /></button>
-                {apagar === c.id ? (
-                  <span className="flex items-center gap-1">
-                    <button onClick={() => { onMudar(chaves.filter(x => x.id !== c.id)); setApagar(null); }}
-                      className="px-1.5 py-0.5 rounded bg-destructive text-white text-[10px] font-semibold">Apagar</button>
-                    <button onClick={() => setApagar(null)} className="p-0.5 rounded hover:bg-accent"><X className="h-3 w-3" /></button>
-                  </span>
-                ) : (
-                  <button onClick={() => setApagar(c.id)} title="Apagar a chave" className="p-1 rounded text-foreground/75 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        <p className="text-[10px] text-foreground/75">Apagar uma chave daqui não tira ela das contas onde já foi usada.</p>
-      </div>
-    </details>
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-card px-3 py-2">
+      <span className="text-sm font-semibold flex items-center gap-1.5"><KeyRound className="h-4 w-4 text-primary" />Chave Pix</span>
+      <Input className="h-8 text-sm placeholder:text-foreground/45 font-mono flex-1 min-w-[220px]" placeholder="CPF, telefone, e-mail ou aleatória"
+        value={nova} onChange={e => setNova(e.target.value)} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
+      <Button size="sm" className="h-8 gap-1" onClick={adicionar}><Plus className="h-3.5 w-3.5" />Cadastrar</Button>
+      <span className="text-[11px] text-foreground/75">{chaves.length} cadastrada{chaves.length === 1 ? "" : "s"}</span>
+    </div>
   );
 }
 
@@ -127,17 +94,20 @@ function CampoAcumulado({ rotulo, lancamentos, onMudar, cor, children }: {
   };
   return (
     <div className="space-y-1.5">
-      <button type="button" onClick={() => setAberto(a => !a)} className="w-full text-left" title="Ver os lançamentos">
-        <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">{rotulo}</p>
-        <p className={`text-base font-bold ${cor}`}>{reais(soma(lancamentos))}</p>
-        <p className="text-[10px] text-foreground/75">{lancamentos.length} lançamento{lancamentos.length === 1 ? "" : "s"} {aberto ? "▲" : "▼"}</p>
-      </button>
+      <div className="flex items-start gap-2">
+        <button type="button" onClick={() => setAberto(a => !a)} className="text-left shrink-0" title="Ver os lançamentos">
+          <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">{rotulo}</p>
+          <p className={`text-base font-bold ${cor}`}>{reais(soma(lancamentos))}</p>
+          <p className="text-[10px] text-foreground/75">{lancamentos.length} lançamento{lancamentos.length === 1 ? "" : "s"} {aberto ? "▲" : "▼"}</p>
+        </button>
+        {/* chave Pix ao lado do valor */}
+        <div className="min-w-0 flex-1 flex justify-end pt-0.5">{children}</div>
+      </div>
       <div className="flex gap-1">
         <Input className="h-8 text-sm placeholder:text-foreground/45" inputMode="decimal" placeholder="+ valor" value={valor}
           onChange={e => setValor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") somar(); }} />
         <Button size="sm" variant="outline" className="h-8 px-2" onClick={somar} title={`Somar ao ${rotulo.toLowerCase()}`}><Plus className="h-3.5 w-3.5" /></Button>
       </div>
-      {children}
       {aberto && (
         <div className="rounded-md border border-border/60 p-1.5 space-y-0.5">
           {lancamentos.length === 0 && <p className="text-[11px] text-foreground/75 px-1">Nenhum lançamento.</p>}
@@ -155,8 +125,14 @@ function CampoAcumulado({ rotulo, lancamentos, onMudar, cor, children }: {
   );
 }
 
-function LinhaConta({ conta, chaves, onMudar, onExcluir }: { conta: Conta; chaves: ChavePix[]; onMudar: (c: Conta) => void; onExcluir: () => void }) {
-  const pix = (papel: PapelPix) => <SeletorPix valor={conta[papel]} chaves={chaves} onMudar={c => onMudar({ ...conta, [papel]: c })} />;
+function LinhaConta({ conta, chaves, onMudar, onExcluir, onTirarChave }: {
+  conta: Conta; chaves: ChavePix[]; onMudar: (c: Conta) => void; onExcluir: () => void; onTirarChave: (chave: string) => void;
+}) {
+  const pix = (papel: PapelPix) => <SeletorPix valor={conta[papel]} chaves={chaves} onMudar={c => {
+    const antiga = conta[papel];
+    onMudar({ ...conta, [papel]: c });
+    if (!c && antiga) onTirarChave(antiga.chave);
+  }} />;
   const [nome, setNome] = useState(conta.nome);
   const [bau, setBau] = useState(conta.bau ? String(conta.bau).replace(".", ",") : "");
   const [confirmar, setConfirmar] = useState(false);
@@ -176,14 +152,16 @@ function LinhaConta({ conta, chaves, onMudar, onExcluir }: { conta: Conta; chave
           onBlur={() => { if (nome.trim() !== conta.nome) onMudar({ ...conta, nome: nome.trim() }); }}
           onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       </div>
-      <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })}>{pix("pixDeposito")}</CampoAcumulado>
+      <CampoAcumulado rotulo="Depósito" cor="text-foreground" lancamentos={conta.depositos} onMudar={l => onMudar({ ...conta, depositos: l })} />
       <CampoAcumulado rotulo="Saque conta filha" cor="text-sky-400" lancamentos={conta.saques} onMudar={l => onMudar({ ...conta, saques: l })}>{pix("pixSaque")}</CampoAcumulado>
       <div className="space-y-1.5">
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Baú conta mãe</p>
-        <Input className="h-9 text-sm placeholder:text-foreground/45" inputMode="decimal" placeholder="0,00" value={bau}
-          onChange={e => setBau(e.target.value)} onBlur={salvarBau}
-          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
-        {pix("pixBau")}
+        <div className="flex items-center gap-1.5">
+          <Input className="h-9 text-sm placeholder:text-foreground/45 w-24 shrink-0" inputMode="decimal" placeholder="0,00" value={bau}
+            onChange={e => setBau(e.target.value)} onBlur={salvarBau}
+            onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+          <div className="min-w-0 flex-1 flex">{pix("pixBau")}</div>
+        </div>
       </div>
       <div>
         <p className="text-[10px] uppercase tracking-wide text-foreground/75 sm:hidden">Lucro</p>
@@ -455,6 +433,7 @@ export default function Cpa() {
           <p className="text-sm text-foreground/75 text-center py-6">Nenhuma conta com esse nome.</p>
         ) : visiveis.map(c => (
           <LinhaConta key={c.id} conta={c} chaves={chaves}
+            onTirarChave={ch => gravarChaves(chaves.filter(x => x.chave !== ch))}
             onMudar={nova => gravarDia(contas.map(x => (x.id === c.id ? nova : x)))}
             onExcluir={() => gravarDia(contas.filter(x => x.id !== c.id))} />
         ))}
