@@ -58,6 +58,7 @@ const CarteiraDIgital = pagina(() => import("./pages/CarteiraDIgital"));
 const CadastrosAdmin = pagina(() => import("./pages/CadastrosAdmin"));
 const DocsCR = pagina(() => import("./pages/DocsCR"));
 const Anotacoes = pagina(() => import("./pages/Anotacoes"));
+const Cpa = pagina(() => import("./pages/Cpa"));
 const ImageToPdf = pagina(() => import("./pages/ImageToPdf"));
 const ColaboradorPortal = pagina(() => import("./pages/ColaboradorPortal"));
 
@@ -144,6 +145,7 @@ const ProtectedLayout = () => {
             <Route path="/cadastros" element={<DelayRoute><CadastrosAdmin /></DelayRoute>} />
             <Route path="/docs-cr" element={<DelayRoute><DocsCR /></DelayRoute>} />
             <Route path="/anotacoes" element={<DelayRoute><Anotacoes /></DelayRoute>} />
+            <Route path="/cpa" element={<AdminRoute><Cpa /></AdminRoute>} />
             <Route path="/imagem-para-pdf" element={<DelayRoute><ImageToPdf /></DelayRoute>} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />

@@ -1,4 +1,4 @@
-import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ClipboardList, Wallet, UserPlus, FolderOpen, StickyNote } from "lucide-react";
+import { Landmark, LayoutDashboard, LogOut, Receipt, Settings, ShieldCheck, User, Users, BarChart3, Timer, PieChart, Crown, RefreshCw, Clock, FileText, ClipboardList, Wallet, UserPlus, FolderOpen, StickyNote, Coins } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -201,6 +201,16 @@ export function AppSidebar() {
                         <NavLink to="/admin" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                           <ShieldCheck className="h-[18px] w-[18px]" />
                           <span>Painel Admin</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                  {isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip="CPA">
+                        <NavLink to="/cpa" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                          <Coins className="h-[18px] w-[18px]" />
+                          <span>CPA</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
