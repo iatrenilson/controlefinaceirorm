@@ -29,6 +29,7 @@ interface CacCadastro {
   estado: string | null;
   tipo_sinarm: string | null;
   armas: string | null;
+  colaborador_token?: string | null;
 }
 
 type SistReg = "" | "SINARM" | "SIGMA";
@@ -114,7 +115,8 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPorte = false) {
+// despachante: o colaborador que cadastrou o cliente; vai no fim do nome do arquivo ("Laudo CR Pistola 517.26 Fulano - Herycles")
+async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPorte = false, despachante = "") {
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
   const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
@@ -562,7 +564,8 @@ async function gerarLaudoPDF(f: LaudoForm, tipo: "cr_cac" | "sinarm", sinarmPort
 
   const _tipoLabel = tipo === "sinarm" ? (sinarmPorte ? "Sinarm Porte" : "Sinarm") : "CR";
   const _parts = [_tipoLabel, _armasLabel, _nr, _nome].filter(Boolean);
-  const fileName = `Laudo ${_parts.join(" ")}.pdf`;
+  const _desp = despachante.trim().replace(/[\\/:*?"<>|]/g, "");
+  const fileName = `Laudo ${_parts.join(" ")}${_desp ? ` - ${_desp}` : ""}.pdf`;
 
   // Abre diálogo "Salvar como" nativo no desktop (Chrome/Edge)
   // No celular e outros browsers cai no download direto automático
@@ -635,6 +638,13 @@ const Laudos = () => {
   const [coloridoOpen, setColoridoOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
   const [cadastros, setCadastros] = useState<CacCadastro[]>([]);
+  // Despachante do laudo (vai no nome do arquivo): vem do colaborador do cadastro escolhido, e dá para escrever à mão
+  const [despachante, setDespachante] = useState("");
+  const [colaboradores, setColaboradores] = useState<{ token: string; nome: string }[]>([]);
+  useEffect(() => {
+    supabase.from("colaboradores" as any).select("token,nome")
+      .then(({ data }) => { if (data) setColaboradores(data as unknown as { token: string; nome: string }[]); });
+  }, []);
   const [cadSearch, setCadSearch] = useState("");
   const [cadOpen, setCadOpen] = useState(false);
   const cadRef = useRef<HTMLDivElement>(null);
@@ -653,8 +663,8 @@ const Laudos = () => {
   // Carrega e mantém cadastros atualizados em tempo real (os mais recentes primeiro na busca)
   useEffect(() => {
     const carregar = () =>
-      supabase.from("cac_cadastros").select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas").order("created_at", { ascending: false })
-        .then(({ data }) => { if (data) setCadastros(data as CacCadastro[]); });
+      supabase.from("cac_cadastros" as any).select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas,colaborador_token").order("created_at", { ascending: false })
+        .then(({ data }) => { if (data) setCadastros(data as unknown as CacCadastro[]); });
 
     carregar();
 
@@ -677,6 +687,7 @@ const Laudos = () => {
   }, [cadOpen]);
 
   const selecionarCadastro = (c: CacCadastro) => {
+    setDespachante(colaboradores.find(k => k.token === c.colaborador_token)?.nome ?? "");
     const tipoRaw = (c.tipo_sinarm || "").toUpperCase();
 
     // Mapeamento de tipo_sinarm → laudoTipo, finalidade, categoria, sinarmPorte
@@ -795,7 +806,7 @@ const Laudos = () => {
               {/* Tipo de Laudo - radio pill + Limpar */}
               <div className="flex items-center gap-2 text-xs font-medium">
                 <button type="button"
-                  onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); toast.info("Formulário limpo."); }}
+                  onClick={() => { setForm(p => ({ ...EMPTY, numero: p.numero })); setSinarmPorte(false); setDespachante(""); toast.info("Formulário limpo."); }}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border text-muted-foreground hover:border-destructive/60 hover:text-destructive transition-all">
                   <RotateCcw className="h-3 w-3" />
                   Limpar
@@ -906,6 +917,12 @@ const Laudos = () => {
                     if (v) supabase.rpc("set_laudo_ultimo_numero", { p_numero: v })
                       .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
                   }} />
+              </div>
+              <div className="col-span-3 space-y-1">
+                <Label className="text-xs">Despachante <span className="text-muted-foreground font-normal">(vai no nome do PDF)</span></Label>
+                <Input className="h-9 text-sm" placeholder="ex.: Herycles" value={despachante}
+                  onChange={e => setDespachante(e.target.value)} list="laudo-despachantes" />
+                <datalist id="laudo-despachantes">{colaboradores.map(k => <option key={k.token} value={k.nome} />)}</datalist>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1264,7 +1281,7 @@ const Laudos = () => {
             }
             if (!form.conclusao) { toast.error("Selecione APTO ou INAPTO."); return; }
             try {
-              await gerarLaudoPDF(form, laudoTipo, sinarmPorte);
+              await gerarLaudoPDF(form, laudoTipo, sinarmPorte, despachante);
               toast.success("Laudo gerado com sucesso!");
               // Incrementa o número e limpa o formulário
               const proximoNumero = form.numero && /^\d+$/.test(form.numero.trim())
@@ -1272,6 +1289,7 @@ const Laudos = () => {
                 : form.numero;
               setForm({ ...EMPTY, numero: proximoNumero });
               setSinarmPorte(false);
+              setDespachante("");
               if (proximoNumero) {
                 supabase.rpc("set_laudo_ultimo_numero", { p_numero: proximoNumero })
                   .then(({ error }) => { if (error) console.error("[laudo] set_ultimo_numero:", error); });
