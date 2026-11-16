@@ -364,14 +364,22 @@ export default function Cpa() {
   const chave = chaveMes(dia);
   const mes = meses[chave];
 
+  // Quadro "Lucro do dia": clicando escolhe outro dia só para ver o lucro dele (null = o dia da tela)
+  const [diaLucro, setDiaLucro] = useState<string | null>(null);
+  const seletorLucro = useRef<HTMLInputElement>(null);
+  const pedidos = useRef(new Set<string>());
   useEffect(() => {
-    if (meses[chave]) return;
-    supabase.from("app_config" as any).select("valor").eq("chave", chave).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) toast.error("Não consegui carregar: " + error.message);
-        setMeses(m => ({ ...m, [chave]: ((data as any)?.valor?.dias as Mes) ?? {} }));
-      });
-  }, [chave, meses]);
+    for (const k of [chave, diaLucro && chaveMes(diaLucro)]) {
+      if (!k || meses[k] || pedidos.current.has(k)) continue;
+      pedidos.current.add(k);
+      supabase.from("app_config" as any).select("valor").eq("chave", k).maybeSingle()
+        .then(({ data, error }) => {
+          pedidos.current.delete(k);
+          if (error) toast.error("Não consegui carregar: " + error.message);
+          setMeses(m => ({ ...m, [k]: ((data as any)?.valor?.dias as Mes) ?? {} }));
+        });
+    }
+  }, [chave, diaLucro, meses]);
 
   // Cada mudança grava o mês inteiro; as gravações vão em fila, na ordem em que foram feitas
   const gravarDia = (contas: Conta[]) => {
@@ -397,7 +405,6 @@ export default function Cpa() {
   const visiveis = contas.filter(c => !busca.trim() || c.nome.toLowerCase().includes(busca.trim().toLowerCase()));
   const totalDep = contas.reduce((t, c) => t + soma(c.depositos), 0);
   const totalRet = contas.reduce((t, c) => t + soma(c.saques) + bauDe(c), 0);
-  const lucroDia = totalRet - totalDep;
   const comDeposito = contas.filter(c => c.depositos.length).length;
   const hoje = dia === diaISO(new Date());
   const tituloDia = new Date(`${dia}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -406,7 +413,6 @@ export default function Cpa() {
   const resumo = [
     { rotulo: "Total depositado", valor: reais(totalDep), cor: "" },
     { rotulo: "Total retorno (saque + baú)", valor: reais(totalRet), cor: "text-sky-400" },
-    { rotulo: "Lucro do dia", valor: reais(lucroDia), cor: corLucro(lucroDia) },
     { rotulo: "Média de depósitos", valor: reais(comDeposito ? totalDep / comDeposito : 0), cor: "text-violet-400" },
   ];
 
@@ -440,7 +446,39 @@ export default function Cpa() {
       <p className="text-sm font-medium first-letter:uppercase -mt-2">{tituloDia}</p>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        {resumo.map(r => (
+        {resumo.slice(0, 2).map(r => (
+          <Card key={r.rotulo}>
+            <CardContent className="p-3">
+              <p className="text-[11px] uppercase tracking-wide text-foreground/75">{r.rotulo}</p>
+              <p className={`text-lg font-bold ${r.cor}`}>{r.valor}</p>
+            </CardContent>
+          </Card>
+        ))}
+        {(() => {
+          // Lucro do dia: clicando no quadro abre o calendário para ver o lucro de outro dia
+          const d = diaLucro ?? dia;
+          const doMes = meses[chaveMes(d)];
+          const valor = doMes ? (doMes[d] ?? []).reduce((t, c) => t + lucroDe(c), 0) : null;
+          const abrir = () => { const el = seletorLucro.current; if (!el) return; try { el.showPicker(); } catch { el.focus(); el.click(); } };
+          return (
+            <Card className="relative cursor-pointer hover:border-primary/50 transition-colors" onClick={abrir} title="Clique para escolher o dia">
+              <CardContent className="p-3">
+                <p className="text-[11px] uppercase tracking-wide text-foreground/75 flex items-center gap-1">
+                  Lucro do dia · {d.slice(8)}/{d.slice(5, 7)} <ChevronDown className="h-3 w-3" />
+                  {diaLucro && diaLucro !== dia && (
+                    <button onClick={e => { e.stopPropagation(); setDiaLucro(null); }} title="Voltar para o dia da tela"
+                      className="ml-auto normal-case tracking-normal text-[10px] text-primary hover:underline">voltar</button>
+                  )}
+                </p>
+                <p className={`text-lg font-bold ${valor === null ? "" : corLucro(valor)}`}>{valor === null ? "…" : reais(valor)}</p>
+              </CardContent>
+              <input ref={seletorLucro} type="date" value={d} tabIndex={-1} aria-hidden
+                onChange={e => e.target.value && setDiaLucro(e.target.value === dia ? null : e.target.value)}
+                className="absolute bottom-0 left-3 h-0 w-0 opacity-0 pointer-events-none [color-scheme:dark]" />
+            </Card>
+          );
+        })()}
+        {resumo.slice(2).map(r => (
           <Card key={r.rotulo}>
             <CardContent className="p-3">
               <p className="text-[11px] uppercase tracking-wide text-foreground/75">{r.rotulo}</p>
