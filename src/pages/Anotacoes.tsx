@@ -5,13 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usuarioAtual } from "@/lib/usuarioAtual";
 
-// Anotações manuais de nomes por assunto (CR, Autorização de Compra...). Ficam no banco, em app_config (chave
-// "anotacoes"), num documento só: mesma tabela dos dados do contratado, sem tabela nova
+// Anotações manuais de nomes por assunto (CR, Autorização de Compra...). São PESSOAIS: cada usuário tem a sua,
+// em app_config, chave "anotacoes_<id do usuário>". O banco (RLS) só deixa cada um ler e gravar a própria
 interface Item { id: string; texto: string; feito: boolean; em: string }
 interface Lista { id: string; nome: string; itens: Item[] }
 
-const CHAVE = "anotacoes";
 const LISTAS_PADRAO = ["CR", "Autorização de Compra", "Renovação de CRAF", "GT", "Interessados"];
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const listasIniciais = (): Lista[] => LISTAS_PADRAO.map(nome => ({ id: novoId(), nome, itens: [] }));
@@ -133,6 +133,7 @@ export default function Anotacoes() {
   const [novaLista, setNovaLista] = useState("");
   const fila = useRef<Promise<unknown>>(Promise.resolve());
   const listasRef = useRef<Lista[] | null>(null);   // o que está na tela agora (para as gravações em fila)
+  const chaveRef = useRef<string | null>(null);     // "anotacoes_<id do usuário logado>"
   const pendentes = useRef(0);                      // gravações ainda não terminadas
   const geracao = useRef(0);                        // sobe a cada mudança feita aqui
   // Arrastar uma lista (pela alça) e soltar sobre outra: ela passa a ocupar o lugar daquela
@@ -149,7 +150,12 @@ export default function Anotacoes() {
 
   // Lê a versão do banco. Devolve null se der erro (aí NUNCA grava por cima, para não apagar nada)
   const lerBanco = async (): Promise<{ listas: Lista[] | null; em: string | null } | null> => {
-    const { data, error } = await supabase.from("app_config" as any).select("valor, updated_at").eq("chave", CHAVE).maybeSingle();
+    if (!chaveRef.current) {
+      const u = await usuarioAtual();
+      if (!u) return null;
+      chaveRef.current = "anotacoes_" + u.id;
+    }
+    const { data, error } = await supabase.from("app_config" as any).select("valor, updated_at").eq("chave", chaveRef.current).maybeSingle();
     if (error) return null;
     const salvo = (data as any)?.valor?.listas as Lista[] | undefined;
     return { listas: salvo?.length ? salvo : null, em: (data as any)?.updated_at ?? null };
@@ -204,14 +210,14 @@ export default function Anotacoes() {
         if (!r.listas || !r.em) {
           // Ainda não existe nada salvo: grava o que está na tela (que já tem esta mudança)
           const { error } = await supabase.from("app_config" as any)
-            .insert({ chave: CHAVE, valor: { listas: local }, updated_at: new Date().toISOString() });
+            .insert({ chave: chaveRef.current, valor: { listas: local }, updated_at: new Date().toISOString() });
           if (!error) return local;
           continue;   // alguém criou ao mesmo tempo: lê de novo
         }
         const final = mudar(r.listas);
         const { data, error } = await supabase.from("app_config" as any)
           .update({ valor: { listas: final }, updated_at: new Date().toISOString() })
-          .eq("chave", CHAVE).eq("updated_at", r.em).select("chave");
+          .eq("chave", chaveRef.current).eq("updated_at", r.em).select("chave");
         if (error) throw error;
         if ((data as any[])?.length) return final;   // gravou
         // 0 linhas: outra pessoa gravou entre a leitura e a gravação. Tenta de novo com a versão nova
@@ -261,7 +267,7 @@ export default function Anotacoes() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[200px]">
           <h1 className="text-xl font-bold flex items-center gap-2"><StickyNote className="h-5 w-5 text-primary" />Anotações</h1>
-          <p className="text-sm text-muted-foreground">Nomes anotados à mão, por assunto. {salvando ? "Salvando…" : "Tudo salvo."}</p>
+          <p className="text-sm text-muted-foreground">Suas anotações, por assunto. Só você vê. {salvando ? "Salvando…" : "Tudo salvo."}</p>
         </div>
         <div className="flex gap-2">
           <Input className="h-9 text-sm w-48" placeholder="Nova lista…" value={novaLista}
