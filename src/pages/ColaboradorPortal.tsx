@@ -150,6 +150,8 @@ export default function ColaboradorPortal() {
     if (!form.tipos.length)    { toast.error("Selecione o Tipo de Serviço."); return; }
     if (!form.armas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
     if (uploadingPsico)        { toast.error("Aguarde o upload."); return; }
+    // cadastro novo só sai com o laudo psicológico anexado
+    if (tela === "novo" && !form.psicoUrl) { toast.error("Anexe o PDF do laudo psicológico."); return; }
     setSaving(true);
     if (tela === "novo") {
       // Salva PRIMEIRO; a confirmação no WhatsApp só sai depois de salvo.
@@ -264,7 +266,7 @@ export default function ColaboradorPortal() {
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
           {/* Psicológico */}
           <div>
-            <label style={{ ...labelStyle, marginBottom:4, display:"block" }}>Psicológico</label>
+            <label style={{ ...labelStyle, marginBottom:4, display:"block" }}>Psicológico {tela === "novo" && !form.psicoUrl && <span style={{ color:"#ef4444" }}>* obrigatório</span>}</label>
             <p style={{ color:"#ffffff", fontSize:14, fontWeight:700, lineHeight:1.4, margin:"0 0 10px" }}>
               Ao anexar o laudo psicológico, nome e CPF são preenchidos automaticamente.
             </p>
