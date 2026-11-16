@@ -16,9 +16,13 @@ const LISTAS_PADRAO = ["CR", "Autorização de Compra", "Renovação de CRAF", "
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const listasIniciais = (): Lista[] => LISTAS_PADRAO.map(nome => ({ id: novoId(), nome, itens: [] }));
 
+// Cada mudança é uma "receita" (função) aplicada por cima da versão mais nova do banco na hora de salvar,
+// assim quem está com a tela desatualizada não apaga o que outra pessoa acabou de fazer
+type Mudanca = (l: Lista) => Lista;
+
 function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
   lista: Lista;
-  onMudar: (l: Lista) => void;
+  onMudar: (m: Mudanca) => void;
   onExcluir: () => void;
   onPegar: (e: React.DragEvent) => void;      // começa a arrastar a lista pela alça
   onMover: (passo: -1 | 1) => void;           // setas (no celular não dá para arrastar)
@@ -31,15 +35,16 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
   const adicionar = () => {
     const t = novo.trim();
     if (!t) return;
-    onMudar({ ...lista, itens: [...lista.itens, { id: novoId(), texto: t, feito: false, em: new Date().toISOString() }] });
+    const item: Item = { id: novoId(), texto: t, feito: false, em: new Date().toISOString() };
+    onMudar(l => ({ ...l, itens: [...l.itens, item] }));
     setNovo("");
   };
   const mudarItem = (id: string, m: Partial<Item>) =>
-    onMudar({ ...lista, itens: lista.itens.map(i => (i.id === id ? { ...i, ...m } : i)) });
+    onMudar(l => ({ ...l, itens: l.itens.map(i => (i.id === id ? { ...i, ...m } : i)) }));
   const salvarEdicao = () => {
     const t = textoEdit.trim();
     if (t) {
-      if (editando === "titulo") onMudar({ ...lista, nome: t });
+      if (editando === "titulo") onMudar(l => ({ ...l, nome: t }));
       else if (editando) mudarItem(editando, { texto: t });
     }
     setEditando(null);
@@ -108,7 +113,7 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
                     <span className={`flex-1 text-sm break-words ${i.feito ? "line-through text-muted-foreground" : ""}`}>{i.texto}</span>
                     <button onClick={() => { setEditando(i.id); setTextoEdit(i.texto); }} title="Editar"
                       className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => onMudar({ ...lista, itens: lista.itens.filter(x => x.id !== i.id) })} title="Apagar"
+                    <button onClick={() => onMudar(l => ({ ...l, itens: l.itens.filter(x => x.id !== i.id) }))} title="Apagar"
                       className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
                   </>
                 )}
@@ -123,48 +128,124 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
 
 export default function Anotacoes() {
   const [listas, setListas] = useState<Lista[] | null>(null);
+  const [erroCarregar, setErroCarregar] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [novaLista, setNovaLista] = useState("");
   const fila = useRef<Promise<unknown>>(Promise.resolve());
+  const listasRef = useRef<Lista[] | null>(null);   // o que está na tela agora (para as gravações em fila)
+  const pendentes = useRef(0);                      // gravações ainda não terminadas
+  const geracao = useRef(0);                        // sobe a cada mudança feita aqui
   // Arrastar uma lista (pela alça) e soltar sobre outra: ela passa a ocupar o lugar daquela
   const [arrastada, setArrastada] = useState<string | null>(null);
   const [sobre, setSobre] = useState<string | null>(null);
+  const arrastandoRef = useRef(false);
+  arrastandoRef.current = !!arrastada;
 
+  const mostrar = (ls: Lista[]) => {
+    if (JSON.stringify(ls) === JSON.stringify(listasRef.current)) return;   // nada mudou: não redesenha
+    listasRef.current = ls;
+    setListas(ls);
+  };
+
+  // Lê a versão do banco. Devolve null se der erro (aí NUNCA grava por cima, para não apagar nada)
+  const lerBanco = async (): Promise<{ listas: Lista[] | null; em: string | null } | null> => {
+    const { data, error } = await supabase.from("app_config" as any).select("valor, updated_at").eq("chave", CHAVE).maybeSingle();
+    if (error) return null;
+    const salvo = (data as any)?.valor?.listas as Lista[] | undefined;
+    return { listas: salvo?.length ? salvo : null, em: (data as any)?.updated_at ?? null };
+  };
+
+  // Busca o que os outros usuários mudaram (ao abrir, a cada 8 s com a aba visível e ao voltar para a aba).
+  // Não mexe na tela enquanto há gravação desta pessoa em andamento ou uma lista sendo arrastada
   useEffect(() => {
-    supabase.from("app_config" as any).select("valor").eq("chave", CHAVE).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) toast.error("Não consegui carregar as anotações: " + error.message);
-        const salvo = (data as any)?.valor?.listas as Lista[] | undefined;
-        setListas(salvo?.length ? salvo : listasIniciais());
-      });
+    let vivo = true;
+    const atualizar = async (primeira = false) => {
+      if (!primeira && (document.visibilityState !== "visible" || pendentes.current > 0 || arrastandoRef.current)) return;
+      const g = geracao.current;
+      const r = await lerBanco();
+      if (!vivo) return;
+      if (!r) {
+        if (primeira) { setErroCarregar(true); toast.error("Não consegui carregar as anotações. Tentando de novo…"); }
+        return;
+      }
+      // Se a pessoa mudou algo enquanto esta leitura viajava, ela já está velha: descarta
+      if (pendentes.current > 0 || arrastandoRef.current || g !== geracao.current) return;
+      setErroCarregar(false);
+      if (r.listas) mostrar(r.listas);
+      else if (!listasRef.current) mostrar(listasIniciais());
+    };
+    atualizar(true);
+    const t = window.setInterval(() => atualizar(), 8000);
+    const aoVoltar = () => { if (document.visibilityState === "visible") atualizar(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    window.addEventListener("focus", aoVoltar);
+    return () => {
+      vivo = false;
+      window.clearInterval(t);
+      document.removeEventListener("visibilitychange", aoVoltar);
+      window.removeEventListener("focus", aoVoltar);
+    };
   }, []);
 
-  // Cada mudança grava o documento inteiro; as gravações vão em fila, na ordem em que foram feitas
-  const gravar = (novas: Lista[]) => {
-    setListas(novas);
+  // Cada mudança aparece na hora na tela e entra numa fila. Na vez dela: lê a versão mais nova do banco,
+  // aplica só esta mudança por cima e grava. Se outra pessoa gravou no meio tempo, tenta de novo.
+  const gravar = (mudar: (ls: Lista[]) => Lista[]) => {
+    if (!listasRef.current) return;
+    const local = mudar(listasRef.current);
+    listasRef.current = local;
+    setListas(local);
+    geracao.current++;
+    pendentes.current++;
     setSalvando(true);
     fila.current = fila.current.then(async () => {
-      const { error } = await supabase.from("app_config" as any)
-        .upsert({ chave: CHAVE, valor: { listas: novas }, updated_at: new Date().toISOString() });
-      if (error) toast.error("Não consegui salvar: " + error.message);
-    }).finally(() => setSalvando(false));
+      for (let tentativa = 0; tentativa < 4; tentativa++) {
+        const r = await lerBanco();
+        if (!r) throw new Error("sem conexão com o banco");
+        if (!r.listas || !r.em) {
+          // Ainda não existe nada salvo: grava o que está na tela (que já tem esta mudança)
+          const { error } = await supabase.from("app_config" as any)
+            .insert({ chave: CHAVE, valor: { listas: local }, updated_at: new Date().toISOString() });
+          if (!error) return local;
+          continue;   // alguém criou ao mesmo tempo: lê de novo
+        }
+        const final = mudar(r.listas);
+        const { data, error } = await supabase.from("app_config" as any)
+          .update({ valor: { listas: final }, updated_at: new Date().toISOString() })
+          .eq("chave", CHAVE).eq("updated_at", r.em).select("chave");
+        if (error) throw error;
+        if ((data as any[])?.length) return final;   // gravou
+        // 0 linhas: outra pessoa gravou entre a leitura e a gravação. Tenta de novo com a versão nova
+      }
+      throw new Error("muitas pessoas salvando ao mesmo tempo, tente de novo");
+    }).then(
+      (final) => { if (pendentes.current === 1 && final) mostrar(final as Lista[]); },
+      (e: any) => toast.error("Não consegui salvar: " + (e?.message ?? e)),
+    ).finally(() => {
+      pendentes.current--;
+      if (pendentes.current === 0) setSalvando(false);
+    });
   };
 
   const criarLista = () => {
     const nome = novaLista.trim();
     if (!nome || !listas) return;
-    gravar([...listas, { id: novoId(), nome, itens: [] }]);
+    const nova: Lista = { id: novoId(), nome, itens: [] };
+    gravar(ls => [...ls, nova]);
     setNovaLista("");
   };
 
-  const moverPara = (id: string, destino: number) => {
-    if (!listas) return;
-    const de = listas.findIndex(l => l.id === id);
-    if (de < 0 || destino < 0 || destino >= listas.length || de === destino) return;
-    const novas = [...listas];
-    const [l] = novas.splice(de, 1);
-    novas.splice(destino, 0, l);
-    gravar(novas);
+  // Põe a lista "id" no lugar onde está a lista "alvoId" (pelo id, não pela posição, que pode ter mudado)
+  const moverPara = (id: string, alvoId: string | undefined) => {
+    if (!alvoId || id === alvoId) return;
+    gravar(ls => {
+      const de = ls.findIndex(l => l.id === id);
+      const para = ls.findIndex(l => l.id === alvoId);
+      if (de < 0 || para < 0) return ls;
+      const novas = [...ls];
+      const [l] = novas.splice(de, 1);
+      novas.splice(para, 0, l);
+      return novas;
+    });
   };
 
   useEffect(() => {
@@ -173,7 +254,7 @@ export default function Anotacoes() {
     return () => window.removeEventListener("anotacoes-soltou", fim);
   }, []);
 
-  if (!listas) return <div className="p-4 text-sm text-muted-foreground">Carregando…</div>;
+  if (!listas) return <div className="p-4 text-sm text-muted-foreground">{erroCarregar ? "Não consegui carregar as anotações. Tentando de novo…" : "Carregando…"}</div>;
 
   return (
     <div className="p-4 space-y-4">
@@ -195,10 +276,10 @@ export default function Anotacoes() {
             className={`rounded-lg transition-all ${arrastada === l.id ? "opacity-40" : ""} ${sobre === l.id && arrastada !== l.id ? "ring-2 ring-primary" : ""}`}
             onDragOver={e => { if (!arrastada) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (sobre !== l.id) setSobre(l.id); }}
             onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setSobre(s => (s === l.id ? null : s)); }}
-            onDrop={e => { if (!arrastada) return; e.preventDefault(); moverPara(arrastada, idx); setArrastada(null); setSobre(null); }}>
+            onDrop={e => { if (!arrastada) return; e.preventDefault(); moverPara(arrastada, l.id); setArrastada(null); setSobre(null); }}>
             <CartaoLista lista={l}
-              onMudar={nova => gravar(listas.map(x => (x.id === l.id ? nova : x)))}
-              onExcluir={() => gravar(listas.filter(x => x.id !== l.id))}
+              onMudar={m => gravar(ls => ls.map(x => (x.id === l.id ? m(x) : x)))}
+              onExcluir={() => gravar(ls => ls.filter(x => x.id !== l.id))}
               onPegar={e => {
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("text/plain", l.nome);
@@ -206,7 +287,7 @@ export default function Anotacoes() {
                 if (cartao) e.dataTransfer.setDragImage(cartao, 20, 20);
                 setArrastada(l.id);
               }}
-              onMover={passo => moverPara(l.id, idx + passo)} />
+              onMover={passo => moverPara(l.id, listas[idx + passo]?.id)} />
           </div>
         ))}
       </div>
