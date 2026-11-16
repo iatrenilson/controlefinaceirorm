@@ -207,10 +207,10 @@ export function AppSidebar() {
                   )}
                   {isAdmin && (
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="CPA Chinesa">
+                      <SidebarMenuButton asChild tooltip="CPA">
                         <NavLink to="/cpa" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
                           <Coins className="h-[18px] w-[18px]" />
-                          <span>CPA Chinesa</span>
+                          <span>CPA</span>
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
