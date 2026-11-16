@@ -212,7 +212,8 @@ export default function Anotacoes() {
           const { error } = await supabase.from("app_config" as any)
             .insert({ chave: chaveRef.current, valor: { listas: local }, updated_at: new Date().toISOString() });
           if (!error) return local;
-          continue;   // alguém criou ao mesmo tempo: lê de novo
+          if ((error as any).code === "23505") continue;   // alguém criou ao mesmo tempo: lê de novo
+          throw error;                                      // outro erro (ex.: sem permissão): mostra o motivo real
         }
         const final = mudar(r.listas);
         const { data, error } = await supabase.from("app_config" as any)
