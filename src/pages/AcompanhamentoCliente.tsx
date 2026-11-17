@@ -38,7 +38,8 @@ const ETAPAS: Record<string, string> = {
 };
 
 // "Fluxo de Processo" do Sinarm CAC
-const FLUXO = ["Pendente", "Iniciado", "Pronto para Análise", "Em Análise", "Restituído", "Finalizado (Deferido/Indeferido)"];
+// (o último é "Finalizado (Deferido/Indeferido)" no Sinarm; curto aqui para caber na tela do celular)
+const FLUXO = ["Pendente", "Iniciado", "Pronto para Análise", "Em Análise", "Restituído", "Finalizado"];
 const sem = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 function passoDoStatus(status: string) {
   const s = sem(status);
@@ -192,6 +193,7 @@ export default function AcompanhamentoCliente() {
   // Android (Chrome): o navegador avisa que dá para instalar; guardamos o pedido para o botão "Instalar aplicativo"
   const [pedidoInstalar, setPedidoInstalar] = useState<InstalarEvento | null>(null);
   const [instalado, setInstalado] = useState(false);
+  const [mostrarComoInstalar, setMostrarComoInstalar] = useState(false);
   useEffect(() => {
     const aoPoder = (e: Event) => { e.preventDefault(); setPedidoInstalar(e as InstalarEvento); };
     const aoInstalar = () => { setInstalado(true); setPedidoInstalar(null); };
@@ -302,43 +304,72 @@ export default function AcompanhamentoCliente() {
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 32px", display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Android: um toque instala (o Chrome mostra a janela dele); sem o pedido do navegador, explica pelo menu ⋮ */}
-        {androidSemApp && (
-          <div style={{ ...caixa, padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: VERDE_CLARO }}>📲 Tenha o acompanhamento no seu celular</p>
-            <p style={{ fontSize: 13, color: APAGADO, margin: "4px 0 10px" }}>Fica um ícone na tela inicial, para abrir com um toque.</p>
-            {pedidoInstalar ? (
-              <button onClick={instalarAndroid}
-                style={{ background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 4, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                Instalar aplicativo
-              </button>
-            ) : (
-              <p style={{ fontSize: 13, lineHeight: 1.5 }}>
-                Toque no menu <b>⋮</b> do navegador (no canto de cima) e depois em <b>Instalar aplicativo</b> ou <b>Adicionar à tela inicial</b>.
-              </p>
-            )}
-          </div>
+        {/* Instalar no celular: só uma faixa de uma linha chamando atenção; o passo a passo abre numa janela por cima.
+            No Android, quando o Chrome permite, o toque já abre a instalação dele. */}
+        {(androidSemApp || iphoneSemApp) && (
+          <button
+            onClick={() => (androidSemApp && pedidoInstalar ? instalarAndroid() : setMostrarComoInstalar(true))}
+            className="faixa-instalar"
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", cursor: "pointer",
+              background: "rgba(212,167,48,0.12)", border: `1px solid ${VERDE}`, borderRadius: 999, padding: "8px 14px",
+              color: TEXTO, fontFamily: FONT }}>
+            <span style={{ fontSize: 18 }}>📲</span>
+            <span style={{ flex: 1, fontSize: 13, lineHeight: 1.3 }}>Instale no celular para receber os avisos</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: PRETO, background: VERDE_CLARO, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap" }}>
+              {androidSemApp && pedidoInstalar ? "Instalar" : "Ver como"}
+            </span>
+          </button>
         )}
+        <style>{`@keyframes brilhoFaixa { 0%,100% { box-shadow: 0 0 0 0 rgba(242,194,48,0) } 50% { box-shadow: 0 0 0 5px rgba(242,194,48,0.25) } }
+          .faixa-instalar { animation: brilhoFaixa 2.4s ease-in-out 3 }`}</style>
 
-        {/* iPhone: a Apple não deixa instalar por botão; passo a passo com os desenhos dos botões do Safari */}
-        {iphoneSemApp && (
-          <div style={{ ...caixa, padding: 14 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: VERDE_CLARO }}>📱 Instale no seu iPhone para receber os avisos</p>
-            <p style={{ fontSize: 12, color: APAGADO, margin: "4px 0 12px" }}>
-              Abra este link no <b>Safari</b>. Se abriu dentro do WhatsApp, toque em <b>Abrir no Safari</b> primeiro.
-            </p>
-            <PassoIphone n={1} figura={<IconeCompartilhar />}>
-              Toque em <b>Compartilhar</b>, na barra do Safari. Se não aparecer, toque em <b>•••</b> e depois em <b>Compartilhar</b>.
-            </PassoIphone>
-            <PassoIphone n={2} figura={<IconeAdicionar />}>
-              Role a lista para baixo e toque em <b>Adicionar à Tela de Início</b>.
-            </PassoIphone>
-            <PassoIphone n={3} figura={<span style={{ fontSize: 13, fontWeight: 700, color: "#0a84ff" }}>Adicionar</span>}>
-              Toque em <b>Adicionar</b>, no canto de cima.
-            </PassoIphone>
-            <PassoIphone n={4} figura={<img src="/carteira-icon5.png" alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />} ultimo>
-              Abra pelo ícone <b>Meu processo</b> que apareceu na tela inicial e toque no <b>sininho 🔔</b>, no canto de cima.
-            </PassoIphone>
+        {mostrarComoInstalar && (
+          <div onClick={() => setMostrarComoInstalar(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+            <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Como instalar"
+              style={{ background: CARTAO, border: `1px solid ${BORDA}`, borderRadius: "16px 16px 0 0", width: "100%", maxWidth: 520,
+                maxHeight: "85vh", overflowY: "auto", padding: "16px 16px calc(16px + env(safe-area-inset-bottom))" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: VERDE_CLARO }}>{iphoneSemApp ? "Instalar no iPhone" : "Instalar no Android"}</p>
+                <button onClick={() => setMostrarComoInstalar(false)} aria-label="Fechar"
+                  style={{ background: "none", border: "none", color: APAGADO, fontSize: 22, lineHeight: 1, cursor: "pointer" }}>×</button>
+              </div>
+              {iphoneSemApp ? (
+                <>
+                  <p style={{ fontSize: 12, color: APAGADO, marginBottom: 6 }}>
+                    Use o <b>Safari</b>. Se abriu dentro do WhatsApp, toque em <b>Abrir no Safari</b> primeiro.
+                  </p>
+                  <PassoIphone n={1} figura={<IconeCompartilhar />}>
+                    Toque em <b>Compartilhar</b>, na barra do Safari (ou em <b>•••</b> e depois <b>Compartilhar</b>).
+                  </PassoIphone>
+                  <PassoIphone n={2} figura={<IconeAdicionar />}>
+                    Role para baixo e toque em <b>Adicionar à Tela de Início</b>.
+                  </PassoIphone>
+                  <PassoIphone n={3} figura={<span style={{ fontSize: 10, fontWeight: 700, color: "#0a84ff" }}>Adicionar</span>}>
+                    Toque em <b>Adicionar</b>, no canto de cima.
+                  </PassoIphone>
+                  <PassoIphone n={4} figura={<img src="/carteira-icon5.png" alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />} ultimo>
+                    Abra pelo ícone <b>Meu processo</b> e toque no <b>sininho 🔔</b>.
+                  </PassoIphone>
+                </>
+              ) : (
+                <>
+                  <PassoIphone n={1} figura={<span style={{ fontSize: 22, fontWeight: 700, color: TEXTO }}>⋮</span>}>
+                    Toque no menu <b>⋮</b> do navegador, no canto de cima.
+                  </PassoIphone>
+                  <PassoIphone n={2} figura={<IconeAdicionar />}>
+                    Toque em <b>Instalar aplicativo</b> ou <b>Adicionar à tela inicial</b>.
+                  </PassoIphone>
+                  <PassoIphone n={3} figura={<img src="/carteira-icon5.png" alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />} ultimo>
+                    Abra pelo ícone <b>Meu processo</b> e toque no <b>sininho 🔔</b>.
+                  </PassoIphone>
+                </>
+              )}
+              <button onClick={() => setMostrarComoInstalar(false)}
+                style={{ marginTop: 12, width: "100%", background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Entendi
+              </button>
+            </div>
           </div>
         )}
 
