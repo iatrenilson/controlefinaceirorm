@@ -156,7 +156,7 @@ export default function AcompanhamentoCliente() {
     document.querySelectorAll('link[rel="manifest"]').forEach(l => { doSite.push(l); l.remove(); });
     const icone = `${window.location.origin}/carteira-icon5.png`;
     const manifesto = URL.createObjectURL(new Blob([JSON.stringify({
-      name: "Acompanhamento do processo", short_name: "Meu processo", start_url: window.location.href,
+      name: "Acompanhamento do processo", short_name: "Meu processo", start_url: window.location.href, lang: "pt-BR", dir: "ltr",
       display: "standalone", background_color: "#000000", theme_color: "#000000",
       // o Chrome do Android só oferece "Instalar aplicativo" com ícone de 192 e de 512
       icons: [{ src: icone, sizes: "192x192", type: "image/png", purpose: "any" },
