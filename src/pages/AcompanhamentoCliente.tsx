@@ -464,7 +464,7 @@ export default function AcompanhamentoCliente() {
               {p.consultado_em && (
                 // última vez que o escritório abriu a lista na conta gov do cliente: muda a cada consulta,
                 // mesmo sem mudança de status (o cliente vê que o processo está sendo acompanhado)
-                <p style={{ fontSize: 13, color: APAGADO, padding: "9px 14px 11px", background: "rgba(212,167,48,0.08)", lineHeight: 1.4 }}>
+                <p style={{ fontSize: 11, color: APAGADO, padding: "8px 14px 10px", background: "rgba(212,167,48,0.08)" }}>
                   Status conferido pelo escritório em {dataHora(p.consultado_em)}
                 </p>
               )}
