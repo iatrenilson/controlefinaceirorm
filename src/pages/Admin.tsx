@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getSafeErrorMessage } from "@/lib/safe-error";
 import { Users, Landmark, BarChart3, Search, ShieldCheck, Banknote, AlertTriangle, Percent, UserCheck, Pencil, Trash2, Bell, Send, Mail, Monitor, Sparkles, Loader2, MailCheck, KeyRound, CreditCard, CalendarPlus, Clock, HardDrive, Database, RefreshCw, FileX2 } from "lucide-react";
 import { EmailDashboard } from "@/components/dashboard/EmailDashboard";
+import { PainelUsuario } from "@/components/admin/PainelUsuario";
+import { Eye } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Profile {
@@ -58,6 +60,7 @@ const Admin = () => {
   const [editEmail, setEditEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
+  const [vendoPainel, setVendoPainel] = useState<Profile | null>(null);   // 👁 Visualizar o painel do usuário
   const [deleting, setDeleting] = useState(false);
 
   // Password state
@@ -736,6 +739,9 @@ const Admin = () => {
                                     </Button>
                                   </>
                                 )}
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary" onClick={() => setVendoPainel(p)} title="Visualizar o painel do usuário">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditProfile(p)} title="Editar">
                                   <Pencil className="h-4 w-4" />
                                 </Button>
@@ -1525,6 +1531,8 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PainelUsuario usuario={vendoPainel} onClose={() => setVendoPainel(null)} />
     </div>
   );
 };
