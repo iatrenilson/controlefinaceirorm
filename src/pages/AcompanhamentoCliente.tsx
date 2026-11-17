@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { Bell, BellOff, ShieldCheck } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
 
 // Página pública que o cliente abre pelo link /acompanhamento/<id do cliente> (Clientes Armas).
@@ -464,18 +464,9 @@ export default function AcompanhamentoCliente() {
               {p.consultado_em && (
                 // última vez que o escritório abriu a lista na conta gov do cliente: muda a cada consulta,
                 // mesmo sem mudança de status (o cliente vê que o processo está sendo acompanhado)
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-                  background: "rgba(212,167,48,0.14)", borderTop: `2px solid ${VERDE}` }}>
-                  <ShieldCheck size={30} color={VERDE_CLARO} style={{ flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 14, fontWeight: 600, color: TEXTO, lineHeight: 1.3 }}>
-                      Status conferido pelo escritório na Polícia Federal
-                    </p>
-                    <p style={{ fontSize: 16, fontWeight: 700, color: VERDE_CLARO, marginTop: 2 }}>
-                      {dataHora(p.consultado_em).replace(",", " às")}
-                    </p>
-                  </div>
-                </div>
+                <p style={{ fontSize: 13, color: APAGADO, padding: "9px 14px 11px", background: "rgba(212,167,48,0.08)", lineHeight: 1.4 }}>
+                  Status conferido pelo escritório na Polícia Federal em {dataHora(p.consultado_em)}
+                </p>
               )}
             </div>
           );
