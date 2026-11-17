@@ -27,8 +27,12 @@
     </script>
     <script type="text/javascript">
       // Site como aplicativo (o admin instala no celular para receber os avisos de vencimento). A Carteira do cliente
-      // (/carteira/...) usa o manifesto dela, que abre direto no link do cliente.
-      if (window.location.pathname.indexOf('/carteira/') !== 0) {
+      // (/carteira/...) e o Acompanhamento do processo (/acompanhamento/...) são links públicos do cliente: usam o
+      // manifesto deles, que abre direto no link. Com o do site, o iPhone salvava a tela inicial e abria pedindo login.
+      var caminho = window.location.pathname;
+      if (caminho.indexOf('/acompanhamento/') === 0) {
+        var ta = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (ta) ta.content = 'Meu processo';
+      } else if (caminho.indexOf('/carteira/') !== 0) {
         var m = document.createElement('link'); m.rel = 'manifest'; m.href = '/manifest.json'; document.head.appendChild(m);
         var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = 'Passarinho';
       }
@@ -40,4 +44,4 @@
     <div id="root"></div>
   </body>
 </html>
-<!-- build:20261117045057 -->
+<!-- build:20261117045513 -->
