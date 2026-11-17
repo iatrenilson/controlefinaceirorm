@@ -127,6 +127,7 @@ const STATUS_DOT: Record<ClienteStatus, string> = {
 
 interface Cliente {
   id: string;
+  codigoAcompanhamento?: string; // link curto do acompanhamento (iniciais do nome, ex.: rmc)
   nome: string;
   rg: string;
   orgaoEmissor: string;
@@ -2332,6 +2333,7 @@ export default function Declaracoes() {
       if (!error && rows && rows.length > 0) {
         const clientes: Cliente[] = rows.map((r: any) => ({
           id: r.id,
+          codigoAcompanhamento: r.codigo_acompanhamento ?? undefined,
           nome: r.nome,
           rg: r.rg,
           orgaoEmissor: r.orgao_emissor,
@@ -2992,7 +2994,7 @@ export default function Declaracoes() {
                             }}>
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            <BotaoAcompanhamento clienteId={c.id} nome={c.nome} telefone={c.telefone} />
+                            <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} />
                             <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
@@ -3263,7 +3265,7 @@ export default function Declaracoes() {
                         }}>
                           <Share2 className="h-3 w-3" />
                         </Button>
-                        <BotaoAcompanhamento clienteId={c.id} nome={c.nome} telefone={c.telefone} pequeno />
+                        <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} pequeno />
                         <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />

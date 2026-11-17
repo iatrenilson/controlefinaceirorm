@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Bell, BellOff } from "lucide-react";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
 
-// Página pública que o cliente abre pelo link /acompanhamento/<id do cliente> (Clientes Armas).
+// Página pública que o cliente abre pelo link /acompanhamento/<iniciais do nome, ex.: rmc> (ou o id antigo do cliente em Clientes Armas).
 // Mostra cada processo como o Sinarm CAC mostra ("Fluxo de Processo" e as colunas da lista de processos), com o status
 // que o Passarinho grava quando o escritório abre a lista na conta gov do cliente (Sinarm CAC ou Portal PF).
 // O cliente pode ativar o aviso no celular: o GitHub (avisos-acompanhamento.yml) avisa quando um status muda.
@@ -22,7 +22,7 @@ interface Processo {
   // origem: "sinarm" (Sinarm CAC, servicos.pf.gov.br) ou "portal" (Portal PF); motivo, GRU e fila só vêm do Sinarm CAC
   origem?: string; motivo?: string; gru?: string; posicao_fila?: string;
 }
-interface Dados { nome: string; etapa?: string; processos: Processo[]; }
+interface Dados { id?: string; nome: string; etapa?: string; processos: Processo[]; }
 
 // Etapa do cliente no escritório (o status do card em Clientes Armas), só enquanto não há nada lido da PF
 const ETAPAS: Record<string, string> = {
@@ -142,10 +142,10 @@ export default function AcompanhamentoCliente() {
   useEffect(() => {
     document.title = "Acompanhamento do processo";
     if (!id) { setEstado("erro"); return; }
-    fetch(`${SUPABASE_URL}/rest/v1/rpc/get_acompanhamento`, {
+    fetch(`${SUPABASE_URL}/rest/v1/rpc/get_acompanhamento_ref`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
-      body: JSON.stringify({ p_id: id }),
+      body: JSON.stringify({ p_ref: id }), // aceita o link curto (iniciais, ex.: rmc) ou o id antigo
     })
       .then(r => r.json())
       .then(j => { if (j?.nome) { setDados(j); setEstado("ok"); } else setEstado("erro"); })
@@ -245,7 +245,7 @@ export default function AcompanhamentoCliente() {
     setAvisos("ocupado"); setMsgAviso("");
     try {
       const sub = await ativarPush();
-      await rpc("salvar_push_acompanhamento", { p_cliente: id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      await rpc("salvar_push_acompanhamento", { p_cliente: dados?.id ?? id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
       try { localStorage.setItem(chaveLocal, "1"); } catch { /* sem armazenamento */ }
       setAvisos("ativo");
       avisoRapido("🔔 Avisos ligados: você recebe uma notificação quando o status mudar.");
@@ -263,7 +263,7 @@ export default function AcompanhamentoCliente() {
     try {
       const sub = await inscricaoAtual();
       // só tira deste link: a mesma inscrição pode estar servindo os avisos da Carteira CAC
-      if (sub) await rpc("remover_push_acompanhamento", { p_cliente: id, p_endpoint: sub.endpoint });
+      if (sub) await rpc("remover_push_acompanhamento", { p_cliente: dados?.id ?? id, p_endpoint: sub.endpoint });
     } catch { /* sem rede: fica para a próxima */ }
     try { localStorage.removeItem(chaveLocal); } catch { /* sem armazenamento */ }
     setAvisos("inativo");
