@@ -2992,7 +2992,7 @@ export default function Declaracoes() {
                             }}>
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            <BotaoAcompanhamento clienteId={c.id} />
+                            <BotaoAcompanhamento clienteId={c.id} nome={c.nome} telefone={c.telefone} />
                             <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
@@ -3263,7 +3263,7 @@ export default function Declaracoes() {
                         }}>
                           <Share2 className="h-3 w-3" />
                         </Button>
-                        <BotaoAcompanhamento clienteId={c.id} pequeno />
+                        <BotaoAcompanhamento clienteId={c.id} nome={c.nome} telefone={c.telefone} pequeno />
                         <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
