@@ -286,10 +286,11 @@ export default function AcompanhamentoCliente() {
                 {p.origem === "sinarm" && <Linha rotulo="Situação da GRU" valor={p.gru} />}
                 {p.origem === "sinarm" && <Linha rotulo="Posição na Fila de Análise" valor={p.posicao_fila} />}
               </div>
-              {p.status_desde && (
-                // é quando o escritório viu este status pela 1ª vez, não a data da decisão da PF
+              {p.consultado_em && (
+                // última vez que o escritório abriu a lista na conta gov do cliente: muda a cada consulta,
+                // mesmo sem mudança de status (o cliente vê que o processo está sendo acompanhado)
                 <p style={{ fontSize: 11, color: APAGADO, padding: "8px 14px 10px", background: VERDE_CLARO + "14" }}>
-                  Status conferido pelo escritório em {dataHora(p.status_desde)}
+                  Status conferido pelo escritório em {dataHora(p.consultado_em)}
                 </p>
               )}
             </div>
