@@ -203,7 +203,6 @@ export default function AcompanhamentoCliente() {
   // Rascunho é pedido que o escritório ainda está montando: não mostra um por um (pode haver vários)
   const enviados = dados.processos.filter(p => !/rascunho/i.test(p.descricao));
   const temRascunho = dados.processos.some(p => /rascunho/i.test(p.descricao));
-  const ultimaConsulta = dados.processos.map(p => p.consultado_em || "").sort().pop();
   const etapa = dados.etapa && enviados.length === 0 ? ETAPAS[dados.etapa] : "";
   const iphoneSemApp = ehIOS() && !abertoComoApp();
 
@@ -217,7 +216,6 @@ export default function AcompanhamentoCliente() {
           style={{ display: "block", margin: "0 auto", width: "min(260px, 70vw)", height: "auto" }} />
         <p style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: APAGADO, marginTop: 6 }}>Acompanhamento do processo</p>
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: "4px 0 2px", lineHeight: 1.2, color: VERDE_CLARO }}>{dados.nome}</h1>
-        {ultimaConsulta && <p style={{ fontSize: 12, color: APAGADO }}>Última consulta na Polícia Federal: {dataHora(ultimaConsulta)}</p>}
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 32px", display: "flex", flexDirection: "column", gap: 14 }}>
