@@ -143,7 +143,8 @@ export default function AcompanhamentoCliente() {
                     </p>
                   )}
                   {p.status_desde && (
-                    <p style={{ color: FG_MUTED, fontSize: 11, marginTop: 6 }}>Neste status desde {dataHora(p.status_desde)}</p>
+                    // é quando o escritório viu este status pela 1ª vez, não a data da decisão da PF
+                    <p style={{ color: FG_MUTED, fontSize: 11, marginTop: 6 }}>Status conferido pelo escritório em {dataHora(p.status_desde)}</p>
                   )}
                 </div>
               );
