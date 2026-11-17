@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
 
@@ -88,6 +88,38 @@ function Fluxo({ passo }: { passo: number }) {
   );
 }
 
+// Evento do Chrome do Android que permite abrir a janela "Instalar aplicativo"
+interface InstalarEvento extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }>; }
+
+// Desenhos dos botões do Safari, para o cliente reconhecer na tela
+function IconeCompartilhar() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="#0a84ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M10 12H8a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V13a1 1 0 0 0-1-1h-2" />
+      <path d="M15 4v15M10.5 8.5 15 4l4.5 4.5" />
+    </svg>
+  );
+}
+function IconeAdicionar() {
+  return (
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="#ede7d9" strokeWidth="2" strokeLinecap="round" aria-hidden>
+      <rect x="5" y="5" width="20" height="20" rx="5" />
+      <path d="M15 10v10M10 15h10" />
+    </svg>
+  );
+}
+function PassoIphone({ n, figura, children, ultimo }: { n: number; figura: ReactNode; children: ReactNode; ultimo?: boolean }) {
+  return (
+    <div style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: ultimo ? "none" : `1px solid ${BORDA}` }}>
+      <div style={{ width: 22, height: 22, borderRadius: "50%", background: VERDE, color: PRETO, fontSize: 12, fontWeight: 700,
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{n}</div>
+      <div style={{ width: 46, height: 46, borderRadius: 10, background: "#1f1b15", border: `1px solid ${BORDA}`,
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{figura}</div>
+      <p style={{ fontSize: 13, lineHeight: 1.45 }}>{children}</p>
+    </div>
+  );
+}
+
 function Linha({ rotulo, valor }: { rotulo: string; valor?: string }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 38%) 1fr", borderTop: `1px solid ${BORDA}` }}>
@@ -124,7 +156,9 @@ export default function AcompanhamentoCliente() {
     const manifesto = URL.createObjectURL(new Blob([JSON.stringify({
       name: "Acompanhamento do processo", short_name: "Meu processo", start_url: window.location.href,
       display: "standalone", background_color: "#000000", theme_color: "#000000",
-      icons: [{ src: icone, sizes: "512x512", type: "image/png", purpose: "any" }],
+      // o Chrome do Android só oferece "Instalar aplicativo" com ícone de 192 e de 512
+      icons: [{ src: icone, sizes: "192x192", type: "image/png", purpose: "any" },
+              { src: icone, sizes: "512x512", type: "image/png", purpose: "any" }],
     })], { type: "application/manifest+json" }));
     const add = (tag: string, attrs: Record<string, string>) => {
       const el = document.createElement(tag); Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
@@ -135,6 +169,8 @@ export default function AcompanhamentoCliente() {
     add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
     add("meta", { name: "apple-mobile-web-app-title", content: "Meu processo" });
     add("meta", { name: "theme-color", content: "#000000" });
+    // o Chrome do Android também exige o service worker registrado para oferecer a instalação
+    navigator.serviceWorker?.register("/sw-avisos.js", { scope: "/" }).catch(() => {});
 
     // avisos: ativo se este aparelho tem inscrição e ativou neste link
     (async () => {
@@ -151,6 +187,24 @@ export default function AcompanhamentoCliente() {
       URL.revokeObjectURL(manifesto);
     };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Android (Chrome): o navegador avisa que dá para instalar; guardamos o pedido para o botão "Instalar aplicativo"
+  const [pedidoInstalar, setPedidoInstalar] = useState<InstalarEvento | null>(null);
+  const [instalado, setInstalado] = useState(false);
+  useEffect(() => {
+    const aoPoder = (e: Event) => { e.preventDefault(); setPedidoInstalar(e as InstalarEvento); };
+    const aoInstalar = () => { setInstalado(true); setPedidoInstalar(null); };
+    window.addEventListener("beforeinstallprompt", aoPoder);
+    window.addEventListener("appinstalled", aoInstalar);
+    return () => { window.removeEventListener("beforeinstallprompt", aoPoder); window.removeEventListener("appinstalled", aoInstalar); };
+  }, []);
+  const instalarAndroid = async () => {
+    if (!pedidoInstalar) return;
+    await pedidoInstalar.prompt();
+    const r = await pedidoInstalar.userChoice.catch(() => null);
+    if (r?.outcome === "accepted") setInstalado(true);
+    setPedidoInstalar(null);
+  };
 
   const rpc = (fn: string, corpo: object) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
     method: "POST",
@@ -205,6 +259,7 @@ export default function AcompanhamentoCliente() {
   const temRascunho = dados.processos.some(p => /rascunho/i.test(p.descricao));
   const etapa = dados.etapa && enviados.length === 0 ? ETAPAS[dados.etapa] : "";
   const iphoneSemApp = ehIOS() && !abertoComoApp();
+  const androidSemApp = /android/i.test(navigator.userAgent) && !abertoComoApp() && !instalado;
 
   const caixa: CSSProperties = { background: CARTAO, borderRadius: 6, border: `1px solid ${BORDA}`, overflow: "hidden" };
 
@@ -239,10 +294,43 @@ export default function AcompanhamentoCliente() {
             )}
           </div>
         )}
+        {/* Android: um toque instala (o Chrome mostra a janela dele); sem o pedido do navegador, explica pelo menu ⋮ */}
+        {androidSemApp && (
+          <div style={{ ...caixa, padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: VERDE_CLARO }}>📲 Tenha o acompanhamento no seu celular</p>
+            <p style={{ fontSize: 13, color: APAGADO, margin: "4px 0 10px" }}>Fica um ícone na tela inicial, para abrir com um toque.</p>
+            {pedidoInstalar ? (
+              <button onClick={instalarAndroid}
+                style={{ background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 4, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Instalar aplicativo
+              </button>
+            ) : (
+              <p style={{ fontSize: 13, lineHeight: 1.5 }}>
+                Toque no menu <b>⋮</b> do navegador (no canto de cima) e depois em <b>Instalar aplicativo</b> ou <b>Adicionar à tela inicial</b>.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* iPhone: a Apple não deixa instalar por botão; passo a passo com os desenhos dos botões do Safari */}
         {iphoneSemApp && (
-          <div style={{ ...caixa, padding: 14, fontSize: 13, lineHeight: 1.5 }}>
-            📱 <b>No iPhone</b>, para receber aviso no celular: toque em <b>Compartilhar</b> (o quadrado com a seta) e depois em
-            <b> Adicionar à Tela de Início</b>. Abra pelo ícone criado e toque em “Avisar no meu celular”.
+          <div style={{ ...caixa, padding: 14 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: VERDE_CLARO }}>📱 Instale no seu iPhone para receber os avisos</p>
+            <p style={{ fontSize: 12, color: APAGADO, margin: "4px 0 12px" }}>
+              Abra este link no <b>Safari</b>. Se abriu dentro do WhatsApp, toque em <b>Abrir no Safari</b> primeiro.
+            </p>
+            <PassoIphone n={1} figura={<IconeCompartilhar />}>
+              Toque em <b>Compartilhar</b>, na barra do Safari. Se não aparecer, toque em <b>•••</b> e depois em <b>Compartilhar</b>.
+            </PassoIphone>
+            <PassoIphone n={2} figura={<IconeAdicionar />}>
+              Role a lista para baixo e toque em <b>Adicionar à Tela de Início</b>.
+            </PassoIphone>
+            <PassoIphone n={3} figura={<span style={{ fontSize: 13, fontWeight: 700, color: "#0a84ff" }}>Adicionar</span>}>
+              Toque em <b>Adicionar</b>, no canto de cima.
+            </PassoIphone>
+            <PassoIphone n={4} figura={<img src="/carteira-icon5.png" alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />} ultimo>
+              Abra pelo ícone <b>Meu processo</b> que apareceu na tela inicial e toque em <b>Avisar no meu celular</b>.
+            </PassoIphone>
           </div>
         )}
 
