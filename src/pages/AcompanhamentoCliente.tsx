@@ -201,6 +201,26 @@ export default function AcompanhamentoCliente() {
     window.addEventListener("appinstalled", aoInstalar);
     return () => { window.removeEventListener("beforeinstallprompt", aoPoder); window.removeEventListener("appinstalled", aoInstalar); };
   }, []);
+  // Pergunta sozinha se quer os avisos: aberto pelo ícone instalado (iPhone) ou no Android, com os avisos desligados.
+  // A permissão do celular só pode ser pedida depois de um toque, então é uma janelinha com "Ativar avisos".
+  // "Agora não" deixa 3 dias sem perguntar de novo; permissão bloqueada no aparelho não pergunta.
+  const [perguntarAvisos, setPerguntarAvisos] = useState(false);
+  const chaveAgoraNao = `acompanhamento-avisos-depois-${id}`;
+  useEffect(() => {
+    if (avisos !== "inativo" || !pushSuportado()) return;
+    if (!(abertoComoApp() || /android/i.test(navigator.userAgent))) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "denied") return;
+    let depois = 0;
+    try { depois = Number(localStorage.getItem(chaveAgoraNao) || 0); } catch { /* sem armazenamento */ }
+    if (Date.now() - depois < 3 * 24 * 3600 * 1000) return;
+    const t = setTimeout(() => setPerguntarAvisos(true), 900);
+    return () => clearTimeout(t);
+  }, [avisos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const agoraNao = () => {
+    try { localStorage.setItem(chaveAgoraNao, String(Date.now())); } catch { /* sem armazenamento */ }
+    setPerguntarAvisos(false);
+  };
+
   const instalarAndroid = async () => {
     if (!pedidoInstalar) return;
     await pedidoInstalar.prompt();
@@ -322,6 +342,31 @@ export default function AcompanhamentoCliente() {
         )}
         <style>{`@keyframes brilhoFaixa { 0%,100% { box-shadow: 0 0 0 0 rgba(242,194,48,0) } 50% { box-shadow: 0 0 0 5px rgba(242,194,48,0.25) } }
           .faixa-instalar { animation: brilhoFaixa 2.4s ease-in-out 3 }`}</style>
+
+        {perguntarAvisos && avisos !== "ativo" && !mostrarComoInstalar && (
+          <div onClick={agoraNao}
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Ativar avisos"
+              style={{ background: CARTAO, border: `1px solid ${VERDE}`, borderRadius: 16, width: "100%", maxWidth: 360, padding: "22px 18px 16px", textAlign: "center" }}>
+              <div style={{ width: 54, height: 54, borderRadius: "50%", margin: "0 auto 10px", background: "rgba(212,167,48,0.18)",
+                display: "flex", alignItems: "center", justifyContent: "center", color: VERDE_CLARO }}>
+                <Bell size={26} fill="currentColor" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: VERDE_CLARO }}>Receber avisos do seu processo?</p>
+              <p style={{ fontSize: 13, color: APAGADO, margin: "6px 0 16px", lineHeight: 1.45 }}>
+                Avisamos no seu celular quando o status do seu processo na Polícia Federal mudar.
+              </p>
+              <button onClick={async () => { setPerguntarAvisos(false); await ativarAvisos(); }}
+                style={{ width: "100%", background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Ativar avisos
+              </button>
+              <button onClick={agoraNao}
+                style={{ width: "100%", marginTop: 6, background: "none", border: "none", color: APAGADO, padding: "9px", fontSize: 13, cursor: "pointer" }}>
+                Agora não
+              </button>
+            </div>
+          </div>
+        )}
 
         {mostrarComoInstalar && (
           <div onClick={() => setMostrarComoInstalar(false)}
