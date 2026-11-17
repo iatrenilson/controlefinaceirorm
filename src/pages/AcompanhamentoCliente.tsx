@@ -13,6 +13,8 @@ const FG = "#ede7d9", FG_MUTED = "#807060", FONT = "'Space Grotesk', system-ui, 
 interface Processo {
   protocolo: string; servico: string; descricao: string; status: string;
   data_solicitacao?: string; status_desde?: string; consultado_em?: string;
+  // origem: "sinarm" (Sinarm CAC, servicos.pf.gov.br) ou "portal" (Portal PF); motivo, GRU e fila só vêm do Sinarm CAC
+  origem?: string; motivo?: string; gru?: string; posicao_fila?: string;
 }
 interface Dados { nome: string; etapa?: string; processos: Processo[]; }
 
@@ -84,7 +86,9 @@ export default function AcompanhamentoCliente() {
   const enviados = dados.processos.filter(p => !/rascunho/i.test(p.descricao));
   const temRascunho = dados.processos.some(p => /rascunho/i.test(p.descricao));
   const ultimaConsulta = dados.processos.map(p => p.consultado_em || "").sort().pop();
-  const etapa = dados.etapa ? ETAPAS[dados.etapa] : "";
+  // A etapa do escritório só aparece enquanto não há nada lido da Polícia Federal: com o status real da PF
+  // (Sinarm CAC ou Portal PF) ela poderia contradizer o que a PF diz
+  const etapa = dados.etapa && enviados.length === 0 ? ETAPAS[dados.etapa] : "";
 
   return (
     <div style={tela}>
@@ -120,6 +124,9 @@ export default function AcompanhamentoCliente() {
               const c = corDoStatus(p.status);
               return (
                 <div key={p.protocolo} style={{ padding: 14, borderRadius: 12, background: CARD_BG, border: `1px solid ${GOLD_BORDER}` }}>
+                  <p style={{ color: GOLD, fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+                    {p.origem === "sinarm" ? "Sinarm CAC" : "Portal PF"}
+                  </p>
                   <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.3 }}>{p.servico || "Solicitação"}</p>
                   <p style={{ color: FG_MUTED, fontSize: 12, marginTop: 3 }}>
                     Protocolo {p.protocolo}{p.data_solicitacao ? ` · aberto em ${p.data_solicitacao}` : ""}
@@ -127,6 +134,14 @@ export default function AcompanhamentoCliente() {
                   <span style={{ display: "inline-block", marginTop: 10, padding: "4px 10px", borderRadius: 999, fontSize: 13, fontWeight: 600, color: c.cor, background: c.fundo }}>
                     {p.status || "Sem status"}
                   </span>
+                  {p.motivo && <p style={{ fontSize: 12, marginTop: 8 }}><span style={{ color: FG_MUTED }}>Motivo:</span> {p.motivo}</p>}
+                  {(p.gru || p.posicao_fila) && (
+                    <p style={{ fontSize: 12, marginTop: 6, color: FG_MUTED }}>
+                      {p.gru && <>GRU: <span style={{ color: FG }}>{p.gru}</span></>}
+                      {p.gru && p.posicao_fila && " · "}
+                      {p.posicao_fila && <>Posição na fila de análise: <span style={{ color: FG }}>{p.posicao_fila}</span></>}
+                    </p>
+                  )}
                   {p.status_desde && (
                     <p style={{ color: FG_MUTED, fontSize: 11, marginTop: 6 }}>Neste status desde {dataHora(p.status_desde)}</p>
                   )}
