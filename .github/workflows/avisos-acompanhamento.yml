@@ -1,0 +1,44 @@
+name: Avisos de acompanhamento (celular)
+
+# A cada 15 minutos: notificação no celular do cliente que ativou os avisos no link /acompanhamento/<id>, quando o
+# status de um processo dele na PF (Sinarm CAC ou Portal PF) mudou desde o último aviso. O GitHub pode atrasar
+# horários marcados em alguns minutos. Rodar à mão com "simular" só conta, sem mandar nem marcar nada.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      simular:
+        description: "Só contar, sem mandar nada"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avisos-acompanhamento
+  cancel-in-progress: false
+
+jobs:
+  avisos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/avisos-acompanhamento.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Preparar
+        run: |
+          mkdir -p /tmp/avisos
+          cp scripts/avisos-acompanhamento.mjs /tmp/avisos/
+          cd /tmp/avisos && npm init -y > /dev/null && npm install web-push@3.6.7 --no-audit --no-fund --silent
+      - name: Enviar avisos
+        run: node /tmp/avisos/avisos-acompanhamento.mjs
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SIMULAR: ${{ inputs.simular }}
