@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Bell, BellOff } from "lucide-react";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
@@ -206,7 +206,11 @@ export default function AcompanhamentoCliente() {
   // "Agora não" deixa 3 dias sem perguntar de novo; permissão bloqueada no aparelho não pergunta.
   const [perguntarAvisos, setPerguntarAvisos] = useState(false);
   const chaveAgoraNao = `acompanhamento-avisos-depois-${id}`;
+  const avisosAoAbrir = useRef<string | null>(null);
   useEffect(() => {
+    // só o estado logo ao abrir o link conta: quem desligou no sininho agora não leva a pergunta em seguida
+    if (avisos === "?" || avisosAoAbrir.current !== null) return;
+    avisosAoAbrir.current = avisos;
     if (avisos !== "inativo" || !pushSuportado()) return;
     if (!(abertoComoApp() || /android/i.test(navigator.userAgent))) return;
     if (typeof Notification !== "undefined" && Notification.permission === "denied") return;
