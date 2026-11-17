@@ -1670,7 +1670,10 @@ function CaixaImportar({ titulo, descricao, lendo, progresso, onArquivo }: {
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
-    navigator.clipboard.writeText(value).then(() => {
+    // Campos de data guardam "AAAA-MM-DD"; outros sites esperam "DD/MM/AAAA" (senão a data fica embaralhada ao colar)
+    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? "");
+    const texto = iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : value;
+    navigator.clipboard.writeText(texto).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
