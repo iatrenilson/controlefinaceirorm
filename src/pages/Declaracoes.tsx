@@ -10,6 +10,7 @@ import { lerDocumento, lerComprovanteEndereco } from "@/lib/lerDocumento";
 import { casaComBusca } from "@/lib/buscaCliente";
 import { BuscaCliente } from "@/components/BuscaCliente";
 import { BotaoCarteira } from "@/components/BotaoCarteira";
+import { BotaoAcompanhamento } from "@/components/BotaoAcompanhamento";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -2991,6 +2992,7 @@ export default function Declaracoes() {
                             }}>
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
+                            <BotaoAcompanhamento clienteId={c.id} />
                             <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
@@ -3261,6 +3263,7 @@ export default function Declaracoes() {
                         }}>
                           <Share2 className="h-3 w-3" />
                         </Button>
+                        <BotaoAcompanhamento clienteId={c.id} pequeno />
                         <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />

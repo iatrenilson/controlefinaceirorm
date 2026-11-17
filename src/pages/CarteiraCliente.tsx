@@ -19,7 +19,7 @@ const TIPOS = [
 ] as const;
 
 interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
-interface CarteiraData { id: string; nome: string; cpf?: string; docs: CartDoc[]; }
+interface CarteiraData { id: string; nome: string; cpf?: string; acompanhamento?: string | null; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
@@ -497,6 +497,14 @@ export default function CarteiraCliente() {
               <p style={{ color:GOLD, fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.18em", fontWeight:700, fontFamily:FONT }}>✦ Carteira Digital</p>
               <h1 style={{ color:FG, fontSize:24, fontWeight:800, margin:0, fontFamily:FONT }}>{primeiroNome(data.nome)}</h1>
               <p style={{ color:FG_MUTED, fontSize:12, margin:"4px 0 0", fontFamily:FONT }}>{data.nome}</p>
+              {/* Link de acompanhamento do processo (status na PF), pelo cliente com o mesmo CPF em Clientes Armas */}
+              {data.acompanhamento && (
+                <a href={`${import.meta.env.BASE_URL}acompanhamento/${data.acompanhamento}`}
+                  style={{ display:"inline-block", marginTop:10, padding:"5px 12px", borderRadius:999, border:`1px solid ${GOLD_BORDER}`,
+                    color:GOLD, fontSize:12, fontWeight:600, textDecoration:"none", fontFamily:FONT }}>
+                  Acompanhar processo ›
+                </a>
+              )}
             </div>
 
             {/* Sininho: documentos vencidos ou perto de vencer */}

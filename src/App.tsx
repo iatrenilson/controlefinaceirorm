@@ -54,6 +54,7 @@ const Declaracoes = pagina(() => import("./pages/Declaracoes"));
 const Laudos = pagina(() => import("./pages/Laudos"));
 const CadastroPublico = pagina(() => import("./pages/CadastroPublico"));
 const CarteiraCliente = pagina(() => import("./pages/CarteiraCliente"));
+const AcompanhamentoCliente = pagina(() => import("./pages/AcompanhamentoCliente"));
 const CarteiraDIgital = pagina(() => import("./pages/CarteiraDIgital"));
 const CadastrosAdmin = pagina(() => import("./pages/CadastrosAdmin"));
 const DocsCR = pagina(() => import("./pages/DocsCR"));
@@ -173,6 +174,7 @@ const AppRoutes = () => {
       <Route path="/adicionar-cliente" element={<DelayAddClient />} />
       <Route path="/visualizar-delay" element={<DelayViewer />} />
       <Route path="/carteira/:id" element={<CarteiraCliente />} />
+      <Route path="/acompanhamento/:id" element={<AcompanhamentoCliente />} />
       <Route path="/cadastro" element={<CadastroPublico />} />
       <Route path="/area/:token" element={<ColaboradorPortal />} />
       <Route path="/*" element={<ProtectedLayout />} />
