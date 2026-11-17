@@ -282,9 +282,8 @@ export default function AcompanhamentoCliente() {
                     </span>
                   </div>
                 </div>
-                {p.origem === "sinarm" && <Linha rotulo="Motivo" valor={p.motivo} />}
+                {/* Motivo e posição na fila ficam gravados, mas não aparecem para o cliente (pedido do escritório) */}
                 {p.origem === "sinarm" && <Linha rotulo="Situação da GRU" valor={p.gru} />}
-                {p.origem === "sinarm" && <Linha rotulo="Posição na Fila de Análise" valor={p.posicao_fila} />}
               </div>
               {p.consultado_em && (
                 // última vez que o escritório abriu a lista na conta gov do cliente: muda a cada consulta,
