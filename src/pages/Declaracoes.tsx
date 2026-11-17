@@ -2758,7 +2758,7 @@ export default function Declaracoes() {
 
         {/* Clientes cadastrados */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-y-2 pb-2">
             <button
               type="button"
               className="flex items-center gap-2 text-left flex-1 min-w-0"
@@ -2772,7 +2772,7 @@ export default function Declaracoes() {
               </CardTitle>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${mostrarClientes ? "rotate-180" : ""}`} />
             </button>
-            <div className="flex items-center gap-1.5 ml-2 flex-shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-1.5 ml-auto">
               {mostrarClientes && (
                 <>
                   <Button

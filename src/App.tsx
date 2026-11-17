@@ -117,7 +117,7 @@ const ProtectedLayout = () => {
         )}
         <div className="flex flex-1 w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <div className="sticky top-0 z-20 flex items-center justify-between h-12 border-b bg-card/80 backdrop-blur-sm px-2 lg:hidden">
             <SidebarTrigger />
             <div className="flex items-center gap-3">
