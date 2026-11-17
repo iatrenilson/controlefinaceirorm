@@ -147,6 +147,7 @@ interface Cliente {
   telefone: string;
   profissao: string;
   tipo_ocupacao: string;
+  tituloEleitor: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -164,7 +165,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  email: "", telefone: "", profissao: "", tipo_ocupacao: "",
+  email: "", telefone: "", profissao: "", tipo_ocupacao: "", tituloEleitor: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1727,6 +1728,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     telefone: maskTelefone((row.telefone as string) ?? ""),
     profissao: (row.profissao as string) ?? "",
     tipo_ocupacao: (row.tipo_ocupacao as string) ?? "",
+    tituloEleitor: (row.titulo_eleitor as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -2119,6 +2121,8 @@ export default function Declaracoes() {
         telefone: c.telefone || null,
         profissao: c.profissao || null,
         ...(c.tipo_ocupacao ? { tipo_ocupacao: c.tipo_ocupacao } : {}),
+        // só manda se tiver: cópia antiga sem o campo não apaga o título salvo no banco
+        ...(c.tituloEleitor ? { titulo_eleitor: c.tituloEleitor } : {}),
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -2337,6 +2341,7 @@ export default function Declaracoes() {
           email: r.email ?? "",
           telefone: maskTelefone(r.telefone ?? ""),
           profissao: r.profissao ?? "",
+          tituloEleitor: r.titulo_eleitor ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
@@ -2467,6 +2472,7 @@ export default function Declaracoes() {
       telefone: formCliente.telefone || null,
       profissao: formCliente.profissao || null,
       ...(formCliente.tipo_ocupacao ? { tipo_ocupacao: formCliente.tipo_ocupacao } : {}),
+      titulo_eleitor: (formCliente.tituloEleitor || "").trim() || null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -3493,6 +3499,15 @@ export default function Declaracoes() {
                     value={formCliente.dataExpedicao} onChange={e => setC("dataExpedicao", e.target.value)} />
                   <CopyButton value={formCliente.dataExpedicao} />
                 </div>
+              </div>
+            </div>
+            {/* Título de Eleitor (o cadastro inicial do SisGCorp pede; a extensão preenche de lá) */}
+            <div className="space-y-1">
+              <Label className="text-xs">Nº Título de Eleitor</Label>
+              <div className="flex gap-1.5">
+                <Input className="h-9 text-sm" placeholder="0000 0000 0000" inputMode="numeric"
+                  value={formCliente.tituloEleitor} onChange={e => setC("tituloEleitor", e.target.value.replace(/[^\d ]/g, ""))} />
+                <CopyButton value={formCliente.tituloEleitor} />
               </div>
             </div>
             {/* Estado Civil + Data Nascimento */}
