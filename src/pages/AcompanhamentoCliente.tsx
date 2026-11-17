@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
+import { Bell, BellOff } from "lucide-react";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
 
 // Página pública que o cliente abre pelo link /acompanhamento/<id do cliente> (Clientes Armas).
@@ -212,6 +213,8 @@ export default function AcompanhamentoCliente() {
     body: JSON.stringify(corpo),
   }).then(r => { if (!r.ok) throw new Error(`rpc ${r.status}`); });
 
+  // confirmação curta embaixo do sininho, que some sozinha
+  const avisoRapido = (texto: string) => { setMsgAviso(texto); setTimeout(() => setMsgAviso(""), 3500); };
   const ativarAvisos = async () => {
     setAvisos("ocupado"); setMsgAviso("");
     try {
@@ -219,11 +222,13 @@ export default function AcompanhamentoCliente() {
       await rpc("salvar_push_acompanhamento", { p_cliente: id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
       try { localStorage.setItem(chaveLocal, "1"); } catch { /* sem armazenamento */ }
       setAvisos("ativo");
+      avisoRapido("🔔 Avisos ligados: você recebe uma notificação quando o status mudar.");
     } catch (e) {
       const m = (e as Error).message;
       setMsgAviso(m === "bloqueado"
         ? "As notificações estão bloqueadas para este site. Libere nas configurações do navegador e tente de novo."
         : "Não foi possível ativar os avisos neste aparelho.");
+      setTimeout(() => setMsgAviso(""), 6000);
       setAvisos("inativo");
     }
   };
@@ -236,6 +241,7 @@ export default function AcompanhamentoCliente() {
     } catch { /* sem rede: fica para a próxima */ }
     try { localStorage.removeItem(chaveLocal); } catch { /* sem armazenamento */ }
     setAvisos("inativo");
+    avisoRapido("Avisos desligados. Toque no sininho para ligar de novo.");
   };
 
   const tela: CSSProperties = { minHeight: "100vh", background: PRETO, color: TEXTO, fontFamily: FONT };
@@ -266,7 +272,29 @@ export default function AcompanhamentoCliente() {
   return (
     <div style={tela}>
       {/* Topo: logo da Passarinho (fundo preto, igual ao da imagem) e o nome do cliente em dourado */}
-      <div style={{ background: "#000", borderBottom: `2px solid ${VERDE}`, padding: "12px 16px 14px", textAlign: "center" }}>
+      <div style={{ position: "relative", background: "#000", borderBottom: `2px solid ${VERDE}`, padding: "12px 16px 14px", textAlign: "center" }}>
+        {/* Sininho dos avisos no celular, no canto de cima à direita: dourado = ligados; apagado = desligados.
+            Um toque liga ou desliga (no iPhone só aparece aberto pelo ícone da tela inicial, quando o aviso funciona) */}
+        {pushSuportado() && avisos !== "?" && (
+          <button
+            onClick={avisos === "ativo" ? desativarAvisos : ativarAvisos}
+            disabled={avisos === "ocupado"}
+            aria-label={avisos === "ativo" ? "Avisos ligados. Toque para desligar" : "Ativar avisos no celular"}
+            title={avisos === "ativo" ? "Avisos ligados (toque para desligar)" : "Ativar avisos no celular"}
+            style={{ position: "absolute", top: 12, right: 12, width: 40, height: 40, borderRadius: "50%", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+              border: `1px solid ${avisos === "ativo" ? VERDE : BORDA}`,
+              background: avisos === "ativo" ? "rgba(212,167,48,0.18)" : "transparent",
+              color: avisos === "ativo" ? VERDE_CLARO : APAGADO, opacity: avisos === "ocupado" ? 0.5 : 1 }}>
+            {avisos === "ativo" ? <Bell size={19} fill="currentColor" /> : <BellOff size={19} />}
+          </button>
+        )}
+        {msgAviso && (
+          <p style={{ position: "absolute", top: 56, right: 12, maxWidth: 210, fontSize: 11, lineHeight: 1.35, textAlign: "right",
+            background: CARTAO, border: `1px solid ${BORDA}`, borderRadius: 6, padding: "6px 8px", color: TEXTO, zIndex: 2 }}>
+            {msgAviso}
+          </p>
+        )}
         <img src="/logo-passarinho-topo.jpg" alt="Passarinho Assessoria Bélica"
           style={{ display: "block", margin: "0 auto", width: "min(260px, 70vw)", height: "auto" }} />
         <p style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: APAGADO, marginTop: 6 }}>Acompanhamento do processo</p>
@@ -274,26 +302,6 @@ export default function AcompanhamentoCliente() {
       </div>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 32px", display: "flex", flexDirection: "column", gap: 14 }}>
-        {/* Aviso no celular */}
-        {pushSuportado() && avisos !== "?" && (
-          <div style={{ ...caixa, padding: 14 }}>
-            {avisos === "ativo" ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                <p style={{ fontSize: 13, color: "#4ade80", fontWeight: 500 }}>🔔 Avisos ativados: você recebe uma notificação quando o status mudar.</p>
-                <button onClick={desativarAvisos} style={{ background: "none", border: "none", color: APAGADO, fontSize: 12, textDecoration: "underline", cursor: "pointer" }}>Desativar</button>
-              </div>
-            ) : (
-              <>
-                <p style={{ fontSize: 13, marginBottom: 10 }}>Quer ser avisado no celular quando o status do seu processo mudar?</p>
-                <button onClick={ativarAvisos} disabled={avisos === "ocupado"}
-                  style={{ background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 4, padding: "10px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: avisos === "ocupado" ? 0.6 : 1 }}>
-                  {avisos === "ocupado" ? "Ativando…" : "🔔 Avisar no meu celular"}
-                </button>
-                {msgAviso && <p style={{ fontSize: 12, color: "#ff8a80", marginTop: 8 }}>{msgAviso}</p>}
-              </>
-            )}
-          </div>
-        )}
         {/* Android: um toque instala (o Chrome mostra a janela dele); sem o pedido do navegador, explica pelo menu ⋮ */}
         {androidSemApp && (
           <div style={{ ...caixa, padding: 14 }}>
@@ -329,7 +337,7 @@ export default function AcompanhamentoCliente() {
               Toque em <b>Adicionar</b>, no canto de cima.
             </PassoIphone>
             <PassoIphone n={4} figura={<img src="/carteira-icon5.png" alt="" style={{ width: 34, height: 34, borderRadius: 8 }} />} ultimo>
-              Abra pelo ícone <b>Meu processo</b> que apareceu na tela inicial e toque em <b>Avisar no meu celular</b>.
+              Abra pelo ícone <b>Meu processo</b> que apareceu na tela inicial e toque no <b>sininho 🔔</b>, no canto de cima.
             </PassoIphone>
           </div>
         )}
