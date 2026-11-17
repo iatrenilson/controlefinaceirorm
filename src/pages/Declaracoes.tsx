@@ -9,6 +9,7 @@ import { useEscComPdf } from "@/hooks/useEscComPdf";
 import { lerDocumento, lerComprovanteEndereco } from "@/lib/lerDocumento";
 import { casaComBusca } from "@/lib/buscaCliente";
 import { BuscaCliente } from "@/components/BuscaCliente";
+import { BotaoCarteira } from "@/components/BotaoCarteira";
 import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1832,6 +1833,16 @@ export default function Declaracoes() {
   );
   const [dialogClienteOpen, setDialogClienteOpen] = useState(false);
   const [mostrarClientes, setMostrarClientes] = useState(true);
+  // Carteira digital de cada cliente: a carteira guarda o CPF do cliente → id da carteira por CPF (só números)
+  const [carteiraPorCpf, setCarteiraPorCpf] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase.from("carteira_clientes").select("id, cpf").then(({ data }) => {
+      const m: Record<string, string> = {};
+      for (const k of data ?? []) { const cpf = (k.cpf || "").replace(/\D/g, ""); if (cpf) m[cpf] = k.id; }
+      setCarteiraPorCpf(m);
+    });
+  }, []);
+  const carteiraDo = (cpf?: string) => carteiraPorCpf[(cpf || "").replace(/\D/g, "")];
   const [dadosVisiveis, setDadosVisiveis] = useState(true);
   const [buscaCliente, setBuscaCliente] = useState("");
   const [filtroStatusBadge, setFiltroStatusBadge] = useState<ClienteStatus | null>(null);
@@ -2980,6 +2991,7 @@ export default function Declaracoes() {
                             }}>
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
+                            <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -3249,6 +3261,7 @@ export default function Declaracoes() {
                         }}>
                           <Share2 className="h-3 w-3" />
                         </Button>
+                        <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>

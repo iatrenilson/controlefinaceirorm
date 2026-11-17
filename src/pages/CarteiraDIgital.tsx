@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { norm } from "@/lib/utils";
 import { buscarClientes, casaComBusca } from "@/lib/buscaCliente";
 import { supabase } from "@/integrations/supabase/client";
@@ -183,19 +184,21 @@ function DocItem({ doc, index, total, onRemove, onSaveDatas, hideArma }: {
   );
 }
 
+interface SinarmCliente { id: string; nome: string; cpf?: string; telefone?: string; }
+
 interface DialogProps {
   cliente?: CartCliente | null;
+  // Nova carteira aberta pelo botão da carteira no card do cliente (Clientes Armas): já vem com o cliente escolhido
+  preset?: SinarmCliente | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-interface SinarmCliente { id: string; nome: string; cpf?: string; }
-
-function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
+function ClienteDialog({ cliente, preset, onClose, onSaved }: DialogProps) {
   const isNew = !cliente?.id;
-  const [nome, setNome] = useState(cliente?.nome ?? "");
-  const [telefone, setTelefone] = useState(cliente?.telefone ?? "");
-  const [cpf, setCpf] = useState(cliente?.cpf ?? "");
+  const [nome, setNome] = useState(cliente?.nome ?? preset?.nome ?? "");
+  const [telefone, setTelefone] = useState(cliente?.telefone ?? preset?.telefone ?? "");
+  const [cpf, setCpf] = useState(cliente?.cpf ?? preset?.cpf ?? "");
   const [docs, setDocs] = useState<CartDoc[]>(cliente?.docs ?? []);
   const [uploading, setUploading] = useState<TipoKey | null>(null);
   const [saving, setSaving] = useState(false);
@@ -228,7 +231,7 @@ function ClienteDialog({ cliente, onClose, onSaved }: DialogProps) {
 
   // Sinarm CAC selector
   const [sinarmList, setSinarmList] = useState<SinarmCliente[]>([]);
-  const [sinarmBusca, setSinarmBusca] = useState("");
+  const [sinarmBusca, setSinarmBusca] = useState(preset ? preset.nome + (preset.cpf ? ` · ${preset.cpf}` : "") : "");
   const [sinarmOpen, setSinarmOpen] = useState(false);
   const sinarmRef = useRef<HTMLDivElement>(null);
 
@@ -675,6 +678,24 @@ export default function CarteiraDIgital() {
 
   useEffect(() => { load(); }, []);
 
+  // Vindo do botão da carteira no card do cliente (Clientes Armas): ?editar=<id da carteira> abre a carteira
+  // para editar; ?novo=<id do cliente> abre "Novo Cliente" já com o cliente escolhido
+  const [params, setParams] = useSearchParams();
+  const [preset, setPreset] = useState<SinarmCliente | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    const editar = params.get("editar"), novo = params.get("novo");
+    if (!editar && !novo) return;
+    setParams({}, { replace: true });
+    if (editar) {
+      const c = clientes.find(x => x.id === editar);
+      if (c) setDialog(c); else toast.error("Carteira não encontrada.");
+    } else if (novo) {
+      supabase.from("declaracao_clientes").select("id, nome, cpf, telefone").eq("id", novo).maybeSingle()
+        .then(({ data }) => { setPreset((data as SinarmCliente) ?? null); setDialog("novo"); });
+    }
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleDelete = async (id: string) => {
     if (!confirm("Remover este cliente e todos os documentos?")) return;
     await supabase.from("carteira_clientes").delete().eq("id", id);
@@ -751,8 +772,9 @@ export default function CarteiraDIgital() {
       {dialog !== null && (
         <ClienteDialog
           cliente={dialog === "novo" ? null : dialog}
-          onClose={() => setDialog(null)}
-          onSaved={() => { load(); if (dialog === "novo") setDialog(null); }}
+          preset={dialog === "novo" ? preset : null}
+          onClose={() => { setDialog(null); setPreset(null); }}
+          onSaved={() => { load(); if (dialog === "novo") { setDialog(null); setPreset(null); } }}
         />
       )}
     </div>
