@@ -146,7 +146,7 @@ const ProtectedLayout = () => {
             <Route path="/cadastros" element={<DelayRoute><CadastrosAdmin /></DelayRoute>} />
             <Route path="/docs-cr" element={<DelayRoute><DocsCR /></DelayRoute>} />
             <Route path="/anotacoes" element={<DelayRoute><Anotacoes /></DelayRoute>} />
-            <Route path="/cpa" element={<AdminRoute><Cpa /></AdminRoute>} />
+            <Route path="/cpa" element={<DelayRoute><Cpa /></DelayRoute>} />
             <Route path="/imagem-para-pdf" element={<DelayRoute><ImageToPdf /></DelayRoute>} />
             <Route path="/carteira-digital" element={<DelayRoute><CarteiraDIgital /></DelayRoute>} />
             <Route path="*" element={<NotFound />} />

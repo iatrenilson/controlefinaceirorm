@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { usuarioAtual } from "@/lib/usuarioAtual";
 
 // CPA: contas do dia com depósito, saque, baú e lucro. Depósito e saque acumulam: cada valor lançado entra numa lista
 // (dá para apagar um lançamento errado) e o total é a soma. Guardado em app_config, um documento por mês
-// (chave "cpa_AAAA-MM"), sem tabela nova; só o administrador grava.
+// (chave "cpa_<id do usuário>_AAAA-MM"), sem tabela nova. Cada usuário tem o seu CPA; o banco só deixa cada um
+// ler e gravar o próprio (o admin vê todos pelo Painel Admin › 👁).
 interface Lancamento { id: string; valor: number; em: string }
 // Chave Pix cadastrada (app_config "cpa_chaves"). A conta guarda uma cópia da chave escolhida: apagar a chave do
 // cadastro depois do ciclo não apaga o que ficou registrado na conta
@@ -37,7 +39,9 @@ function lerValor(v: string): number | null {
   return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
 }
 const diaISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const chaveMes = (dia: string) => `cpa_${dia.slice(0, 7)}`;
+// CPA de cada usuário: as chaves levam o id dele ("cpa_<id>_AAAA-MM", "cpa_<id>_chaves"); definido antes de abrir a página
+let PREFIXO = "";
+const chaveMes = (dia: string) => `${PREFIXO}${dia.slice(0, 7)}`;
 const copiar = (texto: string) =>
   navigator.clipboard.writeText(texto).then(() => toast.success("Chave Pix copiada"), () => toast.error("Não consegui copiar"));
 
@@ -232,7 +236,7 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [todos, setTodos] = useState<Record<string, Mes> | null>(null);
   useEffect(() => {
-    supabase.from("app_config" as any).select("chave,valor").like("chave", "cpa_%")
+    supabase.from("app_config" as any).select("chave,valor").like("chave", `${PREFIXO}%`)
       .then(({ data, error }) => {
         if (error) toast.error("Não consegui carregar: " + error.message);
         const m: Record<string, Mes> = {};
@@ -332,7 +336,7 @@ function Dashboard({ atuais }: { atuais: Record<string, Mes> }) {
   );
 }
 
-export default function Cpa() {
+function CpaDoUsuario() {
   const [dia, setDia] = useState(() => diaISO(new Date()));
   const [meses, setMeses] = useState<Record<string, Mes>>({}); // chave do mês → dados
   const [busca, setBusca] = useState("");
@@ -341,7 +345,7 @@ export default function Cpa() {
   const [chaves, setChaves] = useState<ChavePix[]>([]);
   const [chavesLidas, setChavesLidas] = useState(false);
   useEffect(() => {
-    supabase.from("app_config" as any).select("valor").eq("chave", "cpa_chaves").maybeSingle()
+    supabase.from("app_config" as any).select("valor").eq("chave", `${PREFIXO}chaves`).maybeSingle()
       .then(({ data }) => { setChaves(((data as any)?.valor?.chaves as ChavePix[]) ?? []); setChavesLidas(true); });
   }, []);
   const gravarChaves = (novas: ChavePix[]) => {
@@ -349,7 +353,7 @@ export default function Cpa() {
     setSalvando(true);
     fila.current = fila.current.then(async () => {
       const { error } = await supabase.from("app_config" as any)
-        .upsert({ chave: "cpa_chaves", valor: { chaves: novas }, updated_at: new Date().toISOString() });
+        .upsert({ chave: `${PREFIXO}chaves`, valor: { chaves: novas }, updated_at: new Date().toISOString() });
       if (error) toast.error("Não consegui salvar as chaves: " + error.message);
     }).finally(() => setSalvando(false));
   };
@@ -514,4 +518,14 @@ export default function Cpa() {
       </div>
     </div>
   );
+}
+
+// Descobre quem está logado antes de abrir: as chaves do CPA levam o id da pessoa
+export default function Cpa() {
+  const [pronto, setPronto] = useState("");
+  useEffect(() => {
+    usuarioAtual().then(u => { if (u) { PREFIXO = `cpa_${u.id}_`; setPronto(u.id); } });
+  }, []);
+  if (!pronto) return <div className="p-4 text-sm text-foreground/75">Carregando…</div>;
+  return <CpaDoUsuario key={pronto} />;
 }

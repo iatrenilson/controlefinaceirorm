@@ -205,16 +205,15 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   )}
-                  {isAdmin && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="CPA">
-                        <NavLink to="/cpa" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
-                          <Coins className="h-[18px] w-[18px]" />
-                          <span>CPA</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
+                  {/* CPA: cada usuário (admin ou moderador) tem o seu */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild tooltip="CPA">
+                      <NavLink to="/cpa" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">
+                        <Coins className="h-[18px] w-[18px]" />
+                        <span>CPA</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Delay Esportivo">
                       <NavLink to="/delay-esportivo" end activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-primary">

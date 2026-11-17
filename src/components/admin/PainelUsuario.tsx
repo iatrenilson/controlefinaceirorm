@@ -22,7 +22,14 @@ const TIPO_MOV: Record<string, string> = {
   emprestimo: "Empréstimo", pagamento: "Pagamento", deposito: "Depósito", retirada: "Retirada", estorno: "Estorno",
 };
 
+// CPA (mesma conta da página CPA): lucro = saques + baú − depósitos
+type Lanc = { valor: number };
+const somaL = (l?: Lanc[]) => (l || []).reduce((t, x) => t + Number(x.valor || 0), 0);
+const bauL = (c: any) => c.baus ? somaL(c.baus) : Number(c.bau || 0);
+interface DiaCpa { dia: string; contas: number; depositado: number; retorno: number; lucro: number }
+
 interface Dados {
+  cpa: DiaCpa[];
   armas: any[]; carteira: any[]; emprestimos: any[]; carteiraSaldo: number; movimentos: any[];
   financeiro: any[]; cartao: any[]; delayClientes: any[]; delayTransacoes: number; delayLucro: number;
   bancos: any[]; cadastros: any[]; colaboradores: any[]; anotacoes: { nome: string; itens: { texto: string; feito: boolean }[] }[];
@@ -31,7 +38,7 @@ interface Dados {
 const tab = (t: string) => supabase.from(t as any) as any;
 
 async function carregar(uid: string): Promise<Dados> {
-  const [armas, carteira, emprestimos, wallet, financeiro, cartao, delayClientes, delayTr, bancos, colaboradores, anot, movimentos] = await Promise.all([
+  const [armas, carteira, emprestimos, wallet, financeiro, cartao, delayClientes, delayTr, bancos, colaboradores, anot, movimentos, cpaDocs] = await Promise.all([
     tab("declaracao_clientes").select("id,nome,cpf,status,created_at").eq("owner_id", uid).order("nome"),
     tab("carteira_clientes").select("id,nome,cpf,created_at").eq("owner_id", uid).order("nome"),
     tab("clientes").select("id,nome,valor,juros,data_emprestimo,data_pagamento,parcelas,parcela_atual").eq("user_id", uid).order("data_pagamento"),
@@ -45,13 +52,26 @@ async function carregar(uid: string): Promise<Dados> {
     tab("app_config").select("valor").eq("chave", `anotacoes_${uid}`).maybeSingle(),
     // movimentações da carteira de empréstimos (depósitos, retiradas, empréstimos, pagamentos, estornos)
     tab("wallet_transactions").select("id,tipo,valor,descricao,saldo_anterior,saldo_posterior,created_at").eq("user_id", uid).order("created_at", { ascending: false }).limit(300),
+    // CPA da pessoa: um documento por mês, chave "cpa_<id>_AAAA-MM"
+    tab("app_config").select("chave,valor").like("chave", `cpa_${uid}_%`),
   ]);
+  const cpa: DiaCpa[] = [];
+  for (const doc of (cpaDocs.data || []) as any[]) {
+    for (const [dia, contas] of Object.entries((doc.valor?.dias || {}) as Record<string, any[]>)) {
+      if (!contas?.length) continue;
+      const depositado = contas.reduce((t, c) => t + somaL(c.depositos), 0);
+      const retorno = contas.reduce((t, c) => t + somaL(c.saques) + bauL(c), 0);
+      cpa.push({ dia, contas: contas.length, depositado, retorno, lucro: retorno - depositado });
+    }
+  }
+  cpa.sort((a, b) => b.dia.localeCompare(a.dia));
   // cadastros de Laudos: os que a pessoa criou e os que chegaram pelos colaboradores dela
   const tokens = ((colaboradores.data || []) as any[]).map(c => c.token).filter(Boolean);
   const filtro = [`owner_user_id.eq.${uid}`, ...(tokens.length ? [`colaborador_token.in.(${tokens.join(",")})`] : [])].join(",");
   const cadastros = await tab("cac_cadastros").select("id,nome,cpf,created_at").or(filtro).order("created_at", { ascending: false });
   const tr = (delayTr.data || []) as any[];
   return {
+    cpa,
     armas: armas.data || [], carteira: carteira.data || [], emprestimos: emprestimos.data || [],
     carteiraSaldo: Number(wallet.data?.saldo || 0), movimentos: movimentos.data || [],
     financeiro: financeiro.data || [], cartao: cartao.data || [],
@@ -110,7 +130,7 @@ export function PainelUsuario({ usuario, onClose }: { usuario: { user_id: string
           <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/75"><Loader2 className="h-4 w-4 animate-spin" /> Carregando…</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               <Numero titulo="Clientes Armas" valor={d.armas.length} />
               <Numero titulo="Carteira Digital" valor={d.carteira.length} />
               <Numero titulo="Empréstimos" valor={d.emprestimos.length} sub={`${brl(totalEmprestado)} · carteira ${brl(d.carteiraSaldo)}`} />
@@ -118,6 +138,7 @@ export function PainelUsuario({ usuario, onClose }: { usuario: { user_id: string
               <Numero titulo="Delay: contas" valor={d.delayClientes.length} sub={`${d.delayTransacoes} lançamentos`} />
               <Numero titulo="Delay: lucro" valor={brl(d.delayLucro)} />
               <Numero titulo="Laudos: cadastros" valor={d.cadastros.length} sub={`${d.colaboradores.length} colaborador(es)`} />
+              <Numero titulo="CPA: lucro" valor={brl(d.cpa.reduce((s, x) => s + x.lucro, 0))} sub={`${d.cpa.length} dia(s) com contas`} />
               <Numero titulo="Anotações" valor={d.anotacoes.reduce((s, l) => s + (l.itens?.length || 0), 0)} sub={`${d.anotacoes.length} lista(s)`} />
             </div>
 
@@ -131,6 +152,7 @@ export function PainelUsuario({ usuario, onClose }: { usuario: { user_id: string
                 <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
                 <TabsTrigger value="delay">Delay</TabsTrigger>
                 <TabsTrigger value="laudos">Laudos</TabsTrigger>
+                <TabsTrigger value="cpa">CPA</TabsTrigger>
                 <TabsTrigger value="anotacoes">Anotações</TabsTrigger>
               </TabsList>
 
@@ -202,6 +224,19 @@ export function PainelUsuario({ usuario, onClose }: { usuario: { user_id: string
                 <Lista vazio="Nenhum cadastro." linhas={filtra(d.cadastros).map(c => (
                   <Linha key={c.id}><span className="flex-1 font-medium">{c.nome}</span><span className="text-xs text-foreground/75">{c.cpf || "Sem CPF"}</span>
                     <span className="text-xs text-foreground/75">{dataBr(c.created_at)}</span></Linha>
+                ))} />
+              </TabsContent>
+
+              <TabsContent value="cpa" className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <Numero titulo="Depositado" valor={brl(d.cpa.reduce((s, x) => s + x.depositado, 0))} />
+                  <Numero titulo="Retorno (saque + baú)" valor={brl(d.cpa.reduce((s, x) => s + x.retorno, 0))} />
+                  <Numero titulo="Lucro" valor={brl(d.cpa.reduce((s, x) => s + x.lucro, 0))} />
+                </div>
+                <Lista vazio="Nenhuma conta no CPA." linhas={d.cpa.map(x => (
+                  <Linha key={x.dia}><span className="w-24 font-medium">{dataBr(x.dia)}</span>
+                    <span className="flex-1 text-xs text-foreground/75">{x.contas} conta(s) · depositado {brl(x.depositado)} · retorno {brl(x.retorno)}</span>
+                    <span className={`w-28 text-right font-medium ${x.lucro < 0 ? "text-destructive" : "text-green-400"}`}>{brl(x.lucro)}</span></Linha>
                 ))} />
               </TabsContent>
 
