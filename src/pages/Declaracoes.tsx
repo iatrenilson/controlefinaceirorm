@@ -2578,8 +2578,8 @@ export default function Declaracoes() {
       setSavingCliente(false);
     }
   };
-  const excluirCliente = async (id: string) => {
-    if (!confirm("Excluir este cliente?")) return;
+  const excluirCliente = async (id: string, nome?: string) => {
+    if (!confirm(`Excluir o cliente ${nome ? nome.toUpperCase() : ""}?\n\nIsso apaga o cadastro dele e não dá para desfazer.`)) return;
     const user = await usuarioAtual();
     if (!user?.id) return;
     const { error } = await supabase.from("declaracao_clientes").delete().eq("id", id).eq("owner_id", user.id);
@@ -2989,7 +2989,7 @@ export default function Declaracoes() {
                       <div className="pl-0 pr-2 pt-2 pb-2">
                         {/* Linha 1: logo+status juntos (esquerda) | editar/excluir (direita) */}
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-0">
+                          <div className="flex items-center gap-0 min-w-0">
                             <svg viewBox="0 0 78 36" width="78" height="28" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                               <circle cx="18" cy="18" r="16"  stroke="#e5e7eb" strokeWidth="1.5"/>
                               <circle cx="18" cy="18" r="10"  stroke="#e5e7eb" strokeWidth="1.5"/>
@@ -3015,8 +3015,8 @@ export default function Declaracoes() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
+                          <div className="flex items-center gap-0 flex-shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-6 text-muted-foreground hover:text-primary" title="Compartilhar dados" onClick={() => {
                               const endParts = [c.endereco ? c.endereco.toUpperCase() : "", c.numero ? `Nº ${c.numero}` : "", c.complemento ? c.complemento.toUpperCase() : ""].filter(Boolean).join(", ");
                               const fmtEnd = c.bairro ? `${endParts} - ${c.bairro.toUpperCase()}` : endParts;
                               const linhas = [
@@ -3040,10 +3040,10 @@ export default function Declaracoes() {
                             </Button>
                             <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} />
                             <BotaoCarteira carteiraId={carteiraDo(c.cpf)} codigo={codigoCarteira[carteiraDo(c.cpf) ?? ""]} clienteId={c.id} />
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-6" title="Editar" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                            <Button variant="ghost" size="icon" className="h-7 w-6 text-destructive hover:text-destructive" title="Excluir cliente" onClick={() => excluirCliente(c.id, c.nome)}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -3314,7 +3314,7 @@ export default function Declaracoes() {
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id)}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => excluirCliente(c.id, c.nome)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
