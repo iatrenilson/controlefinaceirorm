@@ -40,6 +40,10 @@ const DOCS_CR = [
   { id: "decl_habitualidade", label: "Comprovante de habitualidade de tiro desportivo",                            tag: "" },
 ] as const;
 type DocCRTipo = typeof DOCS_CR[number]["id"];
+// RG / CNH do cliente: fica FORA dos 12 do CR (não conta no x/12 nem muda a ordem do Portal PF). A extensão
+// Passarinho anexa este arquivo no GT do Sinarm CAC ("Documento de Identificação Pessoal" › Carteira de Identidade)
+const DOC_IDENT = { id: "doc_ident", label: "RG / Documento de identificação (CNH)", tag: "" } as const;
+const DOCS_FICHA = [...DOCS_CR, DOC_IDENT];
 // Tipos de comprovante de ocupação lícita com o texto exato da lista do Portal PF: o tipo escolhido ao anexar vai no
 // nome do arquivo ("Comprovante de ocupação lícita ou aposentadoria - Contracheque ou holerite ou CTPS.pdf") e a
 // extensão Passarinho escolhe a mesma opção ao anexar no portal
@@ -1980,7 +1984,7 @@ export default function Declaracoes() {
         catch { sonnerToast.warning("Não consegui converter a foto em PDF; ela foi anexada como imagem."); }
       }
       const ext = file.name.split(".").pop() ?? "pdf";
-      const docDef = DOCS_CR.find(d => d.id === tipo);
+      const docDef = DOCS_FICHA.find(d => d.id === tipo);
       // 11 e 12: "Caça" troca o nome inteiro pelo do documento de caça; "Tiro desportivo" fica com o nome normal
       const nomeBase = !docDef ? null
         : tipo in NOMES_CACA ? (subTipo === "Caça" ? NOMES_CACA[tipo] : docDef.label)
@@ -2033,6 +2037,8 @@ export default function Declaracoes() {
     if (n.includes("segundo end") || n.includes("2 end") || n.includes("guarda do acervo") || n.includes("comp 2")) return "comp_2_end";
     if (n.includes("residencia") || n.includes("residenc"))           return "comp_residencia";
     if (n.includes("ocupacao") || n.includes("ocupac") || n.includes("aposentad") || n.includes("licit")) return "comp_ocupacao";
+    // por último (não é nenhum dos 12): RG / CNH vai para o item RG, fora da contagem do CR
+    if (/(^|[^a-z])(rg|cnh)([^a-z]|$)/.test(n) || n.includes("identidade") || n.includes("identificacao") || n.includes("habilitacao")) return "doc_ident" as DocCRTipo;
     return null;
   }
 
@@ -3340,7 +3346,7 @@ export default function Declaracoes() {
                     {uploadingLote ? "Enviando..." : arrastandoDocCR === "lote" ? "Solte os arquivos aqui (detecção automática)"
                       : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
-                  {DOCS_CR.map((doc, i) => {
+                  {DOCS_FICHA.map((doc, i) => {
                     const item = editandoId ? (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id) : undefined;
                     const pendente = editandoId ? undefined : docsPendentes.get(doc.id);
                     const uploading = uploadingDocTipo === doc.id;
@@ -3349,7 +3355,7 @@ export default function Declaracoes() {
                       <div key={doc.id}
                         className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${alvo ? "bg-primary/15 border border-primary ring-1 ring-primary/40" : item ? "bg-green-500/10 border border-green-500/20" : pendente ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/20"}`}
                         onDragOver={e => arrastarSobreDocCR(e, doc.id)} onDragLeave={sairDoArrasteDocCR} onDrop={e => soltarDocCR(e, doc.id)}>
-                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{i + 1}</span>
+                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{doc.id === "doc_ident" ? "RG" : i + 1}</span>
                         {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
                           : pendente ? <FileCheck2 className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
                           : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
