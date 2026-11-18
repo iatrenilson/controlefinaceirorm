@@ -33,7 +33,8 @@ const ETAPAS: Record<string, string> = {
   autor: "Autorização de Compra em análise",
   doccraf: "Reunindo os documentos do CRAF",
   craf: "CRAF em análise",
-  gt: "Emissão da Guia de Tráfego",
+  gt: "Reunindo os documentos da Guia de Tráfego",
+  gtanalise: "Guia de Tráfego em análise",
   completo: "Processo concluído",
 };
 

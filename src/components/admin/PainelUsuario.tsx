@@ -15,7 +15,7 @@ const brl = (v: unknown) => Number(v || 0).toLocaleString("pt-BR", { style: "cur
 const dataBr = (v?: string | null) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v || ""); return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
 const STATUS_CAC: Record<string, string> = {
   doc: "Documentação", analise: "Em análise", deferido: "Deferido", completo: "Concluído",
-  gt: "GT", craf: "CRAF", doccraf: "Doc. CRAF", docaut: "Doc. Autorização",
+  gt: "Doc GT", gtanalise: "GT em análise", craf: "CRAF", doccraf: "Doc. CRAF", docaut: "Doc. Autorização",
 };
 
 const TIPO_MOV: Record<string, string> = {

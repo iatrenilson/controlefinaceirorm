@@ -93,7 +93,7 @@ const toDocCRItem = (r: DocCRRow): DocCRItem => ({
 });
 
 // ─── Cliente ───────────────────────────────────────────────────────────────
-type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "doccraf" | "gt" | "completo";
+type ClienteStatus = "doc" | "docaut" | "deferido" | "analise" | "autor" | "craf" | "doccraf" | "gt" | "gtanalise" | "completo";
 
 const STATUS_LABELS: Record<ClienteStatus, string> = {
   doc:      "Doc. CR",
@@ -103,7 +103,8 @@ const STATUS_LABELS: Record<ClienteStatus, string> = {
   autor:    "Aut. Analise",
   craf:     "Craf. Analise",
   doccraf:  "Doc Craf",
-  gt:       "GT",
+  gt:       "Doc GT",
+  gtanalise: "GT Analise",
   completo: "Concluído",
 };
 const STATUS_COLORS: Record<ClienteStatus, string> = {
@@ -115,6 +116,7 @@ const STATUS_COLORS: Record<ClienteStatus, string> = {
   craf:     "text-cyan-400 border-cyan-500/50 bg-cyan-500/10",
   doccraf:  "text-teal-300 border-teal-400/50 bg-teal-500/10",
   gt:       "text-pink-300 border-pink-400/50 bg-pink-500/10",
+  gtanalise: "text-fuchsia-300 border-fuchsia-400/50 bg-fuchsia-500/10",
   completo: "text-purple-300 border-purple-400/50 bg-purple-500/10",
 };
 const STATUS_DOT: Record<ClienteStatus, string> = {
@@ -126,6 +128,7 @@ const STATUS_DOT: Record<ClienteStatus, string> = {
   craf:     "bg-cyan-400",
   doccraf:  "bg-teal-300",
   gt:       "bg-pink-300",
+  gtanalise: "bg-fuchsia-300",
   completo: "bg-purple-300",
 };
 
@@ -2172,7 +2175,7 @@ export default function Declaracoes() {
     toast({ title: "Gerando planilha..." });
 
     const fmtD = (d: string) => { try { return d ? format(parseISO(d), "dd/MM/yyyy") : ""; } catch { return d ?? ""; } };
-    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise", doccraf: "Doc Craf", gt: "GT", completo: "Concluído" }[s ?? "doc"] ?? "");
+    const fmtS = (s?: string) => ({ doc: "Doc. CR", docaut: "Doc. Aut.", deferido: "CR defer.", analise: "CR Analise", autor: "Aut. Analise", craf: "Craf. Analise", doccraf: "Doc Craf", gt: "Doc GT", gtanalise: "GT Analise", completo: "Concluído" }[s ?? "doc"] ?? "");
 
     const ExcelJS = (await import("exceljs")).default;
     const wb = new ExcelJS.Workbook();
@@ -2852,7 +2855,7 @@ export default function Declaracoes() {
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
                       const grupo = clientes.filter(c => (c.status ?? "doc") === val);
-                      const sempreVisivel = val === "doc" || val === "docaut" || val === "gt" || val === "completo";
+                      const sempreVisivel = val === "doc" || val === "docaut" || val === "gt" || val === "gtanalise" || val === "completo";
                       if (grupo.length === 0 && !sempreVisivel) return null;
                       const hoje = new Date(); hoje.setHours(0,0,0,0);
                       const nomes = grupo.map(c => {
