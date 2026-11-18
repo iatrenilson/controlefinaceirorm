@@ -2689,6 +2689,36 @@ export default function Declaracoes() {
   const [dialogResOpen, setDialogResOpen] = useState(false);
   const [formRes, setFormRes] = useState<FormDataResidencia>(EMPTY_FORM_RES);
   const setR = (field: keyof FormDataResidencia, value: string) => setFormRes(prev => ({ ...prev, [field]: value }));
+  // Declaração de Residência: CNH/RG arrastado preenche o Declarado (mesmo leitor do cadastro de cliente)
+  const [lendoDocRes, setLendoDocRes] = useState(false);
+  const [progressoDocRes, setProgressoDocRes] = useState("");
+  const importarDocDeclarado = async (file: File) => {
+    setLendoDocRes(true);
+    setProgressoDocRes("Abrindo documento...");
+    try {
+      const d = await lerDocumento(file, setProgressoDocRes);
+      const novos: Partial<FormDataResidencia> = {};
+      if (d.nome) novos.nomeDeclarado = d.nome;
+      if (d.cpf) novos.cpfDeclarado = maskCpf(d.cpf);
+      if (d.rg) novos.rgDeclarado = d.rgEhCpf ? maskCpf(d.rg) : maskRg(d.rg);
+      if (d.orgaoEmissor) novos.orgaoDeclarado = d.orgaoEmissor;
+      if (d.nomePai) novos.nomePai = d.nomePai;
+      if (d.nomeMae) novos.nomeMae = d.nomeMae;
+      const n = Object.keys(novos).length;
+      if (n > 0) {
+        setFormRes(prev => ({ ...prev, ...novos }));
+        sonnerToast.success(`✓ ${n} campo(s) do declarado preenchido(s) a partir do documento. Confira antes de gerar.`
+          + (d.orgaoEmissor ? "" : " Órgão emissor não encontrado no documento: confira à mão."));
+      } else {
+        sonnerToast.warning("Não consegui ler os dados. Envie o PDF original da CNH/RG ou uma foto mais nítida.");
+      }
+    } catch (err) {
+      sonnerToast.error("Erro ao ler o documento: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLendoDocRes(false);
+      setProgressoDocRes("");
+    }
+  };
   const [rgDataUrl, setRgDataUrl] = useState<string | null>(null);
   const [rgNome, setRgNome] = useState("");
   const [rgDataUrl2, setRgDataUrl2] = useState<string | null>(null);
@@ -4616,6 +4646,9 @@ export default function Declaracoes() {
                   setR("endereco", c.endereco); setR("numero", c.numero); setR("complemento", c.complemento); setR("bairro", c.bairro);
                   setR("cep", c.cep); setR("cidade", c.cidade); setR("estado", c.estado);
                 }} />
+                <CaixaImportar titulo="Importar CNH ou RG do declarado"
+                  descricao="Arraste aqui ou selecione: PDF ou foto — preenche nome, RG, órgão emissor, CPF e filiação"
+                  lendo={lendoDocRes} progresso={progressoDocRes} onArquivo={importarDocDeclarado} />
                 <div className="space-y-1">
                   <Label className="text-xs">Nome Completo</Label>
                   <Input className="h-9 text-sm uppercase" value={formRes.nomeDeclarado} onChange={e => setR("nomeDeclarado", e.target.value)} />
