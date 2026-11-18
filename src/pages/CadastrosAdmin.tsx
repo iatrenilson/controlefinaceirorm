@@ -851,10 +851,25 @@ export default function CadastrosAdmin() {
                 {lista.map(c => (
                   <button key={c.id} type="button" onClick={() => { setClientesColab(null); abrirEdicao(c); }}
                     className="w-full text-left rounded-md border border-border/60 px-3 py-2 hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                    <p className="text-sm font-semibold">{c.nome}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold">{c.nome}</p>
+                      {/* resumo da prova, igual à Lista de prova: "CR Pistola e Rifle", "Posse completo" */}
+                      {servicoDaLista(c) && <span className="shrink-0 text-[11px] font-semibold text-primary">{servicoDaLista(c)}</span>}
+                    </div>
                     <p className="text-[11px] text-muted-foreground">
-                      {[c.cpf, c.tipo_sinarm, fmtData(c.created_at)].filter(Boolean).join(" · ")}
+                      {[c.cpf, fmtData(c.created_at)].filter(Boolean).join(" · ")}
                     </p>
+                    {/* tipo de prova e armas escolhidas no cadastro */}
+                    {(c.tipo_sinarm || c.armas) && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {separar(c.tipo_sinarm).map(t => (
+                          <span key={t} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">{t}</span>
+                        ))}
+                        {separar(c.armas).map(a => (
+                          <span key={a} className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-foreground/80 border border-border">{a}</span>
+                        ))}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
