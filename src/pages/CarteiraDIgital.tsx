@@ -20,7 +20,7 @@ const TIPOS = [
 type TipoKey = "cr" | "craf" | "gt" | "cert";
 
 interface CartDoc { id: string; tipo: TipoKey; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
-interface CartCliente { id: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
+interface CartCliente { id: string; codigo?: string; nome: string; telefone?: string; cpf?: string; docs?: CartDoc[]; }
 
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
@@ -223,6 +223,9 @@ function ClienteDialog({ cliente, preset, onClose, onSaved }: DialogProps) {
   const [addingArma, setAddingArma] = useState(false);
   const [newArmaInput, setNewArmaInput] = useState("");
   const [uploadingForArma, setUploadingForArma] = useState<string | null>(null);
+  // Novo cliente: GTs escolhidas por arma (como na edição), enviadas ao salvar o cliente
+  const [gtPendentes, setGtPendentes] = useState<{ arma: string; file: File }[]>([]);
+  const [gtArmaAlvo, setGtArmaAlvo] = useState<string | null>(null);
   const refGtUpload = useRef<HTMLInputElement>(null);
   const [renamingArma, setRenamingArma] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
@@ -354,9 +357,14 @@ function ClienteDialog({ cliente, preset, onClose, onSaved }: DialogProps) {
       setUploading(tipo);
       await uploadFile(data.id, tipo, file);
     }
+    // GTs de cada arma
+    for (const { arma, file } of gtPendentes) {
+      setUploading("gt");
+      await uploadFile(data.id, "gt", file, arma);
+    }
     setUploading(null);
     setSaving(false);
-    if (entries.length > 0) toast.success("Cliente e documentos cadastrados!");
+    if (entries.length > 0 || gtPendentes.length > 0) toast.success("Cliente e documentos cadastrados!");
     else toast.success("Cliente cadastrado!");
     onSaved(); // Recarregar lista APÓS uploads
     onClose();
@@ -422,6 +430,91 @@ function ClienteDialog({ cliente, preset, onClose, onSaved }: DialogProps) {
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Documentos (opcional)</p>
               {TIPOS.map(({ key, label, desc }) => {
                 const names = pendingNames[key] ?? [];
+                // GT no cadastro novo: igual à edição, por arma (cadastra a arma e adiciona as GTs dela)
+                if (key === "gt") {
+                  const armas = [...new Set([...pendingArmas, ...gtPendentes.map(g => g.arma)])];
+                  return (
+                    <div key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50">
+                        <FileText className={`h-4 w-4 flex-shrink-0 ${gtPendentes.length > 0 ? "text-primary" : "text-muted-foreground"}`} />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{label}</p>
+                          <p className="text-[10px] text-muted-foreground">{desc}</p>
+                        </div>
+                      </div>
+                      <input ref={refNewGt} type="file" accept="application/pdf,image/*" className="hidden"
+                        onChange={e => {
+                          const f = e.target.files?.[0];
+                          if (f && gtArmaAlvo) setGtPendentes(p => [...p, { arma: gtArmaAlvo, file: f }]);
+                          e.target.value = "";
+                        }} />
+                      {armas.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground/50 px-3 py-2">Nenhuma arma cadastrada</p>
+                      ) : (
+                        <div className="divide-y divide-border/30">
+                          {armas.map(arma => {
+                            const daArma = gtPendentes.filter(g => g.arma === arma);
+                            return (
+                              <ArrastarArquivo key={arma} aceitar="application/pdf,image/*"
+                                onArquivos={([f]) => setGtPendentes(p => [...p, { arma, file: f }])}>
+                                <div className="flex items-center gap-2 px-3 py-2">
+                                  <span className="text-xs font-semibold text-foreground">🔫 {arma}</span>
+                                  <span className="text-[10px] text-muted-foreground ml-auto">{daArma.length} GT{daArma.length !== 1 ? "s" : ""}</span>
+                                  <button type="button" title="Tirar esta arma"
+                                    onClick={() => { setPendingArmas(p => p.filter(a => a !== arma)); setGtPendentes(p => p.filter(g => g.arma !== arma)); }}
+                                    className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <div className="divide-y divide-border/20 bg-muted/20">
+                                  {daArma.map((g, i) => (
+                                    <div key={i} className="flex items-center justify-between gap-2 px-4 py-1.5">
+                                      <p className="text-xs text-muted-foreground truncate flex-1">{daArma.length > 1 ? `${i + 1}. ` : ""}{g.file.name}</p>
+                                      <button type="button" onClick={() => setGtPendentes(p => p.filter(x => x !== g))}
+                                        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0">
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <div className="px-4 py-2">
+                                    <button type="button" onClick={() => { setGtArmaAlvo(arma); refNewGt.current?.click(); }}
+                                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
+                                      <Plus className="h-3 w-3" />Adicionar GT
+                                    </button>
+                                  </div>
+                                </div>
+                              </ArrastarArquivo>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Nova Arma */}
+                      <div className="px-3 py-2 border-t border-border/30">
+                        {addingArma ? (
+                          <div className="flex items-center gap-2">
+                            <input value={newArmaInput} onChange={e => setNewArmaInput(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === "Enter" && newArmaInput.trim()) {
+                                  e.preventDefault();
+                                  const name = newArmaInput.trim();
+                                  setPendingArmas(p => p.includes(name) ? p : [...p, name]);
+                                  setNewArmaInput(""); setAddingArma(false);
+                                }
+                                if (e.key === "Escape") { setNewArmaInput(""); setAddingArma(false); }
+                              }}
+                              placeholder="Nome da arma (Enter para confirmar)" autoFocus
+                              className="flex-1 px-2 py-1 text-xs rounded border bg-background border-border focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                            <button type="button" onClick={() => { setNewArmaInput(""); setAddingArma(false); }} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setAddingArma(true)} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors">
+                            <Plus className="h-3 w-3" />Nova Arma
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <ArrastarArquivo key={key} className="rounded-xl border bg-background/50 border-border overflow-hidden">
                     <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50">
@@ -652,7 +745,7 @@ export default function CarteiraDIgital() {
   const [dialog, setDialog] = useState<CartCliente | null | "novo">(null);
 
   const load = async () => {
-    const { data: cs } = await supabase.from("carteira_clientes").select("id, nome, telefone, cpf").order("nome");
+    const { data: cs } = await supabase.from("carteira_clientes").select("id, codigo, nome, telefone, cpf").order("nome");
     if (!cs) { setLoading(false); return; }
     const ids = cs.map(c => c.id);
     let ds: CartDoc[] | null = null;
@@ -754,7 +847,7 @@ export default function CarteiraDIgital() {
                     </div>
                   </div>
                   <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <CopyLinkBtn clienteId={c.id} />
+                    <CopyLinkBtn clienteId={c.codigo || c.id} />
                     <button onClick={() => setDialog(c)} className="p-1.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="Editar">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>

@@ -288,10 +288,11 @@ export default function CarteiraCliente() {
     // Sem resposta em 10 s (sinal fraco na rua) conta como sem internet
     const parar = new AbortController();
     const tempo = setTimeout(() => parar.abort(), 10000);
-    fetch(`${SUPABASE_URL}/rest/v1/rpc/get_carteira_v2`, {
+    // o link pode ser o primeiro nome (/carteira/carlos, carlos2…) ou o id antigo: get_carteira_ref aceita os dois
+    fetch(`${SUPABASE_URL}/rest/v1/rpc/get_carteira_ref`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` },
-      body: JSON.stringify({ p_id: id }),
+      body: JSON.stringify({ p_ref: id }),
       signal: parar.signal,
     })
       .then(r => r.json())
@@ -407,7 +408,8 @@ export default function CarteiraCliente() {
     setPushOcupado(true);
     try {
       const sub = await ativarPush();
-      await rpcCarteira("salvar_push_carteira", { p_carteira: id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      // o link pode ser o primeiro nome (/carteira/carlos): o aviso precisa do id de verdade da carteira
+      await rpcCarteira("salvar_push_carteira", { p_carteira: data?.id || id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
       setPushEstado("ativo");
     } catch (e) {
       const motivo = e instanceof Error ? e.message : "";

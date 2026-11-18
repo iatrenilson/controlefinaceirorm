@@ -1844,11 +1844,14 @@ export default function Declaracoes() {
   const [mostrarClientes, setMostrarClientes] = useState(true);
   // Carteira digital de cada cliente: a carteira guarda o CPF do cliente → id da carteira por CPF (só números)
   const [carteiraPorCpf, setCarteiraPorCpf] = useState<Record<string, string>>({});
+  // código do link da carteira (primeiro nome: /carteira/carlos) por id da carteira
+  const [codigoCarteira, setCodigoCarteira] = useState<Record<string, string>>({});
   useEffect(() => {
-    supabase.from("carteira_clientes").select("id, cpf").then(({ data }) => {
-      const m: Record<string, string> = {};
-      for (const k of data ?? []) { const cpf = (k.cpf || "").replace(/\D/g, ""); if (cpf) m[cpf] = k.id; }
+    supabase.from("carteira_clientes" as any).select("id, cpf, codigo").then(({ data }) => {
+      const m: Record<string, string> = {}, cod: Record<string, string> = {};
+      for (const k of (data ?? []) as any[]) { const cpf = (k.cpf || "").replace(/\D/g, ""); if (cpf) m[cpf] = k.id; if (k.codigo) cod[k.id] = k.codigo; }
       setCarteiraPorCpf(m);
+      setCodigoCarteira(cod);
     });
   }, []);
   const carteiraDo = (cpf?: string) => carteiraPorCpf[(cpf || "").replace(/\D/g, "")];
@@ -3004,7 +3007,7 @@ export default function Declaracoes() {
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
                             <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} />
-                            <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} />
+                            <BotaoCarteira carteiraId={carteiraDo(c.cpf)} codigo={codigoCarteira[carteiraDo(c.cpf) ?? ""]} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -3275,7 +3278,7 @@ export default function Declaracoes() {
                           <Share2 className="h-3 w-3" />
                         </Button>
                         <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} pequeno />
-                        <BotaoCarteira carteiraId={carteiraDo(c.cpf)} clienteId={c.id} pequeno />
+                        <BotaoCarteira carteiraId={carteiraDo(c.cpf)} codigo={codigoCarteira[carteiraDo(c.cpf) ?? ""]} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />
                         </Button>

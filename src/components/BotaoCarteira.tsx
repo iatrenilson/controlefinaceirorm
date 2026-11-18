@@ -12,14 +12,15 @@ export const linkCarteira = (carteiraId: string) =>
 
 // Botão da carteira digital no card do cliente (Clientes Armas): copia o link, abre ou edita a carteira.
 // Sem carteira ainda (nenhuma com o mesmo CPF), oferece criar uma já com o cliente escolhido.
-export function BotaoCarteira({ carteiraId, clienteId, pequeno }: { carteiraId?: string; clienteId: string; pequeno?: boolean }) {
+// codigo: o primeiro nome do link (/carteira/carlos); sem ele, o link usa o id
+export function BotaoCarteira({ carteiraId, codigo, clienteId, pequeno }: { carteiraId?: string; codigo?: string; clienteId: string; pequeno?: boolean }) {
   const navigate = useNavigate();
   const tam = pequeno ? "h-6 w-6" : "h-7 w-7";
   const icone = pequeno ? "h-3 w-3" : "h-3.5 w-3.5";
 
   const copiar = () => {
     if (!carteiraId) return;
-    navigator.clipboard.writeText(linkCarteira(carteiraId))
+    navigator.clipboard.writeText(linkCarteira(codigo || carteiraId))
       .then(() => toast.success("Link da carteira copiado!"))
       .catch(() => toast.error("Não consegui copiar o link."));
   };
