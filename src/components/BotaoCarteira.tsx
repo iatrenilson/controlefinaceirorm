@@ -21,8 +21,7 @@ export const mensagemCarteira = (link: string) => [
   "(No iPhone: instale primeiro, abra pelo ícone na tela inicial e ative os avisos por lá.)",
   "",
   "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
-].join("
-");
+].join("\n");
 
 // Botão da carteira digital no card do cliente (Clientes Armas): copia o link, abre ou edita a carteira.
 // Sem carteira ainda (nenhuma com o mesmo CPF), oferece criar uma já com o cliente escolhido.
