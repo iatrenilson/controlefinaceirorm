@@ -12,18 +12,69 @@ import { supabase } from "@/integrations/supabase/client";
 export const linkAcompanhamento = (ref: string) =>
   `${window.location.origin}${import.meta.env.BASE_URL}acompanhamento/${ref}`;
 
-// Mensagem para o cliente com o status de cada processo (sem os rascunhos, que ainda não foram enviados à PF) e o link
+// Nome do serviço como o cliente entende (o da PF é longo e muda entre Sinarm CAC e Portal PF)
+function nomeServico(servico: string) {
+  const s = (servico || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (/guia de trafego/.test(s)) return "Guia de Tráfego (GT)";
+  if (/apostilamento/.test(s)) return "Apostilamento do CR";
+  if (/renovacao.*craf/.test(s)) return "Renovação do CRAF";
+  if (/registrar arma|craf/.test(s)) return "Registro da arma (CRAF)";
+  if (/aquisicao|autoriza/.test(s)) return "Autorização de compra de arma de fogo";
+  if (/concessao|certificado de registro|registro para pessoa fisica/.test(s)) return "Concessão do CR (Certificado de Registro de CAC)";
+  return servico || "Processo";
+}
+// O que o status quer dizer, em palavras simples
+function explicarStatus(status: string) {
+  const s = (status || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  if (/^indeferid/.test(s)) return "*Indeferido* — nossa equipe vai te orientar sobre os próximos passos.";
+  if (/^deferid/.test(s)) return "✅ *DEFERIDO* — seu pedido foi aprovado pela Polícia Federal!";
+  if (/analise/.test(s)) return "*Em análise* — seu pedido está sendo analisado pela Polícia Federal. Agora é só aguardar.";
+  if (/iniciado|fila/.test(s)) return "*Enviado* — seu pedido foi enviado e aguarda a vez de ser analisado pela Polícia Federal.";
+  if (/pagamento/.test(s)) return "*Aguardando pagamento* — falta o pagamento da GRU para o pedido seguir.";
+  if (/documenta|exigencia|pendenc/.test(s)) return "*Aguardando documentação* — a Polícia Federal pediu documentos; nossa equipe já está cuidando e te avisa se precisar de algo.";
+  if (/restitu|devolv/.test(s)) return "*Devolvido para correção* — nossa equipe já está verificando o que a Polícia Federal pediu.";
+  return `*${status}*`;
+}
+
+// Mensagem para o cliente (o usuário pediu, 2026-11-19): sem número de protocolo, com o nome do serviço que o cliente
+// entende e o que o status significa. Processo deferido antigo não entra (só o deferido nos últimos 2 dias, que é
+// novidade); rascunho também não (ainda não foi enviado à PF). O mesmo serviço com o mesmo status vira uma linha só.
 async function montarMensagem(clienteId: string, nome: string, ref: string) {
   const { data } = await supabase.from("processos_pf" as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-    .select("servico, protocolo, status, descricao, data_solicitacao").eq("cliente_id", clienteId);
-  const lista = ((data ?? []) as { servico: string; protocolo: string; status: string; descricao: string }[])
-    .filter(p => !/rascunho/i.test(p.descricao || ""));
+    .select("servico, status, descricao, status_mudou_em").eq("cliente_id", clienteId);
+  const DOIS_DIAS = 2 * 86400000;
+  const lista = ((data ?? []) as { servico: string; status: string; descricao: string; status_mudou_em: string | null }[])
+    .filter(p => p.status && !/rascunho/i.test(p.descricao || ""))
+    .filter(p => !/^deferid/i.test(p.status.trim()) || (p.status_mudou_em && Date.now() - new Date(p.status_mudou_em).getTime() < DOIS_DIAS));
   const primeiro = (nome || "").replace(/\([^)]*\)/g, " ").trim().split(/\s+/)[0] || "";
-  const ola = primeiro ? `Olá, ${primeiro.charAt(0) + primeiro.slice(1).toLowerCase()}!` : "Olá!";
+  const ola = primeiro ? `Olá, ${primeiro.charAt(0) + primeiro.slice(1).toLowerCase()}! 👋` : "Olá! 👋";
   const link = linkAcompanhamento(ref);
-  if (!lista.length) return `${ola} Você pode acompanhar o andamento do seu processo por este link:\n${link}\n\nPassarinho Assessoria`;
-  const linhas = lista.map(p => `• ${p.servico} (${p.protocolo}): *${p.status}*`).join("\n");
-  return `${ola} Atualização do seu processo na Polícia Federal:\n\n${linhas}\n\nAcompanhe sempre por este link:\n${link}\n\nPassarinho Assessoria`;
+  const fimMsg = `Acompanhe quando quiser por este link:
+${link}
+
+Qualquer dúvida, estamos à disposição.
+*Passarinho Assessoria Bélica*`;
+  if (!lista.length) return `${ola}
+Aqui é da Passarinho Assessoria Bélica.
+
+No momento você não tem processo em andamento na Polícia Federal.
+
+${fimMsg}`;
+  const grupos = new Map<string, { servico: string; status: string; n: number }>();
+  for (const p of lista) {
+    const servico = nomeServico(p.servico), chave = servico + "|" + p.status;
+    const g = grupos.get(chave);
+    if (g) g.n++; else grupos.set(chave, { servico, status: p.status, n: 1 });
+  }
+  const blocos = [...grupos.values()].map(g => `📄 *${g.servico}${g.n > 1 ? ` (${g.n})` : ""}*
+${explicarStatus(g.status)}`).join("\n\n");
+  const titulo = grupos.size > 1 ? "seus processos" : "seu processo";
+  return `${ola}
+Aqui é da Passarinho Assessoria Bélica, com a atualização de ${titulo} na Polícia Federal:
+
+${blocos}
+
+${fimMsg}`;
 }
 
 // WhatsApp do cliente: com DDD vira 55 + número; sem telefone abre o WhatsApp para escolher o contato
