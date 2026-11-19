@@ -570,7 +570,8 @@ export default function CarteiraCliente() {
             <button onClick={alternarAvisos} aria-label="Avisos de vencimento" title="Avisos de vencimento" aria-expanded={avisosAberto}
               style={{ position:"absolute", top:16, right:16, width:38, height:38, borderRadius:"50%", border:`1px solid ${GOLD_BORDER}`,
                 background: avisosAberto ? GOLD_DIM : "transparent", color:GOLD, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0 }}>
-              <Bell size={18} />
+              {/* avisos ligados: sininho cheio, todo amarelo; desligados: só o contorno */}
+              <Bell size={18} fill={pushEstado === "ativo" ? "currentColor" : "none"} />
               {/* número no sininho: quantos documentos estão vencidos ou vencendo (fica enquanto houver) */}
               {avisos.length > 0 && (
                 <span style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, padding:"0 4px", borderRadius:9, background:"#ef4444", color:"#fff",
