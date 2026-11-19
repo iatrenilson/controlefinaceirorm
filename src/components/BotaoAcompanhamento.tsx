@@ -43,14 +43,25 @@ async function montarMensagem(clienteId: string, nome: string, ref: string) {
   const { data } = await supabase.from("processos_pf" as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select("servico, status, descricao, status_mudou_em").eq("cliente_id", clienteId);
   const DOIS_DIAS = 2 * 86400000;
-  const lista = ((data ?? []) as { servico: string; status: string; descricao: string; status_mudou_em: string | null }[])
+  const lista = ((data ?? []) as unknown as { servico: string; status: string; descricao: string; status_mudou_em: string | null }[])
     .filter(p => p.status && !/rascunho/i.test(p.descricao || ""))
     .filter(p => !/^deferid/i.test(p.status.trim()) || (p.status_mudou_em && Date.now() - new Date(p.status_mudou_em).getTime() < DOIS_DIAS));
   const primeiro = (nome || "").replace(/\([^)]*\)/g, " ").trim().split(/\s+/)[0] || "";
   const ola = primeiro ? `Olá, ${primeiro.charAt(0) + primeiro.slice(1).toLowerCase()}! 👋` : "Olá! 👋";
   const link = linkAcompanhamento(ref);
+  // como instalar para receber os avisos (o usuário pediu; caminho do iPhone passado por ele)
   const fimMsg = `Acompanhe quando quiser por este link:
 ${link}
+
+🔔 *Para receber os avisos no celular quando o status mudar, instale o aplicativo:*
+
+🤖 *Android:* abra o link no Chrome e toque em *Instalar* (ou no menu ⋮ → *Instalar app* / *Adicionar à tela inicial*).
+
+📱 *iPhone:* abra o link no Safari, toque nos três tracinhos (⋯), depois em *Compartilhar*, depois em *Ver mais* e em *Adicionar à Tela de Início*.
+
+Depois, abra pelo ícone *Meu processo* na tela inicial e toque no sininho 🔔 para ativar os avisos.
+
+⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.
 
 Qualquer dúvida, estamos à disposição.
 *Passarinho Assessoria Bélica*`;
