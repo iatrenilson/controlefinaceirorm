@@ -158,6 +158,8 @@ interface Cliente {
   profissao: string;
   tipo_ocupacao: string;
   tituloEleitor: string;
+  // "masculino" | "feminino" | "" (vazio = a extensão tenta adivinhar pelo nome)
+  genero: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -175,7 +177,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  email: "", telefone: "", profissao: "", tipo_ocupacao: "", tituloEleitor: "",
+  email: "", telefone: "", profissao: "", tipo_ocupacao: "", tituloEleitor: "", genero: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1739,6 +1741,7 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     profissao: (row.profissao as string) ?? "",
     tipo_ocupacao: (row.tipo_ocupacao as string) ?? "",
     tituloEleitor: (row.titulo_eleitor as string) ?? "",
+    genero: (row.genero as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -2151,6 +2154,7 @@ export default function Declaracoes() {
         ...(c.tipo_ocupacao ? { tipo_ocupacao: c.tipo_ocupacao } : {}),
         // só manda se tiver: cópia antiga sem o campo não apaga o título salvo no banco
         ...(c.tituloEleitor ? { titulo_eleitor: c.tituloEleitor } : {}),
+        ...(c.genero ? { genero: c.genero } : {}),
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -2371,6 +2375,7 @@ export default function Declaracoes() {
           telefone: maskTelefone(r.telefone ?? ""),
           profissao: r.profissao ?? "",
           tituloEleitor: r.titulo_eleitor ?? "",
+          genero: r.genero ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
@@ -2502,6 +2507,7 @@ export default function Declaracoes() {
       profissao: formCliente.profissao || null,
       ...(formCliente.tipo_ocupacao ? { tipo_ocupacao: formCliente.tipo_ocupacao } : {}),
       titulo_eleitor: (formCliente.tituloEleitor || "").trim() || null,
+      genero: formCliente.genero || null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -3576,8 +3582,8 @@ export default function Declaracoes() {
                 <CopyButton value={formCliente.tituloEleitor} />
               </div>
             </div>
-            {/* Estado Civil + Data Nascimento */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Estado Civil + Gênero + Data Nascimento */}
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Estado Civil</Label>
                 <div className="flex gap-1.5">
@@ -3593,6 +3599,16 @@ export default function Declaracoes() {
                   </Select>
                   <CopyButton value={formCliente.estadoCivil} />
                 </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Gênero</Label>
+                <Select value={formCliente.genero || ""} onValueChange={v => setC("genero", v)}>
+                  <SelectTrigger className={`h-9 text-sm ${formCliente.genero ? "" : "text-muted-foreground"}`}><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="feminino">Feminino</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-yellow-400 font-semibold">Data de Nascimento</Label>
