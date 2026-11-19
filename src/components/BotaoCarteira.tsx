@@ -12,7 +12,7 @@ export const linkCarteira = (carteiraId: string) =>
 
 // Texto copiado junto com o link: lembra o cliente de instalar a carteira e ativar os avisos (sem isso não chega notificação)
 export const mensagemCarteira = (link: string) => [
-  "Olá! Esta é a sua Carteira Digital da RW Investimentos:",
+  "Olá! Esta é a sua Carteira Digital da Passarinho Assessoria Bélica:",
   link,
   "",
   "Para receber no celular os avisos de vencimento dos seus documentos:",
