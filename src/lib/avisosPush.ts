@@ -46,3 +46,17 @@ export async function desativarPush(): Promise<string | null> {
   await sub.unsubscribe().catch(() => {});
   return endpoint;
 }
+
+// O cliente abriu a carteira ou o acompanhamento (ou tocou no aviso, que abre a página): o aviso de processo conta
+// como visto e o robô (scripts/avisos-acompanhamento.mjs) para de mandar o lembrete diário
+export async function marcarAvisoAberto(sub: PushSubscription | null) {
+  if (!sub) return;
+  try {
+    await fetch("https://qubkmecpxbsdphtmwvvw.supabase.co/rest/v1/rpc/marcar_aviso_aberto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      body: JSON.stringify({ p_endpoint: sub.endpoint }),
+    });
+  } catch { /* sem internet: marca na próxima abertura */ }
+}

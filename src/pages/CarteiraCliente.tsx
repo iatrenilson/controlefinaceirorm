@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { docColorido, type DocColorido, type ModeloDoc } from "@/lib/crColorido";
 import { ROTULO_TIPO_CARTEIRA, situacaoDoc, ultimaData, textoPrazo, ordemAvisos } from "@/lib/avisosCarteira";
-import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
+import { pushSuportado, inscricaoAtual, ativarPush, desativarPush, abertoComoApp, ehIOS, marcarAvisoAberto } from "@/lib/avisosPush";
 import { useEscComPdf } from "@/hooks/useEscComPdf";
 import { guardarCopia, lerCopia, urlsDaCopia, paginasDoPdf, registrarServiceWorker } from "@/lib/carteiraOffline";
 
@@ -19,7 +19,8 @@ const TIPOS = [
 ] as const;
 
 interface CartDoc { id?: string; tipo: string; arquivo_path: string; arquivo_nome: string; data_expedicao?: string; data_validade?: string; numero_serie?: string; nome_arma?: string; sort_order?: number; }
-interface CarteiraData { id: string; nome: string; cpf?: string; acompanhamento?: string | null; docs: CartDoc[]; }
+// deferidos: processos que mudaram para Deferido nos últimos 2 dias (get_carteira_v2); ficam no sininho e somem sozinhos
+interface CarteiraData { id: string; nome: string; cpf?: string; acompanhamento?: string | null; deferidos?: { id: string; servico: string | null; quando: string }[]; docs: CartDoc[]; }
 
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
@@ -222,6 +223,7 @@ export default function CarteiraCliente() {
       if (Notification.permission === "denied") { setPushEstado("bloqueado"); return; }
       inscricaoAtual().then(sub => {
         setPushEstado(sub ? "ativo" : "inativo");
+        marcarAvisoAberto(sub);
         // permissão já dada (está ativando agora): não pergunta por cima
         if (!sub && Notification.permission !== "granted") setPerguntarAvisos(true);
       }).catch(() => setPushEstado("inativo"));
@@ -432,6 +434,9 @@ export default function CarteiraCliente() {
       validade: ultimaData(d.data_validade || ""), chave: `${d.id ?? d.arquivo_path}|${d.data_validade}${sit.vencido ? "" : "|a"}` }];
   }).sort(ordemAvisos);
   const avisosNovos = avisos.filter(a => !avisosVistos.includes(a.chave)).length;
+  // o filtro de 2 dias também aqui: a cópia sem internet pode ser de dias atrás
+  const deferidos = (data.deferidos ?? []).filter(p => Date.now() - new Date(p.quando).getTime() < 2 * 86400000);
+  const totalSino = avisos.length + deferidos.length;
   const ehIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const instalarApp = async () => {
     if (pedidoInstalar) {
@@ -573,15 +578,31 @@ export default function CarteiraCliente() {
               {/* avisos ligados: sininho cheio, todo amarelo; desligados: só o contorno */}
               <Bell size={18} fill={pushEstado === "ativo" ? "currentColor" : "none"} />
               {/* número no sininho: quantos documentos estão vencidos ou vencendo (fica enquanto houver) */}
-              {avisos.length > 0 && (
+              {totalSino > 0 && (
                 <span style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, padding:"0 4px", borderRadius:9, background:"#ef4444", color:"#fff",
-                  fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT }}>{avisos.length}</span>
+                  fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT }}>{totalSino}</span>
               )}
             </button>
             {avisosAberto && (
               <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${GOLD_BORDER}` }}>
+                {/* Processo deferido (últimos 2 dias): toque abre o acompanhamento */}
+                {deferidos.length > 0 && (
+                  <div style={{ marginBottom:8 }}>
+                    <p style={{ color:"#22c55e", fontSize:10, margin:"0 0 4px", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:700, fontFamily:FONT }}>Processo deferido</p>
+                    {deferidos.map(p => (
+                      <a key={p.id} href={`${import.meta.env.BASE_URL}acompanhamento/${data.acompanhamento}?carteira=1`}
+                        style={{ display:"flex", alignItems:"flex-start", gap:8, padding:"6px 0", textDecoration:"none", fontFamily:FONT }}>
+                        <span style={{ width:8, height:8, borderRadius:"50%", background:"#22c55e", marginTop:5, flexShrink:0 }} />
+                        <span style={{ minWidth:0 }}>
+                          <span style={{ display:"block", color:FG, fontSize:13, fontWeight:700 }}>✅ {p.servico || "Processo"} deferido!</span>
+                          <span style={{ display:"block", color:FG_MUTED, fontSize:11, marginTop:1 }}>Toque para ver o acompanhamento</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                )}
                 {avisos.length === 0 ? (
-                  <p style={{ color:FG_MUTED, fontSize:12, margin:0, fontFamily:FONT }}>Nenhum documento vencido ou perto de vencer.</p>
+                  deferidos.length === 0 && <p style={{ color:FG_MUTED, fontSize:12, margin:0, fontFamily:FONT }}>Nenhum documento vencido ou perto de vencer.</p>
                 ) : (
                   <>
                     {[{ vencido: true, titulo: "Vencidos", cor: "#ef4444" }, { vencido: false, titulo: "Vencem em breve", cor: "#f59e0b" }].map(sec => {

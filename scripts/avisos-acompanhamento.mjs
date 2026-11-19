@@ -26,7 +26,7 @@ async function sb(caminho, init = {}) {
 }
 
 const processos = await sb("processos_pf?select=id,cliente_id,servico,descricao,status,avisado_status,consultado_em");
-const inscricoes = await sb("push_acompanhamento?select=endpoint,p256dh,auth,cliente_id,avisado_consulta_em");
+const inscricoes = await sb("push_acompanhamento?select=endpoint,p256dh,auth,cliente_id,avisado_consulta_em,aviso_pendente,aviso_enviado_em,aviso_reenvios");
 const rascunho = p => /rascunho/i.test(p.descricao || "");
 const pendentes = processos.filter(p => (p.status || "") !== (p.avisado_status || ""));
 
@@ -34,7 +34,8 @@ const pendentes = processos.filter(p => (p.status || "") !== (p.avisado_status |
 const diaManaus = d => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Manaus" }).format(new Date(d));
 const HOJE = diaManaus(Date.now());
 
-let enviados = 0, removidas = 0, falhas = 0, avisosMudanca = 0, avisosDiarios = 0;
+let enviados = 0, removidas = 0, falhas = 0, avisosMudanca = 0, avisosDiarios = 0, reenvios = 0;
+const REENVIOS_MAX = 3, INTERVALO_REENVIO = 20 * 3600 * 1000; // 1 vez por dia (folga para o atraso do GitHub)
 // true se a notificação foi entregue ao serviço de push (na simulação, se seria enviada)
 async function enviar(a, aviso) {
   if (SIMULAR) { enviados++; return true; }
@@ -58,6 +59,16 @@ async function marcarHoje(a) {
   await sb(`push_acompanhamento?endpoint=eq.${encodeURIComponent(a.endpoint)}&cliente_id=eq.${a.cliente_id}`,
     { method: "PATCH", body: JSON.stringify({ avisado_consulta_em: HOJE }), headers: { Prefer: "return=minimal" } });
 }
+// guarda o aviso no aparelho até o cliente abrir (marcar_aviso_aberto, chamado pela notificação ou ao abrir a carteira)
+async function guardarPendente(a, aviso, novo) {
+  if (SIMULAR) return;
+  await sb(`push_acompanhamento?endpoint=eq.${encodeURIComponent(a.endpoint)}&cliente_id=eq.${a.cliente_id}`, {
+    method: "PATCH", headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(novo
+      ? { aviso_pendente: aviso, aviso_enviado_em: new Date().toISOString(), aviso_reenvios: 0 }
+      : { aviso_enviado_em: new Date().toISOString(), aviso_reenvios: (a.aviso_reenvios || 0) + 1 }),
+  });
+}
 const listar = lista => lista.slice(0, 3).map(p => `${p.servico || "Processo"}: ${p.status}`).join(" · ") +
   (lista.length > 3 ? ` e mais ${lista.length - 3}` : "");
 
@@ -70,7 +81,15 @@ for (const cliente of new Set(inscricoes.map(i => i.cliente_id))) {
   // (2026-11-19: "vai ficar só chateando o cliente").
   if (mudaram.length) {
     const aviso = { titulo: "Passarinho — atualização do seu processo", corpo: listar(mudaram) + ". Toque para ver.", url, tag };
-    for (const a of aparelhos) if (await enviar(a, aviso)) { avisosMudanca++; await marcarHoje(a); }
+    for (const a of aparelhos) if (await enviar(a, aviso)) { avisosMudanca++; await marcarHoje(a); await guardarPendente(a, aviso, true); }
+    continue;
+  }
+  // Aviso não aberto: manda de novo 1 vez por dia, até 3 vezes (o usuário pediu). Abriu → aviso_pendente fica vazio.
+  for (const a of aparelhos) {
+    if (!a.aviso_pendente || (a.aviso_reenvios || 0) >= REENVIOS_MAX) continue;
+    if (a.aviso_enviado_em && Date.now() - new Date(a.aviso_enviado_em).getTime() < INTERVALO_REENVIO) continue;
+    const aviso = { ...a.aviso_pendente, titulo: `Lembrete: ${String(a.aviso_pendente.titulo || "atualização do seu processo").replace(/^Lembrete: /, "")}` };
+    if (await enviar(a, aviso)) { reenvios++; await guardarPendente(a, a.aviso_pendente, false); }
   }
 }
 
@@ -118,5 +137,5 @@ if (!SIMULAR) {
 
 console.log(`${SIMULAR ? "[simulação] " : ""}status novos: ${pendentes.length} | aparelhos inscritos: ${inscricoes.length}` +
   ` | avisos de mudança: ${avisosMudanca} | avisos de consulta do dia: ${avisosDiarios} | enviados: ${enviados}` +
-  ` | deferidos avisados ao escritório: ${deferidosAvisados} | inscrições removidas: ${removidas} | falhas: ${falhas}`);
+  ` | lembretes (não abertos): ${reenvios} | deferidos avisados ao escritório: ${deferidosAvisados} | inscrições removidas: ${removidas} | falhas: ${falhas}`);
 if (falhas && !enviados) process.exit(1);

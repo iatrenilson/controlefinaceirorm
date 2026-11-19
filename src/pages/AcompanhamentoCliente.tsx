@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Bell, BellOff } from "lucide-react";
-import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS } from "@/lib/avisosPush";
+import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS, marcarAvisoAberto } from "@/lib/avisosPush";
 
 // Página pública que o cliente abre pelo link /acompanhamento/<iniciais do nome, ex.: rmc> (ou o id antigo do cliente em Clientes Armas).
 // Mostra cada processo como o Sinarm CAC mostra ("Fluxo de Processo" e as colunas da lista de processos), com o status
@@ -184,6 +184,7 @@ export default function AcompanhamentoCliente() {
       try { marcado = localStorage.getItem(chaveLocal) === "1"; } catch { /* sem armazenamento */ }
       const sub = await inscricaoAtual().catch(() => null);
       setAvisos(sub && marcado ? "ativo" : "inativo");
+      marcarAvisoAberto(sub);
     })();
 
     return () => {
