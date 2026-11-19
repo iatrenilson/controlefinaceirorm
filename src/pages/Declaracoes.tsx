@@ -1889,7 +1889,8 @@ export default function Declaracoes() {
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
 
-  const importarDocumento = useCallback(async (file: File) => {
+  // devolve true quando leu algum campo (aí o arquivo também vai para o item RG dos Docs CR)
+  const importarDocumento = useCallback(async (file: File): Promise<boolean> => {
     setParsendoCNH(true);
     setProgressoDoc("Abrindo documento...");
     try {
@@ -1915,11 +1916,13 @@ export default function Declaracoes() {
         }));
         sonnerToast.success(`✓ ${n} campo(s) preenchido(s) a partir do documento. Confira antes de salvar.`
           + (d.orgaoEmissor ? "" : " Órgão emissor não encontrado no documento: preencha à mão."));
-      } else {
-        sonnerToast.warning("Não consegui ler os dados. Envie o PDF original da CNH/RG ou uma foto mais nítida.");
+        return true;
       }
+      sonnerToast.warning("Não consegui ler os dados. Envie o PDF original da CNH/RG ou uma foto mais nítida.");
+      return false;
     } catch (err) {
       sonnerToast.error("Erro ao ler o documento: " + (err instanceof Error ? err.message : String(err)));
+      return false;
     } finally {
       setParsendoCNH(false);
       setProgressoDoc("");
@@ -3469,8 +3472,9 @@ export default function Declaracoes() {
             {/* Importar documentos: preenchem o cadastro (PDF ou foto, pelo botão ou arrastando) */}
             <div className="space-y-2">
               <CaixaImportar titulo="Importar CNH ou RG"
-                descricao="Arraste aqui ou selecione: PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação"
-                lendo={parsendoCNH} progresso={progressoDoc} onArquivo={importarDocumento} />
+                descricao="Arraste aqui ou selecione: PDF ou foto — preenche nome, CPF, RG, nascimento, naturalidade e filiação, e já anexa no item RG dos Docs CR"
+                lendo={parsendoCNH} progresso={progressoDoc}
+                onArquivo={async f => { if (await importarDocumento(f)) await enviarDocCR("doc_ident", f); }} />
               <CaixaImportar titulo="Importar comprovante de residência"
                 descricao="Arraste aqui ou selecione: conta de luz ou água (PDF ou foto) — preenche CEP, endereço, número, complemento, bairro e cidade"
                 lendo={lendoComprovante} progresso={progressoComprovante} onArquivo={importarComprovante} />
