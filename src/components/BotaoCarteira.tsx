@@ -10,6 +10,20 @@ import { Button } from "@/components/ui/button";
 export const linkCarteira = (carteiraId: string) =>
   `${window.location.origin}${import.meta.env.BASE_URL}carteira/${carteiraId}`;
 
+// Texto copiado junto com o link: lembra o cliente de instalar a carteira e ativar os avisos (sem isso não chega notificação)
+export const mensagemCarteira = (link: string) => [
+  "Olá! Esta é a sua Carteira Digital da RW Investimentos:",
+  link,
+  "",
+  "Para receber no celular os avisos de vencimento dos seus documentos:",
+  "1. Abra o link e toque em *Instalar o aplicativo*.",
+  "2. Toque em *Ativar avisos* e permita as notificações.",
+  "(No iPhone: instale primeiro, abra pelo ícone na tela inicial e ative os avisos por lá.)",
+  "",
+  "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
+].join("
+");
+
 // Botão da carteira digital no card do cliente (Clientes Armas): copia o link, abre ou edita a carteira.
 // Sem carteira ainda (nenhuma com o mesmo CPF), oferece criar uma já com o cliente escolhido.
 // codigo: o primeiro nome do link (/carteira/carlos); sem ele, o link usa o id
@@ -20,8 +34,8 @@ export function BotaoCarteira({ carteiraId, codigo, clienteId, pequeno }: { cart
 
   const copiar = () => {
     if (!carteiraId) return;
-    navigator.clipboard.writeText(linkCarteira(codigo || carteiraId))
-      .then(() => toast.success("Link da carteira copiado!"))
+    navigator.clipboard.writeText(mensagemCarteira(linkCarteira(codigo || carteiraId)))
+      .then(() => toast.success("Link da carteira copiado, com o aviso para instalar e ativar as notificações!"))
       .catch(() => toast.error("Não consegui copiar o link."));
   };
 

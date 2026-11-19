@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Copy, Check, ExternalLink, Wallet, Plus, Trash2, FileText, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { ArrastarArquivo } from "@/components/ArrastarArquivo";
+import { mensagemCarteira } from "@/components/BotaoCarteira";
 
 const BUCKET = "carteira-docs";
 const SUPABASE_URL = "https://qubkmecpxbsdphtmwvvw.supabase.co";
@@ -122,7 +123,7 @@ function CopyLinkBtn({ clienteId }: { clienteId: string }) {
   const [copied, setCopied] = useState(false);
   const link = `${window.location.origin}${import.meta.env.BASE_URL}carteira/${clienteId}`;
   const copy = () => {
-    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    navigator.clipboard.writeText(mensagemCarteira(link)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
   return (
     <div className="flex items-center gap-1">
