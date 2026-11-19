@@ -20,72 +20,58 @@ function nomeServico(servico: string) {
   if (/renovacao.*craf/.test(s)) return "Renovação do CRAF";
   if (/registrar arma|craf/.test(s)) return "Registro da arma (CRAF)";
   if (/aquisicao|autoriza/.test(s)) return "Autorização de compra de arma de fogo";
-  if (/concessao|certificado de registro|registro para pessoa fisica/.test(s)) return "Concessão do CR (Certificado de Registro de CAC)";
+  if (/concessao|certificado de registro|registro para pessoa fisica/.test(s)) return "Concessão do CR";
   return servico || "Processo";
 }
-// O que o status quer dizer, em palavras simples
+// O que o status quer dizer, curto (o usuário pediu mensagem resumida)
 function explicarStatus(status: string) {
   const s = (status || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  if (/^indeferid/.test(s)) return "*Indeferido* — nossa equipe vai te orientar sobre os próximos passos.";
-  if (/^deferid/.test(s)) return "✅ *DEFERIDO* — seu pedido foi aprovado pela Polícia Federal!";
-  if (/analise/.test(s)) return "*Em análise* — seu pedido está sendo analisado pela Polícia Federal. Agora é só aguardar.";
-  if (/iniciado|fila/.test(s)) return "*Enviado* — seu pedido foi enviado e aguarda a vez de ser analisado pela Polícia Federal.";
-  if (/pagamento/.test(s)) return "*Aguardando pagamento* — falta o pagamento da GRU para o pedido seguir.";
-  if (/documenta|exigencia|pendenc/.test(s)) return "*Aguardando documentação* — a Polícia Federal pediu documentos; nossa equipe já está cuidando e te avisa se precisar de algo.";
-  if (/restitu|devolv/.test(s)) return "*Devolvido para correção* — nossa equipe já está verificando o que a Polícia Federal pediu.";
+  if (/^indeferid/.test(s)) return "*Indeferido* — vamos te orientar.";
+  if (/^deferid/.test(s)) return "✅ *Deferido!*";
+  if (/analise/.test(s)) return "*Em análise* na PF.";
+  if (/iniciado|fila/.test(s)) return "*Enviado*, aguardando análise.";
+  if (/pagamento/.test(s)) return "*Aguardando pagamento* da GRU.";
+  if (/documenta|exigencia|pendenc/.test(s)) return "*Aguardando documentação* — já estamos cuidando.";
+  if (/restitu|devolv/.test(s)) return "*Devolvido para correção* — já estamos cuidando.";
   return `*${status}*`;
 }
 
-// Mensagem para o cliente (o usuário pediu, 2026-11-19): sem número de protocolo, com o nome do serviço que o cliente
-// entende e o que o status significa. Processo deferido antigo não entra (só o deferido nos últimos 2 dias, que é
-// novidade); rascunho também não (ainda não foi enviado à PF). O mesmo serviço com o mesmo status vira uma linha só.
+// Mensagem para o cliente (o usuário pediu, 2026-11-19): curta, sem número de protocolo, com o nome do serviço que o
+// cliente entende. Deferido antigo não entra (só o dos últimos 2 dias, que é novidade); rascunho também não. Serviço
+// que já tem um deferido não mostra o indeferido antigo dele. O mesmo serviço com o mesmo status vira uma linha só.
 async function montarMensagem(clienteId: string, nome: string, ref: string) {
   const { data } = await supabase.from("processos_pf" as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select("servico, status, descricao, status_mudou_em").eq("cliente_id", clienteId);
   const DOIS_DIAS = 2 * 86400000;
-  const lista = ((data ?? []) as unknown as { servico: string; status: string; descricao: string; status_mudou_em: string | null }[])
-    .filter(p => p.status && !/rascunho/i.test(p.descricao || ""))
-    .filter(p => !/^deferid/i.test(p.status.trim()) || (p.status_mudou_em && Date.now() - new Date(p.status_mudou_em).getTime() < DOIS_DIAS));
+  const todos = ((data ?? []) as unknown as { servico: string; status: string; descricao: string; status_mudou_em: string | null }[])
+    .filter(p => p.status && !/rascunho/i.test(p.descricao || ""));
+  const deferido = (p: { status: string }) => /^deferid/i.test(p.status.trim());
+  const comDeferido = new Set(todos.filter(deferido).map(p => nomeServico(p.servico)));
+  const lista = todos
+    .filter(p => !deferido(p) || (p.status_mudou_em && Date.now() - new Date(p.status_mudou_em).getTime() < DOIS_DIAS))
+    .filter(p => !(/^indeferid/i.test(p.status.trim()) && comDeferido.has(nomeServico(p.servico))));
   const primeiro = (nome || "").replace(/\([^)]*\)/g, " ").trim().split(/\s+/)[0] || "";
   const ola = primeiro ? `Olá, ${primeiro.charAt(0) + primeiro.slice(1).toLowerCase()}! 👋` : "Olá! 👋";
-  const link = linkAcompanhamento(ref);
-  // como instalar para receber os avisos (o usuário pediu; caminho do iPhone passado por ele)
-  const fimMsg = `Acompanhe quando quiser por este link:
-${link}
-
-🔔 *Para receber os avisos no celular quando o status mudar, instale o aplicativo:*
-
-🤖 *Android:* abra o link no Chrome e toque em *Instalar* (ou no menu ⋮ → *Instalar app* / *Adicionar à tela inicial*).
-
-📱 *iPhone:* abra o link no Safari, toque nos três tracinhos (⋯), depois em *Compartilhar*, depois em *Ver mais* e em *Adicionar à Tela de Início*.
-
-Depois, abra pelo ícone *Meu processo* na tela inicial e toque no sininho 🔔 para ativar os avisos.
-
-⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.
-
-Qualquer dúvida, estamos à disposição.
-*Passarinho Assessoria Bélica*`;
-  if (!lista.length) return `${ola}
-Aqui é da Passarinho Assessoria Bélica.
-
-No momento você não tem processo em andamento na Polícia Federal.
-
-${fimMsg}`;
+  // instalar para receber os avisos, em poucas linhas (caminho do iPhone passado pelo usuário)
+  const fimMsg = [
+    `Acompanhe por aqui: ${linkAcompanhamento(ref)}`,
+    "",
+    "🔔 Para receber avisos no celular, instale o app:",
+    "• *Android:* Chrome → ⋮ → *Instalar app*",
+    "• *iPhone:* Safari → ⋯ → *Compartilhar* → *Ver mais* → *Adicionar à Tela de Início*",
+    "Depois abra o ícone *Meu processo* e toque no 🔔.",
+    "",
+    "*Passarinho Assessoria Bélica*",
+  ].join("\n");
+  if (!lista.length) return `${ola}\nNo momento você não tem processo em andamento na Polícia Federal.\n\n${fimMsg}`;
   const grupos = new Map<string, { servico: string; status: string; n: number }>();
   for (const p of lista) {
     const servico = nomeServico(p.servico), chave = servico + "|" + p.status;
     const g = grupos.get(chave);
     if (g) g.n++; else grupos.set(chave, { servico, status: p.status, n: 1 });
   }
-  const blocos = [...grupos.values()].map(g => `📄 *${g.servico}${g.n > 1 ? ` (${g.n})` : ""}*
-${explicarStatus(g.status)}`).join("\n\n");
-  const titulo = grupos.size > 1 ? "seus processos" : "seu processo";
-  return `${ola}
-Aqui é da Passarinho Assessoria Bélica, com a atualização de ${titulo} na Polícia Federal:
-
-${blocos}
-
-${fimMsg}`;
+  const linhas = [...grupos.values()].map(g => `📄 ${g.servico}${g.n > 1 ? ` (${g.n})` : ""}: ${explicarStatus(g.status)}`).join("\n");
+  return `${ola} Atualização ${grupos.size > 1 ? "dos seus processos" : "do seu processo"} na Polícia Federal:\n\n${linhas}\n\n${fimMsg}`;
 }
 
 // WhatsApp do cliente: com DDD vira 55 + número; sem telefone abre o WhatsApp para escolher o contato
