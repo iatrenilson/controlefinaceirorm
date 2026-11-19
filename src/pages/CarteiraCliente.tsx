@@ -214,15 +214,22 @@ export default function CarteiraCliente() {
   // o "Permitir".
   const chavePerguntouAvisos = `carteira_avisos_perguntado_${id}`;
   const [perguntarAvisos, setPerguntarAvisos] = useState(false);
+  // O usuário pediu: enquanto não ativar, pergunta TODA vez que o cliente entra (abrir a carteira ou voltar para ela),
+  // mesmo que tenha respondido "Agora não" antes
   useEffect(() => {
     if (!pushSuportado()) { setPushEstado("sem"); return; }
-    if (Notification.permission === "denied") { setPushEstado("bloqueado"); return; }
-    inscricaoAtual().then(sub => {
-      setPushEstado(sub ? "ativo" : "inativo");
-      if (sub || !abertoComoApp()) return;
-      try { if (sessionStorage.getItem(chavePerguntouAvisos)) return; } catch { /* armazenamento bloqueado: pergunta */ }
-      setPerguntarAvisos(true);
-    }).catch(() => setPushEstado("inativo"));
+    const conferir = () => {
+      if (Notification.permission === "denied") { setPushEstado("bloqueado"); return; }
+      inscricaoAtual().then(sub => {
+        setPushEstado(sub ? "ativo" : "inativo");
+        // permissão já dada (está ativando agora): não pergunta por cima
+        if (!sub && Notification.permission !== "granted") setPerguntarAvisos(true);
+      }).catch(() => setPushEstado("inativo"));
+    };
+    conferir();
+    const aoVoltar = () => { if (document.visibilityState === "visible") conferir(); };
+    document.addEventListener("visibilitychange", aoVoltar);
+    return () => document.removeEventListener("visibilitychange", aoVoltar);
   }, []);
   const chaveAvisosVistos = `carteira_avisos_vistos_${id}`;
   const [avisosVistos, setAvisosVistos] = useState<string[]>(() => {
@@ -282,6 +289,29 @@ export default function CarteiraCliente() {
     };
   }, [id]);
 
+  // Puxar a tela para baixo (no topo) recarrega a carteira: recarga muda e a busca roda de novo
+  const [recarga, setRecarga] = useState(0);
+  const [atualizando, setAtualizando] = useState(false);
+  const [puxado, setPuxado] = useState(0);
+  useEffect(() => {
+    let inicio: number | null = null, dist = 0;
+    const LIMITE = 70;
+    const comecar = (e: TouchEvent) => { inicio = window.scrollY <= 0 ? e.touches[0].clientY : null; dist = 0; };
+    const mover = (e: TouchEvent) => {
+      if (inicio === null) return;
+      dist = Math.max(0, e.touches[0].clientY - inicio);
+      setPuxado(Math.min(dist, LIMITE * 1.4));
+    };
+    const soltar = () => {
+      if (inicio !== null && dist >= LIMITE) { setAtualizando(true); setRecarga(n => n + 1); }
+      inicio = null; dist = 0; setPuxado(0);
+    };
+    window.addEventListener("touchstart", comecar, { passive: true });
+    window.addEventListener("touchmove", mover, { passive: true });
+    window.addEventListener("touchend", soltar);
+    return () => { window.removeEventListener("touchstart", comecar); window.removeEventListener("touchmove", mover); window.removeEventListener("touchend", soltar); };
+  }, []);
+
   useEffect(() => {
     if (!id) { setErro(true); setLoading(false); return; }
     registrarServiceWorker();
@@ -313,8 +343,8 @@ export default function CarteiraCliente() {
         } else setErro(true);
         setLoading(false);
       })
-      .finally(() => clearTimeout(tempo));
-  }, [id]);
+      .finally(() => { clearTimeout(tempo); setAtualizando(false); });
+  }, [id, recarga]);
 
   // Fecha preview com ESC
   useEffect(() => {
@@ -459,6 +489,14 @@ export default function CarteiraCliente() {
 
   return (
     <>
+      {/* Puxar para baixo: setinha que vira "Atualizando…" */}
+      {(puxado > 0 || atualizando) && (
+        <div style={{ position:"fixed", top: atualizando ? 14 : Math.min(puxado, 90) - 30, left:"50%", transform:"translateX(-50%)", zIndex:1100,
+          padding:"6px 14px", borderRadius:999, background:CARD_BG, border:`1px solid ${GOLD_BORDER}`, color:GOLD, fontSize:12, fontWeight:600,
+          fontFamily:FONT, boxShadow:"0 6px 18px rgba(0,0,0,0.5)", pointerEvents:"none", whiteSpace:"nowrap" }}>
+          {atualizando ? "⟳ Atualizando…" : puxado >= 70 ? "↻ Solte para atualizar" : "↓ Puxe para atualizar"}
+        </div>
+      )}
       {preview && <PreviewModal url={preview.url} nome={preview.nome} modelo={preview.modelo} colorir={colorir} onColorir={setColorir} onClose={() => setPreview(null)} semInternet={!!salvoEm} />}
       {perguntarAvisos && pushEstado === "inativo" && (
         <div role="dialog" aria-modal="true" aria-labelledby="pergunta-avisos-titulo"
