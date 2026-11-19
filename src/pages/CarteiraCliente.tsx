@@ -533,9 +533,10 @@ export default function CarteiraCliente() {
               style={{ position:"absolute", top:16, right:16, width:38, height:38, borderRadius:"50%", border:`1px solid ${GOLD_BORDER}`,
                 background: avisosAberto ? GOLD_DIM : "transparent", color:GOLD, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0 }}>
               <Bell size={18} />
-              {avisosNovos > 0 && (
+              {/* número no sininho: quantos documentos estão vencidos ou vencendo (fica enquanto houver) */}
+              {avisos.length > 0 && (
                 <span style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, padding:"0 4px", borderRadius:9, background:"#ef4444", color:"#fff",
-                  fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT }}>{avisosNovos}</span>
+                  fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FONT }}>{avisos.length}</span>
               )}
             </button>
             {avisosAberto && (
@@ -570,17 +571,10 @@ export default function CarteiraCliente() {
                   </>
                 )}
                 {/* Avisos de vencimento no celular: no rodapé do sininho, igual ao sino do admin no site */}
-                {pushEstado !== "carregando" && (
+                {/* ligados: não mostra nada (o usuário achou desnecessário); só aparece para ativar ou explicar por que não dá */}
+                {pushEstado !== "carregando" && pushEstado !== "ativo" && (
                   <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${GOLD_BORDER}`, fontFamily:FONT }}>
-                    {pushEstado === "ativo" ? (
-                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
-                        <span style={{ color:"#5fda8a", fontSize:12, fontWeight:600 }}>🔔 Avisos no celular ativados (às 9h, 13h e 18h)</span>
-                        <button onClick={desativarAvisosCelular} disabled={pushOcupado}
-                          style={{ background:"transparent", border:"none", padding:0, color:FG_MUTED, fontSize:11, textDecoration:"underline", cursor:"pointer", fontFamily:FONT, flexShrink:0 }}>
-                          desativar
-                        </button>
-                      </div>
-                    ) : pushEstado === "sem" ? (
+                    {pushEstado === "sem" ? (
                       <p style={{ margin:0, color:FG_MUTED, fontSize:11, lineHeight:1.6 }}>
                         {ehIOS && !abertoComoApp()
                           ? "Avisos no iPhone: instale o aplicativo (botão \"Instalar o aplicativo\", logo abaixo) e ative por ele."
