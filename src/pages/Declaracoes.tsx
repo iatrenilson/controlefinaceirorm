@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { Fragment, useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usuarioAtual } from "@/lib/usuarioAtual";
@@ -43,7 +43,8 @@ type DocCRTipo = typeof DOCS_CR[number]["id"];
 // RG / CNH do cliente: fica FORA dos 12 do CR (não conta no x/12 nem muda a ordem do Portal PF). A extensão
 // Passarinho anexa este arquivo no GT do Sinarm CAC ("Documento de Identificação Pessoal" › Carteira de Identidade)
 const DOC_IDENT = { id: "doc_ident", label: "RG / Documento de identificação (CNH)", tag: "" } as const;
-const DOCS_FICHA = [...DOCS_CR, DOC_IDENT];
+// RG primeiro (o usuário pediu no topo, separado por uma linha dos 12 do CR)
+const DOCS_FICHA = [DOC_IDENT, ...DOCS_CR];
 // Tipos de comprovante de ocupação lícita com o texto exato da lista do Portal PF: o tipo escolhido ao anexar vai no
 // nome do arquivo ("Comprovante de ocupação lícita ou aposentadoria - Contracheque ou holerite ou CTPS.pdf") e a
 // extensão Passarinho escolhe a mesma opção ao anexar no portal
@@ -3393,16 +3394,17 @@ export default function Declaracoes() {
                     {uploadingLote ? "Enviando..." : arrastandoDocCR === "lote" ? "Solte os arquivos aqui (detecção automática)"
                       : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
-                  {DOCS_FICHA.map((doc, i) => {
+                  {DOCS_FICHA.map(doc => {
                     const item = editandoId ? (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id) : undefined;
                     const pendente = editandoId ? undefined : docsPendentes.get(doc.id);
                     const uploading = uploadingDocTipo === doc.id;
                     const alvo = arrastandoDocCR === doc.id;
                     return (
-                      <div key={doc.id}
+                      <Fragment key={doc.id}>
+                      <div
                         className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${alvo ? "bg-primary/15 border border-primary ring-1 ring-primary/40" : item ? "bg-green-500/10 border border-green-500/20" : pendente ? "bg-amber-500/10 border border-amber-500/30" : "bg-muted/20"}`}
                         onDragOver={e => arrastarSobreDocCR(e, doc.id)} onDragLeave={sairDoArrasteDocCR} onDrop={e => soltarDocCR(e, doc.id)}>
-                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{doc.id === "doc_ident" ? "RG" : i + 1}</span>
+                        <span className="text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">{doc.id === "doc_ident" ? "RG" : DOCS_CR.findIndex(d => d.id === doc.id) + 1}</span>
                         {item ? <FileCheck2 className="h-3.5 w-3.5 text-green-400 flex-shrink-0" />
                           : pendente ? <FileCheck2 className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
                           : <FileX2 className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
@@ -3468,6 +3470,9 @@ export default function Declaracoes() {
                           </Button>
                         </div>
                       </div>
+                      {/* linha separando o RG dos 12 documentos do CR */}
+                      {doc.id === "doc_ident" && <div className="border-t border-border my-1.5" />}
+                      </Fragment>
                     );
                   })}
                 </div>
