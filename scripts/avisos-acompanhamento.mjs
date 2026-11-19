@@ -2,8 +2,9 @@
 // O Passarinho grava o status em processos_pf sempre que o escritório abre a lista de processos na conta gov do
 // cliente; este script, rodado pelo GitHub a cada 15 minutos (.github/workflows/avisos-acompanhamento.yml), compara
 // status com avisado_status e manda uma notificação para cada aparelho que ativou os avisos no link
-// /acompanhamento/<id do cliente> (tabela push_acompanhamento). No dia em que o escritório consulta, também manda um
-// aviso de "processo conferido hoje", no máximo um por dia e por aparelho. Rascunho (pedido ainda não enviado) não avisa.
+// /acompanhamento/<id do cliente> (tabela push_acompanhamento). Só avisa mudança de status (o aviso diário de
+// "conferido hoje" foi tirado). Rascunho (pedido ainda não enviado) não avisa. Processo que muda para Deferido
+// também avisa o escritório (sino do site e celular do dono do cliente).
 // O repositório é público: o log mostra só contagens, nunca nome de cliente.
 import webpush from "web-push";
 
@@ -62,24 +63,49 @@ const listar = lista => lista.slice(0, 3).map(p => `${p.servico || "Processo"}: 
 
 for (const cliente of new Set(inscricoes.map(i => i.cliente_id))) {
   const aparelhos = inscricoes.filter(i => i.cliente_id === cliente);
-  const dele = processos.filter(p => p.cliente_id === cliente && !rascunho(p) && p.status);
   const mudaram = pendentes.filter(p => p.cliente_id === cliente && !rascunho(p) && p.status);
   const url = `/acompanhamento/${cliente}`, tag = `acomp-${cliente}`;
 
-  // 1) status mudou: avisa na hora (vale como o aviso do dia)
+  // Só avisa quando o status mudou. O aviso diário de "processo conferido hoje" foi tirado a pedido do usuário
+  // (2026-11-19: "vai ficar só chateando o cliente").
   if (mudaram.length) {
     const aviso = { titulo: "Passarinho — atualização do seu processo", corpo: listar(mudaram) + ". Toque para ver.", url, tag };
     for (const a of aparelhos) if (await enviar(a, aviso)) { avisosMudanca++; await marcarHoje(a); }
-    continue;
   }
-  // 2) o escritório consultou hoje e o aparelho ainda não recebeu aviso hoje: um aviso de "conferido hoje"
-  const consultouHoje = dele.some(p => p.consultado_em && diaManaus(p.consultado_em) === HOJE);
-  if (!consultouHoje) continue;
-  const aviso = { titulo: "Passarinho — processo conferido hoje",
-    corpo: `Conferimos hoje seu processo na Polícia Federal. ${listar(dele)}. Toque para ver.`, url, tag };
-  for (const a of aparelhos) {
-    if (a.avisado_consulta_em === HOJE) continue;
-    if (await enviar(a, aviso)) { avisosDiarios++; await marcarHoje(a); }
+}
+
+// Processo que MUDOU para Deferido (o usuário pediu): avisa o escritório — sino do site (tabela notifications) e celular
+// (push_inscricoes com user_id, o mesmo do aviso de vencidos do admin) — para o dono do cliente em Clientes Armas.
+// Só mudança de verdade: sem avisado_status anterior é a primeira leitura da lista (processo antigo), não avisa.
+let deferidosAvisados = 0;
+const deferidos = pendentes.filter(p => /^deferid/i.test(String(p.status || "").trim()) && (p.avisado_status || "") !== "" && !rascunho(p));
+if (deferidos.length) {
+  const ids = [...new Set(deferidos.map(p => p.cliente_id))];
+  const clientes = await sb(`declaracao_clientes?select=id,nome,owner_id&id=in.(${ids.join(",")})`);
+  const insAdmin = await sb("push_inscricoes?select=endpoint,p256dh,auth,user_id&user_id=not.is.null");
+  for (const c of clientes) {
+    if (!c.owner_id) continue;
+    const lista = deferidos.filter(p => p.cliente_id === c.id).map(p => p.servico || "Processo").join(", ");
+    const titulo = `✅ Processo deferido: ${c.nome}`;
+    const mensagem = `${lista} de ${c.nome} foi DEFERIDO na Polícia Federal.`;
+    if (!SIMULAR) {
+      await sb("notifications", { method: "POST", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ titulo, mensagem, created_by: c.owner_id, target_user_id: c.owner_id }) });
+    }
+    for (const a of insAdmin.filter(i => i.user_id === c.owner_id)) {
+      if (SIMULAR) { enviados++; continue; }
+      try {
+        await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
+          JSON.stringify({ titulo, corpo: mensagem, url: "/declaracoes", tag: `deferido-${c.id}` }), { TTL: 24 * 3600, urgency: "normal" });
+        enviados++;
+      } catch (e) {
+        if (e.statusCode === 404 || e.statusCode === 410) {
+          await sb(`push_inscricoes?endpoint=eq.${encodeURIComponent(a.endpoint)}`, { method: "DELETE" });
+          removidas++;
+        } else falhas++;
+      }
+    }
+    deferidosAvisados++;
   }
 }
 
@@ -92,5 +118,5 @@ if (!SIMULAR) {
 
 console.log(`${SIMULAR ? "[simulação] " : ""}status novos: ${pendentes.length} | aparelhos inscritos: ${inscricoes.length}` +
   ` | avisos de mudança: ${avisosMudanca} | avisos de consulta do dia: ${avisosDiarios} | enviados: ${enviados}` +
-  ` | inscrições removidas: ${removidas} | falhas: ${falhas}`);
+  ` | deferidos avisados ao escritório: ${deferidosAvisados} | inscrições removidas: ${removidas} | falhas: ${falhas}`);
 if (falhas && !enviados) process.exit(1);
