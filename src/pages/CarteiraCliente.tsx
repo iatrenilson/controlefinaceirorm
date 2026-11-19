@@ -337,6 +337,21 @@ export default function CarteiraCliente() {
   const GOLD_DIM = "rgba(212,167,48,0.12)";
   const GOLD_BORDER = "rgba(212,167,48,0.22)";
   const CARD_BG = "#131110";     // hsl(20 10% 7%)
+  // Um aviso só, na carteira: quem já tinha ligado os avisos da carteira passa a receber também os do andamento do
+  // processo (cliente com o mesmo CPF em Clientes Armas), sem ativar nada de novo. Fica antes dos "return" da página.
+  useEffect(() => {
+    if (pushEstado !== "ativo" || !data?.acompanhamento) return;
+    inscricaoAtual().then(s => {
+      const j = s?.toJSON();
+      if (!j?.endpoint || !j.keys?.p256dh || !j.keys?.auth) return;
+      fetch(`${SUPABASE_URL}/rest/v1/rpc/salvar_push_acompanhamento`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}` },
+        body: JSON.stringify({ p_cliente: data.acompanhamento, p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }),
+      }).catch(() => {});
+    }).catch(() => {});
+  }, [pushEstado, data?.acompanhamento]);
+
   const FONT = "'Space Grotesk', system-ui, sans-serif";
   const FG = "#ede7d9";          // hsl(45 18% 90%)
   const FG_MUTED = "#807060";    // hsl(40 6% 50%)
@@ -410,6 +425,8 @@ export default function CarteiraCliente() {
       const sub = await ativarPush();
       // o link pode ser o primeiro nome (/carteira/carlos): o aviso precisa do id de verdade da carteira
       await rpcCarteira("salvar_push_carteira", { p_carteira: data?.id || id, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+      // um aviso só: o mesmo "Ativar avisos" liga também os avisos do andamento do processo
+      if (data?.acompanhamento) await rpcCarteira("salvar_push_acompanhamento", { p_cliente: data.acompanhamento, p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth }).catch(() => {});
       setPushEstado("ativo");
     } catch (e) {
       const motivo = e instanceof Error ? e.message : "";
@@ -426,6 +443,7 @@ export default function CarteiraCliente() {
     try {
       const endpoint = await desativarPush();
       if (endpoint) await rpcCarteira("remover_push", { p_endpoint: endpoint }).catch(() => {});
+      if (endpoint && data?.acompanhamento) await rpcCarteira("remover_push_acompanhamento", { p_cliente: data.acompanhamento, p_endpoint: endpoint }).catch(() => {});
       setPushEstado("inativo");
     } finally { setPushOcupado(false); }
   };
@@ -450,7 +468,8 @@ export default function CarteiraCliente() {
             <div style={{ fontSize:40, lineHeight:1, marginBottom:12 }}>🔔</div>
             <h2 id="pergunta-avisos-titulo" style={{ margin:"0 0 8px", color:FG, fontSize:18, fontWeight:700 }}>Ativar avisos de vencimento?</h2>
             <p style={{ margin:"0 0 20px", color:"rgba(237,231,217,0.72)", fontSize:13, lineHeight:1.6 }}>
-              Receba uma notificação neste celular às 9h, 13h e 18h quando algum documento da sua carteira vencer.
+              Receba uma notificação neste celular às 9h, 13h e 18h quando algum documento da sua carteira vencer
+              {data.acompanhamento ? ", e sempre que o andamento do seu processo mudar." : "."}
             </p>
             <button onClick={() => responderPerguntaAvisos(true)}
               style={{ width:"100%", padding:"13px 16px", background:GOLD, color:BG, border:"none", borderRadius:12, fontSize:15, fontWeight:700, cursor:"pointer", fontFamily:FONT }}>
@@ -501,7 +520,7 @@ export default function CarteiraCliente() {
               <p style={{ color:FG_MUTED, fontSize:12, margin:"4px 0 0", fontFamily:FONT }}>{data.nome}</p>
               {/* Link de acompanhamento do processo (status na PF), pelo cliente com o mesmo CPF em Clientes Armas */}
               {data.acompanhamento && (
-                <a href={`${import.meta.env.BASE_URL}acompanhamento/${data.acompanhamento}`}
+                <a href={`${import.meta.env.BASE_URL}acompanhamento/${data.acompanhamento}?carteira=1`}
                   style={{ display:"inline-block", marginTop:10, padding:"5px 12px", borderRadius:999, border:`1px solid ${GOLD_BORDER}`,
                     color:GOLD, fontSize:12, fontWeight:600, textDecoration:"none", fontFamily:FONT }}>
                   Acompanhar processo ›

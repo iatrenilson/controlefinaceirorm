@@ -139,6 +139,9 @@ export default function AcompanhamentoCliente() {
   const [avisos, setAvisos] = useState<"?" | "ativo" | "inativo" | "ocupado">("?");
   const [msgAviso, setMsgAviso] = useState("");
   const chaveLocal = `acompanhamento-avisos-${id}`;
+  // Aberto pelo "Acompanhar processo ›" da Carteira Digital: os avisos do processo são ligados junto com os da carteira
+  // (um aviso só, na carteira), então aqui não aparece sininho, pergunta nem faixa de instalar
+  const daCarteira = new URLSearchParams(window.location.search).has("carteira");
 
   useEffect(() => {
     document.title = "Acompanhamento do processo";
@@ -302,7 +305,7 @@ export default function AcompanhamentoCliente() {
       <div style={{ position: "relative", background: "#000", borderBottom: `2px solid ${VERDE}`, padding: "12px 16px 14px", textAlign: "center" }}>
         {/* Sininho dos avisos no celular, no canto de cima à direita: dourado = ligados; apagado = desligados.
             Um toque liga ou desliga (no iPhone só aparece aberto pelo ícone da tela inicial, quando o aviso funciona) */}
-        {pushSuportado() && avisos !== "?" && (
+        {!daCarteira && pushSuportado() && avisos !== "?" && (
           <button
             onClick={avisos === "ativo" ? desativarAvisos : ativarAvisos}
             disabled={avisos === "ocupado"}
@@ -331,7 +334,7 @@ export default function AcompanhamentoCliente() {
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "16px 16px 32px", display: "flex", flexDirection: "column", gap: 14 }}>
         {/* Instalar no celular: só uma faixa de uma linha chamando atenção; o passo a passo abre numa janela por cima.
             No Android, quando o Chrome permite, o toque já abre a instalação dele. */}
-        {(androidSemApp || iphoneSemApp) && (
+        {!daCarteira && (androidSemApp || iphoneSemApp) && (
           <button
             onClick={() => (androidSemApp && pedidoInstalar ? instalarAndroid() : setMostrarComoInstalar(true))}
             className="faixa-instalar"
@@ -348,7 +351,7 @@ export default function AcompanhamentoCliente() {
         <style>{`@keyframes brilhoFaixa { 0%,100% { box-shadow: 0 0 0 0 rgba(242,194,48,0) } 50% { box-shadow: 0 0 0 5px rgba(242,194,48,0.25) } }
           .faixa-instalar { animation: brilhoFaixa 2.4s ease-in-out 3 }`}</style>
 
-        {perguntarAvisos && avisos !== "ativo" && !mostrarComoInstalar && (
+        {!daCarteira && perguntarAvisos && avisos !== "ativo" && !mostrarComoInstalar && (
           <div onClick={agoraNao}
             style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.72)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
             <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Ativar avisos"
