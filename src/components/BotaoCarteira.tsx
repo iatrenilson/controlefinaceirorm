@@ -20,6 +20,8 @@ export const mensagemCarteira = (link: string) => [
   "2. Toque em *Ativar avisos* e permita as notificações.",
   "(No iPhone: instale primeiro, abra pelo ícone na tela inicial e ative os avisos por lá.)",
   "",
+  "📋 Acompanhamento do processo: dentro da carteira, toque em *Acompanhar processo* para ver o andamento do seu processo na Polícia Federal. Lá, toque no sininho 🔔 para ser avisado sempre que o status mudar.",
+  "",
   "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
 ].join("\n");
 
