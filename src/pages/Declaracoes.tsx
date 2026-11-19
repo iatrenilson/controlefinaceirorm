@@ -3057,6 +3057,8 @@ export default function Declaracoes() {
                                 c.profissao        ? `Profissão: ${c.profissao.toUpperCase()}` : null,
                                 c.nomePai          ? `Pai: ${c.nomePai}` : null,
                                 c.nomeMae          ? `Mãe: ${c.nomeMae}` : null,
+                                c.tipoSanguineo    ? `Tipo Sanguíneo: ${c.tipoSanguineo}` : null,
+                                c.alergia === "sim" ? `Alergia: Sim${c.alergias ? ` - ${c.alergias}` : ""}` : c.alergia === "nao" ? "Alergia: Não" : null,
                               ].filter(Boolean).join("\n\n");
                               navigator.clipboard.writeText(linhas);
                               sonnerToast.success("Dados copiados!");
@@ -3328,6 +3330,8 @@ export default function Declaracoes() {
                             c.profissao        ? `Profissão: ${c.profissao.toUpperCase()}` : null,
                             c.nomePai          ? `Pai: ${c.nomePai}` : null,
                             c.nomeMae          ? `Mãe: ${c.nomeMae}` : null,
+                                c.tipoSanguineo    ? `Tipo Sanguíneo: ${c.tipoSanguineo}` : null,
+                                c.alergia === "sim" ? `Alergia: Sim${c.alergias ? ` - ${c.alergias}` : ""}` : c.alergia === "nao" ? "Alergia: Não" : null,
                           ].filter(Boolean).join("\n\n");
                           navigator.clipboard.writeText(linhas);
                           sonnerToast.success("Dados copiados!");
