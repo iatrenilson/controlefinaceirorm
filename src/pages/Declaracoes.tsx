@@ -3471,7 +3471,7 @@ export default function Declaracoes() {
                         </div>
                       </div>
                       {/* linha separando o RG dos 12 documentos do CR */}
-                      {doc.id === "doc_ident" && <div className="border-t border-border my-1.5" />}
+                      {doc.id === "doc_ident" && <div className="border-t-2 border-yellow-400 my-2" />}
                       </Fragment>
                     );
                   })}
