@@ -161,6 +161,10 @@ interface Cliente {
   tituloEleitor: string;
   // "masculino" | "feminino" | "" (vazio = a extensão tenta adivinhar pelo nome)
   genero: string;
+  tipoSanguineo: string;
+  // "sim" | "nao" | "" ; alergias = quais (só quando "sim")
+  alergia: string;
+  alergias: string;
   senhaGov: string;
   dataEntradaProcesso: string;
   dataDeferimento: string;
@@ -178,7 +182,7 @@ const EMPTY_CLIENTE: ClienteForm = {
   nome: "", rg: "", orgaoEmissor: "SSP-AM", dataExpedicao: "",
   cpf: "", nomePai: "", nomeMae: "", estadoCivil: "Solteiro(a)",
   dataNascimento: "", localNascimento: "", ufNascimento: "AM", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "Manaus", estado: "AM",
-  email: "", telefone: "", profissao: "", tipo_ocupacao: "", tituloEleitor: "", genero: "",
+  email: "", telefone: "", profissao: "", tipo_ocupacao: "", tituloEleitor: "", genero: "", tipoSanguineo: "", alergia: "", alergias: "",
   senhaGov: "", dataEntradaProcesso: "", dataDeferimento: "", nomeClube: "", loginClube: "", senhaClube: "", status: "doc", status2: "doc",
 };
 
@@ -1743,6 +1747,9 @@ function rowToCliente(row: Record<string, unknown>): Cliente {
     tipo_ocupacao: (row.tipo_ocupacao as string) ?? "",
     tituloEleitor: (row.titulo_eleitor as string) ?? "",
     genero: (row.genero as string) ?? "",
+    tipoSanguineo: (row.tipo_sanguineo as string) ?? "",
+    alergia: (row.alergia as string) ?? "",
+    alergias: (row.alergias as string) ?? "",
     senhaGov: (row.senha_gov as string) ?? "",
     dataEntradaProcesso: (row.data_entrada_processo as string) ?? "",
     dataDeferimento: (row.data_deferimento as string) ?? "",
@@ -2156,6 +2163,8 @@ export default function Declaracoes() {
         // só manda se tiver: cópia antiga sem o campo não apaga o título salvo no banco
         ...(c.tituloEleitor ? { titulo_eleitor: c.tituloEleitor } : {}),
         ...(c.genero ? { genero: c.genero } : {}),
+        ...(c.tipoSanguineo ? { tipo_sanguineo: c.tipoSanguineo } : {}),
+        ...(c.alergia ? { alergia: c.alergia, alergias: c.alergia === "sim" ? c.alergias || null : null } : {}),
         senha_gov: c.senhaGov,
         data_entrada_processo: c.dataEntradaProcesso || null,
         data_deferimento: c.dataDeferimento || null,
@@ -2377,6 +2386,9 @@ export default function Declaracoes() {
           profissao: r.profissao ?? "",
           tituloEleitor: r.titulo_eleitor ?? "",
           genero: r.genero ?? "",
+          tipoSanguineo: r.tipo_sanguineo ?? "",
+          alergia: r.alergia ?? "",
+          alergias: r.alergias ?? "",
           senhaGov: r.senha_gov,
           dataEntradaProcesso: r.data_entrada_processo ?? "",
           dataDeferimento: r.data_deferimento ?? "",
@@ -2509,6 +2521,9 @@ export default function Declaracoes() {
       ...(formCliente.tipo_ocupacao ? { tipo_ocupacao: formCliente.tipo_ocupacao } : {}),
       titulo_eleitor: (formCliente.tituloEleitor || "").trim() || null,
       genero: formCliente.genero || null,
+      tipo_sanguineo: formCliente.tipoSanguineo || null,
+      alergia: formCliente.alergia || null,
+      alergias: formCliente.alergia === "sim" ? (formCliente.alergias || "").trim() || null : null,
       senha_gov: formCliente.senhaGov,
       data_entrada_processo: formCliente.dataEntradaProcesso || null,
       data_deferimento: formCliente.dataDeferimento || null,
@@ -3624,6 +3639,34 @@ export default function Declaracoes() {
                   <CopyButton value={formCliente.dataNascimento} />
                 </div>
               </div>
+            </div>
+            {/* Tipo sanguíneo + Alergia (Sim/Não; no Sim aparece o campo de quais) */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo Sanguíneo</Label>
+                <Select value={formCliente.tipoSanguineo || ""} onValueChange={v => setC("tipoSanguineo", v)}>
+                  <SelectTrigger className={`h-9 text-sm ${formCliente.tipoSanguineo ? "" : "text-muted-foreground"}`}><SelectValue placeholder="Escolher" /></SelectTrigger>
+                  <SelectContent>
+                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tem alergia?</Label>
+                <div className="flex gap-1.5">
+                  {[["sim", "Sim"], ["nao", "Não"]].map(([v, rot]) => (
+                    <Button key={v} type="button" size="sm" variant={formCliente.alergia === v ? "default" : "outline"} className="h-9 flex-1 text-xs"
+                      onClick={() => setC("alergia", formCliente.alergia === v ? "" : v)}>{rot}</Button>
+                  ))}
+                </div>
+              </div>
+              {formCliente.alergia === "sim" && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Quais alergias?</Label>
+                  <Input className="h-9 text-sm uppercase" placeholder="Ex.: dipirona, camarão"
+                    value={formCliente.alergias} onChange={e => setC("alergias", e.target.value.toUpperCase())} />
+                </div>
+              )}
             </div>
             {/* Naturalidade */}
             <div className="grid grid-cols-4 gap-3">
