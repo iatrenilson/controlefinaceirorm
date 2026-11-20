@@ -942,7 +942,11 @@ function semLixo(s: string): string {
 // "RUA X, Nº 77, AME 77- BAIRRO, MANAUS-AM" / "RUA X-112-BAIRRO-MANAUS-AM" -> rua, número, complemento, bairro, cidade, UF
 function partesDoEndereco(txt: string): DadosEndereco {
   const r: DadosEndereco = {};
-  const t = txt.replace(new RegExp(RE_CEP_ROTULO.source, "gi"), " - ").replace(new RegExp(RE_CEP_SOLTO.source, "g"), " - ");
+  let t = txt.replace(new RegExp(RE_CEP_ROTULO.source, "gi"), " - ").replace(new RegExp(RE_CEP_SOLTO.source, "g"), " - ");
+  // Código curto colado por hífen logo depois do número da casa ("534 C-1 AME 242", "106 BL-2A") é complemento, não
+  // separador: sem vírgulas todo hífen separa, e "C-1" virava "nº 1" (conta de luz do LUIZ CARLOS, 2026-11-20). Fica com
+  // um hífen que não separa (U+2011) e volta ao normal no fim. Só depois de um número, para não pegar "RUA C-112-BAIRRO".
+  t = t.replace(/(\d+[A-Z]?\s+)([A-Z]{1,4})-([A-Z0-9]{1,4})(?=\s|$)/gi, "$1$2‑$3");
   // Com vírgulas, o hífen só separa quando tem espaço do lado ("AME 77- TANCREDO NEVES"); sem vírgulas (água), todo hífen separa
   const sep = t.includes(",") ? /\s*,\s*|\s+[-–]\s*|\s*[-–]\s+|–/ : /\s*[-–,]\s*/;
   const partes = t.split(sep).map(semLixo).filter(Boolean);
@@ -984,6 +988,7 @@ function partesDoEndereco(txt: string): DadosEndereco {
   if (bairros.length) r.bairro = bairros[0];
   const resto = [...compl, ...bairros.slice(1)];
   if (resto.length) r.complemento = resto.join(" - ");
+  for (const c of ["logradouro", "numero", "complemento", "bairro", "cidade"] as const) if (r[c]) r[c] = r[c]!.replace(/‑/g, "-");
   return r;
 }
 
