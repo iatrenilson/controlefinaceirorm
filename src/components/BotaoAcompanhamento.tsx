@@ -65,12 +65,17 @@ async function montarMensagem(clienteId: string, nome: string, ref: string) {
   ].join("\n");
   if (!lista.length) return `${ola}\nNo momento você não tem processo em andamento na Polícia Federal.\n\n${fimMsg}`;
   const grupos = new Map<string, { servico: string; status: string; n: number }>();
+  // GT mostra a situação (o usuário gostou assim); os outros serviços só o nome ("📄 Concessão do CR na PF."), sem o
+  // status (pedido dele, 2026-11-22) — por isso eles se agrupam só pelo serviço
+  const ehGT = (servico: string) => /\(GT\)/.test(servico);
   for (const p of lista) {
-    const servico = nomeServico(p.servico), chave = servico + "|" + p.status;
+    const servico = nomeServico(p.servico), chave = ehGT(servico) ? servico + "|" + p.status : servico;
     const g = grupos.get(chave);
     if (g) g.n++; else grupos.set(chave, { servico, status: p.status, n: 1 });
   }
-  const linhas = [...grupos.values()].map(g => `📄 ${g.servico}${g.n > 1 ? ` (${g.n})` : ""}: ${explicarStatus(g.status)}`).join("\n");
+  const linhas = [...grupos.values()].map(g => ehGT(g.servico)
+    ? `📄 ${g.servico}${g.n > 1 ? ` (${g.n})` : ""}: ${explicarStatus(g.status)}`
+    : `📄 ${g.servico}${g.n > 1 ? ` (${g.n})` : ""} na PF.`).join("\n");
   return `${ola} Atualização ${grupos.size > 1 ? "dos seus processos" : "do seu processo"} na Polícia Federal:\n\n${linhas}\n\n${fimMsg}`;
 }
 
