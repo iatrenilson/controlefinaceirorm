@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,12 @@ interface Notification {
 // avisa de novo quando o documento vence).
 interface AvisoDoc { chave: string; cliente: string; tipo: string; validade: string; dias: number; vencido: boolean; }
 const VISTOS_KEY = "carteira_vencidos_vistos";
+// "Limpar" (2026-11-22): avisos de documento limpos ficam guardados neste navegador pela chave (documento + validade +
+// situação). Documento renovado que vence de novo, ou que passa de "vence em breve" a vencido, é chave nova e volta a avisar
+const LIMPOS_KEY = "carteira_vencidos_limpos";
+const lerLimpos = (): string[] => {
+  try { return JSON.parse(localStorage.getItem(LIMPOS_KEY) || "[]"); } catch { return []; }
+};
 const lerVistos = (): string[] => {
   try { return JSON.parse(localStorage.getItem(VISTOS_KEY) || "[]"); } catch { return []; }
 };
@@ -34,6 +40,7 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [avisos, setAvisos] = useState<AvisoDoc[]>([]);
   const [vistos, setVistos] = useState<string[]>(lerVistos);
+  const [limpos, setLimpos] = useState<string[]>(lerLimpos);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   // Usuário já conhecido pelo app: sem getUser() (ida ao servidor que segurava as outras buscas da página)
@@ -108,7 +115,7 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
       });
     }
     lista.sort(ordemAvisos);
-    setAvisos(lista);
+    setAvisos(lista.filter(a => !lerLimpos().includes(a.chave)));
   };
 
   const guardarVistos = (chaves: string[]) => {
@@ -135,14 +142,16 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
         .limit(50),
       supabase
         .from("user_notifications")
-        .select("notification_id, lida")
+        .select("notification_id, lida, apagada")
         .eq("user_id", user.id),
     ]);
 
     const readMap = new Map((readStatus || []).map((r: any) => [r.notification_id, r.lida]));
+    // apagadas por esta pessoa no "Limpar" não aparecem mais (notificação nova é outra linha: aparece normalmente)
+    const apagadas = new Set((readStatus || []).filter((r: any) => r.apagada).map((r: any) => r.notification_id));
 
     setNotifications(
-      (allNotifs || []).map((n: any) => ({
+      (allNotifs || []).filter((n: any) => !apagadas.has(n.id)).map((n: any) => ({
         ...n,
         lida: readMap.get(n.id) || false,
       }))
@@ -196,6 +205,22 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
     setNotifications((prev) => prev.map((n) => ({ ...n, lida: true })));
   };
 
+  // Limpar: tira do sino tudo o que está nele agora (só para esta pessoa). Aviso novo continua chegando
+  const limparTudo = async () => {
+    if (!user) return;
+    if (!confirm("Limpar todas as notificações do sino?\n\nAvisos novos continuam chegando normalmente.")) return;
+    const chaves = [...new Set([...limpos, ...avisos.map(v => v.chave)])];
+    setLimpos(chaves);
+    try { localStorage.setItem(LIMPOS_KEY, JSON.stringify(chaves)); } catch { /* sem storage */ }
+    setAvisos([]);
+    if (notifications.length) {
+      await supabase.from("user_notifications" as any).upsert(
+        notifications.map(n => ({ user_id: user.id, notification_id: n.id, lida: true, apagada: true })),
+        { onConflict: "user_id,notification_id" });
+    }
+    setNotifications([]);
+  };
+
   const unreadCount = notifications.filter((n) => !n.lida).length + avisos.filter(v => !vistos.includes(v.chave)).length;
 
   return (
@@ -229,12 +254,20 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
         <div className="px-4 py-3 border-b shrink-0">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold">Notificações</h4>
-            {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" className="text-xs h-7 gap-1.5" onClick={markAllAsRead}>
-                <CheckCheck className="h-3.5 w-3.5" />
-                Marcar tudo como lido
-              </Button>
-            )}
+            <div className="flex items-center gap-1">
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" className="text-xs h-7 gap-1.5" onClick={markAllAsRead}>
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Marcar como lido
+                </Button>
+              )}
+              {(notifications.length > 0 || avisos.length > 0) && (
+                <Button variant="ghost" size="sm" className="text-xs h-7 gap-1.5 text-destructive hover:text-destructive" onClick={limparTudo}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Limpar
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
