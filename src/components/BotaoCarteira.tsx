@@ -27,6 +27,9 @@ export const mensagemCarteira = (link: string) => [
   "📋 Acompanhamento do processo: dentro da carteira, toque em *Acompanhar processo* para ver o andamento do seu processo na Polícia Federal.",
   "",
   "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
+  "",
+  // valor passado pelo usuário (2026-11-22)
+  "💳 Caso tenha interesse em usar a Carteira Digital, o valor é de *R$ 30,00 por mês*, para cobrir o custo do servidor de hospedagem.",
 ].join("\n");
 
 // Botão da carteira digital no card do cliente (Clientes Armas): copia o link, abre ou edita a carteira.
