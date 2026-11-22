@@ -22,7 +22,10 @@ async function sb(caminho, init = {}) {
     headers: { apikey: CHAVE, Authorization: `Bearer ${CHAVE}`, "Content-Type": "application/json", ...(init.headers || {}) },
   });
   if (!r.ok) throw new Error(`Supabase ${r.status} em ${caminho.split("?")[0]}`);
-  return r.status === 204 ? null : r.json();
+  // resposta vazia (204, ou 201 do POST com "return=minimal"): antes o r.json() quebrava aqui e o robô parava ANTES de
+  // marcar o status como avisado, repetindo o aviso de deferido a cada rodada (2026-11-22)
+  const texto = await r.text();
+  return texto ? JSON.parse(texto) : null;
 }
 
 const processos = await sb("processos_pf?select=id,cliente_id,servico,descricao,status,avisado_status,consultado_em,status_mudou_em");
@@ -69,8 +72,14 @@ async function guardarPendente(a, aviso, novo) {
       : { aviso_enviado_em: new Date().toISOString(), aviso_reenvios: (a.aviso_reenvios || 0) + 1 }),
   });
 }
-const listar = lista => lista.slice(0, 3).map(p => `${p.servico || "Processo"}: ${p.status}`).join(" · ") +
-  (lista.length > 3 ? ` e mais ${lista.length - 3}` : "");
+// "Guia de Tráfego (GT) (5): deferido ✅ · Concessão do CR: em análise na PF" — nome curto, agrupado e contado
+// (as funções nomeServico/situacao ficam logo abaixo; são declarações de função, valem no arquivo inteiro)
+const listar = lista => {
+  const grupos = new Map();
+  for (const p of lista) { const k = nomeServico(p.servico) + "|" + situacao(p.status); grupos.set(k, (grupos.get(k) || 0) + 1); }
+  const itens = [...grupos.entries()].map(([k, n]) => { const [s, st] = k.split("|"); return `${s}${n > 1 ? ` (${n})` : ""}: ${st}`; });
+  return itens.slice(0, 3).join(" · ") + (itens.length > 3 ? ` e mais ${itens.length - 3}` : "");
+};
 
 // Nome do serviço e situação como o cliente entende (iguais à mensagem do WhatsApp, src/components/BotaoAcompanhamento.tsx)
 const semAcento = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -176,7 +185,10 @@ if (deferidos.length) {
   const insAdmin = await sb("push_inscricoes?select=endpoint,p256dh,auth,user_id&user_id=not.is.null");
   for (const c of clientes) {
     if (!c.owner_id) continue;
-    const lista = deferidos.filter(p => p.cliente_id === c.id).map(p => p.servico || "Processo").join(", ");
+    // serviço com o nome curto e contado ("Guia de Tráfego (GT) (5)"), em vez de repetir o nome longo da PF 5 vezes
+    const contagem = new Map();
+    for (const p of deferidos.filter(p => p.cliente_id === c.id)) { const n = nomeServico(p.servico); contagem.set(n, (contagem.get(n) || 0) + 1); }
+    const lista = [...contagem.entries()].map(([n, q]) => q > 1 ? `${n} (${q})` : n).join(", ");
     const titulo = `✅ Processo deferido: ${c.nome}`;
     const mensagem = `${lista} de ${c.nome} foi DEFERIDO na Polícia Federal.`;
     if (!SIMULAR) {
