@@ -21,7 +21,8 @@ export const mensagemCarteira = (link: string) => [
   "",
   "📱 No iPhone, para instalar: abra o link no Safari, toque nos três tracinhos (⋯), depois em *Compartilhar*, depois em *Ver mais* e em *Adicionar à Tela de Início*. Depois abra a carteira pelo ícone na tela de início e ative os avisos por lá.",
   "",
-  "📋 Acompanhamento do processo: dentro da carteira, toque em *Acompanhar processo* para ver o andamento do seu processo na Polícia Federal. Lá, toque no sininho 🔔 para ser avisado sempre que o status mudar.",
+  // o acompanhamento aberto pela carteira não tem sininho próprio: os avisos da carteira já incluem os do processo
+  "📋 Acompanhamento do processo: dentro da carteira, toque em *Acompanhar processo* para ver o andamento do seu processo na Polícia Federal. Com os avisos da carteira ativados, você também é avisado sempre que o status mudar.",
   "",
   "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
 ].join("\n");
