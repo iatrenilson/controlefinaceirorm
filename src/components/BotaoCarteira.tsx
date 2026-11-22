@@ -17,19 +17,26 @@ export const mensagemCarteira = (link: string) => [
   "",
   "🔔 Com os avisos ativados, você recebe uma notificação no celular sempre que algum documento seu estiver *perto de vencer* ou *vencido* (CR, CRAF e principalmente a *GT, que vale só 6 meses*), para renovar a tempo e não correr o risco de ficar irregular.",
   "",
-  "Para ativar:",
-  "1. Abra o link e toque em *Instalar o aplicativo*.",
-  "2. Toque em *Ativar avisos* e permita as notificações.",
-  "",
-  "📱 No iPhone, para instalar: abra o link no Safari, toque nos três tracinhos (⋯), depois em *Compartilhar*, depois em *Ver mais* e em *Adicionar à Tela de Início*. Depois abra a carteira pelo ícone na tela de início e ative os avisos por lá.",
-  "",
   // o acompanhamento aberto pela carteira não tem sininho próprio: os avisos da carteira já incluem os do processo
   "📋 Acompanhamento do processo: dentro da carteira, toque em *Acompanhar processo* para ver o andamento do seu processo na Polícia Federal.",
   "",
-  "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
-  "",
   // valor passado pelo usuário (2026-11-22)
   "💳 Caso tenha interesse em usar a Carteira Digital, o valor é de *R$ 30,00 por mês*, para cobrir o custo do servidor de hospedagem.",
+  "",
+  // passo a passo separado no fim, para a mensagem não ficar tumultuada (pedido do usuário)
+  "━━━━━━━━━━━━━━━",
+  "📲 *COMO INSTALAR E ATIVAR OS AVISOS*",
+  "",
+  "*Android:*",
+  "1. Abra o link e toque em *Instalar o aplicativo*.",
+  "2. Toque em *Ativar avisos* e permita as notificações.",
+  "",
+  "*iPhone:*",
+  "1. Abra o link no Safari e toque nos três tracinhos (⋯).",
+  "2. Toque em *Compartilhar* → *Ver mais* → *Adicionar à Tela de Início*.",
+  "3. Abra a carteira pelo ícone na tela de início e toque em *Ativar avisos*.",
+  "",
+  "⚠️ Sem instalar e ativar os avisos, as notificações não chegam no seu celular.",
 ].join("\n");
 
 // Botão da carteira digital no card do cliente (Clientes Armas): copia o link, abre ou edita a carteira.
