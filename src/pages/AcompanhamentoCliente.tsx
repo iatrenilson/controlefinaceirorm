@@ -22,7 +22,7 @@ interface Processo {
   // origem: "sinarm" (Sinarm CAC, servicos.pf.gov.br) ou "portal" (Portal PF); motivo, GRU e fila só vêm do Sinarm CAC
   origem?: string; motivo?: string; gru?: string; posicao_fila?: string;
 }
-interface Dados { id?: string; nome: string; etapa?: string; processos: Processo[]; }
+interface Dados { id?: string; nome: string; etapa?: string; processos: Processo[]; carteira?: string | null; }
 
 // Etapa do cliente no escritório (o status do card em Clientes Armas), só enquanto não há nada lido da PF
 const ETAPAS: Record<string, string> = {
@@ -152,7 +152,13 @@ export default function AcompanhamentoCliente() {
       body: JSON.stringify({ p_ref: id }), // aceita o link curto (iniciais, ex.: rmc) ou o id antigo
     })
       .then(r => r.json())
-      .then(j => { if (j?.nome) { setDados(j); setEstado("ok"); } else setEstado("erro"); })
+      .then(j => {
+        // O link do cliente agora é o da Carteira Digital (o usuário pediu, 2026-11-22; todo cliente tem carteira): o link
+        // de acompanhamento antigo abre a carteira, que tem o "Acompanhar processo ›". Vindo da própria carteira
+        // (?carteira=1) fica aqui, senão voltaria para ela sem parar.
+        if (j?.carteira && !daCarteira) { window.location.replace(`${import.meta.env.BASE_URL}carteira/${j.carteira}`); return; }
+        if (j?.nome) { setDados(j); setEstado("ok"); } else setEstado("erro");
+      })
       .catch(() => setEstado("erro"));
 
     // Instalar na tela de início (no iPhone é o único jeito de receber aviso): abre direto neste link

@@ -3065,7 +3065,7 @@ export default function Declaracoes() {
                             }}>
                               <Share2 className="h-3.5 w-3.5" />
                             </Button>
-                            <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} />
+                            <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} carteira={codigoCarteira[carteiraDo(c.cpf) ?? ""]} nome={c.nome} telefone={c.telefone} />
                             <BotaoCarteira carteiraId={carteiraDo(c.cpf)} codigo={codigoCarteira[carteiraDo(c.cpf) ?? ""]} clienteId={c.id} />
                             <Button variant="ghost" size="icon" className="h-7 w-6" title="Editar" onClick={() => abrirEditarCliente(c)}>
                               <Pencil className="h-3.5 w-3.5" />
@@ -3338,7 +3338,7 @@ export default function Declaracoes() {
                         }}>
                           <Share2 className="h-3 w-3" />
                         </Button>
-                        <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} nome={c.nome} telefone={c.telefone} pequeno />
+                        <BotaoAcompanhamento clienteId={c.id} codigo={c.codigoAcompanhamento} carteira={codigoCarteira[carteiraDo(c.cpf) ?? ""]} nome={c.nome} telefone={c.telefone} pequeno />
                         <BotaoCarteira carteiraId={carteiraDo(c.cpf)} codigo={codigoCarteira[carteiraDo(c.cpf) ?? ""]} clienteId={c.id} pequeno />
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => abrirEditarCliente(c)}>
                           <Pencil className="h-3 w-3" />

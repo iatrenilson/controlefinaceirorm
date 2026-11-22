@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { linkCarteira } from "@/components/BotaoCarteira";
 
 // Link público do acompanhamento do processo (status do Sinarm CAC / Portal PF que o Passarinho grava ao entrar na
 // conta gov do cliente)
@@ -39,7 +40,8 @@ function explicarStatus(status: string) {
 // Mensagem para o cliente (o usuário pediu, 2026-11-19): curta, sem número de protocolo, com o nome do serviço que o
 // cliente entende. Deferido antigo não entra (só o dos últimos 2 dias, que é novidade); rascunho também não. Serviço
 // que já tem um deferido não mostra o indeferido antigo dele. O mesmo serviço com o mesmo status vira uma linha só.
-async function montarMensagem(clienteId: string, nome: string, ref: string) {
+// link: o da Carteira Digital do cliente (todo cliente tem uma desde 2026-11-22); app: nome do ícone instalado
+async function montarMensagem(clienteId: string, nome: string, link: string, app = "Carteira CAC") {
   const { data } = await supabase.from("processos_pf" as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select("servico, status, descricao, status_mudou_em").eq("cliente_id", clienteId);
   const DOIS_DIAS = 2 * 86400000;
@@ -54,12 +56,12 @@ async function montarMensagem(clienteId: string, nome: string, ref: string) {
   const ola = primeiro ? `Olá, ${primeiro.charAt(0) + primeiro.slice(1).toLowerCase()}! 👋` : "Olá! 👋";
   // instalar para receber os avisos, em poucas linhas (caminho do iPhone passado pelo usuário)
   const fimMsg = [
-    `Acompanhe por aqui: ${linkAcompanhamento(ref)}`,
+    `Acompanhe por aqui: ${link}`,
     "",
     "🔔 Para receber avisos no celular, instale o app:",
     "• *Android:* Chrome → ⋮ → *Instalar app*",
     "• *iPhone:* Safari → ⋯ → *Compartilhar* → *Ver mais* → *Adicionar à Tela de Início*",
-    "Depois abra o ícone *Meu processo* e toque no 🔔.",
+    `Depois abra o ícone *${app}* e toque no 🔔.`,
     "",
     "*Passarinho Assessoria Bélica*",
   ].join("\n");
@@ -87,8 +89,14 @@ function linkWhatsApp(telefone: string | undefined, texto: string) {
 }
 
 // Botão no card do cliente (Clientes Armas): link do acompanhamento e a mensagem com o status para mandar ao cliente
-export function BotaoAcompanhamento({ clienteId, codigo, nome, telefone, pequeno }: { clienteId: string; codigo?: string; nome: string; telefone?: string; pequeno?: boolean }) {
+// carteira: código do link da Carteira Digital do cliente. O link que vai para o cliente é o da carteira (o usuário pediu,
+// 2026-11-22); o de acompanhamento só fica para quem ainda não tem carteira
+export function BotaoAcompanhamento({ clienteId, codigo, carteira, nome, telefone, pequeno }: { clienteId: string; codigo?: string; carteira?: string; nome: string; telefone?: string; pequeno?: boolean }) {
   const ref = codigo || clienteId;
+  const linkCliente = carteira ? linkCarteira(carteira) : linkAcompanhamento(ref);
+  const app = carteira ? "Carteira CAC" : "Meu processo";
+  // ver a página do processo em si (com ?carteira=1 ela não redireciona para a carteira)
+  const linkProcesso = linkAcompanhamento(ref) + (carteira ? "?carteira=1" : "");
   const tam = pequeno ? "h-6 w-6" : "h-7 w-7";
   const icone = pequeno ? "h-3 w-3" : "h-3.5 w-3.5";
   const copiar = (texto: string, ok: string) =>
@@ -98,7 +106,7 @@ export function BotaoAcompanhamento({ clienteId, codigo, nome, telefone, pequeno
     // abre a aba já no clique (depois de esperar o banco o navegador bloquearia a janela nova)
     const aba = window.open("", "_blank");
     try {
-      const url = linkWhatsApp(telefone, await montarMensagem(clienteId, nome, ref));
+      const url = linkWhatsApp(telefone, await montarMensagem(clienteId, nome, linkCliente, app));
       if (aba) aba.location.href = url; else window.location.href = url;
     } catch {
       aba?.close();
@@ -117,14 +125,14 @@ export function BotaoAcompanhamento({ clienteId, codigo, nome, telefone, pequeno
         <DropdownMenuItem onClick={enviarWhatsApp} className="gap-2 text-xs">
           <MessageCircle className="h-3.5 w-3.5" />Enviar status pelo WhatsApp
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={async () => copiar(await montarMensagem(clienteId, nome, ref), "Mensagem copiada!")} className="gap-2 text-xs">
+        <DropdownMenuItem onClick={async () => copiar(await montarMensagem(clienteId, nome, linkCliente, app), "Mensagem copiada!")} className="gap-2 text-xs">
           <FileText className="h-3.5 w-3.5" />Copiar mensagem com o status
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => copiar(linkAcompanhamento(ref), "Link do acompanhamento copiado!")} className="gap-2 text-xs">
-          <Copy className="h-3.5 w-3.5" />Copiar link do acompanhamento
+        <DropdownMenuItem onClick={() => copiar(linkCliente, carteira ? "Link da carteira copiado!" : "Link do acompanhamento copiado!")} className="gap-2 text-xs">
+          <Copy className="h-3.5 w-3.5" />{carteira ? "Copiar link do cliente (carteira)" : "Copiar link do acompanhamento"}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => window.open(linkAcompanhamento(ref), "_blank")} className="gap-2 text-xs">
+        <DropdownMenuItem onClick={() => window.open(linkProcesso, "_blank")} className="gap-2 text-xs">
           <ExternalLink className="h-3.5 w-3.5" />Abrir acompanhamento
         </DropdownMenuItem>
       </DropdownMenuContent>
