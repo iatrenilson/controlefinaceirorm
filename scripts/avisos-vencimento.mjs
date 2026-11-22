@@ -46,6 +46,24 @@ function diasVencido(validade) {
 }
 const haDias = n => `há ${n} ${n === 1 ? "dia" : "dias"}`;
 
+// Perto de vencer (o usuário pediu, 2026-11-22: "principalmente GT, que vale só 6 meses", para o cliente não ficar
+// irregular). Mesma antecedência do sininho (src/lib/avisosCarteira.ts MESES_ANTES): GT 1 mês, CR e CRAF 3 meses.
+// Para não incomodar por meses: só na rodada da manhã, toda segunda-feira, e todo dia na última semana.
+const MESES_ANTES = { gt: 1, cr: 3, craf: 3 };
+function diasParaVencer(tipo, validade) {
+  const ultima = (String(validade || "").match(/\d{2}\/\d{2}\/\d{4}/g) || []).pop();
+  const meses = MESES_ANTES[tipo];
+  if (!ultima || !meses) return null;
+  const [d, m, a] = ultima.split("/").map(Number);
+  const dias = Math.round((Date.UTC(a, m - 1, d) - HOJE) / 86400000);
+  return dias >= 0 && HOJE >= Date.UTC(a, m - 1 - meses, d) ? dias : null;
+}
+const agoraManaus = new Intl.DateTimeFormat("en-US", { timeZone: "America/Manaus", hour: "numeric", hour12: false, weekday: "short" }).formatToParts(new Date());
+const HORA = Number(agoraManaus.find(p => p.type === "hour")?.value || 0);
+const SEGUNDA = agoraManaus.find(p => p.type === "weekday")?.value === "Mon";
+const RODADA_DA_MANHA = HORA < 11;
+const emDias = n => n === 0 ? "hoje" : `em ${n} ${n === 1 ? "dia" : "dias"}`;
+
 const docs = await sb("carteira_docs?select=tipo,data_validade,carteira_cliente_id,carteira_clientes(nome)&data_validade=neq.");
 const vencidos = [];
 for (const d of docs) {
@@ -53,6 +71,12 @@ for (const d of docs) {
   if (dias) vencidos.push({ cliente: d.carteira_cliente_id, nome: d.carteira_clientes?.nome || "Cliente", rotulo: ROTULO[d.tipo] || String(d.tipo).toUpperCase(), dias });
 }
 vencidos.sort((a, b) => a.dias - b.dias);
+const proximos = [];
+for (const d of docs) {
+  const dias = diasParaVencer(d.tipo, d.data_validade);
+  if (dias !== null) proximos.push({ cliente: d.carteira_cliente_id, rotulo: ROTULO[d.tipo] || String(d.tipo).toUpperCase(), dias });
+}
+proximos.sort((a, b) => a.dias - b.dias);
 const inscricoes = await sb("push_inscricoes?select=endpoint,p256dh,auth,carteira_cliente_id,user_id");
 
 let enviados = 0, removidas = 0, falhas = 0;
@@ -74,7 +98,7 @@ async function enviar(insc, aviso) {
   }
 }
 
-let clientesAvisados = 0, adminsAvisados = 0;
+let clientesAvisados = 0, adminsAvisados = 0, avisosVencendo = 0;
 for (const insc of inscricoes) {
   if (insc.user_id) {
     if (!vencidos.length) continue;
@@ -86,7 +110,17 @@ for (const insc of inscricoes) {
     })) adminsAvisados++;
   } else if (!SO_ADMIN) {
     const meus = vencidos.filter(v => v.cliente === insc.carteira_cliente_id);
-    if (!meus.length) continue;
+    if (!meus.length) {
+      // nada vencido: perto de vencer (rodada da manhã; toda segunda, e todo dia na última semana)
+      const prox = proximos.filter(v => v.cliente === insc.carteira_cliente_id);
+      if (!prox.length || !RODADA_DA_MANHA || !(SEGUNDA || prox[0].dias <= 7)) continue;
+      const corpo = prox.length === 1
+        ? `Seu ${prox[0].rotulo} vence ${emDias(prox[0].dias)}. Renove a tempo com a Passarinho para não ficar irregular. Toque para ver.`
+        : `Documentos perto de vencer: ${prox.map(v => `${v.rotulo} (${emDias(v.dias)})`).join(", ")}. Renove a tempo com a Passarinho para não ficar irregular.`;
+      if (await enviar(insc, { titulo: "Passarinho — documento perto de vencer", corpo, url: `/carteira/${insc.carteira_cliente_id}`, tag: "vencendo" }))
+        { clientesAvisados++; avisosVencendo++; }
+      continue;
+    }
     const corpo = meus.length === 1
       ? `Seu ${meus[0].rotulo} venceu ${haDias(meus[0].dias)}. Toque para ver e renovar com a Passarinho.`
       : `${meus.length} documentos vencidos: ${meus.map(v => `${v.rotulo} (${haDias(v.dias)})`).join(", ")}. Toque para renovar com a Passarinho.`;
@@ -95,6 +129,6 @@ for (const insc of inscricoes) {
   }
 }
 
-console.log(`${SIMULAR ? "[simulação] " : ""}documentos vencidos: ${vencidos.length} | aparelhos inscritos: ${inscricoes.length}` +
+console.log(`${SIMULAR ? "[simulação] " : ""}documentos vencidos: ${vencidos.length} | perto de vencer: ${proximos.length} (avisos: ${avisosVencendo}, rodada da manhã: ${RODADA_DA_MANHA ? "sim" : "não"}) | aparelhos inscritos: ${inscricoes.length}` +
   ` | avisados: ${clientesAvisados} cliente(s), ${adminsAvisados} admin | enviados: ${enviados} | inscrições removidas: ${removidas} | falhas: ${falhas}`);
 if (falhas && !enviados) process.exit(1);
