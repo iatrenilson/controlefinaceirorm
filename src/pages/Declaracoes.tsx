@@ -2921,7 +2921,7 @@ export default function Declaracoes() {
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(Object.entries(STATUS_LABELS) as [ClienteStatus, string][]).map(([val, label]) => {
                       const grupo = clientes.filter(c => (c.status ?? "doc") === val);
-                      const sempreVisivel = val === "doc" || val === "docaut" || val === "gt" || val === "gtanalise" || val === "completo";
+                      const sempreVisivel = val === "doc" || val === "docaut" || val === "gt" || val === "gtanalise" || val === "docrencraf" || val === "rencraf" || val === "completo";
                       if (grupo.length === 0 && !sempreVisivel) return null;
                       const hoje = new Date(); hoje.setHours(0,0,0,0);
                       const nomes = grupo.map(c => {
