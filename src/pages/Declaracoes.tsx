@@ -3368,7 +3368,8 @@ export default function Declaracoes() {
       <Dialog open={dialogClienteOpen} onOpenChange={setDialogClienteOpen}>
         <DialogContent
           // minmax(0,1fr): nome de arquivo comprido não alarga a janela (cortava a lixeira e o enviar dos documentos)
-          className="max-w-2xl max-h-[90vh] overflow-y-auto grid-cols-[minmax(0,1fr)]"
+          // letras dos campos preenchidos mais fortes (2026-11-24: conferir lado a lado com o Portal PF)
+          className="max-w-2xl max-h-[90vh] overflow-y-auto grid-cols-[minmax(0,1fr)] [&_input]:font-semibold [&_input]:text-[15px] [&_input]:text-white [&_input::placeholder]:font-normal [&_input::placeholder]:text-muted-foreground [&_button[role=combobox]]:font-semibold [&_button[role=combobox]]:text-[15px]"
           onInteractOutside={e => e.preventDefault()}
           // Arquivo solto fora da área de importar: o navegador abriria o arquivo e o formulário seria perdido
           onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "none"; }}
