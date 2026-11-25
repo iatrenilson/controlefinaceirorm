@@ -1060,10 +1060,17 @@ const Laudos = () => {
               ["juliet", "Clube de Tiro Juliet Papa"],
               ["jorge",  "Arena Gun Clube - Jorge Mussa"],
               ["cta",    "CTA Iranduba"],
-            ] as const).map(([id, nome]) => (
-              <RadioBtn key={id} checked={form.local === id}
-                onClick={() => set("local", form.local === id ? "" : id)} label={nome} />
-            ))}
+            ] as const).map(([id, nome]) => {
+              // Juliet Papa desativado por enquanto (o usuário pediu, 2026-11-25): aparece apagado e não deixa marcar
+              const desativado = id === "juliet";
+              if (desativado) return (
+                <div key={id} title="Desativado por enquanto" className="opacity-40 pointer-events-none select-none">
+                  <RadioBtn checked={false} onClick={() => {}} label={`${nome} (desativado)`} />
+                </div>
+              );
+              return <RadioBtn key={id} checked={form.local === id}
+                onClick={() => set("local", form.local === id ? "" : id)} label={nome} />;
+            })}
           </CardContent>
         </Card>
 
