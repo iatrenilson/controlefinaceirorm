@@ -1807,6 +1807,71 @@ function DocPreviewModal({ url, nome, onClose }: { url: string; nome: string; on
   );
 }
 
+// Todos os documentos do cliente numa janela só, um embaixo do outro, cada um com o número e o nome (2026-11-25)
+type DocParaVer = { num: string; titulo: string; storagePath: string; fileName: string };
+function DocsTodosModal({ nomeCliente, docs, onClose }: { nomeCliente: string; docs: DocParaVer[]; onClose: () => void }) {
+  const janela = useRef<HTMLDivElement>(null);
+  const corpo = useRef<HTMLDivElement>(null);
+  useEscComPdf(janela);
+  const [urls, setUrls] = useState<Record<string, string | "erro">>({});
+  useEffect(() => {
+    let vivo = true;
+    const criadas: string[] = [];
+    docs.forEach(async d => {
+      try {
+        const { data, error } = await supabase.storage.from("cac-docs").download(d.storagePath);
+        if (error || !data) throw new Error();
+        const blob = /\.pdf$/i.test(d.fileName) ? new Blob([data], { type: "application/pdf" }) : data;
+        const u = URL.createObjectURL(blob);
+        criadas.push(u);
+        if (vivo) setUrls(prev => ({ ...prev, [d.storagePath]: u }));
+      } catch {
+        if (vivo) setUrls(prev => ({ ...prev, [d.storagePath]: "erro" }));
+      }
+    });
+    return () => { vivo = false; criadas.forEach(u => URL.revokeObjectURL(u)); };
+  }, [docs]);
+  const irPara = (num: string) => corpo.current?.querySelector(`[data-doc="${num}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return (
+    <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent ref={janela} aria-describedby={undefined} className="max-w-[96vw] w-[96vw] h-[94vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <div className="px-4 py-3 pr-12 border-b border-border/40 flex-shrink-0 space-y-2">
+          <DialogTitle className="text-sm font-semibold truncate">Documentos de {nomeCliente} ({docs.length})</DialogTitle>
+          <div className="flex flex-wrap gap-1">
+            {docs.map(d => (
+              <button key={d.num} type="button" title={d.titulo} onClick={() => irPara(d.num)}
+                className="text-[11px] font-bold min-w-7 px-2 py-0.5 rounded-md border border-primary/40 text-primary hover:bg-primary/15">{d.num}</button>
+            ))}
+          </div>
+        </div>
+        <div ref={corpo} className="flex-1 min-h-0 overflow-y-auto bg-black/40 p-3 space-y-4">
+          {docs.map(d => {
+            const u = urls[d.storagePath];
+            const imagem = /\.(png|jpg|jpeg|gif|webp)$/i.test(d.fileName);
+            return (
+              <section key={d.num} data-doc={d.num} className="rounded-lg border border-border/50 overflow-hidden scroll-mt-2">
+                <div className="flex items-center gap-3 px-3 py-2 bg-card border-b border-border/50">
+                  <span className="text-lg font-black text-primary w-9 text-center flex-shrink-0">{d.num}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-green-300 leading-tight">{d.titulo}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{d.fileName}</p>
+                  </div>
+                </div>
+                <div className="h-[80vh] flex items-center justify-center bg-black/30">
+                  {!u ? <span className="text-sm text-muted-foreground">Carregando…</span>
+                    : u === "erro" ? <span className="text-sm text-destructive">Não foi possível abrir este arquivo</span>
+                    : imagem ? <img src={u} alt={d.titulo} className="max-w-full max-h-full object-contain" />
+                    : <iframe src={u} title={d.titulo} className="w-full h-full border-0 bg-white" />}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Declaracoes() {
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
@@ -1905,6 +1970,7 @@ export default function Declaracoes() {
   const [inqTipoDialogOpen, setInqTipoDialogOpen] = useState(false);
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [docsTodos, setDocsTodos] = useState<{ nome: string; docs: DocParaVer[] } | null>(null);
 
   // devolve true quando leu algum campo (aí o arquivo também vai para o item RG dos Docs CR)
   const importarDocumento = useCallback(async (file: File): Promise<boolean> => {
@@ -2805,6 +2871,7 @@ export default function Declaracoes() {
     {docPreview && (
       <DocPreviewModal url={docPreview.url} nome={docPreview.nome} onClose={() => { URL.revokeObjectURL(docPreview.url); setDocPreview(null); }} />
     )}
+    {docsTodos && <DocsTodosModal nomeCliente={docsTodos.nome} docs={docsTodos.docs} onClose={() => setDocsTodos(null)} />}
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
@@ -3420,6 +3487,23 @@ export default function Declaracoes() {
                     {uploadingLote ? "Enviando..." : arrastandoDocCR === "lote" ? "Solte os arquivos aqui (detecção automática)"
                       : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
+                  {editandoId && (docsCliente.get(editandoId) ?? []).length > 0 && (
+                    <button type="button"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-blue-400/40 px-3 py-2 text-[11px] font-semibold text-blue-300 hover:bg-blue-400/10 mb-2"
+                      onClick={() => {
+                        const lista = docsCliente.get(editandoId) ?? [];
+                        const docs: DocParaVer[] = [];
+                        for (const doc of DOCS_FICHA) {
+                          const item = lista.find(d => d.tipo === doc.id);
+                          if (!item) continue;
+                          docs.push({ num: doc.id === "doc_ident" ? "RG" : String(DOCS_CR.findIndex(d => d.id === doc.id) + 1),
+                            titulo: rotuloDocCR(doc, item.fileName), storagePath: item.storagePath, fileName: item.fileName });
+                        }
+                        setDocsTodos({ nome: formCliente.nome, docs });
+                      }}>
+                      <Eye className="h-3.5 w-3.5" /> Ver todos os documentos de uma vez
+                    </button>
+                  )}
                   {DOCS_FICHA.map(doc => {
                     const item = editandoId ? (docsCliente.get(editandoId) ?? []).find(d => d.tipo === doc.id) : undefined;
                     const pendente = editandoId ? undefined : docsPendentes.get(doc.id);
