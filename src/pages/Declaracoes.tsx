@@ -3487,16 +3487,17 @@ export default function Declaracoes() {
                     {uploadingLote ? "Enviando..." : arrastandoDocCR === "lote" ? "Solte os arquivos aqui (detecção automática)"
                       : "Enviar vários arquivos de uma vez: clique ou arraste (detecção automática)"}
                   </button>
-                  {editandoId && (docsCliente.get(editandoId) ?? []).length > 0 && (
+                  {editandoId && qtdDocsCR(docsCliente.get(editandoId) ?? []) > 0 && (
                     <button type="button"
                       className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-blue-400/40 px-3 py-2 text-[11px] font-semibold text-blue-300 hover:bg-blue-400/10 mb-2"
                       onClick={() => {
                         const lista = docsCliente.get(editandoId) ?? [];
                         const docs: DocParaVer[] = [];
-                        for (const doc of DOCS_FICHA) {
+                        // só os 12 do CR: o RG não entra (usuário pediu, 2026-11-25)
+                        for (const doc of DOCS_CR) {
                           const item = lista.find(d => d.tipo === doc.id);
                           if (!item) continue;
-                          docs.push({ num: doc.id === "doc_ident" ? "RG" : String(DOCS_CR.findIndex(d => d.id === doc.id) + 1),
+                          docs.push({ num: String(DOCS_CR.findIndex(d => d.id === doc.id) + 1),
                             titulo: rotuloDocCR(doc, item.fileName), storagePath: item.storagePath, fileName: item.fileName });
                         }
                         setDocsTodos({ nome: formCliente.nome, docs });
