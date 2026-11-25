@@ -31,9 +31,24 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
   const [editando, setEditando] = useState<string | null>(null);   // id do item, ou "titulo"
   const [textoEdit, setTextoEdit] = useState("");
   const [confirmarExcluir, setConfirmarExcluir] = useState(false);
+  // Arrastar um nome para outro lugar da mesma lista (2026-11-25, o usuário pediu)
+  const [itemArrastado, setItemArrastado] = useState<string | null>(null);
+  const [itemSobre, setItemSobre] = useState<string | null>(null);
+  const moverItem = (id: string, alvoId: string) => {
+    if (id === alvoId) return;
+    onMudar(l => {
+      const de = l.itens.findIndex(x => x.id === id), para = l.itens.findIndex(x => x.id === alvoId);
+      if (de < 0 || para < 0) return l;
+      const itens = [...l.itens];
+      const [it] = itens.splice(de, 1);
+      itens.splice(para, 0, it);
+      return { ...l, itens };
+    });
+  };
+  const fimArrasto = () => { setItemArrastado(null); setItemSobre(null); };
 
   const adicionar = () => {
-    const t = novo.trim();
+    const t = novo.trim().toUpperCase();
     if (!t) return;
     const item: Item = { id: novoId(), texto: t, feito: false, em: new Date().toISOString() };
     onMudar(l => ({ ...l, itens: [...l.itens, item] }));
@@ -45,7 +60,7 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
     const t = textoEdit.trim();
     if (t) {
       if (editando === "titulo") onMudar(l => ({ ...l, nome: t }));
-      else if (editando) mudarItem(editando, { texto: t });
+      else if (editando) mudarItem(editando, { texto: t.toUpperCase() });
     }
     setEditando(null);
   };
@@ -91,7 +106,7 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
 
         <div className="flex gap-2">
           <Input className="h-9 text-sm" placeholder="Adicionar nome…" value={novo}
-            onChange={e => setNovo(e.target.value)} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
+            onChange={e => setNovo(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === "Enter") adicionar(); }} />
           <Button size="sm" className="h-9 px-3" onClick={adicionar} title="Adicionar"><Plus className="h-4 w-4" /></Button>
         </div>
 
@@ -100,14 +115,21 @@ function CartaoLista({ lista, onMudar, onExcluir, onPegar, onMover }: {
         ) : (
           <ul className="space-y-1">
             {lista.itens.map(i => (
-              <li key={i.id} className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40">
+              <li key={i.id}
+                draggable={editando !== i.id}
+                onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", i.texto); setItemArrastado(i.id); }}
+                onDragOver={e => { if (!itemArrastado) return; e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "move"; if (itemSobre !== i.id) setItemSobre(i.id); }}
+                onDrop={e => { if (!itemArrastado) return; e.preventDefault(); e.stopPropagation(); moverItem(itemArrastado, i.id); fimArrasto(); }}
+                onDragEnd={e => { e.stopPropagation(); fimArrasto(); }}
+                className={`group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/40 ${editando !== i.id ? "cursor-grab active:cursor-grabbing" : ""} ${itemArrastado === i.id ? "opacity-40" : ""} ${itemSobre === i.id && itemArrastado !== i.id ? "ring-2 ring-primary" : ""}`}>
+                <GripVertical className="h-3.5 w-3.5 shrink-0 -ml-1 text-muted-foreground/50 group-hover:text-muted-foreground hidden sm:block" />
                 <button onClick={() => mudarItem(i.id, { feito: !i.feito })} title={i.feito ? "Desmarcar" : "Marcar como feito"}
                   className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${i.feito ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/50"}`}>
                   {i.feito && <Check className="h-3 w-3" />}
                 </button>
                 {editando === i.id ? (
                   <Input autoFocus className="h-7 text-sm" value={textoEdit}
-                    onChange={e => setTextoEdit(e.target.value)} onKeyDown={teclaEdicao} onBlur={salvarEdicao} />
+                    onChange={e => setTextoEdit(e.target.value.toUpperCase())} onKeyDown={teclaEdicao} onBlur={salvarEdicao} />
                 ) : (
                   <>
                     <span className={`flex-1 text-sm break-words ${i.feito ? "line-through text-muted-foreground" : ""}`}>{i.texto}</span>
@@ -260,6 +282,15 @@ export default function Anotacoes() {
     window.addEventListener("anotacoes-soltou", fim);
     return () => window.removeEventListener("anotacoes-soltou", fim);
   }, []);
+
+  // Nomes que estavam em minúsculo passam para MAIÚSCULO (2026-11-25, o usuário pediu): grava uma vez, ao abrir
+  const jaConverteu = useRef(false);
+  useEffect(() => {
+    if (!listas || jaConverteu.current) return;
+    jaConverteu.current = true;
+    if (listas.some(l => l.itens.some(i => i.texto !== i.texto.toUpperCase())))
+      gravar(ls => ls.map(l => ({ ...l, itens: l.itens.map(i => ({ ...i, texto: i.texto.toUpperCase() })) })));
+  }, [listas]);
 
   if (!listas) return <div className="p-4 text-sm text-muted-foreground">{erroCarregar ? "Não consegui carregar as anotações. Tentando de novo…" : "Carregando…"}</div>;
 
