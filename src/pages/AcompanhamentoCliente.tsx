@@ -207,7 +207,9 @@ export default function AcompanhamentoCliente() {
   // A Passarinho no computador do escritório entra no Portal PF, lê o status e grava; aqui fica conferindo e recarrega.
   // Deu erro: o cliente pode tentar de novo na hora; depois de mais de 2 erros avisa que o escritório vai consultar, mas
   // continua deixando tentar (o usuário pediu, 2026-11-25)
-  const [atualizacao, setAtualizacao] = useState<{ status: string; mensagem?: string; atualizado_em?: string; erros?: number } | null>(null);
+  // Computador do escritório desligado (2026-11-26): o pedido fica guardado e é atendido quando ele ligar; esperando há mais
+  // de 2 minutos, a página para de girar e diz que a consulta ficou marcada (continua conferindo, mais devagar)
+  const [atualizacao, setAtualizacao] = useState<{ status: string; mensagem?: string; atualizado_em?: string; pedido_em?: string; erros?: number } | null>(null);
   const timerAtualizar = useRef<ReturnType<typeof setTimeout>>();
   const vivoAtualizar = useRef(true);
   const pedirAtualizacao = useCallback(async (soVer: boolean, tentativas = 0) => {
@@ -221,8 +223,9 @@ export default function AcompanhamentoCliente() {
     const r = await chamar("pedir_atualizacao", { p_ref: id, p_so_ver: soVer });
     if (!vivoAtualizar.current || !r?.status) return;
     setAtualizacao(r);
-    if ((r.status === "pendente" || r.status === "rodando") && tentativas < 120) {
-      timerAtualizar.current = setTimeout(() => pedirAtualizacao(true, tentativas + 1), 6000);
+    if ((r.status === "pendente" || r.status === "rodando") && tentativas < 600) {
+      const naFila = r.status === "pendente" && r.pedido_em && Date.now() - new Date(r.pedido_em).getTime() > 2 * 60 * 1000;
+      timerAtualizar.current = setTimeout(() => pedirAtualizacao(true, tentativas + 1), naFila ? 30000 : 6000);
     } else if (r.status === "feito") {
       const j = await chamar("get_acompanhamento_ref", { p_ref: id });
       if (vivoAtualizar.current && j?.nome) setDados(j);
@@ -474,14 +477,17 @@ export default function AcompanhamentoCliente() {
           if (!rodando && !recente && !erro) return null;
           // erros seguidos, contando o deste pedido: mais de 2, avisa que o escritório vai consultar
           const muitosErros = (atualizacao.erros ?? 0) > 2;
-          const texto = rodando ? "Atualizando seu processo com a Polícia Federal… pode levar até 2 minutos."
+          const naFila = atualizacao.status === "pendente" && !!atualizacao.pedido_em
+            && Date.now() - new Date(atualizacao.pedido_em).getTime() > 2 * 60 * 1000;
+          const texto = naFila ? "📌 Sua consulta ficou marcada e será feita assim que o escritório abrir. Você recebe o aviso no celular quando o status for atualizado."
+            : rodando ? "Atualizando seu processo com a Polícia Federal… pode levar até 2 minutos."
             : atualizacao.status === "feito" ? `✓ Status atualizado agora há pouco (${dataHora(atualizacao.atualizado_em)}).`
             : muitosErros ? "Não conseguimos atualizar agora. O escritório vai fazer a consulta e o status aparece aqui. Se quiser, pode tentar de novo."
             : "Não foi possível atualizar agora. Toque em Tentar de novo.";
           return (
             <div style={{ ...caixa, padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
               color: erro ? TEXTO : VERDE_CLARO, borderColor: rodando || erro ? VERDE : BORDA }}>
-              {rodando && <span className="giro-atualizar" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+              {rodando && !naFila && <span className="giro-atualizar" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
                 border: `2px solid ${VERDE}`, borderTopColor: "transparent" }} />}
               <span style={{ lineHeight: 1.4, flex: "1 1 180px" }}>{texto}</span>
               {erro && (
