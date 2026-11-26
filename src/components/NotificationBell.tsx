@@ -167,6 +167,10 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => {
         fetchNotifications();
       })
+      // consulta pedida pelo cliente: a mesma notificação muda de "na fila" para "consulta feita" (2026-11-26)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications" }, () => {
+        fetchNotifications();
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
