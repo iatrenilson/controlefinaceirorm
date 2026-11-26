@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 import { Bell, BellOff } from "lucide-react";
 import { pushSuportado, inscricaoAtual, ativarPush, abertoComoApp, ehIOS, marcarAvisoAberto } from "@/lib/avisosPush";
@@ -205,30 +205,35 @@ export default function AcompanhamentoCliente() {
 
   // Atualizar pelo celular (2026-11-25): abrir a página pede uma atualização (no máximo uma a cada 30 min por cliente).
   // A Passarinho no computador do escritório entra no Portal PF, lê o status e grava; aqui fica conferindo e recarrega.
-  const [atualizacao, setAtualizacao] = useState<{ status: string; mensagem?: string; atualizado_em?: string } | null>(null);
-  useEffect(() => {
-    if (!id || estado !== "ok") return;
-    let vivo = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+  // Deu erro: o cliente pode tentar de novo na hora; depois de mais de 2 erros avisa que o escritório vai consultar, mas
+  // continua deixando tentar (o usuário pediu, 2026-11-25)
+  const [atualizacao, setAtualizacao] = useState<{ status: string; mensagem?: string; atualizado_em?: string; erros?: number } | null>(null);
+  const timerAtualizar = useRef<ReturnType<typeof setTimeout>>();
+  const vivoAtualizar = useRef(true);
+  const pedirAtualizacao = useCallback(async (soVer: boolean, tentativas = 0) => {
+    if (!id) return;
+    clearTimeout(timerAtualizar.current);
     const chamar = (fn: string, corpo: object) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
       body: JSON.stringify(corpo),
     }).then(r => (r.ok ? r.json() : null)).catch(() => null);
-    const acompanhar = async (soVer: boolean, tentativas = 0) => {
-      const r = await chamar("pedir_atualizacao", { p_ref: id, p_so_ver: soVer });
-      if (!vivo || !r?.status) return;
-      setAtualizacao(r);
-      if ((r.status === "pendente" || r.status === "rodando") && tentativas < 120) {
-        timer = setTimeout(() => acompanhar(true, tentativas + 1), 6000);
-      } else if (r.status === "feito") {
-        const j = await chamar("get_acompanhamento_ref", { p_ref: id });
-        if (vivo && j?.nome) setDados(j);
-      }
-    };
-    acompanhar(false);
-    return () => { vivo = false; clearTimeout(timer); };
-  }, [id, estado]);
+    const r = await chamar("pedir_atualizacao", { p_ref: id, p_so_ver: soVer });
+    if (!vivoAtualizar.current || !r?.status) return;
+    setAtualizacao(r);
+    if ((r.status === "pendente" || r.status === "rodando") && tentativas < 120) {
+      timerAtualizar.current = setTimeout(() => pedirAtualizacao(true, tentativas + 1), 6000);
+    } else if (r.status === "feito") {
+      const j = await chamar("get_acompanhamento_ref", { p_ref: id });
+      if (vivoAtualizar.current && j?.nome) setDados(j);
+    }
+  }, [id]);
+  useEffect(() => {
+    if (!id || estado !== "ok") return;
+    vivoAtualizar.current = true;
+    pedirAtualizacao(false);
+    return () => { vivoAtualizar.current = false; clearTimeout(timerAtualizar.current); };
+  }, [id, estado, pedirAtualizacao]);
 
   // Android (Chrome): o navegador avisa que dá para instalar; guardamos o pedido para o botão "Instalar aplicativo"
   const [pedidoInstalar, setPedidoInstalar] = useState<InstalarEvento | null>(null);
@@ -465,16 +470,27 @@ export default function AcompanhamentoCliente() {
         {atualizacao && (() => {
           const recente = atualizacao.atualizado_em && Date.now() - new Date(atualizacao.atualizado_em).getTime() < 30 * 60 * 1000;
           const rodando = atualizacao.status === "pendente" || atualizacao.status === "rodando";
-          if (!rodando && !recente) return null;
+          const erro = atualizacao.status === "erro";
+          if (!rodando && !recente && !erro) return null;
+          // erros seguidos, contando o deste pedido: mais de 2, avisa que o escritório vai consultar
+          const muitosErros = (atualizacao.erros ?? 0) > 2;
           const texto = rodando ? "Atualizando seu processo com a Polícia Federal… pode levar até 2 minutos."
             : atualizacao.status === "feito" ? `✓ Status atualizado agora há pouco (${dataHora(atualizacao.atualizado_em)}).`
-            : "Não foi possível atualizar agora. Abaixo está a última consulta do escritório.";
+            : muitosErros ? "Não conseguimos atualizar agora. O escritório vai fazer a consulta e o status aparece aqui. Se quiser, pode tentar de novo."
+            : "Não foi possível atualizar agora. Toque em Tentar de novo.";
           return (
-            <div style={{ ...caixa, padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10,
-              color: atualizacao.status === "erro" ? APAGADO : VERDE_CLARO, borderColor: rodando ? VERDE : BORDA }}>
+            <div style={{ ...caixa, padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+              color: erro ? TEXTO : VERDE_CLARO, borderColor: rodando || erro ? VERDE : BORDA }}>
               {rodando && <span className="giro-atualizar" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
                 border: `2px solid ${VERDE}`, borderTopColor: "transparent" }} />}
-              <span style={{ lineHeight: 1.4 }}>{texto}</span>
+              <span style={{ lineHeight: 1.4, flex: "1 1 180px" }}>{texto}</span>
+              {erro && (
+                <button onClick={() => { setAtualizacao({ status: "pendente" }); pedirAtualizacao(false); }}
+                  style={{ background: VERDE_CLARO, color: PRETO, border: "none", borderRadius: 999, padding: "7px 14px",
+                    fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT }}>
+                  Tentar de novo
+                </button>
+              )}
               <style>{`@keyframes giroAtualizar { to { transform: rotate(360deg) } } .giro-atualizar { animation: giroAtualizar 0.9s linear infinite }`}</style>
             </div>
           );
