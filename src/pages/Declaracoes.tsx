@@ -11,7 +11,7 @@ import { casaComBusca } from "@/lib/buscaCliente";
 import { BuscaCliente } from "@/components/BuscaCliente";
 import { BotaoCarteira } from "@/components/BotaoCarteira";
 import { BotaoAcompanhamento } from "@/components/BotaoAcompanhamento";
-import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2 } from "lucide-react";
+import { FileText, Plus, Download, Paperclip, X, UserPlus, Users, Pencil, Trash2, ChevronDown, ChevronUp, Copy, Check, Eye, EyeOff, LayoutGrid, List, CalendarDays, Search, Trophy, Share2, Upload, FileCheck2, FileX2, ExternalLink, BarChart2, LogIn } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1971,6 +1971,23 @@ export default function Declaracoes() {
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
   const [docsTodos, setDocsTodos] = useState<{ nome: string; docs: DocParaVer[] } | null>(null);
+  // "Login PF" do cartão: pede à Passarinho (site-ponte.js da extensão) para abrir o Portal PF já entrando na conta gov
+  // do cliente. A página só manda o id; o CPF e a senha a extensão busca no sistema.
+  const loginPortalPf = (c: { id: string; nome: string; cpf: string; senhaGov: string }) => {
+    if (!c.cpf || !c.senhaGov) { sonnerToast.error(`Cadastre o CPF e a Senha GOV.br de ${c.nome} para o login automático.`); return; }
+    if (!document.documentElement.dataset.passarinho) {
+      sonnerToast.error("A Passarinho não respondeu nesta página. Aperte F5 (ela pode ter sido atualizada) e tente de novo.");
+      return;
+    }
+    const aoResponder = (e: MessageEvent) => {
+      if (e.source !== window || e.data?.passarinho !== "loginPfResp") return;
+      window.removeEventListener("message", aoResponder);
+      if (e.data.ok) sonnerToast.success(`Abrindo o Portal PF na conta de ${c.nome}…`);
+      else sonnerToast.error(`Não deu para abrir: ${e.data.erro || "erro na Passarinho"}`);
+    };
+    window.addEventListener("message", aoResponder);
+    window.postMessage({ passarinho: "loginPf", clienteId: c.id }, window.location.origin);
+  };
 
   // devolve true quando leu algum campo (aí o arquivo também vai para o item RG dos Docs CR)
   const importarDocumento = useCallback(async (file: File): Promise<boolean> => {
@@ -3232,7 +3249,14 @@ export default function Declaracoes() {
                           const total = DOCS_CR.length;
                           const cor = ok === total ? "border-green-500/40 text-green-400" : ok > 0 ? "border-yellow-500/40 text-yellow-400" : "border-border/30 text-muted-foreground";
                           return (
-                            <div className="border-t border-white/5 pt-1 mt-0.5">
+                            <div className="border-t border-white/5 pt-1 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              {/* Login PF (2026-11-26): abre o Portal PF na janela anônima já entrando na conta gov do cliente */}
+                              <button type="button" onClick={() => loginPortalPf(c)}
+                                title="Abrir o Portal PF já entrando na conta gov deste cliente (pela Passarinho, na janela anônima)"
+                                className="flex items-center gap-1 rounded-full border border-sky-400/40 text-sky-300 px-2 py-0.5 text-[9px] font-semibold hover:opacity-100 opacity-80 transition-opacity order-2">
+                                <LogIn className="h-2.5 w-2.5" />
+                                Login PF
+                              </button>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <button type="button" className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold hover:opacity-100 opacity-80 transition-opacity ${cor}`}>
