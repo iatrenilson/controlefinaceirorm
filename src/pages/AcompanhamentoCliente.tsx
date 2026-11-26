@@ -203,6 +203,33 @@ export default function AcompanhamentoCliente() {
     };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Atualizar pelo celular (2026-11-25): abrir a página pede uma atualização (no máximo uma a cada 30 min por cliente).
+  // A Passarinho no computador do escritório entra no Portal PF, lê o status e grava; aqui fica conferindo e recarrega.
+  const [atualizacao, setAtualizacao] = useState<{ status: string; mensagem?: string; atualizado_em?: string } | null>(null);
+  useEffect(() => {
+    if (!id || estado !== "ok") return;
+    let vivo = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const chamar = (fn: string, corpo: object) => fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+      body: JSON.stringify(corpo),
+    }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+    const acompanhar = async (soVer: boolean, tentativas = 0) => {
+      const r = await chamar("pedir_atualizacao", { p_ref: id, p_so_ver: soVer });
+      if (!vivo || !r?.status) return;
+      setAtualizacao(r);
+      if ((r.status === "pendente" || r.status === "rodando") && tentativas < 120) {
+        timer = setTimeout(() => acompanhar(true, tentativas + 1), 6000);
+      } else if (r.status === "feito") {
+        const j = await chamar("get_acompanhamento_ref", { p_ref: id });
+        if (vivo && j?.nome) setDados(j);
+      }
+    };
+    acompanhar(false);
+    return () => { vivo = false; clearTimeout(timer); };
+  }, [id, estado]);
+
   // Android (Chrome): o navegador avisa que dá para instalar; guardamos o pedido para o botão "Instalar aplicativo"
   const [pedidoInstalar, setPedidoInstalar] = useState<InstalarEvento | null>(null);
   const [instalado, setInstalado] = useState(false);
@@ -434,6 +461,24 @@ export default function AcompanhamentoCliente() {
             </div>
           </div>
         )}
+
+        {atualizacao && (() => {
+          const recente = atualizacao.atualizado_em && Date.now() - new Date(atualizacao.atualizado_em).getTime() < 30 * 60 * 1000;
+          const rodando = atualizacao.status === "pendente" || atualizacao.status === "rodando";
+          if (!rodando && !recente) return null;
+          const texto = rodando ? "Atualizando seu processo com a Polícia Federal… pode levar até 2 minutos."
+            : atualizacao.status === "feito" ? `✓ Status atualizado agora há pouco (${dataHora(atualizacao.atualizado_em)}).`
+            : "Não foi possível atualizar agora. Abaixo está a última consulta do escritório.";
+          return (
+            <div style={{ ...caixa, padding: "10px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 10,
+              color: atualizacao.status === "erro" ? APAGADO : VERDE_CLARO, borderColor: rodando ? VERDE : BORDA }}>
+              {rodando && <span className="giro-atualizar" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+                border: `2px solid ${VERDE}`, borderTopColor: "transparent" }} />}
+              <span style={{ lineHeight: 1.4 }}>{texto}</span>
+              <style>{`@keyframes giroAtualizar { to { transform: rotate(360deg) } } .giro-atualizar { animation: giroAtualizar 0.9s linear infinite }`}</style>
+            </div>
+          );
+        })()}
 
         {etapa && (
           <div style={{ ...caixa, padding: 14 }}>
