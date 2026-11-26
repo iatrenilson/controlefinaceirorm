@@ -142,10 +142,31 @@ async function marcarConsulta(a) {
     { method: "PATCH", body: JSON.stringify({ avisado_consulta_ts: new Date().toISOString() }), headers: { Prefer: "return=minimal" } });
 }
 
+// Consulta pedida pelo cliente no celular que ficou ESPERANDO (computador do escritório desligado ou site fechado) e
+// foi feita depois (2026-11-26, o usuário pediu: "ele vai ficar ansioso esperando"): avisa SEMPRE, mesmo sem mudança e
+// mesmo dentro das 6 horas. Esperou = feito mais de 90 s depois de pedido (quem ficou olhando a página já viu na hora).
+const pedidosFeitos = await sb("pedidos_atualizacao?select=id,cliente_id,pedido_em,atualizado_em&status=eq.feito&avisado=eq.false");
+const esperaram = new Set(pedidosFeitos
+  .filter(p => new Date(p.atualizado_em).getTime() - new Date(p.pedido_em).getTime() > 90 * 1000)
+  .map(p => p.cliente_id));
+let avisosPedido = 0;
+
 for (const cliente of new Set(inscricoes.map(i => i.cliente_id))) {
   const aparelhos = inscricoes.filter(i => i.cliente_id === cliente);
   const mudaram = pendentes.filter(p => p.cliente_id === cliente && !rascunho(p) && p.status);
   const url = `/acompanhamento/${cliente}`, tag = `acomp-${cliente}`;
+
+  // 0) Pedido do cliente que esperou: um aviso só, com a mudança (se houve) ou o resumo de como está
+  if (esperaram.has(cliente)) {
+    const dele = processos.filter(p => p.cliente_id === cliente && !rascunho(p) && p.status);
+    const resumo = mudaram.length ? `Novidade: ${listar(mudaram)}.`
+      : dele.length ? avisoDeConsulta(dele, url, tag).corpo.replace(/^A Passarinho Assessoria Bélica conferiu hoje seu processo na Polícia Federal\. /, "").replace(/ Seguimos acompanhando.*$/, "")
+      : "Ainda não há solicitação enviada à Polícia Federal.";
+    const aviso = { titulo: "📌 A consulta que você pediu foi feita",
+      corpo: `A Passarinho Assessoria Bélica consultou seu processo na Polícia Federal. ${resumo} Toque para ver os detalhes.`, url, tag };
+    for (const a of aparelhos) if (await enviar(a, aviso)) { avisosPedido++; await marcarHoje(a); await marcarConsulta(a); await guardarPendente(a, aviso, true); }
+    continue;
+  }
 
   // 1) Status mudou: avisa a mudança (vale também como o aviso desta consulta)
   if (mudaram.length) {
@@ -217,9 +238,13 @@ if (!SIMULAR) {
   for (const p of pendentes) {
     await sb(`processos_pf?id=eq.${p.id}`, { method: "PATCH", body: JSON.stringify({ avisado_status: p.status }), headers: { Prefer: "return=minimal" } });
   }
+  // pedidos feitos: avisados (também os que não esperaram e os de cliente sem aparelho inscrito)
+  for (const p of pedidosFeitos) {
+    await sb(`pedidos_atualizacao?id=eq.${p.id}`, { method: "PATCH", body: JSON.stringify({ avisado: true }), headers: { Prefer: "return=minimal" } });
+  }
 }
 
 console.log(`${SIMULAR ? "[simulação] " : ""}status novos: ${pendentes.length} | aparelhos inscritos: ${inscricoes.length}` +
-  ` | avisos de mudança: ${avisosMudanca} | avisos de consulta: ${avisosConsulta} | enviados: ${enviados}` +
+  ` | avisos de mudança: ${avisosMudanca} | avisos de consulta: ${avisosConsulta} | consultas pedidas: ${avisosPedido} | enviados: ${enviados}` +
   ` | lembretes (não abertos): ${reenvios} | deferidos avisados ao escritório: ${deferidosAvisados} | inscrições removidas: ${removidas} | falhas: ${falhas}`);
 if (falhas && !enviados) process.exit(1);
