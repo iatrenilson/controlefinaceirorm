@@ -483,7 +483,7 @@ export default function AcompanhamentoCliente() {
             && Date.now() - new Date(atualizacao.pedido_em).getTime() > 40 * 1000));
           const texto = naFila ? "📌 Sua consulta ficou marcada e será feita assim que o escritório abrir. Você recebe o aviso no celular quando o status for atualizado."
             : atualizacao.status === "rodando" ? "Consultando seu processo na Polícia Federal… leva cerca de 1 minuto."
-            : rodando ? "Enviando seu pedido de consulta ao escritório…"
+            : rodando ? "Atualizando seu processo com a Polícia Federal…"
             : atualizacao.status === "feito" ? `✓ Status atualizado agora há pouco (${dataHora(atualizacao.atualizado_em)}).`
             : muitosErros ? "Não conseguimos atualizar agora. O escritório vai fazer a consulta e o status aparece aqui. Se quiser, pode tentar de novo."
             : "Não foi possível atualizar agora. Toque em Tentar de novo.";
