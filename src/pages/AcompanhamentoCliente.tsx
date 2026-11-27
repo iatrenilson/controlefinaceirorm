@@ -224,7 +224,7 @@ export default function AcompanhamentoCliente() {
     if (!vivoAtualizar.current || !r?.status) return;
     setAtualizacao(r);
     if ((r.status === "pendente" || r.status === "rodando") && tentativas < 600) {
-      const naFila = r.status === "pendente" && (r.online === false || (r.pedido_em && Date.now() - new Date(r.pedido_em).getTime() > 2 * 60 * 1000));
+      const naFila = r.status === "pendente" && (r.online === false || (r.pedido_em && Date.now() - new Date(r.pedido_em).getTime() > 40 * 1000));
       timerAtualizar.current = setTimeout(() => pedirAtualizacao(true, tentativas + 1), naFila ? 30000 : 6000);
     } else if (r.status === "feito") {
       const j = await chamar("get_acompanhamento_ref", { p_ref: id });
@@ -477,11 +477,13 @@ export default function AcompanhamentoCliente() {
           if (!rodando && !recente && !erro) return null;
           // erros seguidos, contando o deste pedido: mais de 2, avisa que o escritório vai consultar
           const muitosErros = (atualizacao.erros ?? 0) > 2;
-          // computador do escritório desligado (sem sinal da Passarinho: online === false): marcada na hora (2026-11-26)
+          // computador do escritório desligado (sem sinal da Passarinho: online === false) ou ninguém pegou o pedido em 40 s
+          // (ligada, ela pega em até 30 s): mostra na hora que ficou marcada (2026-11-27: 2 minutos era muito para esperar)
           const naFila = atualizacao.status === "pendente" && (atualizacao.online === false || (!!atualizacao.pedido_em
-            && Date.now() - new Date(atualizacao.pedido_em).getTime() > 2 * 60 * 1000));
+            && Date.now() - new Date(atualizacao.pedido_em).getTime() > 40 * 1000));
           const texto = naFila ? "📌 Sua consulta ficou marcada e será feita assim que o escritório abrir. Você recebe o aviso no celular quando o status for atualizado."
-            : rodando ? "Atualizando seu processo com a Polícia Federal… pode levar até 2 minutos."
+            : atualizacao.status === "rodando" ? "Consultando seu processo na Polícia Federal… leva cerca de 1 minuto."
+            : rodando ? "Enviando seu pedido de consulta ao escritório…"
             : atualizacao.status === "feito" ? `✓ Status atualizado agora há pouco (${dataHora(atualizacao.atualizado_em)}).`
             : muitosErros ? "Não conseguimos atualizar agora. O escritório vai fazer a consulta e o status aparece aqui. Se quiser, pode tentar de novo."
             : "Não foi possível atualizar agora. Toque em Tentar de novo.";
