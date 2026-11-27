@@ -1979,13 +1979,21 @@ export default function Declaracoes() {
       sonnerToast.error("A Passarinho não respondeu nesta página. Aperte F5 (ela pode ter sido atualizada) e tente de novo.");
       return;
     }
+    // Passarinho atualizada sem F5: a ponte antiga da página responde "Aperte F5" e a nova (posta sozinha pela extensão)
+    // responde certo; espera um pouco pela resposta certa antes de mostrar o erro (2026-11-27)
+    let erro = "", resolvido = false;
+    const terminar = () => { resolvido = true; window.removeEventListener("message", aoResponder); };
     const aoResponder = (e: MessageEvent) => {
-      if (e.source !== window || e.data?.passarinho !== "loginPfResp") return;
-      window.removeEventListener("message", aoResponder);
-      if (e.data.ok) sonnerToast.success(`Abrindo o Portal PF na conta de ${c.nome}…`);
-      else sonnerToast.error(`Não deu para abrir: ${e.data.erro || "erro na Passarinho"}`);
+      if (resolvido || e.source !== window || e.data?.passarinho !== "loginPfResp") return;
+      if (e.data.ok) { terminar(); sonnerToast.success(`Abrindo o Portal PF na conta de ${c.nome}…`); return; }
+      erro = e.data.erro || "erro na Passarinho";
     };
     window.addEventListener("message", aoResponder);
+    setTimeout(() => {
+      if (resolvido) return;
+      terminar();
+      sonnerToast.error(`Não deu para abrir: ${erro || "a Passarinho não respondeu. Aperte F5 e tente de novo."}`);
+    }, 2500);
     window.postMessage({ passarinho: "loginPf", clienteId: c.id }, window.location.origin);
   };
 
