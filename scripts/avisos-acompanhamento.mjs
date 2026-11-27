@@ -145,9 +145,9 @@ async function marcarConsulta(a) {
 // Consulta pedida pelo cliente no celular que ficou ESPERANDO (computador do escritório desligado ou site fechado) e
 // foi feita depois (2026-11-26, o usuário pediu: "ele vai ficar ansioso esperando"): avisa SEMPRE, mesmo sem mudança e
 // mesmo dentro das 6 horas. Esperou = feito mais de 90 s depois de pedido (quem ficou olhando a página já viu na hora).
-const pedidosFeitos = await sb("pedidos_atualizacao?select=id,cliente_id,pedido_em,atualizado_em&status=eq.feito&avisado=eq.false");
+const pedidosFeitos = await sb("pedidos_atualizacao?select=id,cliente_id,pedido_em,atualizado_em,automatico&status=eq.feito&avisado=eq.false");
 const esperaram = new Set(pedidosFeitos
-  .filter(p => new Date(p.atualizado_em).getTime() - new Date(p.pedido_em).getTime() > 90 * 1000)
+  .filter(p => !p.automatico && new Date(p.atualizado_em).getTime() - new Date(p.pedido_em).getTime() > 90 * 1000)
   .map(p => p.cliente_id));
 let avisosPedido = 0;
 

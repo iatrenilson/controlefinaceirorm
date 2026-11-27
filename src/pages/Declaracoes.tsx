@@ -1971,6 +1971,29 @@ export default function Declaracoes() {
   const inqTipoResolveRef = useRef<((v: string) => void) | null>(null);
   const [docPreview, setDocPreview] = useState<{ url: string; nome: string } | null>(null);
   const [docsTodos, setDocsTodos] = useState<{ nome: string; docs: DocParaVer[] } | null>(null);
+  // "Consultar todos os processos" (2026-11-27): põe na fila da Passarinho um pedido "automatico" para cada cliente com
+  // processo em andamento e login gov no cadastro (a mesma regra da consulta do dia, criarConsultaGeral em site-funcs.js
+  // da extensão). Os pedidos dos próprios clientes continuam passando na frente.
+  const consultarTodos = async () => {
+    const FINAL = /^(deferid|indeferid|cancelad|arquivad|conclu|finalizad|encerrad|desistid)/i;
+    const tid = sonnerToast.loading("Montando a lista de consultas…");
+    try {
+      const { data: procs, error } = await supabase.from("processos_pf" as any).select("cliente_id,status,descricao");
+      if (error) throw error;
+      const andamento = new Set(((procs ?? []) as any[])
+        .filter(p => p.status && !FINAL.test(String(p.status).trim()) && !/rascunho/i.test(p.descricao || ""))
+        .map(p => p.cliente_id as string));
+      const { data: fila } = await supabase.from("pedidos_atualizacao" as any).select("cliente_id").in("status", ["pendente", "rodando"]);
+      for (const f of (fila ?? []) as any[]) andamento.delete(f.cliente_id);
+      const com = clientes.filter(c => andamento.has(c.id) && c.cpf && c.senhaGov).map(c => ({ cliente_id: c.id, automatico: true }));
+      if (!com.length) { sonnerToast.info("Nenhum processo em andamento para consultar (ou já estão na fila)."); return; }
+      const { error: e2 } = await supabase.from("pedidos_atualizacao" as any).insert(com as any);
+      if (e2) throw e2;
+      sonnerToast.success(`${com.length} cliente(s) na fila. A Passarinho consulta um por vez (cerca de 1 a 2 minutos cada), com o Chrome e este site abertos.`);
+    } catch (e) {
+      sonnerToast.error("Não deu para montar a consulta: " + (e instanceof Error ? e.message : String((e as any)?.message ?? e)));
+    } finally { sonnerToast.dismiss(tid); }
+  };
   // "Login PF" do cartão: pede à Passarinho (site-ponte.js da extensão) para abrir o Portal PF já entrando na conta gov
   // do cliente. A página só manda o id; o CPF e a senha a extensão busca no sistema.
   const loginPortalPf = (c: { id: string; nome: string; cpf: string; senhaGov: string }) => {
@@ -2986,6 +3009,12 @@ export default function Declaracoes() {
                     <BarChart2 className="h-4 w-4" />
                   </Button>
                 </>
+              )}
+              {isAdmin && clientes.length > 0 && (
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-sky-400/40 text-sky-300" onClick={consultarTodos}
+                  title="A Passarinho consulta no Portal PF (e no Sinarm CAC) todos os clientes com processo em andamento">
+                  <Search className="h-3.5 w-3.5" />Consultar todos os processos
+                </Button>
               )}
               {clientes.length > 0 && (
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={exportarExcel} title="Exportar planilha Excel">
