@@ -548,7 +548,7 @@ export default function AcompanhamentoCliente() {
                 // última vez que o escritório abriu a lista na conta gov do cliente: muda a cada consulta,
                 // mesmo sem mudança de status (o cliente vê que o processo está sendo acompanhado)
                 <p style={{ fontSize: 11, color: APAGADO, padding: "8px 14px 10px", background: "rgba(212,167,48,0.08)" }}>
-                  Status conferido pelo escritório em {dataHora(p.consultado_em)}
+                  Status conferido na Polícia Federal em {dataHora(p.consultado_em)}
                 </p>
               )}
             </div>
@@ -556,7 +556,7 @@ export default function AcompanhamentoCliente() {
         })}
 
         <p style={{ color: APAGADO, fontSize: 11, lineHeight: 1.5 }}>
-          O status é atualizado cada vez que o escritório consulta o sistema da Polícia Federal. Dúvidas? Fale com a Passarinho Assessoria.
+          O status é atualizado a cada consulta ao sistema da Polícia Federal. Dúvidas? Fale com a Passarinho Assessoria.
         </p>
       </div>
     </div>
