@@ -36,12 +36,30 @@ const lerVistos = (): string[] => {
 };
 
 // perguntarAvisos: o layout tem dois sinos (celular e computador); só um deles faz a pergunta ao abrir o aplicativo
+// Resumo da consulta geral (feito pela Passarinho): "Consultados (n): NOME — Serviço: status; Serviço: status | NOME — …
+// ‖ Não consultados (m): NOME (motivo) | …". Separa um cliente por item, para mostrar como notificações normais.
+const ehConsultaGeral = (titulo: string) => /^✅ Consulta geral concluída/.test(titulo || "");
+const partesConsultaGeral = (msg: string) => {
+  const [ok, nao] = String(msg || "").split(" ‖ ");
+  const itens = (s?: string) => (s ? s.replace(/^[^:]*\(\d+\):\s*/, "").split(" | ").map(t => t.trim()).filter(Boolean) : []);
+  return {
+    feitos: itens(ok).map(t => {
+      const i = t.indexOf(" — ");
+      const nome = i >= 0 ? t.slice(0, i) : t;
+      const resto = i >= 0 ? t.slice(i + 3) : "";
+      return { nome, linhas: /^nenhuma solicita/i.test(resto) ? [] : resto.split(/;\s*|\s·\s/).map(x => x.trim()).filter(Boolean) };
+    }),
+    erros: itens(nao).map(t => { const m = t.match(/^(.*?) \((.*)\)$/); return { nome: m?.[1] ?? t, motivo: m?.[2] ?? "" }; }),
+  };
+};
+
 const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boolean }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [avisos, setAvisos] = useState<AvisoDoc[]>([]);
   const [vistos, setVistos] = useState<string[]>(lerVistos);
   const [limpos, setLimpos] = useState<string[]>(lerLimpos);
   const [open, setOpen] = useState(false);
+  const [consultaGeral, setConsultaGeral] = useState<{ titulo: string; mensagem: string; created_at: string } | null>(null);
   const navigate = useNavigate();
   // Usuário já conhecido pelo app: sem getUser() (ida ao servidor que segurava as outras buscas da página)
   const { user, isAdmin } = useAppContext();
@@ -229,6 +247,43 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
 
   return (
     <>
+    {/* Resumo da consulta geral: um cliente por vez, como notificações normais (2026-11-27, o usuário pediu) */}
+    <Dialog open={!!consultaGeral} onOpenChange={o => { if (!o) setConsultaGeral(null); }}>
+      <DialogContent className="max-w-md p-0 gap-0 max-h-[85vh] flex flex-col">
+        <DialogHeader className="px-4 pt-4 pb-3 border-b">
+          <DialogTitle className="text-base">{consultaGeral?.titulo}</DialogTitle>
+          <DialogDescription className="text-xs">
+            {consultaGeral && format(parseISO(consultaGeral.created_at), "dd/MM/yyyy 'às' HH:mm")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto divide-y">
+          {consultaGeral && (() => {
+            const { feitos, erros } = partesConsultaGeral(consultaGeral.mensagem);
+            return (
+              <>
+                {feitos.map((f, i) => (
+                  <div key={"f" + i} className="px-4 py-3">
+                    <p className="text-sm font-semibold">🔎 {f.nome}</p>
+                    {f.linhas.length
+                      ? f.linhas.map((l, j) => <p key={j} className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{l}</p>)
+                      : <p className="text-xs text-muted-foreground mt-0.5">Nenhuma solicitação na Polícia Federal.</p>}
+                  </div>
+                ))}
+                {erros.length > 0 && (
+                  <p className="px-4 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-amber-500">Não consultados</p>
+                )}
+                {erros.map((e, i) => (
+                  <div key={"e" + i} className="px-4 py-3 bg-amber-500/5">
+                    <p className="text-sm font-semibold">⚠️ {e.nome}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Motivo: {e.motivo || "erro"}</p>
+                  </div>
+                ))}
+              </>
+            );
+          })()}
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={perguntaAvisos} onOpenChange={o => { if (!o) responderPerguntaAvisos(false); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
@@ -317,13 +372,15 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
                 <button
                   key={n.id}
                   className={`w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors ${!n.lida ? "bg-accent/20" : ""}`}
-                  onClick={() => markAsRead(n.id)}
+                  onClick={() => { markAsRead(n.id); if (ehConsultaGeral(n.titulo)) { setConsultaGeral(n); setOpen(false); } }}
                 >
                   <div className="flex items-start gap-2">
                     {!n.lida && <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />}
                     <div className={!n.lida ? "" : "ml-[16px]"}>
                       <p className="text-sm font-semibold">{n.titulo}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>
+                      {ehConsultaGeral(n.titulo)
+                        ? <p className="text-xs text-primary mt-0.5 font-medium">Toque para ver cliente por cliente ›</p>
+                        : <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.mensagem}</p>}
                       <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {format(parseISO(n.created_at), "dd/MM/yyyy 'às' HH:mm")}
                       </p>
