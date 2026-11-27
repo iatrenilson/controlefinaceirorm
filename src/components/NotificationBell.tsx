@@ -243,7 +243,7 @@ const NotificationBell = ({ perguntarAvisos = false }: { perguntarAvisos?: boole
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    <Popover open={open} onOpenChange={o => { setOpen(o); if (o) fetchAvisos(); }}>
+    <Popover open={open} onOpenChange={o => { setOpen(o); if (o) { fetchAvisos(); fetchNotifications(); } }}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
