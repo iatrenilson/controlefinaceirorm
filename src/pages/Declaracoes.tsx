@@ -1989,6 +1989,13 @@ export default function Declaracoes() {
       if (!com.length) { sonnerToast.info("Nenhum processo em andamento para consultar (ou já estão na fila)."); return; }
       const { error: e2 } = await supabase.from("pedidos_atualizacao" as any).insert(com as any);
       if (e2) throw e2;
+      // no sino: início da consulta geral (no fim a Passarinho manda o resumo com cada cliente e o status)
+      const eu = (await usuarioAtual())?.id;
+      if (eu) await supabase.from("notifications").insert({
+        titulo: `🔎 Consulta geral iniciada: ${com.length} cliente(s) na fila`,
+        mensagem: "A Passarinho consulta um por vez no Portal PF (e no Sinarm CAC). Quando terminar, chega aqui o resumo com cada cliente e o status.",
+        created_by: eu, target_user_id: eu,
+      } as any);
       sonnerToast.success(`${com.length} cliente(s) na fila. A Passarinho consulta um por vez (cerca de 1 a 2 minutos cada), com o Chrome e este site abertos.`);
     } catch (e) {
       sonnerToast.error("Não deu para montar a consulta: " + (e instanceof Error ? e.message : String((e as any)?.message ?? e)));
