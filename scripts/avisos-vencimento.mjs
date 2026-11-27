@@ -85,7 +85,7 @@ async function enviar(insc, aviso) {
   if (SIMULAR) { enviados++; return true; }
   try {
     await webpush.sendNotification({ endpoint: insc.endpoint, keys: { p256dh: insc.p256dh, auth: insc.auth } },
-      JSON.stringify(aviso), { TTL: 12 * 3600, urgency: "normal" });
+      JSON.stringify(aviso), { TTL: 12 * 3600, urgency: "high" });
     enviados++;
     return true;
   } catch (e) {

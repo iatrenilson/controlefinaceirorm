@@ -33,6 +33,11 @@ self.addEventListener("push", e => {
     badge: "/carteira-icon5.png",
     tag: d.tag || "vencimento",
     renotify: true,
+    // como mensagem de verdade (o usuário pediu, 2026-11-27): vibra e toca o som do celular, e fica na tela até a pessoa
+    // ver (Android). O iPhone não aceita vibração por site: lá vale o som/vibração padrão das notificações do app.
+    silent: false,
+    vibrate: [300, 120, 300, 120, 300],
+    requireInteraction: true,
     data: { url: d.url || "/" },
   }));
 });

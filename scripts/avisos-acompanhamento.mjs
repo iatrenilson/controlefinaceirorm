@@ -44,7 +44,7 @@ async function enviar(a, aviso) {
   if (SIMULAR) { enviados++; return true; }
   try {
     await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
-      JSON.stringify(aviso), { TTL: 24 * 3600, urgency: "normal" });
+      JSON.stringify(aviso), { TTL: 24 * 3600, urgency: "high" });
     enviados++;
     return true;
   } catch (e) {
@@ -220,7 +220,7 @@ if (deferidos.length) {
       if (SIMULAR) { enviados++; continue; }
       try {
         await webpush.sendNotification({ endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
-          JSON.stringify({ titulo, corpo: mensagem, url: "/declaracoes", tag: `deferido-${c.id}` }), { TTL: 24 * 3600, urgency: "normal" });
+          JSON.stringify({ titulo, corpo: mensagem, url: "/declaracoes", tag: `deferido-${c.id}` }), { TTL: 24 * 3600, urgency: "high" });
         enviados++;
       } catch (e) {
         if (e.statusCode === 404 || e.statusCode === 410) {
