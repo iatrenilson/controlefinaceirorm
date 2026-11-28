@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WHATSAPP_NUMBER, whatsappUrl } from "@/lib/constants";
-import { lerLaudo } from "@/lib/lerDocumento";
 import { toast } from "sonner";
-import { ArrastarArquivo } from "@/components/ArrastarArquivo";
 
 const GOLD = "#c9a227";
 const TIPOS_SINARM = ["SINARM CAC", "SINARM POSSE", "SINARM PORTE"] as const;
@@ -42,6 +40,15 @@ function CheckboxOpt({ checked, onClick, label }: { checked: boolean; onClick: (
   );
 }
 
+// telefone do cliente (a PF exige o número do próprio cliente, não o do despachante)
+const maskTel = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+};
+
 const maskCpf = (v: string) => {
   const d = v.replace(/\D/g, "").slice(0, 11);
   if (d.length <= 3) return d;
@@ -54,6 +61,7 @@ interface Cliente {
   id: string;
   nome: string;
   cpf: string | null;
+  telefone: string | null;
   endereco: string | null;
   numero: string | null;
   complemento: string | null;
@@ -67,7 +75,7 @@ interface Cliente {
 }
 
 function initForm() {
-  return { nome:"", cpf:"", endereco:"", numero:"", complemento:"", bairro:"", cidade:"", estado:"", tipos:[] as string[], armas:[] as string[], psicoFile:null as File|null, psicoUrl:null as string|null };
+  return { nome:"", cpf:"", telefone:"", endereco:"", numero:"", complemento:"", bairro:"", cidade:"", estado:"", tipos:[] as string[], armas:[] as string[] };
 }
 
 type FormState = ReturnType<typeof initForm>;
@@ -81,8 +89,6 @@ export default function ColaboradorPortal() {
   const [form, setForm] = useState<FormState>(initForm());
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadingPsico, setUploadingPsico] = useState(false);
-  const [lendoLaudo, setLendoLaudo] = useState(false);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
 
@@ -108,40 +114,9 @@ export default function ColaboradorPortal() {
     setForm(f => ({ ...f, [k]: lista.includes(v) ? lista.filter(x => x !== v) : [...lista, v] }));
   }
 
-  async function handlePsicoFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setForm(f => ({ ...f, psicoFile: file, psicoUrl: null }));
-    setUploadingPsico(true);
-    // lê nome e CPF do avaliado enquanto o arquivo sobe; só preenche campos vazios
-    setLendoLaudo(true);
-    lerLaudo(file)
-      .then(d => {
-        if (!d.nome && !d.cpf) { toast.info("Não encontrei nome e CPF no laudo. Preencha à mão."); return; }
-        setForm(f => ({
-          ...f,
-          nome: f.nome.trim() || !d.nome ? f.nome : d.nome,
-          cpf: f.cpf.trim() || !d.cpf ? f.cpf : maskCpf(d.cpf),
-        }));
-        toast.success(d.nome && d.cpf ? "Nome e CPF preenchidos a partir do laudo." : d.nome ? "Nome preenchido a partir do laudo." : "CPF preenchido a partir do laudo.");
-      })
-      .catch(() => toast.info("Não consegui ler o laudo. Preencha nome e CPF à mão."))
-      .finally(() => setLendoLaudo(false));
-    const ext = file.name.split(".").pop() || "pdf";
-    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from("psicologicos").upload(path, file, { upsert: true });
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from("psicologicos").getPublicUrl(path);
-      setForm(f => ({ ...f, psicoUrl: publicUrl }));
-    } else {
-      toast.error("Erro ao enviar arquivo.");
-      setForm(f => ({ ...f, psicoFile: null }));
-    }
-    setUploadingPsico(false);
-  }
-
   async function salvar() {
     if (!form.nome.trim())     { toast.error("Informe o nome."); return; }
+    if (form.telefone.replace(/\D/g, "").length < 10) { toast.error("Informe o telefone do cliente com DDD (obrigatório pela PF)."); return; }
     if (!form.cpf.trim())      { toast.error("Informe o CPF."); return; }
     if (!form.endereco.trim()) { toast.error("Informe o endereço."); return; }
     if (!form.numero.trim())   { toast.error("Informe o número."); return; }
@@ -149,19 +124,15 @@ export default function ColaboradorPortal() {
     if (!form.cidade.trim())   { toast.error("Informe a cidade."); return; }
     if (!form.tipos.length)    { toast.error("Selecione o Tipo de Serviço."); return; }
     if (!form.armas.length)    { toast.error("Selecione ao menos uma Arma."); return; }
-    if (uploadingPsico)        { toast.error("Aguarde o upload."); return; }
-    // cadastro novo só sai com o laudo psicológico anexado
-    if (tela === "novo" && !form.psicoUrl) { toast.error("Anexe o PDF do laudo psicológico."); return; }
     setSaving(true);
     if (tela === "novo") {
       // Salva PRIMEIRO; a confirmação no WhatsApp só sai depois de salvo.
       // (Antes abria o WhatsApp antes de salvar e, no celular, o cadastro podia se perder.)
       const { error } = await supabase.rpc("insert_cac_cadastro_by_token", {
-        p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_endereco: form.endereco,
+        p_token: token, p_nome: form.nome, p_cpf: form.cpf, p_telefone: form.telefone, p_endereco: form.endereco,
         p_numero: form.numero, p_complemento: form.complemento, p_bairro: form.bairro,
         p_cidade: form.cidade, p_estado: form.estado,
         p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
-        p_psicologico_url: form.psicoUrl,
       });
       if (error) { toast.error("Cadastro NÃO foi salvo: " + error.message + " Tente de novo."); setSaving(false); return; }
       toast.success("Cliente cadastrado!");
@@ -170,20 +141,20 @@ export default function ColaboradorPortal() {
         "✅ *Confirmação de Cadastro*",
         "",
         `*Nome:* ${form.nome}`,
+        form.telefone ? `*Telefone:* ${form.telefone}` : null,
         form.cpf      ? `*CPF:* ${form.cpf}` : null,
         form.endereco ? `*Endereço:* ${form.endereco}${form.numero ? `, Nº ${form.numero}` : ""}${form.complemento ? ` - ${form.complemento}` : ""}` : null,
         form.bairro   ? `*Bairro:* ${form.bairro}` : null,
         (form.cidade || form.estado) ? `*Cidade/UF:* ${form.cidade}${form.cidade && form.estado ? " - " : ""}${form.estado}` : null,
         form.tipos.length ? `*Tipo:* ${form.tipos.join(", ")}` : null,
         form.armas.length ? `*Armas:* ${form.armas.join(", ")}` : null,
-        form.psicoUrl ? `\n📄 *Psicológico:*\n${form.psicoUrl}` : null,
       ].filter(l => l !== null).join("\n");
       const url = whatsappUrl(WHATSAPP_NUMBER, linhas);
       // Se o navegador bloquear a janela nova (comum no iPhone depois de salvar), abre na mesma aba
       if (!window.open(url, "_blank")) window.location.href = url;
     } else {
       const { error } = await supabase.rpc("update_cac_cadastro_by_token", {
-        p_token: token, p_id: editandoId, p_nome: form.nome, p_cpf: form.cpf,
+        p_token: token, p_id: editandoId, p_nome: form.nome, p_cpf: form.cpf, p_telefone: form.telefone,
         p_endereco: form.endereco, p_numero: form.numero, p_complemento: form.complemento,
         p_bairro: form.bairro, p_cidade: form.cidade, p_estado: form.estado,
         p_tipo_sinarm: form.tipos.join(", "), p_armas: form.armas.join(", "),
@@ -199,9 +170,9 @@ export default function ColaboradorPortal() {
 
   function abrirEdicao(c: Cliente) {
     setForm({
-      nome: c.nome, cpf: c.cpf || "", endereco: c.endereco || "", numero: c.numero || "",
+      nome: c.nome, cpf: c.cpf || "", telefone: c.telefone || "", endereco: c.endereco || "", numero: c.numero || "",
       complemento: c.complemento || "", bairro: c.bairro || "", cidade: c.cidade || "",
-      estado: c.estado || "", psicoFile: null, psicoUrl: c.psicologico_url || null,
+      estado: c.estado || "",
       tipos: c.tipo_sinarm ? c.tipo_sinarm.split(", ").filter(Boolean) : [],
       armas: c.armas ? c.armas.split(", ").filter(Boolean) : [],
     });
@@ -264,52 +235,16 @@ export default function ColaboradorPortal() {
         </div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-          {/* Psicológico */}
-          <div>
-            <label style={{ ...labelStyle, marginBottom:4, display:"block" }}>Psicológico {tela === "novo" && !form.psicoUrl && <span style={{ color:"#ef4444" }}>* obrigatório</span>}</label>
-            <p style={{ color:"#ffffff", fontSize:14, fontWeight:700, lineHeight:1.4, margin:"0 0 10px" }}>
-              Ao anexar o laudo psicológico, nome e CPF são preenchidos automaticamente.
-            </p>
-            <ArrastarArquivo className="rounded-xl" desativado={uploadingPsico}>
-              <label style={{
-                display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:12,
-                border:`2px dashed ${form.psicoUrl ? GOLD : "rgba(201,162,39,0.3)"}`,
-                borderRadius:12, padding:"28px 16px", cursor:"pointer",
-                background: form.psicoUrl ? "rgba(201,162,39,0.06)" : "rgba(255,255,255,0.02)",
-                transition:"all .2s",
-              }}>
-                <input type="file" accept=".pdf,image/*" onChange={handlePsicoFile} style={{ display:"none" }} />
-                {uploadingPsico ? (
-                  <>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <span style={{ color:GOLD, fontSize:13, fontWeight:600 }}>Enviando...</span>
-                  </>
-                ) : form.psicoUrl ? (
-                  <>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                    <span style={{ color:"#e8d5a0", fontSize:13, fontWeight:600 }}>✓ {form.psicoFile?.name || "Arquivo enviado"}</span>
-                    <span style={{ color:"#7a6a48", fontSize:11 }}>Toque para trocar o arquivo</span>
-                  </>
-                ) : (
-                  <>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(201,162,39,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <span style={{ color:"#7a6a48", fontSize:13 }}>Toque para selecionar PDF ou imagem</span>
-                  </>
-                )}
-              </label>
-            </ArrastarArquivo>
-            {lendoLaudo && <p style={{ color:GOLD, fontSize:11, margin:"6px 0 0", textAlign:"center" }}>Lendo nome e CPF do laudo...</p>}
-          </div>
           {/* Nome */}
           <div>
             <label style={labelStyle}>Nome completo {!form.nome.trim() && <span style={{ color:"#ef4444" }}>*</span>}</label>
             <input value={form.nome} onChange={e => setForm(f=>({...f, nome:e.target.value.toUpperCase()}))} placeholder="Ex: JOÃO DA SILVA" style={inputStyle} />
+          </div>
+          {/* Telefone */}
+          <div>
+            <label style={labelStyle}>Telefone do cliente {form.telefone.replace(/\D/g, "").length < 10 && <span style={{ color:"#ef4444" }}>* obrigatório pela PF</span>}</label>
+            <input value={form.telefone} onChange={e => setForm(f=>({...f, telefone:maskTel(e.target.value)}))} placeholder="(92) 99999-9999" style={inputStyle} inputMode="tel" />
+            <p style={{ color:"#7a6a48", fontSize:11, margin:"4px 0 0" }}>Número do próprio cliente, não do despachante.</p>
           </div>
           {/* CPF */}
           <div>
@@ -367,12 +302,12 @@ export default function ColaboradorPortal() {
             </div>
           </div>
 
-          <button onClick={salvar} disabled={saving || uploadingPsico} style={{
+          <button onClick={salvar} disabled={saving} style={{
             marginTop:6, padding:12, borderRadius:10, background:GOLD, color:"#0f172a",
             fontWeight:700, fontSize:14, border:"none", cursor: saving ? "not-allowed" : "pointer",
             opacity: saving ? 0.7 : 1, transition:"opacity .2s",
           }}>
-            {uploadingPsico ? "Aguardando upload..." : saving ? "Salvando..." : tela === "novo" ? "Salvar Cadastro" : "Atualizar Cadastro"}
+            {saving ? "Salvando..." : tela === "novo" ? "Salvar Cadastro" : "Atualizar Cadastro"}
           </button>
         </div>
       </div>
@@ -425,6 +360,7 @@ export default function ColaboradorPortal() {
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ color:"#e8d5a0", fontWeight:700, fontSize:14, margin:"0 0 2px", textTransform:"uppercase" }}>{c.nome}</p>
                     {c.cpf && <p style={{ color:"#7a6a48", fontSize:12, margin:"0 0 4px" }}>{c.cpf}</p>}
+                    {c.telefone && <p style={{ color:"#7a6a48", fontSize:12, margin:"0 0 4px" }}>📞 {c.telefone}</p>}
                     {c.cidade && <p style={{ color:"#5a4e38", fontSize:11, margin:"0 0 6px" }}>{[c.endereco, c.numero, c.bairro, c.cidade, c.estado].filter(Boolean).join(", ")}</p>}
                     <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                       {c.tipo_sinarm && c.tipo_sinarm.split(", ").map(t => (

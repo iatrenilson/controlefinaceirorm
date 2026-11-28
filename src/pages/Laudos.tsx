@@ -21,6 +21,7 @@ interface CacCadastro {
   id: string;
   nome: string;
   cpf: string | null;
+  telefone?: string | null;
   endereco: string | null;
   numero: string | null;
   complemento: string | null;
@@ -663,7 +664,7 @@ const Laudos = () => {
   // Carrega e mantém cadastros atualizados em tempo real (os mais recentes primeiro na busca)
   useEffect(() => {
     const carregar = () =>
-      supabase.from("cac_cadastros" as any).select("id,nome,cpf,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas,colaborador_token").order("created_at", { ascending: false })
+      supabase.from("cac_cadastros" as any).select("id,nome,cpf,telefone,endereco,numero,complemento,bairro,cidade,estado,tipo_sinarm,armas,colaborador_token").order("created_at", { ascending: false })
         .then(({ data }) => { if (data) setCadastros(data as unknown as CacCadastro[]); });
 
     carregar();
@@ -890,6 +891,7 @@ const Laudos = () => {
                     >
                       <span className="font-medium">{c.nome.toUpperCase()}</span>
                       {c.cpf && <span className="text-xs text-muted-foreground">{c.cpf}</span>}
+                      {c.telefone && <span className="text-xs text-muted-foreground">📞 {c.telefone}</span>}
                     </button>
                   ))}
                 </div>
