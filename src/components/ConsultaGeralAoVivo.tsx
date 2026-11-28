@@ -73,6 +73,19 @@ export default function ConsultaGeralAoVivo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Parar a consulta geral (2026-11-28, o usuário pediu): tira da fila os pedidos automáticos que ainda não começaram. O
+  // cliente que está sendo consultado agora termina normalmente; os pedidos que os próprios clientes fizeram pelo celular
+  // não são mexidos. No fim chega o resumo no sino só com os que foram consultados.
+  const pararConsultaGeral = async () => {
+    const falta = lote.filter(p => p.status === "pendente").length;
+    if (!falta) return;
+    if (!window.confirm(`Parar a consulta geral? ${falta} cliente(s) que ainda não foram consultados saem da fila.`)) return;
+    const { error } = await supabase.from("pedidos_atualizacao" as any).delete()
+      .eq("automatico", true).eq("status", "pendente");
+    if (error) { window.alert("Não deu para parar: " + error.message); return; }
+    setLote(l => l.filter(p => p.status !== "pendente"));
+  };
+
   if (!aberto || fechado || !lote.length) return null;
   const terminados = lote.filter(p => p.status === "feito" || p.status === "erro");
   const rodando = lote.find(p => p.status === "rodando");
@@ -86,6 +99,12 @@ export default function ConsultaGeralAoVivo() {
         <span className="text-sm font-semibold flex-1">
           {acabou ? "✅ Consulta geral concluída" : "🔎 Consulta geral"} · {terminados.length} de {lote.length}
         </span>
+        {!acabou && (
+          <button className="rounded-md border border-red-400/50 px-2 py-0.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/15"
+            onClick={pararConsultaGeral} title="Tira da fila os clientes que ainda não foram consultados">
+            ⏹ Parar
+          </button>
+        )}
         <button className="text-muted-foreground hover:text-foreground" onClick={() => setMinimizado(m => !m)} title={minimizado ? "Abrir" : "Minimizar"}>
           {minimizado ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
