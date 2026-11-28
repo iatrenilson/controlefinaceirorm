@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import type { ComponentType } from "react";
 import NotificationBell from "@/components/NotificationBell";
+import ConsultaGeralAoVivo from "@/components/ConsultaGeralAoVivo";
 import DigitalClock from "@/components/DigitalClock";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -130,6 +131,7 @@ const ProtectedLayout = () => {
             <DigitalClock />
             <NotificationBell />
           </div>
+          <ConsultaGeralAoVivo />
           <Suspense fallback={<Carregando />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
