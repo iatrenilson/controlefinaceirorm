@@ -4,6 +4,7 @@ import NotificationBell from "@/components/NotificationBell";
 import ConsultaGeralAoVivo from "@/components/ConsultaGeralAoVivo";
 import PassarinhoDesatualizada from "@/components/PassarinhoDesatualizada";
 import PassarinhoDownload from "@/components/PassarinhoDownload";
+import PassarinhoFila from "@/components/PassarinhoFila";
 import DigitalClock from "@/components/DigitalClock";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -126,12 +127,14 @@ const ProtectedLayout = () => {
             <SidebarTrigger />
             <div className="flex items-center gap-3">
               <DigitalClock />
+              <PassarinhoFila />
               <PassarinhoDownload />
               <NotificationBell perguntarAvisos />
             </div>
           </div>
           <div className="hidden lg:flex sticky top-0 z-20 items-center justify-end h-12 border-b bg-card/80 backdrop-blur-sm px-4 gap-4">
             <DigitalClock />
+            <PassarinhoFila />
             <PassarinhoDownload />
             <NotificationBell />
           </div>
